@@ -6,17 +6,15 @@ import {
   TrendingUp,
   Clock,
   ArrowUpRight,
-  CheckCircle,
-  AlertTriangle,
-  Target,
 } from 'lucide-react';
 import {
   GlassCard,
   StatCard,
   CategoryBar,
-  TagPill,
   SectionHeader,
   TimeRangeSelector,
+  InsightCard,
+  RecommendationCard,
   getRubricColor,
 } from '@/views/components/ui';
 import type { TimeRange } from '@/views/components/ui';
@@ -25,8 +23,6 @@ import {
   computeRubricAverages,
   computeInsights,
   computeRecommendations,
-  RECOMMENDATION_GRADIENTS,
-  RECOMMENDATION_ICONS,
 } from '@/lib/analytics';
 
 /* ——— Types ——— */
@@ -307,112 +303,6 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
             </div>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function InsightCard({
-  type,
-  title,
-  body,
-  delay,
-}: {
-  type: 'strength' | 'improve';
-  title: string;
-  body: string;
-  delay: number;
-}) {
-  const isStrength = type === 'strength';
-  const borderColor = isStrength ? '#22c55e' : '#f59e0b';
-  const iconColor = isStrength ? '#22c55e' : '#f59e0b';
-  const Icon = isStrength ? CheckCircle : AlertTriangle;
-
-  return (
-    <div
-      className="rounded-xl p-3 border transition-all duration-200 animate-fade-in-up"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-        borderLeftWidth: 3,
-        borderLeftColor: borderColor,
-        animationDelay: `${480 + delay * 60}ms`,
-        animationFillMode: 'both',
-      }}
-    >
-      <div className="flex items-start gap-2.5">
-        <span className="flex-shrink-0 mt-0.5" style={{ color: iconColor }}>
-          <Icon size={15} />
-        </span>
-        <div>
-          <p
-            className="text-xs font-semibold mb-0.5"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            {title}
-          </p>
-          <p
-            className="text-xs leading-relaxed"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            {body}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RecommendationCard({
-  title,
-  description,
-  tag,
-  delay,
-}: {
-  title: string;
-  description: string;
-  tag: string;
-  delay: number;
-}) {
-  const Icon = RECOMMENDATION_ICONS[tag] ?? Target;
-  const gradient = RECOMMENDATION_GRADIENTS[tag] ?? 'linear-gradient(135deg, #6b7280, #4b5563)';
-  const tagColor = getRubricColor(tag);
-
-  return (
-    <div
-      className="rounded-xl border p-4 flex flex-col gap-3 transition-all duration-200 animate-fade-in-up hover:scale-[1.01]"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-        animationDelay: `${540 + delay * 60}ms`,
-        animationFillMode: 'both',
-      }}
-    >
-      <div className="flex items-center gap-2.5">
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: gradient }}
-        >
-          <Icon size={16} className="text-white" />
-        </div>
-        <h3
-          className="text-sm font-semibold leading-snug"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {title}
-        </h3>
-      </div>
-      <p
-        className="text-xs leading-relaxed"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        {description}
-      </p>
-      <div className="self-start">
-        <TagPill
-          label={tag.charAt(0).toUpperCase() + tag.slice(1)}
-          color={tagColor}
-        />
       </div>
     </div>
   );
