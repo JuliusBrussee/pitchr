@@ -64,6 +64,7 @@ export function computeRubricAverages(runs: RubricRunRecord[]): RubricCategory[]
   }
   return categories.map((id) => {
     const scores = runs
+      .filter((r) => r.analysis.rubric_breakdown)
       .map((r) => r.analysis.rubric_breakdown.find((rb) => rb.category === id))
       .filter(Boolean);
     const avg = scores.length > 0

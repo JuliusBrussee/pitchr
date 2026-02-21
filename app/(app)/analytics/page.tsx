@@ -10,20 +10,11 @@ import {
 import {
   GlassCard,
   StatCard,
-  CategoryBar,
   SectionHeader,
   TimeRangeSelector,
-  InsightCard,
-  RecommendationCard,
-  getRubricColor,
 } from '@/views/components/ui';
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor } from '@/views/components/ui';
-import {
-  computeRubricAverages,
-  computeInsights,
-  computeRecommendations,
-} from '@/lib/analytics';
 
 /* ——— Types ——— */
 
@@ -78,9 +69,6 @@ export default function AnalyticsPage() {
 
   const filteredRuns = useMemo(() => filterByRange(allRuns, range), [allRuns, range]);
   const trendData = useMemo(() => computeTrend(filteredRuns), [filteredRuns]);
-  const rubricCategories = useMemo(() => computeRubricAverages(filteredRuns), [filteredRuns]);
-  const insights = useMemo(() => computeInsights(rubricCategories), [rubricCategories]);
-  const recommendations = useMemo(() => computeRecommendations(rubricCategories), [rubricCategories]);
 
   const avgScore = filteredRuns.length > 0
     ? Math.round(filteredRuns.reduce((s, r) => s + r.overall_score, 0) / filteredRuns.length)
@@ -152,46 +140,6 @@ export default function AnalyticsPage() {
           </span>
         </div>
         <ScoreTrendChart data={trendData} />
-      </GlassCard>
-
-      {/* Two-Column: Rubric Breakdown + Top Insights */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Rubric Breakdown */}
-        <GlassCard animationDelay="360ms">
-          <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
-          <div className="flex flex-col gap-3.5">
-            {rubricCategories.map((cat, i) => (
-              <CategoryBar
-                key={cat.id}
-                label={cat.label}
-                score={cat.score}
-                maxScore={cat.maxScore}
-                color={getRubricColor(cat.id)}
-                delay={i}
-              />
-            ))}
-          </div>
-        </GlassCard>
-
-        {/* Top Insights */}
-        <GlassCard animationDelay="420ms">
-          <SectionHeader className="mb-4">Top Insights</SectionHeader>
-          <div className="flex flex-col gap-3">
-            {insights.map((insight, i) => (
-              <InsightCard key={i} {...insight} delay={i} />
-            ))}
-          </div>
-        </GlassCard>
-      </div>
-
-      {/* Practice Recommendations */}
-      <GlassCard animationDelay="480ms">
-        <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
-        <div className="grid grid-cols-3 gap-4">
-          {recommendations.map((rec, i) => (
-            <RecommendationCard key={i} {...rec} delay={i} />
-          ))}
-        </div>
       </GlassCard>
 
       {/* Bottom spacer */}
