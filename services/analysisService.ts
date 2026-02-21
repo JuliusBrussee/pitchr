@@ -32,6 +32,48 @@ const RUBRIC_CATEGORIES: RubricCategory[] = [
 ];
 
 const FIX_IMPACTS = new Set(['high', 'medium', 'low']);
+const MAX_TOP_FIXES = 5;
+
+const DEFAULT_FIX_LIBRARY: Record<
+  RubricCategory,
+  { issue: string; fix: string; impact: Fix['impact'] }
+> = {
+  structure: {
+    issue:
+      'The flow is hard to follow from problem to ask, so key points lose momentum.',
+    fix:
+      'Use a crisp sequence: problem, solution, traction, market, ask. Keep one sentence per transition.',
+    impact: 'high',
+  },
+  clarity: {
+    issue:
+      'Some lines are too vague or wordy, which weakens clarity for investors.',
+    fix:
+      'Replace broad phrases with concrete, plain statements and cut filler words from each section.',
+    impact: 'medium',
+  },
+  evidence: {
+    issue:
+      'The pitch does not show enough proof points to support major claims.',
+    fix:
+      'Add 2-3 hard metrics (users, revenue, growth, pilot results) in the traction section.',
+    impact: 'high',
+  },
+  market: {
+    issue:
+      'Market and differentiation are not explicit enough to show why this wins.',
+    fix:
+      'State target market size, name key competitors, and explain your specific advantage in one tight block.',
+    impact: 'high',
+  },
+  delivery: {
+    issue:
+      'Delivery language reduces confidence at critical moments of the pitch.',
+    fix:
+      'Tighten phrasing in the opening and close, and remove repeated/filler terms before final delivery.',
+    impact: 'medium',
+  },
+};
 
 function isRubricCategory(value: unknown): value is RubricCategory {
   return typeof value === 'string' && RUBRIC_CATEGORIES.includes(value as RubricCategory);
@@ -107,14 +149,79 @@ function parseJsonPayload(raw: string): unknown {
   }
 }
 
+function normalizeWhitespace(value: string): string {
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function normalizeTopFixes(topFixes: Fix[]): Fix[] {
+  const deduped: Fix[] = [];
+  const seen = new Set<string>();
+
+  for (const fix of topFixes) {
+    const issue = normalizeWhitespace(fix.issue ?? '');
+    const recommendation = normalizeWhitespace(fix.fix ?? '');
+    if (!issue || !recommendation) continue;
+    if (!isRubricCategory(fix.category)) continue;
+
+    const key = `${fix.category}|${issue.toLowerCase()}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    deduped.push({
+      rank: deduped.length + 1,
+      category: fix.category,
+      issue,
+      fix: recommendation,
+      impact: FIX_IMPACTS.has(fix.impact) ? fix.impact : 'medium',
+    });
+  }
+
+  if (deduped.length < MAX_TOP_FIXES) {
+    const categoryCycle: RubricCategory[] = [
+      'evidence',
+      'market',
+      'structure',
+      'clarity',
+      'delivery',
+    ];
+
+    for (const category of categoryCycle) {
+      if (deduped.length >= MAX_TOP_FIXES) break;
+      if (deduped.some((item) => item.category === category)) continue;
+
+      const fallback = DEFAULT_FIX_LIBRARY[category];
+      deduped.push({
+        rank: deduped.length + 1,
+        category,
+        issue: fallback.issue,
+        fix: fallback.fix,
+        impact: fallback.impact,
+      });
+    }
+  }
+
+  return deduped.slice(0, MAX_TOP_FIXES).map((fix, index) => ({
+    ...fix,
+    rank: index + 1,
+  }));
+}
+
+function normalizeAnalysisResult(analysis: AnalysisResult): AnalysisResult {
+  return {
+    ...analysis,
+    top_fixes: normalizeTopFixes(analysis.top_fixes),
+  };
+}
+
 function withInjectedDeliveryMetrics(
   analysis: AnalysisResult,
   deliveryMetrics: DeliveryMetrics,
 ): AnalysisResult {
+  const normalized = normalizeAnalysisResult(analysis);
   return {
-    ...analysis,
+    ...normalized,
     delivery_metrics: deliveryMetrics,
-    rubric_breakdown: analysis.rubric_breakdown.map((item) =>
+    rubric_breakdown: normalized.rubric_breakdown.map((item) =>
       item.category === 'delivery'
         ? {
             ...item,
@@ -225,7 +332,8 @@ export async function analyzePitch({
     };
   }
 
-  const rewritten = await maybeGenerateRewrite(parsed, transcript, mode);
+  const normalized = normalizeAnalysisResult(parsed);
+  const rewritten = await maybeGenerateRewrite(normalized, transcript, mode);
 
   return {
     analysis: withInjectedDeliveryMetrics(rewritten, deliveryMetrics),

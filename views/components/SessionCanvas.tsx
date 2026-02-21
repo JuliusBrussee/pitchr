@@ -27,9 +27,12 @@ interface SessionCanvasProps {
   orbIntensity: number;
   speechBubbles: SpeechBubble[];
   isSessionActive: boolean;
+  hasSessionStarted: boolean;
+  isPaused: boolean;
   isAnalyzing?: boolean;
   onStartSession: () => void;
-  onStopSession: () => void;
+  onPauseSession: () => void;
+  onEndSession: () => void;
 }
 
 export function SessionCanvas({
@@ -42,9 +45,12 @@ export function SessionCanvas({
   orbIntensity,
   speechBubbles,
   isSessionActive,
+  hasSessionStarted,
+  isPaused,
   isAnalyzing = false,
   onStartSession,
-  onStopSession,
+  onPauseSession,
+  onEndSession,
 }: SessionCanvasProps) {
   const [focusMode, setFocusMode] = useState<'slides' | 'camera'>('slides');
 
@@ -133,7 +139,7 @@ export function SessionCanvas({
           {isSessionActive ? (
             <ControlButton
               icon={Pause}
-              onClick={onStopSession}
+              onClick={onPauseSession}
               label="Pause session"
               primary
               disabled={isAnalyzing}
@@ -142,16 +148,16 @@ export function SessionCanvas({
             <ControlButton
               icon={Play}
               onClick={onStartSession}
-              label={isAnalyzing ? 'Analyzing pitch' : 'Start session'}
+              label={isAnalyzing ? 'Analyzing pitch' : isPaused ? 'Resume session' : 'Start session'}
               primary
               disabled={isAnalyzing}
             />
           )}
-          {isSessionActive && (
+          {hasSessionStarted && (
             <ControlButton
               icon={Square}
-              onClick={onStopSession}
-              label="Stop session"
+              onClick={onEndSession}
+              label="End session"
               danger
               disabled={isAnalyzing}
             />
