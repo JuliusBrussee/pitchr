@@ -324,3 +324,70 @@
   mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
   -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
 }
+
+/* ——— Run Detail Modal ——— */
+
+.rdm-backdrop-enter {
+  animation: rdm-fade-in 0.25s ease-out both;
+}
+
+.rdm-backdrop-exit {
+  animation: rdm-fade-out 0.2s ease-in both;
+}
+
+.rdm-panel-enter {
+  animation: rdm-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.rdm-panel-exit {
+  animation: rdm-slide-down 0.2s ease-in both;
+}
+
+@keyframes rdm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rdm-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes rdm-slide-up {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes rdm-slide-down {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(16px) scale(0.97); }
+}
+
+/* Animated score ring */
+.rdm-score-ring {
+  animation: rdm-ring-fill 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+@keyframes rdm-ring-fill {
+  from { stroke-dashoffset: 326.73; }
+  to { stroke-dashoffset: var(--ring-offset); }
+}
+
+/* Rubric row stagger */
+.rdm-rubric-row {
+  animation: rdm-fade-in 0.35s ease-out both;
+  animation-delay: var(--rdm-stagger, 0ms);
+}
+
+/* Rubric bar fill animation */
+.rdm-bar-fill {
+  width: var(--bar-width);
+  background-color: var(--bar-color);
+  animation: rdm-bar-grow 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--rdm-stagger, 0ms);
+}
+
+@keyframes rdm-bar-grow {
+  from { width: 0; }
+  to { width: var(--bar-width); }
+}
