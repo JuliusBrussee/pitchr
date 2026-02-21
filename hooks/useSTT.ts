@@ -267,8 +267,18 @@ export function useSTT(): UseSTTReturn {
         setLiveText(msg.text);
         return;
       }
-      if (type === 'committed_transcript_with_timestamps' && msg.text != null) {
-        setTranscriptSegments((prev) => [...prev, msg.text!]);
+      if ((type === 'committed_transcript_with_timestamps' || type === 'committed_transcript') && msg.text != null) {
+        const nextText = msg.text.trim();
+        if (!nextText) return;
+        setTranscriptSegments((prev) => {
+          if (prev.length === 0) return [nextText];
+          const last = prev[prev.length - 1];
+          if (last === nextText) return prev;
+          if (nextText.startsWith(last) && nextText.length > last.length) {
+            return [...prev.slice(0, -1), nextText];
+          }
+          return [...prev, nextText];
+        });
         setLiveText('');
         return;
       }

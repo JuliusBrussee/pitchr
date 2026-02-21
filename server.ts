@@ -2,13 +2,15 @@
  * Realtime STT proxy: serves static frontend and relays browser audio to ElevenLabs over WebSocket.
  * API key stays server-side; client connects to this server only.
  */
-import "dotenv/config";
+import dotenv from "dotenv";
 import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 import fs from "node:fs";
 import WebSocket, { WebSocketServer } from "ws";
+
+dotenv.config({ path: ".env.local" });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -162,11 +164,18 @@ wss.on("connection", (clientWs) => {
       return;
     }
     forwardToClient(msg);
-    if (msg.message_type === "committed_transcript_with_timestamps" && msg.text) {
+    const isCommitted =
+      msg.message_type === "committed_transcript_with_timestamps" ||
+      msg.message_type === "committed_transcript";
+
+    if (isCommitted && msg.text) {
       const lastText = segments.length > 0 ? segments[segments.length - 1].text : null;
       const words = msg.words ?? [];
-      const start = words.length ? Math.min(...words.map((w) => w.start ?? 0)) : 0;
-      const end = words.length ? Math.max(...words.map((w) => w.end ?? 0)) : 0;
+      const lastEnd = segments.length > 0 ? segments[segments.length - 1].end : 0;
+      const start = words.length ? Math.min(...words.map((w) => w.start ?? 0)) : lastEnd;
+      const end = words.length
+        ? Math.max(...words.map((w) => w.end ?? 0))
+        : start + Math.max(msg.text.trim().split(/\s+/).length * 0.28, 0.25);
 
       if (segments.length > 0 && lastText === msg.text) return;
 
