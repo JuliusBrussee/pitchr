@@ -9,6 +9,7 @@
   const errorEl = document.getElementById("error");
   const liveEl = document.getElementById("live");
   const transcriptEl = document.getElementById("transcript");
+  const savedEl = document.getElementById("saved");
 
   let audioContext = null;
   let stream = null;
@@ -24,10 +25,14 @@
     liveEl.textContent = text || "";
   }
 
-  function appendTranscript(text, isFinal) {
+  function setSaved(msg) {
+    if (savedEl) savedEl.textContent = msg || "";
+  }
+
+  function appendTranscript(text) {
     if (!text) return;
     const span = document.createElement("span");
-    span.className = isFinal ? "final-line" : "";
+    span.className = "final-line";
     span.textContent = text;
     transcriptEl.appendChild(span);
   }
@@ -76,31 +81,25 @@
     );
   }
 
-  function stopRecording() {
+  function stopMic() {
     if (processor) {
-      try {
-        processor.disconnect();
-      } catch (_) {}
+      try { processor.disconnect(); } catch (_) {}
       processor = null;
     }
     if (source) {
-      try {
-        source.disconnect();
-      } catch (_) {}
+      try { source.disconnect(); } catch (_) {}
       source = null;
     }
     if (stream) {
-      stream.getTracks().forEach(function (t) {
-        t.stop();
-      });
+      stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
     }
-    sendChunk("", true);
-    if (ws) {
-      try {
-        ws.close();
-      } catch (_) {}
-      ws = null;
+  }
+
+  function stopRecording() {
+    stopMic();
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "stop" }));
     }
     startBtn.disabled = false;
     stopBtn.disabled = true;
@@ -111,7 +110,15 @@
     let msg;
     try {
       msg = JSON.parse(event.data);
-    } catch (_) {
+    } catch {
+      return;
+    }
+    if (msg.type === "saved") {
+      setSaved("Saved to transcript.txt and transcript.json");
+      return;
+    }
+    if (msg.type === "error") {
+      setError(msg.error || "Error");
       return;
     }
     const type = msg.message_type;
@@ -119,13 +126,11 @@
       setLive(msg.text);
       return;
     }
-    if (type === "committed_transcript" && msg.text != null) {
-      appendTranscript(msg.text, true);
-      setLive("");
-      return;
-    }
+    // Only append from committed_transcript_with_timestamps; ElevenLabs often sends both
+    // committed_transcript and committed_transcript_with_timestamps for the same phrase
+    // (e.g. on final commit when stopping), which would duplicate text in the UI.
     if (type === "committed_transcript_with_timestamps" && msg.text != null) {
-      appendTranscript(msg.text, true);
+      appendTranscript(msg.text);
       setLive("");
       return;
     }
@@ -137,30 +142,12 @@
   startBtn.addEventListener("click", async function () {
     setError("");
     setLive("");
+    setSaved("");
     transcriptEl.innerHTML = "";
     startBtn.disabled = true;
 
-    let token;
-    try {
-      const res = await fetch("/api/token", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Could not get token.");
-        startBtn.disabled = false;
-        return;
-      }
-      token = data.token;
-    } catch (e) {
-      setError("Network error: " + (e.message || "failed"));
-      startBtn.disabled = false;
-      return;
-    }
-
-    if (!token) {
-      setError("No token returned.");
-      startBtn.disabled = false;
-      return;
-    }
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = protocol + "//" + window.location.host + "/ws";
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -170,21 +157,11 @@
       return;
     }
 
-    const params = new URLSearchParams({
-      token: token,
-      model_id: "scribe_v2_realtime",
-      audio_format: "pcm_16000",
-      include_timestamps: "true",
-    });
-    const wsUrl = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?" + params.toString();
-
     try {
       ws = new WebSocket(wsUrl);
     } catch (e) {
       setError("WebSocket error: " + (e.message || "failed"));
-      stream.getTracks().forEach(function (t) {
-        t.stop();
-      });
+      stream.getTracks().forEach(function (t) { t.stop(); });
       startBtn.disabled = false;
       return;
     }
@@ -193,7 +170,11 @@
       setError("WebSocket error.");
     };
     ws.onclose = function () {
-      stopRecording();
+      stopMic();
+      ws = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      setLive("");
     };
     ws.onmessage = handleMessage;
 
