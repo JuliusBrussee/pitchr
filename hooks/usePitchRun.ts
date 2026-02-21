@@ -64,6 +64,7 @@ export function usePitchRun(): UsePitchRunReturn {
           audioUrl: input.audioUrl,
           analysis: success.analysis,
           overallScore: success.analysis.overall_score,
+          fallback: success.fallback ?? false,
         };
         saveRun(run);
 
