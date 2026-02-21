@@ -288,14 +288,14 @@ export default function DashboardPage() {
                               style={{ color: 'var(--text-muted)' }}
                             >
                               <Timer size={11} />
-                              {formatDuration(run.analysis.delivery_metrics.duration_seconds)}
+                              {formatDuration(run.analysis.delivery_metrics?.duration_seconds ?? 0)}
                             </span>
                           </div>
                           <p
                             className="text-sm truncate leading-snug"
                             style={{ color: 'var(--text-secondary)' }}
                           >
-                            {run.analysis.one_line_verdict}
+                            {run.analysis?.one_line_verdict ?? 'Pitch analysis'}
                           </p>
                         </div>
                         <div className="flex items-center gap-3 ml-4 flex-shrink-0">

@@ -73,8 +73,9 @@ export default function AnalyticsPage() {
   const avgScore = filteredRuns.length > 0
     ? Math.round(filteredRuns.reduce((s, r) => s + r.overall_score, 0) / filteredRuns.length)
     : 0;
-  const avgDurationSecs = filteredRuns.length > 0
-    ? Math.round(filteredRuns.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / filteredRuns.length)
+  const runsWithDuration = filteredRuns.filter((r) => r.analysis.delivery_metrics?.duration_seconds != null);
+  const avgDurationSecs = runsWithDuration.length > 0
+    ? Math.round(runsWithDuration.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / runsWithDuration.length)
     : 0;
   const avgDurationStr = `${Math.floor(avgDurationSecs / 60)}:${(avgDurationSecs % 60).toString().padStart(2, '0')}`;
 
