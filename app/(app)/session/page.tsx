@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
-import { AppSidebar } from '@/views/components/AppSidebar';
+import { useEffect, useCallback } from 'react';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
 import { useSessionState } from '@/hooks/useSessionState';
 import { useTheme } from '@/views/components/ThemeProvider';
+import { useSidebarSession } from '@/views/components/SidebarContext';
 
 export default function SessionPage() {
   const media = useMediaStream();
@@ -18,20 +18,19 @@ export default function SessionPage() {
     setOrbState(session.orbState);
   }, [session.orbState, setOrbState]);
 
-  const handleSessionToggle = () => {
+  const handleSessionToggle = useCallback(() => {
     if (session.isSessionActive) {
       session.stopSession();
     } else {
       session.startSession();
     }
-  };
+  }, [session]);
+
+  // Register session controls with the shared sidebar
+  useSidebarSession(handleSessionToggle, session.isSessionActive);
 
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar
-        onStartSession={handleSessionToggle}
-        isSessionActive={session.isSessionActive}
-      />
+    <>
       <SessionCanvas
         stream={media.stream}
         isCameraOn={media.isCameraOn}
@@ -51,6 +50,6 @@ export default function SessionPage() {
         insights={session.insights}
         isSessionActive={session.isSessionActive}
       />
-    </div>
+    </>
   );
 }

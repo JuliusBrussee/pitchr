@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { AppSidebar } from '@/views/components/AppSidebar';
 import {
   Flame,
   TrendingUp,
@@ -95,10 +94,6 @@ const randomTip = PITCH_TIPS[Math.floor(Math.random() * PITCH_TIPS.length)];
 
 export default function DashboardPage() {
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar />
-
-      {/* Main content area */}
       <main
         className="flex-1 overflow-y-auto rounded-2xl border p-8"
         style={{
@@ -351,6 +346,5 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }

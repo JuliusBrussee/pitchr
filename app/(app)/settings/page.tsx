@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { AppSidebar } from '@/views/components/AppSidebar';
 import {
   User,
   Camera,
@@ -193,10 +192,6 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar />
-
-      {/* Content */}
       <main className="flex-1 overflow-y-auto pr-1">
         <div className="max-w-2xl mx-auto py-8 px-2">
           {/* Header */}
@@ -588,6 +583,5 @@ export default function SettingsPage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }
