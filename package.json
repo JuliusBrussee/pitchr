@@ -27,6 +27,7 @@
     "next": "^15.0.3",
     "node-record-lpcm16": "^1.0.1",
     "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.4.624",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.169.0",

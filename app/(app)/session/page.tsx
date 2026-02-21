@@ -50,6 +50,8 @@ export default function SessionPage() {
     nextSlide,
     prevSlide,
     renderSlideToCanvas,
+    isLoading: isLoadingPdf,
+    error: pdfError,
   } = useDeckSlides(selectedDeck?.pdf_url ?? null);
 
   // Keyboard shortcuts for slide navigation
@@ -134,6 +136,8 @@ export default function SessionPage() {
         selectedDeckId={selectedDeckId}
         onSelectDeck={setSelectedDeckId}
         isLoadingDecks={isLoadingDecks}
+        isLoadingPdf={isLoadingPdf}
+        pdfError={pdfError}
       />
       <MetricsPanel
         metrics={session.metrics}
