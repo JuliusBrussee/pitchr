@@ -6,6 +6,7 @@ import {
   FaceLandmarker,
   FilesetResolver,
   type FaceLandmarkerResult,
+  type Matrix,
 } from "@mediapipe/tasks-vision";
 
 export type HeadTrackingState = "facing" | "away" | "down" | "no_face";
@@ -14,10 +15,15 @@ export interface HeadTrackingMetrics {
   state: HeadTrackingState;
   yaw: number;
   pitch: number;
+  roll: number;
   facingPct: number;
   awayPct: number;
   downPct: number;
   engagementScore: number;
+  isCalibrated: boolean;
+  inferenceMs?: number;
+  effectiveInferIntervalMs?: number;
+  fps?: number;
 }
 
 export interface UseHeadTrackingOptions {
@@ -25,6 +31,8 @@ export interface UseHeadTrackingOptions {
   canvasRef?: RefObject<HTMLCanvasElement | null>;
   debug?: boolean;
   autoStart?: boolean;
+  stream?: MediaStream | null;
+  enabled?: boolean;
 }
 
 interface RollingSample {
@@ -32,32 +40,77 @@ interface RollingSample {
   state: HeadTrackingState;
 }
 
+interface PoseEstimate {
+  yaw: number;
+  pitch: number;
+  roll: number;
+}
+
+interface CalibrationState {
+  startTs: number;
+  sampleCount: number;
+  sumYaw: number;
+  sumPitch: number;
+  sumRoll: number;
+  yaw0: number;
+  pitch0: number;
+  roll0: number;
+  isCalibrated: boolean;
+}
+
+interface PerformanceState {
+  inferenceMs: number;
+  fps: number;
+  prevVideoTsMs: number;
+}
+
+interface RollingWindowState {
+  samples: RollingSample[];
+  head: number;
+  counts: Record<HeadTrackingState, number>;
+}
+
 const TRACKING_WINDOW_MS = 60_000;
-const INFER_INTERVAL_DEFAULT_MS = 33;
-const INFER_INTERVAL_MAX_MS = 50;
-const INFER_INTERVAL_STEP_MS = 5;
+const CALIBRATION_DURATION_MS = 2_000;
+const MIN_CALIBRATION_SAMPLES = 20;
+const CALIBRATION_STABILITY_YAW_DEG = 25;
+const CALIBRATION_STABILITY_PITCH_DEG = 20;
+
+const INFER_INTERVAL_DEFAULT_MS = 14;
+const INFER_INTERVAL_MAX_MS = 33;
+const INFER_INTERVAL_STEP_MS = 3;
 const INFER_SAMPLES_WINDOW = 20;
-const SLOW_INFER_MS = 28;
-const RECOVER_INFER_MS = 20;
-const UI_INTERVAL_MS = 120;
+const SLOW_INFER_MS = 14;
+const RECOVER_INFER_MS = 9;
+
+const UI_INTERVAL_MS = 60;
 const METRIC_EPS = 0.002;
 const MIN_VIDEO_TIME_STEP_MS = 0.5;
+const NO_FACE_GRACE_MS = 220;
+const STATE_DWELL_MS = 120;
 
 const THRESH = {
-  YAW_AWAY: 0.18,
-  PITCH_DOWN: 0.12,
-  EMA_ALPHA: 0.25,
-  ENGAGEMENT_ALPHA: 0.2,
+  AWAY_ENTER_DEG: 18,
+  AWAY_EXIT_DEG: 13,
+  DOWN_ENTER_DEG: 16,
+  DOWN_EXIT_DEG: 11,
+  POSE_EMA_ALPHA: 0.45,
+  ENGAGEMENT_ALPHA: 0.3,
 };
 
 const INITIAL_METRICS: HeadTrackingMetrics = {
   state: "no_face",
   yaw: 0,
   pitch: 0,
+  roll: 0,
   facingPct: 0,
   awayPct: 0,
   downPct: 0,
   engagementScore: 100,
+  isCalibrated: false,
+  inferenceMs: 0,
+  effectiveInferIntervalMs: INFER_INTERVAL_DEFAULT_MS,
+  fps: 0,
 };
 
 let filesetResolverPromise: ReturnType<typeof FilesetResolver.forVisionTasks> | null = null;
@@ -84,37 +137,194 @@ function resolveHeadTrackingDebugFlag() {
   return envDebug;
 }
 
-function clampScore(value: number) {
-  return Math.max(0, Math.min(100, value));
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
 
-async function createFaceLandmarkerWithFallback(filesetResolver: Awaited<ReturnType<typeof getFilesetResolver>>) {
-  const baseOptions = {
-    modelAssetPath:
-      "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
-  };
+function clampScore(value: number) {
+  return clamp(value, 0, 100);
+}
 
-  const commonOptions = {
-    outputFaceBlendshapes: false,
-    outputFacialTransformationMatrixes: false,
-    runningMode: "VIDEO" as const,
-    numFaces: 1,
-    minFaceDetectionConfidence: 0.35,
-    minFacePresenceConfidence: 0.35,
-    minTrackingConfidence: 0.35,
-  };
+function radToDeg(value: number) {
+  return (value * 180) / Math.PI;
+}
 
-  try {
-    return await FaceLandmarker.createFromOptions(filesetResolver, {
-      baseOptions: { ...baseOptions, delegate: "GPU" },
-      ...commonOptions,
-    });
-  } catch {
-    return FaceLandmarker.createFromOptions(filesetResolver, {
-      baseOptions: { ...baseOptions, delegate: "CPU" },
-      ...commonOptions,
-    });
+function newCalibrationState(): CalibrationState {
+  return {
+    startTs: 0,
+    sampleCount: 0,
+    sumYaw: 0,
+    sumPitch: 0,
+    sumRoll: 0,
+    yaw0: 0,
+    pitch0: 0,
+    roll0: 0,
+    isCalibrated: false,
+  };
+}
+
+function newRollingWindowState(): RollingWindowState {
+  return {
+    samples: [],
+    head: 0,
+    counts: {
+      facing: 0,
+      away: 0,
+      down: 0,
+      no_face: 0,
+    },
+  };
+}
+
+function resetRollingWindowState(state: RollingWindowState) {
+  state.samples = [];
+  state.head = 0;
+  state.counts.facing = 0;
+  state.counts.away = 0;
+  state.counts.down = 0;
+  state.counts.no_face = 0;
+}
+
+function pushRollingSample(window: RollingWindowState, sample: RollingSample) {
+  window.samples.push(sample);
+  window.counts[sample.state] += 1;
+}
+
+function evictOldRollingSamples(window: RollingWindowState, now: number) {
+  const windowStart = now - TRACKING_WINDOW_MS;
+
+  while (window.head < window.samples.length && window.samples[window.head].ts < windowStart) {
+    const expired = window.samples[window.head];
+    window.counts[expired.state] = Math.max(0, window.counts[expired.state] - 1);
+    window.head += 1;
   }
+
+  if (window.head > 1024 && window.head * 2 > window.samples.length) {
+    window.samples = window.samples.slice(window.head);
+    window.head = 0;
+  }
+}
+
+function rollingPercentages(window: RollingWindowState) {
+  const denom = window.counts.facing + window.counts.away + window.counts.down;
+  if (!denom) return { facingPct: 0, awayPct: 0, downPct: 0 };
+
+  return {
+    facingPct: Math.round((window.counts.facing / denom) * 100),
+    awayPct: Math.round((window.counts.away / denom) * 100),
+    downPct: Math.round((window.counts.down / denom) * 100),
+  };
+}
+
+function approxSameMetrics(a: HeadTrackingMetrics, b: HeadTrackingMetrics) {
+  return (
+    a.state === b.state &&
+    a.isCalibrated === b.isCalibrated &&
+    Math.abs(a.yaw - b.yaw) < METRIC_EPS &&
+    Math.abs(a.pitch - b.pitch) < METRIC_EPS &&
+    Math.abs(a.roll - b.roll) < METRIC_EPS &&
+    a.facingPct === b.facingPct &&
+    a.awayPct === b.awayPct &&
+    a.downPct === b.downPct &&
+    Math.abs(a.engagementScore - b.engagementScore) < 1 &&
+    Math.abs((a.inferenceMs ?? 0) - (b.inferenceMs ?? 0)) < 1 &&
+    Math.abs((a.fps ?? 0) - (b.fps ?? 0)) < 0.8 &&
+    Math.abs((a.effectiveInferIntervalMs ?? 0) - (b.effectiveInferIntervalMs ?? 0)) < 1
+  );
+}
+
+function matrixToPoseDegrees(matrix: Matrix | undefined): PoseEstimate | null {
+  if (!matrix || matrix.data.length < 12) return null;
+
+  const m = matrix.data;
+  const r00 = m[0];
+  const r01 = m[1];
+  const r02 = m[2];
+  const r20 = m[8];
+  const r21 = m[9];
+  const r22 = m[10];
+
+  const pitch = Math.asin(clamp(-r21, -1, 1));
+
+  let yaw: number;
+  let roll: number;
+
+  if (Math.abs(r21) < 0.99999) {
+    yaw = Math.atan2(r20, r22);
+    roll = Math.atan2(r01, r00);
+  } else {
+    yaw = Math.atan2(-r02, r00);
+    roll = 0;
+  }
+
+  return {
+    yaw: radToDeg(yaw),
+    pitch: radToDeg(pitch),
+    roll: radToDeg(roll),
+  };
+}
+
+function heuristicPoseDegrees(result: FaceLandmarkerResult): PoseEstimate | null {
+  const lm = result.faceLandmarks?.[0];
+  if (!lm || lm.length < 264) return null;
+
+  const nose = lm[1];
+  const leftEyeOuter = lm[33];
+  const rightEyeOuter = lm[263];
+  const chin = lm[152];
+  const forehead = lm[10];
+
+  const dLeft = Math.abs(nose.x - leftEyeOuter.x);
+  const dRight = Math.abs(rightEyeOuter.x - nose.x);
+  const denom = dLeft + dRight + 1e-6;
+  const yawProxy = (dRight - dLeft) / denom;
+
+  const faceHeight = Math.abs(chin.y - forehead.y) + 1e-6;
+  const noseRel = (nose.y - forehead.y) / faceHeight;
+  const pitchProxy = noseRel - 0.52;
+
+  const rollRad = Math.atan2(rightEyeOuter.y - leftEyeOuter.y, rightEyeOuter.x - leftEyeOuter.x);
+
+  return {
+    yaw: yawProxy * 58,
+    pitch: pitchProxy * 72,
+    roll: -radToDeg(rollRad),
+  };
+}
+
+function bestPoseEstimate(result: FaceLandmarkerResult): PoseEstimate | null {
+  const fromMatrix = matrixToPoseDegrees(result.facialTransformationMatrixes?.[0]);
+  const fromHeuristic = heuristicPoseDegrees(result);
+
+  if (fromMatrix && fromHeuristic) {
+    return {
+      yaw: fromMatrix.yaw,
+      pitch: Math.abs(fromMatrix.pitch) * Math.sign(fromHeuristic.pitch || 1),
+      roll: fromMatrix.roll,
+    };
+  }
+
+  return fromMatrix ?? fromHeuristic;
+}
+
+function classifyTargetState(yawDeg: number, pitchDeg: number, currentState: HeadTrackingState): HeadTrackingState {
+  const absYaw = Math.abs(yawDeg);
+
+  if (currentState === "no_face" || currentState === "facing") {
+    if (pitchDeg >= THRESH.DOWN_ENTER_DEG) return "down";
+    if (absYaw >= THRESH.AWAY_ENTER_DEG) return "away";
+    return "facing";
+  }
+
+  if (currentState === "down") {
+    if (pitchDeg >= THRESH.DOWN_EXIT_DEG) return "down";
+    if (absYaw >= THRESH.AWAY_ENTER_DEG) return "away";
+    return "facing";
+  }
+
+  if (pitchDeg >= THRESH.DOWN_ENTER_DEG) return "down";
+  if (absYaw >= THRESH.AWAY_EXIT_DEG) return "away";
+  return "facing";
 }
 
 function ensureCanvasSize(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
@@ -135,47 +345,77 @@ function ensureCanvasSize(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
   return resized;
 }
 
-function approxSameMetrics(a: HeadTrackingMetrics, b: HeadTrackingMetrics) {
-  return (
-    a.state === b.state &&
-    Math.abs(a.yaw - b.yaw) < METRIC_EPS &&
-    Math.abs(a.pitch - b.pitch) < METRIC_EPS &&
-    a.facingPct === b.facingPct &&
-    a.awayPct === b.awayPct &&
-    a.downPct === b.downPct &&
-    Math.abs(a.engagementScore - b.engagementScore) < 1
-  );
+async function createFaceLandmarkerWithFallback(filesetResolver: Awaited<ReturnType<typeof getFilesetResolver>>) {
+  const baseOptions = {
+    modelAssetPath:
+      "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+  };
+
+  const commonOptions = {
+    outputFaceBlendshapes: false,
+    outputFacialTransformationMatrixes: true,
+    runningMode: "VIDEO" as const,
+    numFaces: 1,
+    minFaceDetectionConfidence: 0.35,
+    minFacePresenceConfidence: 0.35,
+    minTrackingConfidence: 0.35,
+  };
+
+  try {
+    return await FaceLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: { ...baseOptions, delegate: "GPU" },
+      ...commonOptions,
+    });
+  } catch {
+    return FaceLandmarker.createFromOptions(filesetResolver, {
+      baseOptions: { ...baseOptions, delegate: "CPU" },
+      ...commonOptions,
+    });
+  }
 }
 
-function getRollingPercentages(samples: RollingSample[], now: number) {
-  // Keep only the last 60 seconds to compute true rolling percentages.
-  const windowStart = now - TRACKING_WINDOW_MS;
-  while (samples.length && samples[0].ts < windowStart) {
-    samples.shift();
+async function waitForVideoReady(video: HTMLVideoElement) {
+  await new Promise<void>((resolve) => {
+    if (video.readyState >= 1) {
+      resolve();
+      return;
+    }
+
+    const onLoadedMetadata = () => {
+      video.removeEventListener("loadedmetadata", onLoadedMetadata);
+      resolve();
+    };
+
+    video.addEventListener("loadedmetadata", onLoadedMetadata);
+  });
+
+  try {
+    await video.play();
+  } catch {
+    // Ignore autoplay blocks; frame loop will retry once browser allows playback.
   }
 
-  let facing = 0;
-  let away = 0;
-  let down = 0;
-
-  for (const sample of samples) {
-    if (sample.state === "facing") facing += 1;
-    if (sample.state === "away") away += 1;
-    if (sample.state === "down") down += 1;
-  }
-
-  const denom = facing + away + down;
-  if (!denom) return { facingPct: 0, awayPct: 0, downPct: 0 };
-
-  return {
-    facingPct: Math.round((facing / denom) * 100),
-    awayPct: Math.round((away / denom) * 100),
-    downPct: Math.round((down / denom) * 100),
-  };
+  await new Promise<void>((resolve) => {
+    const waitForDimensions = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        resolve();
+        return;
+      }
+      requestAnimationFrame(waitForDimensions);
+    };
+    waitForDimensions();
+  });
 }
 
 export function useHeadTracking(options: UseHeadTrackingOptions) {
-  const { videoRef, canvasRef, autoStart = true, debug: debugOption } = options;
+  const {
+    videoRef,
+    canvasRef,
+    autoStart = true,
+    debug: debugOption,
+    stream: externalStream,
+    enabled = true,
+  } = options;
 
   const debugEnabled = useMemo(
     () => (typeof debugOption === "boolean" ? debugOption : resolveHeadTrackingDebugFlag()),
@@ -189,12 +429,14 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
   const runningRef = useRef(false);
   const rafRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const ownsStreamRef = useRef(false);
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
 
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
   const drawingUtilsRef = useRef<DrawingUtils | null>(null);
 
-  const emaRef = useRef({ yaw: 0, pitch: 0, engagement: 100, hasPose: false, hasEngagement: false });
+  const poseEmaRef = useRef({ yaw: 0, pitch: 0, roll: 0, hasPose: false });
+  const engagementEmaRef = useRef({ value: 100, hasValue: false });
   const inferIntervalMsRef = useRef(INFER_INTERVAL_DEFAULT_MS);
   const lastInferTsRef = useRef(0);
   const lastVideoTsMsRef = useRef(-1);
@@ -202,9 +444,23 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
   const lastResultsRef = useRef<FaceLandmarkerResult | null>(null);
   const hasFreshResultsRef = useRef(false);
 
+  const performanceRef = useRef<PerformanceState>({
+    inferenceMs: 0,
+    fps: 0,
+    prevVideoTsMs: -1,
+  });
+
+  const calibrationRef = useRef<CalibrationState>(newCalibrationState());
+  const rollingWindowRef = useRef<RollingWindowState>(newRollingWindowState());
   const lastUiUpdateTsRef = useRef(0);
   const lastPublishedRef = useRef<HeadTrackingMetrics>(INITIAL_METRICS);
-  const rollingSamplesRef = useRef<RollingSample[]>([]);
+
+  const committedStateRef = useRef<HeadTrackingState>("no_face");
+  const pendingTransitionRef = useRef<{ state: HeadTrackingState | null; since: number }>({
+    state: null,
+    since: 0,
+  });
+  const lastFaceSeenTsRef = useRef(-Infinity);
 
   const stop = useCallback(() => {
     runningRef.current = false;
@@ -220,10 +476,11 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
       landmarkerRef.current = null;
     }
 
-    if (streamRef.current) {
+    if (streamRef.current && ownsStreamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
     }
+    streamRef.current = null;
+    ownsStreamRef.current = false;
 
     const canvas = canvasRef?.current;
     if (canvas && ctxRef.current) {
@@ -236,15 +493,31 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
     hasFreshResultsRef.current = false;
     inferSamplesRef.current = [];
     lastVideoTsMsRef.current = -1;
-    rollingSamplesRef.current = [];
-    emaRef.current = { yaw: 0, pitch: 0, engagement: 100, hasPose: false, hasEngagement: false };
+    lastInferTsRef.current = 0;
+    inferIntervalMsRef.current = INFER_INTERVAL_DEFAULT_MS;
+
+    performanceRef.current = {
+      inferenceMs: 0,
+      fps: 0,
+      prevVideoTsMs: -1,
+    };
+
+    calibrationRef.current = newCalibrationState();
+    resetRollingWindowState(rollingWindowRef.current);
+
+    poseEmaRef.current = { yaw: 0, pitch: 0, roll: 0, hasPose: false };
+    engagementEmaRef.current = { value: 100, hasValue: false };
+    committedStateRef.current = "no_face";
+    pendingTransitionRef.current = { state: null, since: 0 };
+    lastFaceSeenTsRef.current = -Infinity;
+
     setMetrics(INITIAL_METRICS);
     lastPublishedRef.current = INITIAL_METRICS;
   }, [canvasRef]);
 
   const publishMetrics = useCallback((now: number, next: HeadTrackingMetrics) => {
     const last = lastPublishedRef.current;
-    const forced = next.state !== last.state;
+    const forced = next.state !== last.state || next.isCalibrated !== last.isCalibrated;
 
     if (!forced && now - lastUiUpdateTsRef.current < UI_INTERVAL_MS) return;
     if (!forced && approxSameMetrics(last, next)) return;
@@ -268,6 +541,27 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
     }
   }, []);
 
+  const applyStateDwell = useCallback((targetState: HeadTrackingState, now: number) => {
+    const currentState = committedStateRef.current;
+    if (targetState === currentState) {
+      pendingTransitionRef.current = { state: null, since: 0 };
+      return currentState;
+    }
+
+    if (pendingTransitionRef.current.state !== targetState) {
+      pendingTransitionRef.current = { state: targetState, since: now };
+      return currentState;
+    }
+
+    if (now - pendingTransitionRef.current.since >= STATE_DWELL_MS) {
+      committedStateRef.current = targetState;
+      pendingTransitionRef.current = { state: null, since: 0 };
+      return targetState;
+    }
+
+    return currentState;
+  }, []);
+
   const start = useCallback(async () => {
     if (runningRef.current) return;
 
@@ -281,38 +575,37 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
     setMetrics(INITIAL_METRICS);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: false,
-      });
+      let streamToUse: MediaStream | null = externalStream ?? null;
+      let ownsStream = false;
 
-      if (runningRef.current) {
-        stream.getTracks().forEach((track) => track.stop());
+      if (!streamToUse) {
+        streamToUse = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false,
+        });
+        ownsStream = true;
+      }
+
+      if (!streamToUse) {
+        setError("No video stream available for head tracking");
         return;
       }
 
-      streamRef.current = stream;
-      video.srcObject = stream;
-
-      await new Promise<void>((resolve) => {
-        if (video.readyState >= 1) {
-          resolve();
-          return;
+      if (runningRef.current) {
+        if (ownsStream) {
+          streamToUse.getTracks().forEach((track) => track.stop());
         }
-        video.onloadedmetadata = () => resolve();
-      });
-      await video.play();
+        return;
+      }
 
-      await new Promise<void>((resolve) => {
-        const waitForDimensions = () => {
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-            resolve();
-            return;
-          }
-          requestAnimationFrame(waitForDimensions);
-        };
-        waitForDimensions();
-      });
+      streamRef.current = streamToUse;
+      ownsStreamRef.current = ownsStream;
+
+      if (video.srcObject !== streamToUse) {
+        video.srcObject = streamToUse;
+      }
+
+      await waitForVideoReady(video);
 
       if (debugEnabled && canvasRef?.current) {
         const ctx = canvasRef.current.getContext("2d");
@@ -327,6 +620,9 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
       if (runningRef.current) {
         landmarker.close();
+        if (ownsStream) {
+          streamToUse.getTracks().forEach((track) => track.stop());
+        }
         return;
       }
 
@@ -337,12 +633,25 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
       inferIntervalMsRef.current = INFER_INTERVAL_DEFAULT_MS;
       lastInferTsRef.current = 0;
       lastVideoTsMsRef.current = -1;
-      lastUiUpdateTsRef.current = 0;
       inferSamplesRef.current = [];
-      rollingSamplesRef.current = [];
+
+      performanceRef.current = {
+        inferenceMs: 0,
+        fps: 0,
+        prevVideoTsMs: -1,
+      };
+
+      calibrationRef.current = newCalibrationState();
+      resetRollingWindowState(rollingWindowRef.current);
+      poseEmaRef.current = { yaw: 0, pitch: 0, roll: 0, hasPose: false };
+      engagementEmaRef.current = { value: 100, hasValue: false };
+      committedStateRef.current = "no_face";
+      pendingTransitionRef.current = { state: null, since: 0 };
+      lastFaceSeenTsRef.current = -Infinity;
+
+      lastUiUpdateTsRef.current = 0;
       lastResultsRef.current = null;
       hasFreshResultsRef.current = false;
-      emaRef.current = { yaw: 0, pitch: 0, engagement: 100, hasPose: false, hasEngagement: false };
       lastPublishedRef.current = INITIAL_METRICS;
 
       const frameLoop = () => {
@@ -367,11 +676,22 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
         if (shouldInfer) {
           lastInferTsRef.current = now;
+
+          const perf = performanceRef.current;
+          if (perf.prevVideoTsMs > 0) {
+            const frameDelta = Math.max(1, videoTsMs - perf.prevVideoTsMs);
+            const instantaneousFps = 1000 / frameDelta;
+            perf.fps = perf.fps > 0 ? perf.fps * 0.65 + instantaneousFps * 0.35 : instantaneousFps;
+          }
+          perf.prevVideoTsMs = videoTsMs;
+
           lastVideoTsMsRef.current = videoTsMs;
           const inferStart = performance.now();
           lastResultsRef.current = activeLandmarker.detectForVideo(activeVideo, videoTsMs);
+          perf.inferenceMs = performance.now() - inferStart;
+
           hasFreshResultsRef.current = true;
-          updateAdaptiveInferInterval(performance.now() - inferStart);
+          updateAdaptiveInferInterval(perf.inferenceMs);
         }
 
         const results = lastResultsRef.current;
@@ -386,68 +706,109 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
-        let nextState: HeadTrackingState = "no_face";
-        let nextYaw = emaRef.current.yaw;
-        let nextPitch = emaRef.current.pitch;
+        let yawOut = poseEmaRef.current.yaw;
+        let pitchOut = poseEmaRef.current.pitch;
+        let rollOut = poseEmaRef.current.roll;
+        let nextState = committedStateRef.current;
+        let isCalibrated = calibrationRef.current.isCalibrated;
 
         if (results?.faceLandmarks?.length) {
-          const lm = results.faceLandmarks[0];
-          const nose = lm[1];
-          const leftEyeOuter = lm[33];
-          const rightEyeOuter = lm[263];
-          const chin = lm[152];
-          const forehead = lm[10];
+          lastFaceSeenTsRef.current = now;
 
-          const dLeft = Math.abs(nose.x - leftEyeOuter.x);
-          const dRight = Math.abs(rightEyeOuter.x - nose.x);
-          const denom = dLeft + dRight + 1e-6;
-          const yawProxy = (dRight - dLeft) / denom;
+          const rawPose = bestPoseEstimate(results);
+          if (rawPose) {
+            const calibration = calibrationRef.current;
 
-          const faceHeight = Math.abs(chin.y - forehead.y) + 1e-6;
-          const noseRel = (nose.y - forehead.y) / faceHeight;
-          const pitchProxy = noseRel - 0.52;
+            if (!calibration.isCalibrated) {
+              if (calibration.sampleCount === 0) {
+                calibration.startTs = now;
+              }
 
-          const ema = emaRef.current;
-          if (!ema.hasPose) {
-            ema.yaw = yawProxy;
-            ema.pitch = pitchProxy;
-            ema.hasPose = true;
-          } else {
-            ema.yaw = THRESH.EMA_ALPHA * yawProxy + (1 - THRESH.EMA_ALPHA) * ema.yaw;
-            ema.pitch = THRESH.EMA_ALPHA * pitchProxy + (1 - THRESH.EMA_ALPHA) * ema.pitch;
+              const yawStable = calibration.sampleCount === 0 || Math.abs(rawPose.yaw - calibration.yaw0) < CALIBRATION_STABILITY_YAW_DEG;
+              const pitchStable = calibration.sampleCount === 0 || Math.abs(rawPose.pitch - calibration.pitch0) < CALIBRATION_STABILITY_PITCH_DEG;
+
+              if (yawStable && pitchStable) {
+                calibration.sampleCount += 1;
+                calibration.sumYaw += rawPose.yaw;
+                calibration.sumPitch += rawPose.pitch;
+                calibration.sumRoll += rawPose.roll;
+
+                calibration.yaw0 = calibration.sumYaw / calibration.sampleCount;
+                calibration.pitch0 = calibration.sumPitch / calibration.sampleCount;
+                calibration.roll0 = calibration.sumRoll / calibration.sampleCount;
+              }
+
+              const elapsed = now - calibration.startTs;
+              if (elapsed >= CALIBRATION_DURATION_MS && calibration.sampleCount >= MIN_CALIBRATION_SAMPLES) {
+                calibration.isCalibrated = true;
+              }
+            }
+
+            const adjustedYaw = rawPose.yaw - calibration.yaw0;
+            const adjustedPitch = rawPose.pitch - calibration.pitch0;
+            const adjustedRoll = rawPose.roll - calibration.roll0;
+
+            const poseEma = poseEmaRef.current;
+            if (!poseEma.hasPose) {
+              poseEma.yaw = adjustedYaw;
+              poseEma.pitch = adjustedPitch;
+              poseEma.roll = adjustedRoll;
+              poseEma.hasPose = true;
+            } else {
+              poseEma.yaw = THRESH.POSE_EMA_ALPHA * adjustedYaw + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.yaw;
+              poseEma.pitch = THRESH.POSE_EMA_ALPHA * adjustedPitch + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.pitch;
+              poseEma.roll = THRESH.POSE_EMA_ALPHA * adjustedRoll + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.roll;
+            }
+
+            yawOut = poseEma.yaw;
+            pitchOut = poseEma.pitch;
+            rollOut = poseEma.roll;
+            isCalibrated = calibration.isCalibrated;
+
+            const targetState = classifyTargetState(yawOut, pitchOut, committedStateRef.current);
+            nextState = applyStateDwell(targetState, now);
           }
 
-          nextYaw = ema.yaw;
-          nextPitch = ema.pitch;
-          nextState = nextPitch > THRESH.PITCH_DOWN ? "down" : Math.abs(nextYaw) > THRESH.YAW_AWAY ? "away" : "facing";
-
           if (shouldDraw && drawingUtils) {
-            drawingUtils.drawConnectors(lm, FaceLandmarker.FACE_LANDMARKS_TESSELATION, { lineWidth: 1 });
+            drawingUtils.drawConnectors(results.faceLandmarks[0], FaceLandmarker.FACE_LANDMARKS_TESSELATION, { lineWidth: 1 });
+          }
+        } else {
+          const sinceFaceMs = now - lastFaceSeenTsRef.current;
+          if (sinceFaceMs > NO_FACE_GRACE_MS) {
+            committedStateRef.current = "no_face";
+            pendingTransitionRef.current = { state: null, since: 0 };
+            nextState = "no_face";
           }
         }
 
         if (shouldInfer) {
-          rollingSamplesRef.current.push({ ts: now, state: nextState });
-          const rolling = getRollingPercentages(rollingSamplesRef.current, now);
+          pushRollingSample(rollingWindowRef.current, { ts: now, state: nextState });
+          evictOldRollingSamples(rollingWindowRef.current, now);
+          const rolling = rollingPercentages(rollingWindowRef.current);
 
-          // Penalize "away" and "down" time to derive a simple engagement score.
           const rawEngagement = clampScore(100 - rolling.awayPct * 0.7 - rolling.downPct);
-          const ema = emaRef.current;
-          if (!ema.hasEngagement) {
-            ema.engagement = rawEngagement;
-            ema.hasEngagement = true;
+          const engagementEma = engagementEmaRef.current;
+          if (!engagementEma.hasValue) {
+            engagementEma.value = rawEngagement;
+            engagementEma.hasValue = true;
           } else {
-            ema.engagement = THRESH.ENGAGEMENT_ALPHA * rawEngagement + (1 - THRESH.ENGAGEMENT_ALPHA) * ema.engagement;
+            engagementEma.value =
+              THRESH.ENGAGEMENT_ALPHA * rawEngagement + (1 - THRESH.ENGAGEMENT_ALPHA) * engagementEma.value;
           }
 
           publishMetrics(now, {
             state: nextState,
-            yaw: nextYaw,
-            pitch: nextPitch,
+            yaw: yawOut,
+            pitch: pitchOut,
+            roll: rollOut,
             facingPct: rolling.facingPct,
             awayPct: rolling.awayPct,
             downPct: rolling.downPct,
-            engagementScore: Math.round(clampScore(ema.engagement)),
+            engagementScore: Math.round(clampScore(engagementEma.value)),
+            isCalibrated,
+            inferenceMs: performanceRef.current.inferenceMs,
+            effectiveInferIntervalMs: inferIntervalMsRef.current,
+            fps: performanceRef.current.fps,
           });
         }
 
@@ -461,16 +822,21 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
       setError(message);
       stop();
     }
-  }, [canvasRef, debugEnabled, publishMetrics, stop, updateAdaptiveInferInterval, videoRef]);
+  }, [applyStateDwell, canvasRef, debugEnabled, externalStream, publishMetrics, stop, updateAdaptiveInferInterval, videoRef]);
 
   useEffect(() => {
     if (!autoStart) return;
-    void start();
+
+    if (enabled) {
+      void start();
+    } else {
+      stop();
+    }
 
     return () => {
       stop();
     };
-  }, [autoStart, start, stop]);
+  }, [autoStart, enabled, start, stop]);
 
   return {
     ...metrics,
