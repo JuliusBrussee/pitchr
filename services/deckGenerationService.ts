@@ -124,8 +124,9 @@ async function renderDeckPdf(
 ): Promise<Buffer> {
   const template = DECK_TEMPLATES[templateId];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const pdfBuffer = await renderToBuffer(
-    React.createElement(DeckDocument, { slides, template, companyName }),
+    React.createElement(DeckDocument, { slides, template, companyName }) as any,
   );
 
   return Buffer.from(pdfBuffer);
