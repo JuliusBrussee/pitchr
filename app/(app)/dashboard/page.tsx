@@ -24,54 +24,34 @@ import {
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui/colors';
 
-/* ——— Mock Data (PRD-aligned) ——— */
+/* ——— Types ——— */
 
-interface MockRun {
+interface DashboardRun {
   id: string;
   mode: PitchMode;
   overallScore: number;
   one_line_verdict: string;
   createdAt: string;
   duration_seconds: number;
-  deck?: string;
 }
 
-const RECENT_RUNS: MockRun[] = [
-  {
-    id: '1',
-    mode: 'vc_pitch',
-    overallScore: 84,
-    one_line_verdict: 'Strong structure but needs concrete traction numbers',
-    createdAt: '2026-02-20T14:30:00Z',
-    duration_seconds: 522,
-    deck: 'Series A Deck v3',
-  },
-  {
-    id: '2',
-    mode: 'vc_pitch',
-    overallScore: 71,
-    one_line_verdict: 'Good energy but closing section runs too long',
-    createdAt: '2026-02-18T10:15:00Z',
-    duration_seconds: 735,
-    deck: 'Series A Deck v3',
-  },
-  {
-    id: '3',
-    mode: 'elevator',
-    overallScore: 89,
-    one_line_verdict: 'Punchy and clear — tighten the market claim',
-    createdAt: '2026-02-16T16:45:00Z',
-    duration_seconds: 38,
-    deck: 'Elevator 60-sec',
-  },
-];
+interface RunRecord {
+  id: string;
+  mode: string;
+  overall_score: number;
+  created_at: string;
+  analysis: {
+    one_line_verdict: string;
+    delivery_metrics: { duration_seconds: number };
+  };
+}
 
-const STATS = {
-  totalRuns: 24,
-  averageScore: 78,
-  bestScore: 92,
-  trend: [62, 65, 68, 71, 67, 72, 74, 78, 84, 78],
-};
+interface StatsData {
+  totalRuns: number;
+  averageScore: number;
+  bestScore: number;
+  trend: number[];
+}
 
 const PITCH_TIPS = [
   'Start with a bold claim or surprising stat — investors hear hundreds of pitches; hook them in the first 10 seconds.',
@@ -193,11 +173,32 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
   const [tip, setTip] = useState('');
+  const [stats, setStats] = useState<StatsData>({ totalRuns: 0, averageScore: 0, bestScore: 0, trend: [] });
+  const [recentRuns, setRecentRuns] = useState<DashboardRun[]>([]);
 
   useEffect(() => {
     setGreeting(getGreeting());
     setFormattedDate(getFormattedDate());
     setTip(PITCH_TIPS[Math.floor(Math.random() * PITCH_TIPS.length)]);
+
+    Promise.all([
+      fetch('/api/pitch/run/stats').then((r) => r.json()),
+      fetch('/api/pitch/run?limit=3').then((r) => r.json()),
+    ])
+      .then(([statsData, runsData]) => {
+        setStats(statsData);
+        setRecentRuns(
+          runsData.map((r: RunRecord) => ({
+            id: r.id,
+            mode: r.mode as PitchMode,
+            overallScore: r.overall_score,
+            one_line_verdict: r.analysis.one_line_verdict,
+            createdAt: r.created_at,
+            duration_seconds: r.analysis.delivery_metrics.duration_seconds,
+          })),
+        );
+      })
+      .catch(() => {});
   }, []);
 
   return (
@@ -256,7 +257,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-3 gap-4 mb-8">
           <StatCard
             label="Total Runs"
-            value={String(STATS.totalRuns)}
+            value={String(stats.totalRuns)}
             icon={<Target size={16} />}
             delta="+3"
             deltaDirection="up"
@@ -265,7 +266,7 @@ export default function DashboardPage() {
           />
           <StatCard
             label="Average Score"
-            value={`${STATS.averageScore}/100`}
+            value={`${stats.averageScore}/100`}
             icon={<TrendingUp size={16} />}
             delta="+4"
             deltaDirection="up"
@@ -274,7 +275,7 @@ export default function DashboardPage() {
           />
           <StatCard
             label="Best Score"
-            value={`${STATS.bestScore}/100`}
+            value={`${stats.bestScore}/100`}
             icon={<Trophy size={16} />}
             animationDelay="0.22s"
           />
@@ -292,7 +293,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              {RECENT_RUNS.map((run, i) => (
+              {recentRuns.map((run, i) => (
                 <Link
                   key={run.id}
                   href={`/results/${run.id}`}
@@ -376,14 +377,14 @@ export default function DashboardPage() {
                 Score Trend
               </SectionHeader>
               <div className="h-24 w-full">
-                <Sparkline data={STATS.trend} strokeColor="#ff5941" />
+                <Sparkline data={stats.trend} strokeColor="#ff5941" />
               </div>
               <div className="flex items-center justify-between mt-3">
                 <span
                   className="text-xs tabular-nums"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  {STATS.trend.length} runs
+                  {stats.trend.length} runs
                 </span>
                 <div className="flex items-center gap-1.5">
                   <span
@@ -393,7 +394,7 @@ export default function DashboardPage() {
                     Latest
                   </span>
                   <ScoreBadge
-                    score={STATS.trend[STATS.trend.length - 1]}
+                    score={stats.trend[stats.trend.length - 1]}
                     size="sm"
                   />
                 </div>

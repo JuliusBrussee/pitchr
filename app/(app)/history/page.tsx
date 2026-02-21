@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Clock,
   ArrowRight,
@@ -27,7 +27,7 @@ import type { PitchMode } from '@/views/components/ui';
 
 /* ——— Types ——— */
 
-interface MockRun {
+interface HistoryRun {
   id: string;
   number: number;
   mode: PitchMode;
@@ -40,18 +40,34 @@ interface MockRun {
   dateGroup: 'today' | 'yesterday' | 'thisWeek' | 'earlier';
 }
 
-/* ——— Mock data ——— */
+interface RunRecord {
+  id: string;
+  mode: string;
+  input_type: string;
+  overall_score: number;
+  created_at: string;
+  analysis: {
+    one_line_verdict: string;
+    delivery_metrics: { duration_seconds: number };
+  };
+}
 
-const MOCK_RUNS: MockRun[] = [
-  { id: '1', number: 28, mode: 'vc_pitch', inputType: 'audio', overallScore: 84, one_line_verdict: 'Strong structure but needs concrete traction numbers', createdAt: '2026-02-21T14:30:00Z', duration_seconds: 522, deck: 'Series A Deck v3', dateGroup: 'today' },
-  { id: '2', number: 27, mode: 'vc_pitch', inputType: 'text', overallScore: 71, one_line_verdict: 'Good energy but closing section runs too long', createdAt: '2026-02-21T10:15:00Z', duration_seconds: 735, deck: 'Series A Deck v3', dateGroup: 'today' },
-  { id: '3', number: 26, mode: 'elevator', inputType: 'audio', overallScore: 89, one_line_verdict: 'Punchy and clear — tighten the market claim', createdAt: '2026-02-20T16:45:00Z', duration_seconds: 38, deck: 'Elevator 60-sec', dateGroup: 'yesterday' },
-  { id: '4', number: 25, mode: 'vc_pitch', inputType: 'audio', overallScore: 68, one_line_verdict: 'Market sizing section needs hard data', createdAt: '2026-02-20T09:00:00Z', duration_seconds: 612, deck: 'Series A Deck v2', dateGroup: 'yesterday' },
-  { id: '5', number: 24, mode: 'elevator', inputType: 'audio', overallScore: 92, one_line_verdict: 'Nailed it — ship this version', createdAt: '2026-02-18T11:30:00Z', duration_seconds: 42, deck: 'Elevator 60-sec', dateGroup: 'thisWeek' },
-  { id: '6', number: 23, mode: 'vc_pitch', inputType: 'text', overallScore: 56, one_line_verdict: 'Needs a clearer problem statement up front', createdAt: '2026-02-17T15:00:00Z', duration_seconds: 480, deck: 'Demo Day 2026', dateGroup: 'thisWeek' },
-  { id: '7', number: 22, mode: 'vc_pitch', inputType: 'audio', overallScore: 79, one_line_verdict: 'Good narrative arc but team slide is weak', createdAt: '2026-02-16T10:00:00Z', duration_seconds: 544, deck: 'Seed Round Deck', dateGroup: 'thisWeek' },
-  { id: '8', number: 21, mode: 'elevator', inputType: 'audio', overallScore: 61, one_line_verdict: 'Too many buzzwords — simplify the value prop', createdAt: '2026-02-15T14:00:00Z', duration_seconds: 35, deck: 'Elevator 60-sec', dateGroup: 'thisWeek' },
-];
+/* ——— Helpers ——— */
+
+function getDateGroup(iso: string): 'today' | 'yesterday' | 'thisWeek' | 'earlier' {
+  const date = new Date(iso);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  if (date >= today) return 'today';
+  if (date >= yesterday) return 'yesterday';
+  if (date >= weekAgo) return 'thisWeek';
+  return 'earlier';
+}
 
 /* ——— Constants ——— */
 
@@ -82,14 +98,38 @@ function formatDate(iso: string): string {
 /* ——— Component ——— */
 
 export default function HistoryPage() {
+  const [runs, setRuns] = useState<HistoryRun[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
   const [visibleCount, setVisibleCount] = useState(8);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetch('/api/pitch/run')
+      .then((res) => res.json())
+      .then((data: RunRecord[]) => {
+        const mapped = data.map((r, i) => ({
+          id: r.id,
+          number: data.length - i,
+          mode: r.mode as PitchMode,
+          inputType: r.input_type as 'audio' | 'text',
+          overallScore: r.overall_score,
+          one_line_verdict: r.analysis.one_line_verdict,
+          createdAt: r.created_at,
+          duration_seconds: r.analysis.delivery_metrics.duration_seconds,
+          deck: undefined,
+          dateGroup: getDateGroup(r.created_at),
+        }));
+        setRuns(mapped);
+      })
+      .catch(() => setRuns([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   /* Filtering */
-  const filtered = MOCK_RUNS.filter((run) => {
+  const filtered = runs.filter((run) => {
     // Mode filter
     if (modeFilter !== 'all' && run.mode !== modeFilter) return false;
 
@@ -110,17 +150,21 @@ export default function HistoryPage() {
   const hasMore = visibleCount < filtered.length;
 
   /* Group visible runs by date */
-  const groupedVisible = DATE_GROUP_ORDER.reduce<Record<string, MockRun[]>>((acc, group) => {
+  const groupedVisible = DATE_GROUP_ORDER.reduce<Record<string, HistoryRun[]>>((acc, group) => {
     const items = visibleRuns.filter((r) => r.dateGroup === group);
     if (items.length > 0) acc[group] = items;
     return acc;
   }, {});
 
   /* Handle delete */
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     setDeletingId(id);
-    // In production, would call API here
-    setTimeout(() => setDeletingId(null), 1000);
+    try {
+      await fetch(`/api/pitch/run/${id}`, { method: 'DELETE' });
+      setRuns((prev) => prev.filter((r) => r.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   /* Running index for stagger animations */
