@@ -39,7 +39,7 @@ const MOCK_DECKS: MockDeck[] = [
     lastUsed: '2 hours ago',
     practices: 8,
     avgScore: 87,
-    gradient: 'linear-gradient(135deg, #7c3aed, #4f46e5, #6366f1)',
+    gradient: 'linear-gradient(135deg, #1c1210, #2a1a16, #1c1210)',
     accentIcon: 'presentation',
   },
   {
@@ -69,7 +69,7 @@ const MOCK_DECKS: MockDeck[] = [
     lastUsed: 'Last week',
     practices: 22,
     avgScore: 95,
-    gradient: 'linear-gradient(135deg, #2563eb, #7c3aed, #a855f7)',
+    gradient: 'linear-gradient(135deg, #1a1512, #2d1c15, #3a2218)',
     accentIcon: 'presentation',
   },
   {
@@ -89,7 +89,7 @@ const MOCK_DECKS: MockDeck[] = [
     lastUsed: '2 weeks ago',
     practices: 3,
     avgScore: 71,
-    gradient: 'linear-gradient(135deg, #0ea5e9, #6366f1, #8b5cf6)',
+    gradient: 'linear-gradient(135deg, #1c1614, #261a14, #1c1210)',
     accentIcon: 'folderOpen',
   },
 ];

@@ -32,11 +32,11 @@ const BREATHE_STYLE_ID = 'pitchr-breathe-keyframes';
 const BREATHE_CSS = [
   '@keyframes breathe {',
   '  0%, 100% {',
-  '    box-shadow: 0 0 20px rgba(139,92,246,0.3), 0 0 40px rgba(59,130,246,0.15);',
+  '    box-shadow: 0 0 20px rgba(255,89,65,0.25), 0 0 40px rgba(255,170,51,0.1);',
   '    transform: scale(1);',
   '  }',
   '  50% {',
-  '    box-shadow: 0 0 30px rgba(139,92,246,0.5), 0 0 60px rgba(59,130,246,0.25);',
+  '    box-shadow: 0 0 30px rgba(255,89,65,0.4), 0 0 60px rgba(255,170,51,0.15);',
   '    transform: scale(1.015);',
   '  }',
   '}',
@@ -276,8 +276,7 @@ export default function DashboardPage() {
                          text-white font-semibold text-base
                          transition-all duration-300"
               style={{
-                background:
-                  'linear-gradient(135deg, #8b5cf6 0%, #6366f1 40%, #3b82f6 100%)',
+                background: '#1c1210',
                 animation: 'breathe 3s ease-in-out infinite',
               }}
             >
@@ -412,7 +411,7 @@ export default function DashboardPage() {
                 Score Trend
               </SectionHeader>
               <div className="h-24 w-full">
-                <Sparkline data={STATS.trend} strokeColor="#8b5cf6" />
+                <Sparkline data={STATS.trend} strokeColor="#ff5941" />
               </div>
               <div className="flex items-center justify-between mt-3">
                 <span
