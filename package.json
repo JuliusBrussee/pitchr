@@ -1,0 +1,32 @@
+{
+  "name": "pitchr",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/JuliusBrussee/pitchr.git",
+  "author": "Julius Brussee <juliusbrussee@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "next": "^16.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "three": "^0.183.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.0",
+    "@types/node": "^25.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.183.1",
+    "postcss": "^8.5.6",
+    "raw-loader": "^4.0.2",
+    "tailwindcss": "^4.2.0",
+    "typescript": "^5.9.3"
+  }
+}

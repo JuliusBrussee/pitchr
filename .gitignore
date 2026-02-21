@@ -1,0 +1,28 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next
+/out
+
+# build
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# env files
+.env
+.env*.local
+
+# debug
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# vercel
+.vercel
