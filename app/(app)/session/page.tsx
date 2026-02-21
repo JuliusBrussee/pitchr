@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
@@ -23,6 +23,8 @@ export default function SessionPage() {
   const stt = useSTT();
   const { setOrbState } = useTheme();
   const analysisTriggeredRef = useRef(false);
+  const [hasSessionStarted, setHasSessionStarted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     setOrbState(session.orbState);
@@ -48,25 +50,44 @@ export default function SessionPage() {
   }, [stt.isRecording, stt.transcriptSegments, stt.liveText, session.speechBubbles]);
 
   const handleStartSession = useCallback(() => {
+    if (pitchRun.isAnalyzing) return;
+    const resume = isPaused;
     analysisTriggeredRef.current = false;
     session.startSession();
-    void stt.start();
-  }, [session, stt]);
+    setHasSessionStarted(true);
+    setIsPaused(false);
+    void stt.start({ resume }).catch(() => {
+      session.stopSession();
+      setHasSessionStarted(false);
+      setIsPaused(false);
+    });
+  }, [isPaused, pitchRun.isAnalyzing, session, stt]);
 
-  const handleStopSession = useCallback(() => {
+  const handlePauseSession = useCallback(() => {
+    if (pitchRun.isAnalyzing || !hasSessionStarted) return;
+    stt.pause();
     session.stopSession();
+    session.setOrbState('neutral');
+    setIsPaused(true);
+  }, [hasSessionStarted, pitchRun.isAnalyzing, session, stt]);
+
+  const handleEndSession = useCallback(() => {
+    if (pitchRun.isAnalyzing || !hasSessionStarted) return;
     stt.stop();
-  }, [session, stt]);
+    session.stopSession();
+    setIsPaused(false);
+    setHasSessionStarted(false);
+  }, [hasSessionStarted, pitchRun.isAnalyzing, session, stt]);
 
   const handleSessionToggle = useCallback(() => {
     if (pitchRun.isAnalyzing) return;
 
-    if (session.isSessionActive) {
-      handleStopSession();
-    } else {
+    if (!hasSessionStarted || isPaused) {
       handleStartSession();
+    } else {
+      handlePauseSession();
     }
-  }, [pitchRun.isAnalyzing, session.isSessionActive, handleStartSession, handleStopSession]);
+  }, [pitchRun.isAnalyzing, hasSessionStarted, isPaused, handleStartSession, handlePauseSession]);
 
   useEffect(() => {
     if (!stt.saved) {
@@ -93,7 +114,7 @@ export default function SessionPage() {
       })
       .then(({ runId }) => {
         session.setOrbState('positive');
-        router.push(`/results/${runId}`);
+        router.push(`/review/${runId}`);
       })
       .catch(() => {
         session.setOrbState('negative');
@@ -121,9 +142,12 @@ export default function SessionPage() {
         orbIntensity={0.6}
         speechBubbles={speechBubbles}
         isSessionActive={session.isSessionActive}
+        hasSessionStarted={hasSessionStarted}
+        isPaused={isPaused}
         isAnalyzing={pitchRun.isAnalyzing}
         onStartSession={handleStartSession}
-        onStopSession={handleStopSession}
+        onPauseSession={handlePauseSession}
+        onEndSession={handleEndSession}
       />
       <MetricsPanel
         metrics={session.metrics}

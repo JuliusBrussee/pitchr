@@ -1,0 +1,30 @@
+{
+  "transcript": "I am doing a test to see how everything is working. I want to figure out the, the, um,the pitch deck tool and the response from it. I want to see how it works over time. Uh, that kind of stuff.",
+  "segments": [
+    {
+      "text": "I am doing a test to see how everything is working.",
+      "start": 0,
+      "end": 3.192
+    },
+    {
+      "text": "I want to figure out the, the, um,",
+      "start": 3.192,
+      "end": 5.32
+    },
+    {
+      "text": "the pitch deck tool and the response from it.",
+      "start": 5.32,
+      "end": 8.08
+    },
+    {
+      "text": "I want to see how it works over time.",
+      "start": 8.08,
+      "end": 10.349333333333334
+    },
+    {
+      "text": "Uh, that kind of stuff.",
+      "start": 10.349333333333334,
+      "end": 11.760000000000002
+    }
+  ]
+}
