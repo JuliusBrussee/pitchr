@@ -34,7 +34,7 @@ export default function SessionPage() {
         isSessionActive={session.isSessionActive}
       />
       <SessionCanvas
-        videoRef={media.videoRef}
+        stream={media.stream}
         isCameraOn={media.isCameraOn}
         isMicOn={media.isMicOn}
         toggleCamera={media.toggleCamera}

@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack } from 'lucide-react';
 import { SiriBubble } from '@/views/components/SiriBubble';
 import { OrbState } from '@/views/components/SiriBubble';
 import { SpeechBubble } from '@/hooks/useSessionState';
 
 interface SessionCanvasProps {
-  videoRef: React.RefObject<HTMLVideoElement | null>;
+  stream: MediaStream | null;
   isCameraOn: boolean;
   isMicOn: boolean;
   toggleCamera: () => void;
@@ -21,7 +21,7 @@ interface SessionCanvasProps {
 }
 
 export function SessionCanvas({
-  videoRef,
+  stream,
   isCameraOn,
   isMicOn,
   toggleCamera,
@@ -54,7 +54,7 @@ export function SessionCanvas({
         {effectiveFocus === 'slides' ? (
           <SlideViewer />
         ) : (
-          <CameraView videoRef={videoRef} isFocused />
+          <CameraView stream={stream} isFocused />
         )}
 
         {/* Webcam Overlay (bottom-right) — only when camera is on and slides are focused */}
@@ -64,7 +64,7 @@ export function SessionCanvas({
             className="absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg transition-transform duration-300 hover:scale-105 cursor-pointer"
             aria-label="Focus on camera"
           >
-            <CameraView videoRef={videoRef} isFocused={false} />
+            <CameraView stream={stream} isFocused={false} />
           </button>
         )}
 
@@ -243,15 +243,23 @@ function SlideViewerMini() {
 }
 
 function CameraView({
-  videoRef,
+  stream,
   isFocused,
 }: {
-  videoRef: React.RefObject<HTMLVideoElement | null>;
+  stream: MediaStream | null;
   isFocused: boolean;
 }) {
+  const localRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (localRef.current && stream) {
+      localRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
   return (
     <video
-      ref={isFocused ? videoRef : undefined}
+      ref={localRef}
       autoPlay
       muted
       playsInline
