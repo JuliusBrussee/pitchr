@@ -1,108 +1,24 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Upload,
   FileText,
-  MoreHorizontal,
+  Trash2,
   Sparkles,
   Plus,
   Clock,
-  BarChart2,
   Presentation,
   FolderOpen,
-  Image,
   Search,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
-import { SearchInput, SectionHeader, ScoreBadge, EmptyState } from '@/views/components/ui';
+import { SearchInput, SectionHeader, EmptyState } from '@/views/components/ui';
+import { GenerateDeckModal } from '@/views/components/GenerateDeckModal';
+import type { DeckRecord } from '@/services/deckService';
 
-/* ——— Types ——— */
-
-interface MockDeck {
-  id: string;
-  title: string;
-  slides: number;
-  lastUsed: string;
-  practices: number;
-  avgScore: number;
-  gradient: string;
-  accentIcon: 'presentation' | 'fileText' | 'barChart' | 'image' | 'folderOpen';
-}
-
-/* ——— Mock Data ——— */
-
-const MOCK_DECKS: MockDeck[] = [
-  {
-    id: '1',
-    title: 'Series A Pitch',
-    slides: 12,
-    lastUsed: '2 hours ago',
-    practices: 8,
-    avgScore: 87,
-    gradient: 'linear-gradient(135deg, #1c1210, #2a1a16, #1c1210)',
-    accentIcon: 'presentation',
-  },
-  {
-    id: '2',
-    title: 'Product Demo',
-    slides: 18,
-    lastUsed: 'Yesterday',
-    practices: 14,
-    avgScore: 92,
-    gradient: 'linear-gradient(135deg, #0d9488, #10b981, #34d399)',
-    accentIcon: 'fileText',
-  },
-  {
-    id: '3',
-    title: 'Q4 Investor Update',
-    slides: 24,
-    lastUsed: '3 days ago',
-    practices: 5,
-    avgScore: 78,
-    gradient: 'linear-gradient(135deg, #f97316, #ef4444, #fb7185)',
-    accentIcon: 'barChart',
-  },
-  {
-    id: '4',
-    title: 'Team Standup',
-    slides: 6,
-    lastUsed: 'Last week',
-    practices: 22,
-    avgScore: 95,
-    gradient: 'linear-gradient(135deg, #1a1512, #2d1c15, #3a2218)',
-    accentIcon: 'presentation',
-  },
-  {
-    id: '5',
-    title: 'YC Application',
-    slides: 10,
-    lastUsed: '5 days ago',
-    practices: 11,
-    avgScore: 84,
-    gradient: 'linear-gradient(135deg, #ec4899, #f43f5e, #f97316)',
-    accentIcon: 'image',
-  },
-  {
-    id: '6',
-    title: 'Sales Playbook',
-    slides: 32,
-    lastUsed: '2 weeks ago',
-    practices: 3,
-    avgScore: 71,
-    gradient: 'linear-gradient(135deg, #1c1614, #261a14, #1c1210)',
-    accentIcon: 'folderOpen',
-  },
-];
-
-const ICON_MAP = {
-  presentation: Presentation,
-  fileText: FileText,
-  barChart: BarChart2,
-  image: Image,
-  folderOpen: FolderOpen,
-};
-
-/* ——— Helpers ——— */
+/* --- Helpers --- */
 
 const glassStyles = {
   backgroundColor: 'var(--bg-surface)',
@@ -125,11 +41,61 @@ const shimmerStyle: React.CSSProperties = {
   animation: 'deck-shimmer 2.5s ease-in-out infinite',
 };
 
-/* ——— Component ——— */
+const GRADIENT_POOL = [
+  'linear-gradient(135deg, #1c1210, #2a1a16, #1c1210)',
+  'linear-gradient(135deg, #0d9488, #10b981, #34d399)',
+  'linear-gradient(135deg, #f97316, #ef4444, #fb7185)',
+  'linear-gradient(135deg, #1a1512, #2d1c15, #3a2218)',
+  'linear-gradient(135deg, #ec4899, #f43f5e, #f97316)',
+  'linear-gradient(135deg, #1c1614, #261a14, #1c1210)',
+];
+
+function gradientForDeck(index: number): string {
+  return GRADIENT_POOL[index % GRADIENT_POOL.length];
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
+
+/* --- Component --- */
 
 export default function DeckPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
+  const [decks, setDecks] = useState<DeckRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Fetch decks
+  const fetchDecks = useCallback(async () => {
+    try {
+      const res = await fetch('/api/deck');
+      if (!res.ok) throw new Error('Failed to load decks');
+      const data = await res.json();
+      setDecks(data);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load decks');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDecks();
+  }, [fetchDecks]);
 
   // Inject shimmer keyframes once on mount
   useEffect(() => {
@@ -145,8 +111,39 @@ export default function DeckPage() {
     };
   }, []);
 
-  const filteredDecks = MOCK_DECKS.filter((deck) =>
-    deck.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // Upload handler
+  const handleUpload = async (file: File) => {
+    setIsUploading(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/deck/upload', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Upload failed');
+      }
+      await fetchDecks();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Delete handler
+  const handleDelete = async (deckId: string) => {
+    try {
+      const res = await fetch(`/api/deck/${deckId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete deck');
+      setDecks((prev) => prev.filter((d) => d.id !== deckId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete deck');
+    }
+  };
+
+  const filteredDecks = decks.filter((deck) =>
+    deck.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -154,7 +151,20 @@ export default function DeckPage() {
       className="flex-1 flex flex-col gap-5 overflow-y-auto rounded-2xl p-6 border"
       style={glassStyles}
     >
-      {/* ——— Header ——— */}
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.pptx"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleUpload(file);
+          e.target.value = '';
+        }}
+      />
+
+      {/* --- Header --- */}
       <div className="flex items-center justify-between gap-4 flex-wrap animate-fade-in-up">
         <div className="flex items-center gap-3">
           <div
@@ -178,7 +188,7 @@ export default function DeckPage() {
               backgroundColor: 'var(--border-color)',
             }}
           >
-            {MOCK_DECKS.length} decks
+            {decks.length} decks
           </span>
         </div>
 
@@ -191,20 +201,43 @@ export default function DeckPage() {
           />
 
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.03] active:scale-[0.97] disabled:opacity-50"
             style={{
               background: '#1c1210',
               color: '#fff0eb',
               boxShadow: '0 4px 20px rgba(255, 89, 65, 0.2)',
             }}
           >
-            <Plus size={16} />
-            Upload New
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+            {isUploading ? 'Uploading...' : 'Upload New'}
           </button>
         </div>
       </div>
 
-      {/* ——— Upload Dropzone ——— */}
+      {/* --- Error Banner --- */}
+      {error && (
+        <div
+          className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm animate-fade-in-up"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            color: '#ef4444',
+            borderColor: 'rgba(239, 68, 68, 0.2)',
+          }}
+        >
+          <AlertCircle size={16} />
+          {error}
+          <button
+            onClick={() => setError(null)}
+            className="ml-auto text-xs underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* --- Upload Dropzone --- */}
       <div
         className="animate-fade-in-up"
         style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
@@ -218,7 +251,10 @@ export default function DeckPage() {
           onDrop={(e) => {
             e.preventDefault();
             setIsDragOver(false);
+            const file = e.dataTransfer.files[0];
+            if (file) handleUpload(file);
           }}
+          onClick={() => fileInputRef.current?.click()}
           className="relative flex flex-col items-center justify-center gap-3 py-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 group overflow-hidden"
           style={{
             borderColor: isDragOver
@@ -241,33 +277,45 @@ export default function DeckPage() {
               backgroundColor: 'var(--bg-surface-hover)',
             }}
           >
-            <Upload
-              size={22}
-              style={{ color: 'var(--text-secondary)' }}
-              className="transition-transform duration-300 group-hover:-translate-y-0.5"
-            />
+            {isUploading ? (
+              <Loader2
+                size={22}
+                style={{ color: '#ff5941' }}
+                className="animate-spin"
+              />
+            ) : (
+              <Upload
+                size={22}
+                style={{ color: 'var(--text-secondary)' }}
+                className="transition-transform duration-300 group-hover:-translate-y-0.5"
+              />
+            )}
           </div>
           <div className="text-center relative z-10">
             <p
               className="text-sm font-medium"
               style={{ color: 'var(--text-primary)' }}
             >
-              Drop your slides here or{' '}
-              <span style={{ color: '#ff5941' }} className="cursor-pointer transition-colors duration-200">
-                click to upload
-              </span>
+              {isUploading ? 'Uploading...' : (
+                <>
+                  Drop your slides here or{' '}
+                  <span style={{ color: '#ff5941' }} className="cursor-pointer transition-colors duration-200">
+                    click to upload
+                  </span>
+                </>
+              )}
             </p>
             <p
               className="text-xs mt-1"
               style={{ color: 'var(--text-muted)' }}
             >
-              PDF, PPTX, Google Slides
+              PDF, PPTX — max 50 MB
             </p>
           </div>
         </div>
       </div>
 
-      {/* ——— Section Label ——— */}
+      {/* --- Section Label --- */}
       <div
         className="animate-fade-in-up"
         style={{ animationDelay: '0.08s', animationFillMode: 'both' }}
@@ -277,7 +325,7 @@ export default function DeckPage() {
         </SectionHeader>
       </div>
 
-      {/* ——— Deck Grid ——— */}
+      {/* --- Deck Grid --- */}
       <div
         className="grid gap-4"
         style={{
@@ -298,6 +346,7 @@ export default function DeckPage() {
               WebkitBackdropFilter: 'blur(var(--blur-strength))',
               minHeight: '320px',
             }}
+            onClick={() => setIsGenerateOpen(true)}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.35)';
             }}
@@ -305,7 +354,6 @@ export default function DeckPage() {
               e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.2)';
             }}
           >
-            {/* Radial glow effect on hover */}
             <div
               className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
@@ -313,14 +361,10 @@ export default function DeckPage() {
                   'radial-gradient(circle at 50% 50%, rgba(255, 89, 65, 0.08) 0%, rgba(255, 170, 51, 0.03) 50%, transparent 70%)',
               }}
             />
-
-            {/* Shimmer sweep on hover */}
             <div
               className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
               style={shimmerStyle}
             />
-
-            {/* Sparkle icon container */}
             <div
               className="flex items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 group-hover:scale-110"
               style={{
@@ -334,7 +378,6 @@ export default function DeckPage() {
                 style={{ color: '#ff5941' }}
               />
             </div>
-
             <div className="text-center relative z-10">
               <p
                 className="text-sm font-semibold"
@@ -349,8 +392,6 @@ export default function DeckPage() {
                 Describe your pitch and let AI build the slides for you
               </p>
             </div>
-
-            {/* Gradient accent bar at bottom */}
             <div
               className="absolute bottom-0 left-0 right-0 h-0.5 opacity-40 group-hover:opacity-80 transition-opacity duration-300"
               style={{
@@ -361,158 +402,136 @@ export default function DeckPage() {
           </div>
         </div>
 
-        {/* Deck Cards */}
-        {filteredDecks.length === 0 ? (
+        {/* Loading State */}
+        {isLoading && (
+          <div
+            className="col-span-full flex items-center justify-center py-12 animate-fade-in-up"
+            style={{ animationDelay: '0.15s', animationFillMode: 'both' }}
+          >
+            <Loader2 size={32} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && filteredDecks.length === 0 && (
           <div
             className="col-span-full animate-fade-in-up"
             style={{ animationDelay: '0.15s', animationFillMode: 'both' }}
           >
             <EmptyState
               icon={<Search size={32} style={{ color: 'var(--text-muted)' }} />}
-              message="No decks match your search."
+              message={searchQuery ? 'No decks match your search.' : 'No decks yet. Upload one to get started!'}
             />
           </div>
-        ) : (
-          filteredDecks.map((deck, index) => {
-            const AccentIcon = ICON_MAP[deck.accentIcon];
+        )}
 
-            return (
+        {/* Deck Cards */}
+        {!isLoading && filteredDecks.map((deck, index) => (
+          <div
+            key={deck.id}
+            className="animate-fade-in-up"
+            style={{
+              animationDelay: `${0.1 + (index + 1) * 0.06}s`,
+              animationFillMode: 'both',
+            }}
+          >
+            <div
+              className="relative flex flex-col rounded-2xl border overflow-hidden cursor-pointer transition-all duration-300 group hover:scale-[1.02]"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                backdropFilter: 'blur(var(--blur-strength))',
+                WebkitBackdropFilter: 'blur(var(--blur-strength))',
+                borderColor: 'var(--border-color)',
+                boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.1)';
+                e.currentTarget.style.borderColor = 'var(--bg-surface-hover)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = '0 2px 12px rgba(0, 0, 0, 0.04)';
+                e.currentTarget.style.borderColor = 'var(--border-color)';
+              }}
+            >
+              {/* Gradient Thumbnail Area */}
               <div
-                key={deck.id}
-                className="animate-fade-in-up"
-                style={{
-                  animationDelay: `${0.1 + (index + 1) * 0.06}s`,
-                  animationFillMode: 'both',
-                }}
+                className="relative h-40 flex items-center justify-center overflow-hidden"
+                style={{ background: gradientForDeck(index) }}
               >
                 <div
-                  className="relative flex flex-col rounded-2xl border overflow-hidden cursor-pointer transition-all duration-300 group hover:scale-[1.02]"
+                  className="absolute inset-0 opacity-20"
                   style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    backdropFilter: 'blur(var(--blur-strength))',
-                    WebkitBackdropFilter: 'blur(var(--blur-strength))',
-                    borderColor: 'var(--border-color)',
-                    boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
+                    backgroundImage: `
+                      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 0%, transparent 50%),
+                      radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0%, transparent 40%)
+                    `,
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow =
-                      '0 8px 32px rgba(0, 0, 0, 0.1)';
-                    e.currentTarget.style.borderColor =
-                      'var(--bg-surface-hover)';
+                />
+                <div
+                  className="absolute top-3 right-3 w-20 h-20 rounded-full opacity-10"
+                  style={{ backgroundColor: 'white' }}
+                />
+                <div
+                  className="absolute bottom-2 left-4 w-12 h-12 rounded-lg rotate-12 opacity-10"
+                  style={{ backgroundColor: 'white' }}
+                />
+
+                <Presentation
+                  size={40}
+                  className="relative z-10 text-white/70 transition-transform duration-300 group-hover:scale-110"
+                />
+
+                <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-white/90 bg-black/25 backdrop-blur-sm">
+                  <FileText size={12} />
+                  {deck.slide_count} slides
+                </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(deck.id);
                   }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow =
-                      '0 2px 12px rgba(0, 0, 0, 0.04)';
-                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                  }}
+                  className="absolute top-3 right-3 p-1.5 rounded-lg text-white/70 hover:text-red-400 hover:bg-white/15 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                  aria-label="Delete deck"
                 >
-                  {/* Gradient Thumbnail Area */}
-                  <div
-                    className="relative h-40 flex items-center justify-center overflow-hidden"
-                    style={{ background: deck.gradient }}
-                  >
-                    {/* Decorative floating shapes for visual richness */}
-                    <div
-                      className="absolute inset-0 opacity-20"
-                      style={{
-                        backgroundImage: `
-                          radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 0%, transparent 50%),
-                          radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0%, transparent 40%)
-                        `,
-                      }}
-                    />
-                    <div
-                      className="absolute top-3 right-3 w-20 h-20 rounded-full opacity-10"
-                      style={{ backgroundColor: 'white' }}
-                    />
-                    <div
-                      className="absolute bottom-2 left-4 w-12 h-12 rounded-lg rotate-12 opacity-10"
-                      style={{ backgroundColor: 'white' }}
-                    />
+                  <Trash2 size={16} />
+                </button>
+              </div>
 
-                    {/* Center accent icon */}
-                    <AccentIcon
-                      size={40}
-                      className="relative z-10 text-white/70 transition-transform duration-300 group-hover:scale-110"
-                    />
+              {/* Card Body */}
+              <div className="flex flex-col gap-3 p-4">
+                <h3
+                  className="text-sm font-semibold leading-tight truncate"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  {deck.name}
+                </h3>
 
-                    {/* Slide count badge */}
-                    <div className="absolute bottom-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-white/90 bg-black/25 backdrop-blur-sm">
-                      <FileText size={12} />
-                      {deck.slides} slides
-                    </div>
+                <div className="flex items-center gap-1.5">
+                  <Clock size={12} style={{ color: 'var(--text-muted)' }} />
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {timeAgo(deck.created_at)}
+                  </span>
+                </div>
 
-                    {/* More options menu (reveals on hover) */}
-                    <button className="absolute top-3 right-3 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 opacity-0 group-hover:opacity-100">
-                      <MoreHorizontal size={16} />
-                    </button>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="flex flex-col gap-3 p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3
-                        className="text-sm font-semibold leading-tight truncate"
-                        style={{ color: 'var(--text-primary)' }}
-                      >
-                        {deck.title}
-                      </h3>
-                      <ScoreBadge score={deck.avgScore} size="sm" />
-                    </div>
-
-                    {/* Last used timestamp */}
-                    <div className="flex items-center gap-1.5">
-                      <Clock
-                        size={12}
-                        style={{ color: 'var(--text-muted)' }}
-                      />
-                      <span
-                        className="text-xs"
-                        style={{ color: 'var(--text-muted)' }}
-                      >
-                        {deck.lastUsed}
-                      </span>
-                    </div>
-
-                    {/* Stats row */}
-                    <div
-                      className="flex items-center gap-4 pt-3 border-t"
-                      style={{ borderColor: 'var(--border-color)' }}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Presentation
-                          size={12}
-                          style={{ color: 'var(--text-muted)' }}
-                        />
-                        <span
-                          className="text-xs font-medium"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                          {deck.practices} runs
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <BarChart2
-                          size={12}
-                          style={{ color: 'var(--text-muted)' }}
-                        />
-                        <span
-                          className="text-xs font-medium"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                          Avg {deck.avgScore}%
-                        </span>
-                      </div>
-                    </div>
+                <div
+                  className="flex items-center gap-4 pt-3 border-t"
+                  style={{ borderColor: 'var(--border-color)' }}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Presentation size={12} style={{ color: 'var(--text-muted)' }} />
+                    <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                      {deck.slide_count} slides
+                    </span>
                   </div>
                 </div>
               </div>
-            );
-          })
-        )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* ——— Footer Summary ——— */}
+      {/* --- Footer Summary --- */}
       <div
         className="flex items-center justify-center animate-fade-in-up"
         style={{
@@ -521,9 +540,14 @@ export default function DeckPage() {
         }}
       >
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          {filteredDecks.length} of {MOCK_DECKS.length} decks shown
+          {filteredDecks.length} of {decks.length} decks shown
         </span>
       </div>
+      <GenerateDeckModal
+        isOpen={isGenerateOpen}
+        onClose={() => setIsGenerateOpen(false)}
+        onSuccess={() => fetchDecks()}
+      />
     </main>
   );
 }
