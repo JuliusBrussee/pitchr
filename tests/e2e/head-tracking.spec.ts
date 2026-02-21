@@ -8,7 +8,7 @@ test.describe("head tracking", () => {
 
     await expect(page.getByText("Engagement")).toBeVisible();
     await expect(page.getByLabel("Engagement unavailable")).toBeVisible();
-    await expect(page.getByText("N/A")).toBeVisible();
+    await expect(page.getByText("No Face")).toBeVisible();
   });
 
   test("hides engagement bubble when camera is toggled off", async ({ page }) => {

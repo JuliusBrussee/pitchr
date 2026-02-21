@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack } from 'lucide-react';
 import { SiriBubble } from '@/views/components/SiriBubble';
 import { EngagementBubble } from '@/views/components/EngagementBubble';
+import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
 import type { OrbState } from '@/views/components/SiriBubble';
 import type { HeadTrackingState } from '@/lib/headTracking/useHeadTracking';
 
@@ -16,7 +17,7 @@ interface SessionCanvasProps {
   toggleMic: () => void;
   orbState: OrbState;
   orbIntensity: number;
-  engagementScore?: number;
+  engagementBand?: HeadTrackingEngagementBand;
   headState?: HeadTrackingState;
   showEngagement?: boolean;
   headTrackingError?: string | null;
@@ -43,7 +44,7 @@ export function SessionCanvas({
   toggleMic,
   orbState,
   orbIntensity,
-  engagementScore = 0,
+  engagementBand = 'no_face',
   headState = 'no_face',
   showEngagement = false,
   headTrackingError,
@@ -121,7 +122,7 @@ export function SessionCanvas({
           <div className="absolute top-4 right-4 z-10 flex items-start gap-2">
             <SiriBubble state={orbState} intensity={orbIntensity} size="sm" />
             <EngagementBubble
-              score={engagementScore}
+              band={engagementBand}
               state={headState}
               visible={showEngagement}
             />

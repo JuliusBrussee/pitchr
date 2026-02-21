@@ -8,6 +8,12 @@ import {
   type FaceLandmarkerResult,
   type Matrix,
 } from "@mediapipe/tasks-vision";
+import {
+  BAND_WINDOW_MS,
+  classifyEngagementBand,
+  type EngagementBandSample,
+  type HeadTrackingEngagementBand,
+} from "@/lib/headTracking/engagementBand";
 
 export type HeadTrackingState = "facing" | "away" | "down" | "no_face";
 
@@ -19,6 +25,7 @@ export interface HeadTrackingMetrics {
   facingPct: number;
   awayPct: number;
   downPct: number;
+  engagementBand: HeadTrackingEngagementBand;
   engagementScore: number;
   isCalibrated: boolean;
   inferenceMs?: number;
@@ -68,6 +75,13 @@ interface YawBalanceState {
   negativeMeanAbsYaw: number;
   positiveSamples: number;
   negativeSamples: number;
+}
+
+interface EngagementBandState {
+  band: HeadTrackingEngagementBand;
+  pendingBand: HeadTrackingEngagementBand | null;
+  pendingSince: number;
+  extremePoseSince: number | null;
 }
 
 interface PerformanceState {
@@ -134,6 +148,7 @@ const INITIAL_METRICS: HeadTrackingMetrics = {
   facingPct: 0,
   awayPct: 0,
   downPct: 0,
+  engagementBand: "no_face",
   engagementScore: 100,
   isCalibrated: false,
   inferenceMs: 0,
@@ -213,6 +228,15 @@ function newYawBalanceState(): YawBalanceState {
   };
 }
 
+function newEngagementBandState(): EngagementBandState {
+  return {
+    band: "no_face",
+    pendingBand: null,
+    pendingSince: 0,
+    extremePoseSince: null,
+  };
+}
+
 function resetRollingWindowState(state: RollingWindowState) {
   state.samples = [];
   state.head = 0;
@@ -227,8 +251,8 @@ function pushRollingSample(window: RollingWindowState, sample: RollingSample) {
   window.counts[sample.state] += 1;
 }
 
-function evictOldRollingSamples(window: RollingWindowState, now: number) {
-  const windowStart = now - TRACKING_WINDOW_MS;
+function evictOldRollingSamples(window: RollingWindowState, now: number, windowMs = TRACKING_WINDOW_MS) {
+  const windowStart = now - windowMs;
 
   while (window.head < window.samples.length && window.samples[window.head].ts < windowStart) {
     const expired = window.samples[window.head];
@@ -260,6 +284,7 @@ function approxSameMetrics(a: HeadTrackingMetrics, b: HeadTrackingMetrics) {
     Math.abs(a.yaw - b.yaw) < METRIC_EPS &&
     Math.abs(a.pitch - b.pitch) < METRIC_EPS &&
     Math.abs(a.roll - b.roll) < METRIC_EPS &&
+    a.engagementBand === b.engagementBand &&
     a.facingPct === b.facingPct &&
     a.awayPct === b.awayPct &&
     a.downPct === b.downPct &&
@@ -591,6 +616,8 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
   const calibrationRef = useRef<CalibrationState>(newCalibrationState());
   const rollingWindowRef = useRef<RollingWindowState>(newRollingWindowState());
+  const bandWindowRef = useRef<RollingWindowState>(newRollingWindowState());
+  const engagementBandStateRef = useRef<EngagementBandState>(newEngagementBandState());
   const lastUiUpdateTsRef = useRef(0);
   const lastPublishedRef = useRef<HeadTrackingMetrics>(INITIAL_METRICS);
 
@@ -668,10 +695,12 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
     calibrationRef.current = newCalibrationState();
     resetRollingWindowState(rollingWindowRef.current);
+    resetRollingWindowState(bandWindowRef.current);
 
     poseEmaRef.current = { yaw: 0, pitch: 0, roll: 0, hasPose: false };
     yawBalanceRef.current = newYawBalanceState();
     engagementEmaRef.current = { value: 100, hasValue: false };
+    engagementBandStateRef.current = newEngagementBandState();
     committedStateRef.current = "no_face";
     pendingTransitionRef.current = { state: null, since: 0 };
     lastFaceSeenTsRef.current = -Infinity;
@@ -811,9 +840,11 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
       calibrationRef.current = newCalibrationState();
       resetRollingWindowState(rollingWindowRef.current);
+      resetRollingWindowState(bandWindowRef.current);
       poseEmaRef.current = { yaw: 0, pitch: 0, roll: 0, hasPose: false };
       yawBalanceRef.current = newYawBalanceState();
       engagementEmaRef.current = { value: 100, hasValue: false };
+      engagementBandStateRef.current = newEngagementBandState();
       committedStateRef.current = "no_face";
       pendingTransitionRef.current = { state: null, since: 0 };
       lastFaceSeenTsRef.current = -Infinity;
@@ -982,15 +1013,41 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
         if (shouldInfer) {
           pushRollingSample(rollingWindowRef.current, { ts: now, state: nextState });
-          evictOldRollingSamples(rollingWindowRef.current, now);
+          pushRollingSample(bandWindowRef.current, { ts: now, state: nextState });
+          evictOldRollingSamples(rollingWindowRef.current, now, TRACKING_WINDOW_MS);
+          evictOldRollingSamples(bandWindowRef.current, now, BAND_WINDOW_MS);
           const rolling = rollingPercentages(rollingWindowRef.current);
+          const shortWindowSamples = bandWindowRef.current.samples.slice(
+            bandWindowRef.current.head
+          ) as EngagementBandSample[];
+
+          const bandState = engagementBandStateRef.current;
+          const bandResult = classifyEngagementBand({
+            now,
+            state: nextState,
+            yaw: yawOut,
+            pitch: pitchOut,
+            samples: shortWindowSamples,
+            previousBand: bandState.band,
+            pendingBand: bandState.pendingBand,
+            pendingSince: bandState.pendingSince,
+            extremePoseSince: bandState.extremePoseSince,
+            windowMs: BAND_WINDOW_MS,
+          });
+
+          engagementBandStateRef.current = {
+            band: bandResult.band,
+            pendingBand: bandResult.pendingBand,
+            pendingSince: bandResult.pendingSince,
+            extremePoseSince: bandResult.extremePoseSince,
+          };
 
           const poseScore = instantPoseScore(yawOut, pitchOut);
           const windowScore = rolling.facingPct;
-          const fusedScore = clampScore(poseScore * 0.9 + windowScore * 0.1);
-          const stateCap = nextState === "away" ? 32 : nextState === "down" ? 40 : 100;
           const targetEngagement =
-            nextState === "no_face" ? engagementEmaRef.current.value : Math.min(stateCap, fusedScore);
+            nextState === "no_face"
+              ? engagementEmaRef.current.value
+              : clampScore(poseScore * 0.4 + windowScore * 0.3 + bandResult.blendedAttention * 0.3);
 
           const engagementEma = engagementEmaRef.current;
           if (!engagementEma.hasValue) {
@@ -1009,6 +1066,7 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
             facingPct: rolling.facingPct,
             awayPct: rolling.awayPct,
             downPct: rolling.downPct,
+            engagementBand: bandResult.band,
             engagementScore: Math.round(clampScore(engagementEma.value)),
             isCalibrated,
             inferenceMs: performanceRef.current.inferenceMs,

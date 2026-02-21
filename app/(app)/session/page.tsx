@@ -72,7 +72,7 @@ export default function SessionPage() {
   }, [session.orbState, setOrbState]);
 
   const {
-    engagementScore,
+    engagementBand,
     state: headState,
     error: headTrackingError,
     debugEnabled: headTrackingDebugEnabled,
@@ -136,7 +136,7 @@ export default function SessionPage() {
         toggleMic={media.toggleMic}
         orbState={session.orbState}
         orbIntensity={0.6}
-        engagementScore={engagementScore}
+        engagementBand={engagementBand}
         headState={headState}
         showEngagement={session.isSessionActive && media.isCameraOn}
         headTrackingError={headTrackingError}
