@@ -5,30 +5,20 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   Clock,
-  TrendingUp,
-  AlertTriangle,
   CheckCircle,
+  AlertTriangle,
   MessageSquare,
-  Zap,
-  Target,
-  Sparkles,
   ChevronDown,
   ChevronUp,
   RotateCcw,
   Share2,
   Download,
-  Volume2,
   Timer,
-  Brain,
-  Lightbulb,
   Copy,
   Check,
-  XCircle,
-  Eye,
-  ShieldCheck,
-  BarChart3,
   Mic,
 } from 'lucide-react';
+import { GlassCard } from '@/views/components/ui/GlassCard';
 
 /* ═══════════════════════════════════════════════════════════════
    PRD-aligned Mock Data — Results /100 scoring
@@ -214,51 +204,25 @@ In two years, every team that practices a pitch will practice it with us. We'd l
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   Helpers
+   Helpers — Refined palette
    ═══════════════════════════════════════════════════════════════ */
 
-function getScoreBand(score: number): { label: string; color: string; bg: string } {
-  if (score >= 80) return { label: 'Investor-Ready', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
-  if (score >= 60) return { label: 'Solid', color: '#ffaa33', bg: 'rgba(255,170,51,0.12)' };
-  if (score >= 40) return { label: 'Getting There', color: '#eab308', bg: 'rgba(234,179,8,0.12)' };
-  return { label: 'Needs Work', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' };
+const ACCENT = '#ff5941';
+
+function getScoreBand(score: number): { label: string; color: string } {
+  if (score >= 80) return { label: 'Investor-Ready', color: '#5a9e78' };
+  if (score >= 60) return { label: 'Solid', color: ACCENT };
+  if (score >= 40) return { label: 'Getting There', color: '#c4944c' };
+  return { label: 'Needs Work', color: '#b85c5c' };
 }
 
-function getCategoryLabel(cat: RubricCategory): string {
-  const labels: Record<RubricCategory, string> = {
-    structure: 'Structure',
-    clarity: 'Clarity & Concision',
-    evidence: 'Evidence & Traction',
-    market: 'Market & Differentiation',
-    delivery: 'Delivery',
-  };
-  return labels[cat];
-}
-
-function getCategoryIcon(cat: RubricCategory) {
-  const icons: Record<RubricCategory, typeof Target> = {
-    structure: BarChart3,
-    clarity: Eye,
-    evidence: TrendingUp,
-    market: ShieldCheck,
-    delivery: Volume2,
-  };
-  return icons[cat];
-}
-
-function getImpactColor(impact: Impact): { text: string; bg: string } {
-  if (impact === 'high') return { text: '#ef4444', bg: 'rgba(239,68,68,0.10)' };
-  if (impact === 'medium') return { text: '#f59e0b', bg: 'rgba(245,158,11,0.10)' };
-  return { text: '#6b7280', bg: 'rgba(107,114,128,0.10)' };
-}
-
-function getCategoryColor(score: number, max: number): string {
-  const pct = score / max;
-  if (pct >= 0.8) return '#22c55e';
-  if (pct >= 0.6) return '#ffaa33';
-  if (pct >= 0.4) return '#eab308';
-  return '#ef4444';
-}
+const CATEGORY_LABELS: Record<RubricCategory, string> = {
+  structure: 'Structure',
+  clarity: 'Clarity & Concision',
+  evidence: 'Evidence & Traction',
+  market: 'Market & Differentiation',
+  delivery: 'Delivery',
+};
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -288,7 +252,7 @@ export default function ResultsPage() {
   const [copiedRewrite, setCopiedRewrite] = useState(false);
 
   const totalFillers = analysis.delivery_metrics.filler_words.reduce((s, f) => s + f.count, 0);
-  const modeLabel = run.mode === 'elevator' ? 'Elevator Pitch' : 'VC Pitch (2 min)';
+  const modeLabel = run.mode === 'elevator' ? 'Elevator Pitch' : 'VC Pitch';
 
   function handleCopyRewrite() {
     navigator.clipboard.writeText(analysis.rewrite_script);
@@ -297,152 +261,171 @@ export default function ResultsPage() {
   }
 
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
+    <main className="flex-1 overflow-y-auto min-h-0 flex flex-col pr-1 pb-8">
 
       {/* ─── Header ─── */}
-      <div className="flex items-center justify-between animate-fade-in-up" style={{ animationDelay: '0ms' }}>
-        <div className="flex items-center gap-4">
-          <Link
-            href="/history"
-            className="p-2 rounded-xl border transition-all duration-200 no-underline flex items-center justify-center"
-            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
-          >
-            <ArrowLeft size={18} />
-          </Link>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                Pitch Results
-              </h1>
-              <span
-                className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
-                style={{ backgroundColor: 'var(--border-color)', color: 'var(--text-muted)' }}
-              >
-                {modeLabel}
-              </span>
-            </div>
-            <p className="text-xs mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
-              <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(run.createdAt)}</span>
-              <span style={{ color: 'var(--border-color)' }}>|</span>
-              <span className="flex items-center gap-1"><Timer size={10} /> {formatDuration(analysis.delivery_metrics.duration_seconds)}</span>
-              <span style={{ color: 'var(--border-color)' }}>|</span>
-              <span className="flex items-center gap-1"><Mic size={10} /> Audio input</span>
-            </p>
-          </div>
-        </div>
+      <div className="flex items-center justify-between py-2 animate-fade-in-up">
+        <Link
+          href="/history"
+          className="flex items-center gap-2 text-xs font-medium no-underline transition-colors duration-200"
+          style={{ color: 'var(--text-secondary)' }}
+        >
+          <ArrowLeft size={15} />
+          Back to History
+        </Link>
         <div className="flex items-center gap-2">
-          <SmallButton icon={<Share2 size={14} />} label="Share" />
-          <SmallButton icon={<Download size={14} />} label="Export" />
+          <ActionButton icon={<Share2 size={13} />} label="Share" />
+          <ActionButton icon={<Download size={13} />} label="Export" />
           <Link
             href="/session"
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold no-underline transition-all duration-200"
             style={{ background: '#1c1210', color: '#fff0eb' }}
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={12} />
             Run Again
           </Link>
         </div>
       </div>
 
-      {/* ─── Verdict + Score Hero ─── */}
-      <div className="grid grid-cols-12 gap-4 animate-fade-in-up" style={{ animationDelay: '40ms' }}>
-
-        {/* Score Ring */}
-        <div className="col-span-3">
-          <GlassCard className="h-full flex flex-col items-center justify-center py-6">
-            <div className="relative">
-              <ScoreRing score={analysis.overall_score} max={100} size={130} color={band.color} />
+      {/* ─── Score Hero ─── */}
+      <div className="animate-fade-in-up mt-2" style={{ animationDelay: '40ms' }}>
+        <GlassCard padding="lg" animate={false}>
+          <div className="flex items-center gap-10">
+            {/* Score arc */}
+            <div className="relative flex-shrink-0">
+              <ScoreArc score={analysis.overall_score} max={100} size={152} color={band.color} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                <span
+                  className="text-5xl font-black tabular-nums tracking-tight"
+                  style={{ color: 'var(--text-primary)', lineHeight: 1 }}
+                >
                   {analysis.overall_score}
                 </span>
-                <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>/100</span>
+                <span className="text-[10px] font-medium mt-1.5 tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                  / 100
+                </span>
               </div>
             </div>
-            <span
-              className="mt-3 text-xs font-bold px-3 py-1 rounded-full"
-              style={{ backgroundColor: band.bg, color: band.color }}
-            >
-              {band.label}
-            </span>
-          </GlassCard>
-        </div>
 
-        {/* Verdict + Quick Delivery Stats */}
-        <div className="col-span-9 flex flex-col gap-3">
-          {/* One-line verdict */}
-          <GlassCard className="flex-1">
-            <div className="flex items-start gap-3">
-              <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{ background: '#1c1210' }}
-              >
-                <Brain size={16} className="text-white" />
+            {/* Band + metadata + verdict */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-1.5">
+                <span className="text-sm font-bold tracking-wide" style={{ color: band.color }}>
+                  {band.label}
+                </span>
+                <span
+                  className="text-[9px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded"
+                  style={{ backgroundColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+                >
+                  {modeLabel}
+                </span>
               </div>
-              <div>
-                <h2 className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-muted)' }}>
-                  Verdict
-                </h2>
-                <p className="text-sm font-medium leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+              <p className="text-[11px] mb-5 flex items-center gap-2" style={{ color: 'var(--text-muted)' }}>
+                <span className="flex items-center gap-1"><Clock size={10} /> {formatDate(run.createdAt)}</span>
+                <span style={{ opacity: 0.4 }}>/</span>
+                <span className="flex items-center gap-1"><Timer size={10} /> {formatDuration(analysis.delivery_metrics.duration_seconds)}</span>
+                <span style={{ opacity: 0.4 }}>/</span>
+                <span className="flex items-center gap-1"><Mic size={10} /> Audio</span>
+              </p>
+              {/* Verdict as pull-quote */}
+              <div style={{ borderLeft: `2px solid ${band.color}`, paddingLeft: 16 }}>
+                <p
+                  className="text-[13px] leading-relaxed font-medium"
+                  style={{ color: 'var(--text-primary)', opacity: 0.85 }}
+                >
                   {analysis.one_line_verdict}
                 </p>
               </div>
             </div>
-          </GlassCard>
-
-          {/* Quick stats row */}
-          <div className="grid grid-cols-4 gap-3">
-            <QuickStat label="WPM" value={analysis.delivery_metrics.wpm.toString()} sub="130–160 ideal" ok={analysis.delivery_metrics.wpm >= 130 && analysis.delivery_metrics.wpm <= 160} />
-            <QuickStat label="Filler Words" value={totalFillers.toString()} sub={`${(totalFillers / (analysis.delivery_metrics.duration_seconds / 60)).toFixed(1)}/min`} ok={totalFillers <= 4} />
-            <QuickStat label="Duration" value={formatDuration(analysis.delivery_metrics.duration_seconds)} sub="2:00 limit" ok={analysis.delivery_metrics.within_time_limit} />
-            <QuickStat label="Repeated Phrases" value={analysis.delivery_metrics.repeated_phrases.length.toString()} sub="phrases flagged" ok={analysis.delivery_metrics.repeated_phrases.length <= 1} />
           </div>
-        </div>
+        </GlassCard>
       </div>
 
-      {/* ─── Rubric Breakdown (5 categories /20 each) ─── */}
-      <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
-        <GlassCard>
-          <h2 className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>
-            Rubric Breakdown
-          </h2>
-          <div className="flex flex-col gap-4">
+      {/* ─── Delivery Metrics Strip ─── */}
+      <div className="animate-fade-in-up mt-4" style={{ animationDelay: '80ms' }}>
+        <GlassCard padding="sm" animate={false}>
+          <div className="grid grid-cols-4">
+            <MetricCell
+              label="WPM"
+              value={analysis.delivery_metrics.wpm.toString()}
+              note="130–160 ideal"
+              ok={analysis.delivery_metrics.wpm >= 130 && analysis.delivery_metrics.wpm <= 160}
+            />
+            <MetricCell
+              label="Filler Words"
+              value={totalFillers.toString()}
+              note={`${(totalFillers / (analysis.delivery_metrics.duration_seconds / 60)).toFixed(1)}/min`}
+              ok={totalFillers <= 4}
+              border
+            />
+            <MetricCell
+              label="Duration"
+              value={formatDuration(analysis.delivery_metrics.duration_seconds)}
+              note="2:00 limit"
+              ok={analysis.delivery_metrics.within_time_limit}
+              border
+            />
+            <MetricCell
+              label="Repeated"
+              value={analysis.delivery_metrics.repeated_phrases.length.toString()}
+              note="phrases flagged"
+              ok={analysis.delivery_metrics.repeated_phrases.length <= 1}
+              border
+            />
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* ─── Rubric Breakdown ─── */}
+      <div className="animate-fade-in-up mt-6" style={{ animationDelay: '120ms' }}>
+        <h2
+          className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3 px-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Rubric Breakdown
+        </h2>
+        <GlassCard padding="md" animate={false}>
+          <div className="flex flex-col gap-5">
             {analysis.rubric_breakdown.map((rb, i) => {
-              const CatIcon = getCategoryIcon(rb.category);
-              const color = getCategoryColor(rb.score, rb.max_score);
               const pct = (rb.score / rb.max_score) * 100;
+              const barOpacity = 0.35 + (rb.score / rb.max_score) * 0.65;
               return (
                 <div
                   key={rb.category}
                   className="animate-fade-in-up"
-                  style={{ animationDelay: `${140 + i * 50}ms`, animationFillMode: 'both' }}
+                  style={{ animationDelay: `${160 + i * 60}ms`, animationFillMode: 'both' }}
                 >
-                  <div className="flex items-center gap-3 mb-1.5">
+                  {/* Label row */}
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {CATEGORY_LABELS[rb.category]}
+                    </span>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                        {rb.score}
+                      </span>
+                      <span className="text-[10px] font-medium tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                        /{rb.max_score}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Bar */}
+                  <div
+                    className="h-1.5 rounded-full overflow-hidden"
+                    style={{ backgroundColor: 'var(--border-color)' }}
+                  >
                     <div
-                      className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${color}15` }}
-                    >
-                      <CatIcon size={13} style={{ color }} />
-                    </div>
-                    <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>
-                      {getCategoryLabel(rb.category)}
-                    </span>
-                    <span className="text-sm font-bold tabular-nums" style={{ color }}>
-                      {rb.score}
-                    </span>
-                    <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                      / {rb.max_score}
-                    </span>
+                      className="h-full rounded-full transition-all duration-700 ease-out"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: ACCENT,
+                        opacity: barOpacity,
+                        transitionDelay: `${i * 80}ms`,
+                      }}
+                    />
                   </div>
-                  <div className="flex items-center gap-3 ml-9">
-                    <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-color)' }}>
-                      <div
-                        className="h-full rounded-full transition-all duration-700 ease-out"
-                        style={{ width: `${pct}%`, backgroundColor: color, transitionDelay: `${i * 80}ms` }}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs leading-relaxed mt-1.5 ml-9" style={{ color: 'var(--text-secondary)' }}>
+                  {/* Rationale */}
+                  <p className="text-[11px] leading-relaxed mt-2" style={{ color: 'var(--text-secondary)', opacity: 0.85 }}>
                     {rb.rationale}
                   </p>
                 </div>
@@ -453,64 +436,52 @@ export default function ResultsPage() {
       </div>
 
       {/* ─── Top 5 Fixes ─── */}
-      <div className="animate-fade-in-up" style={{ animationDelay: '160ms' }}>
-        <GlassCard>
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className="w-6 h-6 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #ef4444, #f59e0b)' }}
-            >
-              <Zap size={13} className="text-white" />
-            </div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              Top 5 Fixes — Ranked by Impact
-            </h2>
-          </div>
-          <div className="flex flex-col gap-3">
-            {analysis.top_fixes.map((fix, i) => (
-              <FixCard key={fix.rank} fix={fix} delay={i} />
-            ))}
-          </div>
-        </GlassCard>
+      <div className="animate-fade-in-up mt-6" style={{ animationDelay: '180ms' }}>
+        <h2
+          className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3 px-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Top Fixes — Ranked by Impact
+        </h2>
+        <div className="flex flex-col gap-2.5">
+          {analysis.top_fixes.map((fix, i) => (
+            <FixItem key={fix.rank} fix={fix} delay={i} />
+          ))}
+        </div>
       </div>
 
-      {/* ─── Two-column: Rewrite + Delivery Metrics ─── */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* ─── Two-column: Rewrite + Delivery Detail ─── */}
+      <div className="grid grid-cols-2 gap-4 mt-6">
 
         {/* Rewrite Panel */}
-        <div className="animate-fade-in-up" style={{ animationDelay: '220ms' }}>
-          <GlassCard className="h-full flex flex-col">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Sparkles size={14} style={{ color: '#ff5941' }} />
-                <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                  Tightened Rewrite
-                </h2>
-              </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '240ms' }}>
+          <h2
+            className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3 px-1"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            Tightened Rewrite
+          </h2>
+          <GlassCard padding="md" animate={false} className="h-[calc(100%-28px)] flex flex-col">
+            <div className="flex items-center justify-end mb-3">
               <button
                 onClick={handleCopyRewrite}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-semibold transition-all duration-200"
                 style={{
-                  backgroundColor: copiedRewrite ? 'rgba(34,197,94,0.08)' : 'transparent',
-                  borderColor: copiedRewrite ? 'rgba(34,197,94,0.3)' : 'var(--border-color)',
-                  color: copiedRewrite ? '#22c55e' : 'var(--text-secondary)',
+                  backgroundColor: copiedRewrite ? 'rgba(90,158,120,0.06)' : 'transparent',
+                  borderColor: copiedRewrite ? 'rgba(90,158,120,0.25)' : 'var(--border-color)',
+                  color: copiedRewrite ? '#5a9e78' : 'var(--text-muted)',
                 }}
               >
-                {copiedRewrite ? <Check size={11} /> : <Copy size={11} />}
+                {copiedRewrite ? <Check size={10} /> : <Copy size={10} />}
                 {copiedRewrite ? 'Copied' : 'Copy'}
               </button>
             </div>
             <div
-              className="flex-1 rounded-xl border p-4 overflow-y-auto text-sm leading-relaxed"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-secondary)',
-                maxHeight: 420,
-              }}
+              className="flex-1 overflow-y-auto text-[12.5px] leading-[1.8]"
+              style={{ color: 'var(--text-secondary)', maxHeight: 400 }}
             >
               {analysis.rewrite_script.split('\n\n').map((paragraph, i) => (
-                <p key={i} className={i > 0 ? 'mt-3' : ''}>
+                <p key={i} className={i > 0 ? 'mt-4' : ''}>
                   {paragraph}
                 </p>
               ))}
@@ -518,117 +489,132 @@ export default function ResultsPage() {
           </GlassCard>
         </div>
 
-        {/* Delivery Metrics */}
-        <div className="animate-fade-in-up flex flex-col gap-4" style={{ animationDelay: '260ms' }}>
+        {/* Filler Words + Repeated Phrases */}
+        <div className="animate-fade-in-up flex flex-col gap-4" style={{ animationDelay: '280ms' }}>
           {/* Filler Words */}
-          <GlassCard>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          <div>
+            <div className="flex items-baseline justify-between mb-3 px-1">
+              <h2
+                className="text-[10px] font-bold uppercase tracking-[0.15em]"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Filler & Weak Words
               </h2>
               <span
                 className="text-lg font-black tabular-nums"
-                style={{ color: totalFillers > 10 ? '#ef4444' : totalFillers > 5 ? '#f59e0b' : '#22c55e' }}
+                style={{ color: totalFillers > 10 ? '#b85c5c' : totalFillers > 5 ? '#c4944c' : '#5a9e78' }}
               >
                 {totalFillers}
               </span>
             </div>
-            <div className="flex flex-col gap-1.5">
-              {analysis.delivery_metrics.filler_words
-                .sort((a, b) => b.count - a.count)
-                .map((fw, i) => (
-                <div
-                  key={fw.word}
-                  className="flex items-center gap-3 rounded-lg px-3 py-2 border animate-fade-in-up"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-color)',
-                    animationDelay: `${300 + i * 30}ms`,
-                    animationFillMode: 'both',
-                  }}
-                >
-                  <span
-                    className="text-xs font-mono font-bold px-2 py-0.5 rounded flex-shrink-0"
-                    style={{
-                      backgroundColor: fw.count >= 3 ? 'rgba(239,68,68,0.10)' : fw.count >= 2 ? 'rgba(245,158,11,0.10)' : 'rgba(107,114,128,0.10)',
-                      color: fw.count >= 3 ? '#ef4444' : fw.count >= 2 ? '#f59e0b' : 'var(--text-secondary)',
-                    }}
-                  >
-                    &ldquo;{fw.word}&rdquo;
-                  </span>
-                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-color)' }}>
+            <GlassCard padding="sm" animate={false}>
+              <div className="flex flex-col">
+                {analysis.delivery_metrics.filler_words
+                  .sort((a, b) => b.count - a.count)
+                  .map((fw, i) => (
                     <div
-                      className="h-full rounded-full"
+                      key={fw.word}
+                      className="flex items-center gap-3 px-3 py-2 animate-fade-in-up"
                       style={{
-                        width: `${Math.min(100, (fw.count / 3) * 100)}%`,
-                        backgroundColor: fw.count >= 3 ? '#ef4444' : fw.count >= 2 ? '#f59e0b' : 'var(--text-muted)',
+                        animationDelay: `${320 + i * 25}ms`,
+                        animationFillMode: 'both',
+                        borderBottom: i < analysis.delivery_metrics.filler_words.length - 1
+                          ? '1px solid var(--border-color)'
+                          : 'none',
                       }}
-                    />
-                  </div>
-                  <span className="text-sm font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                    {fw.count}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </GlassCard>
+                    >
+                      <span
+                        className="text-[11px] font-mono font-medium w-20 flex-shrink-0"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        &ldquo;{fw.word}&rdquo;
+                      </span>
+                      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-color)' }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${Math.min(100, (fw.count / 3) * 100)}%`,
+                            backgroundColor: ACCENT,
+                            opacity: 0.4 + (fw.count / 3) * 0.4,
+                          }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold tabular-nums w-5 text-right" style={{ color: 'var(--text-primary)' }}>
+                        {fw.count}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            </GlassCard>
+          </div>
 
           {/* Repeated Phrases */}
           {analysis.delivery_metrics.repeated_phrases.length > 0 && (
-            <GlassCard>
-              <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+            <div>
+              <h2
+                className="text-[10px] font-bold uppercase tracking-[0.15em] mb-3 px-1"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Repeated Phrases
               </h2>
-              <div className="flex flex-col gap-1.5">
-                {analysis.delivery_metrics.repeated_phrases.map((rp) => (
-                  <div
-                    key={rp.phrase}
-                    className="flex items-center justify-between rounded-lg px-3 py-2 border"
-                    style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-                  >
-                    <span className="text-xs font-mono font-medium" style={{ color: 'var(--text-secondary)' }}>
-                      &ldquo;{rp.phrase}&rdquo;
-                    </span>
-                    <span className="text-xs font-bold tabular-nums" style={{ color: 'var(--text-muted)' }}>
-                      {rp.count}x
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </GlassCard>
+              <GlassCard padding="sm" animate={false}>
+                <div className="flex flex-col">
+                  {analysis.delivery_metrics.repeated_phrases.map((rp, i) => (
+                    <div
+                      key={rp.phrase}
+                      className="flex items-center justify-between px-3 py-2.5"
+                      style={{
+                        borderBottom: i < analysis.delivery_metrics.repeated_phrases.length - 1
+                          ? '1px solid var(--border-color)'
+                          : 'none',
+                      }}
+                    >
+                      <span className="text-[11px] font-mono font-medium" style={{ color: 'var(--text-secondary)' }}>
+                        &ldquo;{rp.phrase}&rdquo;
+                      </span>
+                      <span className="text-[11px] font-bold tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                        {rp.count}x
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
           )}
         </div>
       </div>
 
       {/* ─── Transcript ─── */}
-      <div className="animate-fade-in-up" style={{ animationDelay: '280ms' }}>
-        <GlassCard>
+      <div className="animate-fade-in-up mt-6" style={{ animationDelay: '320ms' }}>
+        <GlassCard padding="md" animate={false}>
           <button
             onClick={() => setShowFullTranscript(!showFullTranscript)}
             className="flex items-center justify-between w-full text-left"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             <div className="flex items-center gap-2">
-              <MessageSquare size={14} style={{ color: 'var(--text-muted)' }} />
-              <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <MessageSquare size={13} style={{ color: 'var(--text-muted)' }} />
+              <span
+                className="text-[10px] font-bold uppercase tracking-[0.15em]"
+                style={{ color: 'var(--text-muted)' }}
+              >
                 Original Transcript
-              </h2>
+              </span>
             </div>
             <div className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
               <span className="text-[10px] font-medium">
                 {showFullTranscript ? 'Collapse' : 'Expand'}
               </span>
-              {showFullTranscript ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+              {showFullTranscript ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
             </div>
           </button>
 
           {showFullTranscript && (
             <div
-              className="mt-4 rounded-xl border p-4 text-sm leading-relaxed animate-fade-in-up"
+              className="mt-4 pt-4 text-[12.5px] leading-[1.8] animate-fade-in"
               style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)',
                 color: 'var(--text-secondary)',
+                borderTop: '1px solid var(--border-color)',
               }}
             >
               {run.transcript.split('\n\n').map((paragraph, i) => (
@@ -643,12 +629,12 @@ export default function ResultsPage() {
 
       {/* ─── Bottom CTA ─── */}
       <div
-        className="flex items-center justify-between rounded-2xl border p-5 animate-fade-in-up"
+        className="flex items-center justify-between rounded-2xl border p-5 mt-6 animate-fade-in-up"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-color)',
-          backdropFilter: `blur(var(--blur-strength))`,
-          animationDelay: '320ms',
+          backdropFilter: 'blur(var(--blur-strength))',
+          animationDelay: '360ms',
           animationFillMode: 'both',
         }}
       >
@@ -656,14 +642,14 @@ export default function ResultsPage() {
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
             Your #1 fix: Add market sizing & competitor analysis
           </h3>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-            This is your biggest scoring gap at 8/20. Fixing it alone could push you into the 70s.
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            Biggest scoring gap at 8/20 — fixing it alone could push you into the 70s.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/history"
-            className="px-4 py-2.5 rounded-xl border text-xs font-semibold no-underline transition-all duration-200"
+            className="px-4 py-2.5 rounded-xl border text-xs font-medium no-underline transition-all duration-200"
             style={{ backgroundColor: 'transparent', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
           >
             View History
@@ -673,7 +659,7 @@ export default function ResultsPage() {
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold no-underline transition-all duration-200"
             style={{ background: '#1c1210', color: '#fff0eb' }}
           >
-            <RotateCcw size={13} />
+            <RotateCcw size={12} />
             Run Again
           </Link>
         </div>
@@ -688,27 +674,15 @@ export default function ResultsPage() {
    Sub-components
    ═══════════════════════════════════════════════════════════════ */
 
-function GlassCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={`rounded-2xl border p-5 ${className}`}
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        backdropFilter: `blur(var(--blur-strength))`,
-        WebkitBackdropFilter: `blur(var(--blur-strength))`,
-        borderColor: 'var(--border-color)',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function SmallButton({ icon, label }: { icon: React.ReactNode; label: string }) {
+function ActionButton({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <button
-      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all duration-200"
-      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+      className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-[11px] font-medium transition-all duration-200"
+      style={{
+        backgroundColor: 'transparent',
+        borderColor: 'var(--border-color)',
+        color: 'var(--text-muted)',
+      }}
     >
       {icon}
       {label}
@@ -716,8 +690,8 @@ function SmallButton({ icon, label }: { icon: React.ReactNode; label: string }) 
   );
 }
 
-function ScoreRing({ score, max, size, color }: { score: number; max: number; size: number; color: string }) {
-  const strokeWidth = 10;
+function ScoreArc({ score, max, size, color }: { score: number; max: number; size: number; color: string }) {
+  const strokeWidth = 5;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = (score / max) * circumference;
@@ -743,97 +717,108 @@ function ScoreRing({ score, max, size, color }: { score: number; max: number; si
         strokeDashoffset={circumference - progress}
         strokeLinecap="round"
         className="transition-all duration-1000 ease-out"
-        style={{ filter: `drop-shadow(0 0 8px ${color}50)` }}
+        style={{ filter: `drop-shadow(0 0 6px ${color}40)` }}
       />
     </svg>
   );
 }
 
-function QuickStat({ label, value, sub, ok }: { label: string; value: string; sub: string; ok: boolean }) {
+function MetricCell({ label, value, note, ok, border }: {
+  label: string;
+  value: string;
+  note: string;
+  ok: boolean;
+  border?: boolean;
+}) {
   return (
     <div
-      className="rounded-xl border p-3"
-      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+      className="flex flex-col items-center py-3 px-2"
+      style={{
+        borderLeft: border ? '1px solid var(--border-color)' : 'none',
+      }}
     >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span className="text-[9px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'var(--text-muted)' }}>
+        {label}
+      </span>
+      <span className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+        {value}
+      </span>
+      <div className="flex items-center gap-1 mt-1">
         {ok ? (
-          <CheckCircle size={12} style={{ color: '#22c55e' }} />
+          <CheckCircle size={10} style={{ color: '#5a9e78' }} />
         ) : (
-          <AlertTriangle size={12} style={{ color: '#f59e0b' }} />
+          <AlertTriangle size={10} style={{ color: '#c4944c' }} />
         )}
+        <span className="text-[9px] font-medium" style={{ color: 'var(--text-muted)' }}>
+          {note}
+        </span>
       </div>
-      <span className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{value}</span>
-      <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{sub}</p>
     </div>
   );
 }
 
-function FixCard({ fix, delay }: { fix: Fix; delay: number }) {
-  const impact = getImpactColor(fix.impact);
-  const CatIcon = getCategoryIcon(fix.category);
-
+function FixItem({ fix, delay }: { fix: Fix; delay: number }) {
   return (
-    <div
-      className="rounded-xl border p-4 animate-fade-in-up"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-        animationDelay: `${200 + delay * 50}ms`,
-        animationFillMode: 'both',
-      }}
+    <GlassCard
+      padding="md"
+      animate={false}
+      className="animate-slide-in-left"
     >
-      <div className="flex items-start gap-3">
-        {/* Rank badge */}
-        <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-sm font-black"
-          style={{ backgroundColor: impact.bg, color: impact.text }}
-        >
-          #{fix.rank}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+      <div
+        style={{ animationDelay: `${220 + delay * 60}ms`, animationFillMode: 'both' }}
+      >
+        <div className="flex gap-4">
+          {/* Rank number — large, decorative */}
+          <div className="flex-shrink-0 w-10 flex items-start justify-center pt-0.5">
             <span
-              className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: 'var(--border-color)', color: 'var(--text-muted)' }}
+              className="text-2xl font-black tabular-nums"
+              style={{ color: 'var(--text-primary)', opacity: 0.12 }}
             >
-              <CatIcon size={9} />
-              {getCategoryLabel(fix.category)}
-            </span>
-            <span
-              className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: impact.bg, color: impact.text }}
-            >
-              {fix.impact} impact
+              {fix.rank.toString().padStart(2, '0')}
             </span>
           </div>
 
-          {/* Issue */}
-          <div className="mb-2">
-            <div className="flex items-start gap-1.5">
-              <XCircle size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
-              <p className="text-sm font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
-                {fix.issue}
-              </p>
+          <div className="flex-1 min-w-0">
+            {/* Category + Impact */}
+            <div className="flex items-center gap-2 mb-2">
+              <span
+                className="text-[9px] font-bold uppercase tracking-widest"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {CATEGORY_LABELS[fix.category]}
+              </span>
+              <span style={{ color: 'var(--border-color)' }}>&middot;</span>
+              <span
+                className="text-[9px] font-bold uppercase tracking-widest"
+                style={{
+                  color: fix.impact === 'high' ? ACCENT : 'var(--text-muted)',
+                  opacity: fix.impact === 'low' ? 0.6 : 1,
+                }}
+              >
+                {fix.impact} impact
+              </span>
             </div>
-          </div>
 
-          {/* Fix */}
-          <div
-            className="rounded-lg border px-3 py-2.5"
-            style={{ backgroundColor: 'rgba(34,197,94,0.04)', borderColor: 'rgba(34,197,94,0.15)' }}
-          >
-            <div className="flex items-start gap-1.5">
-              <Lightbulb size={13} className="flex-shrink-0 mt-0.5" style={{ color: '#22c55e' }} />
-              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            {/* Issue */}
+            <p className="text-[13px] font-medium leading-snug mb-3" style={{ color: 'var(--text-primary)' }}>
+              {fix.issue}
+            </p>
+
+            {/* Fix recommendation */}
+            <div
+              className="rounded-lg px-3.5 py-3"
+              style={{
+                backgroundColor: `${ACCENT}06`,
+                borderLeft: `2px solid ${ACCENT}30`,
+              }}
+            >
+              <p className="text-[11.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 {fix.fix}
               </p>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </GlassCard>
   );
 }
