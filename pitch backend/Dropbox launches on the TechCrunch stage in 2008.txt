@@ -1,0 +1,733 @@
+00:00 ready let's hear it for Dropbox all
+00:06 
+
+00:06 right thank you I'm drew and this is a
+00:08 
+
+00:08 rush when we showing you a quick tour of
+00:10 
+
+00:10 Dropbox all right it's 2008 it is still
+00:14 
+
+00:14 such a pain to do even the most basic
+00:16 
+
+00:16 things like work across multiple
+00:18 
+
+00:18 computers or share files across a team
+00:20 
+
+00:20 or put photos and video up on the web
+00:23 
+
+00:23 when we think about the future it's kind
+00:27 
+
+00:27 of hard to imagine Tom Cruise having to
+00:29 
+
+00:29 carry around a USB Drive probably like
+00:31 
+
+00:31 log in to Gmail to send himself a file
+00:34 
+
+00:34 or an email attachment in about five
+00:37 
+
+00:37 well in five years this problems can be
+00:39 
+
+00:39 solved you'll sit down at any computer
+00:40 
+
+00:40 or use any mobile device and your stuff
+00:43 
+
+00:43 will just be in front of you and while
+00:45 
+
+00:45 dozens of companies have tried to solve
+00:47 
+
+00:47 this problem the one that's gonna make
+00:49 
+
+00:49 it a reality this only makes it so easy
+00:51 
+
+00:51 to use that anyone can figure it out so
+00:54 
+
+00:54 let's dive in okay so back at the office
+00:58 
+
+00:58 we created an account for TC 50 a
+01:01 
+
+01:01 Dropbox account and we put a bunch of
+01:03 
+
+01:03 files in and now we want to get to those
+01:04 
+
+01:04 files up here so all we have to do to
+01:07 
+
+01:07 get started is type in our email address
+01:09 
+
+01:09 and password and once our account is
+01:12 
+
+01:12 linked you'll notice that in a second
+01:17 
+
+01:17 all the files will begin will begin
+01:20 
+
+01:20 downloading and there you go so you can
+01:24 
+
+01:24 see the things are starting to happen
+01:26 
+
+01:26 what we're looking at is our Dropbox
+01:28 
+
+01:28 folder and it looks and acts like any
+01:30 
+
+01:30 other folder except everything we put in
+01:32 
+
+01:32 there is kept in sync across our
+01:34 
+
+01:34 computers and a copy is kept in the
+01:36 
+
+01:36 cloud okay so you'll notice there's no
+01:40 
+
+01:40 complicated interface to learn or a
+01:41 
+
+01:41 program everything's completely in the
+01:44 
+
+01:44 background Dropbox is deeply integrated
+01:45 
+
+01:45 with the finder and you'll notice these
+01:48 
+
+01:48 green checkmarks indicating that files
+01:50 
+
+01:50 are up to date now I also have a
+01:53 
+
+01:53 computer over here which is linked up to
+01:54 
+
+01:54 the same Dropbox account so what I see
+01:57 
+
+01:57 in my Dropbox folder is the same thing
+01:58 
+
+01:58 as we see up there so let's share a file
+02:01 
+
+02:01 between these two computers so
+02:03 
+
+02:03 everything will drop with Dropbox is
+02:05 
+
+02:05 drag-and-drop
+02:06 
+
+02:06 so as soon as I Rajputs drags in a file
+02:09 
+
+02:09 off of this desktop so ashton dot jpg i
+02:11 
+
+02:11 immediately get a notification up here
+02:13 
+
+02:13 and I know you can't see it back there
+02:15 
+
+02:15 but I can I even I have Photoshop
+02:17 
+
+02:17 running here and when I hit save and
+02:20 
+
+02:20 make a small change that change will
+02:25 
+
+02:25 sync up immediately or what I hope is
+02:29 
+
+02:29 immediate anyway while we're waiting for
+02:34 
+
+02:34 that to come down I just hit save on
+02:37 
+
+02:37 that file and well the point is we can
+02:41 
+
+02:41 make a change from any of these
+02:42 
+
+02:42 computers and well okay we'll just we'll
+02:46 
+
+02:46 move on okay
+02:58 
+
+02:59 it's the next time
+03:01 
+
+03:01 all right okay sorry about that
+03:08 
+
+03:08 so stripper hatefully sorry about that
+03:12 
+
+03:12 yes sir yeah so you can make sorry we
+03:15 
+
+03:15 can make a change from any of our
+03:16 
+
+03:16 computers and uh okay so all right so
+03:22 
+
+03:22 Dropbox is a good way for keeping things
+03:24 
+
+03:24 in sync across your own computers but
+03:27 
+
+03:27 we're a start-up we've got 10 people in
+03:29 
+
+03:29 the company and we're on Windows or on
+03:32 
+
+03:32 Linux we're on Mac every it's an you
+03:34 
+
+03:34 know we're all over the place so what we
+03:36 
+
+03:36 do is we use Dropbox shared folders to
+03:39 
+
+03:39 stay on the same page so if we go to the
+03:41 
+
+03:41 web interface you'll notice that we have
+03:46 
+
+03:46 this invitation to a file called or to a
+03:48 
+
+03:48 folder called company shared folders so
+03:50 
+
+03:50 in there when we can accept it and in
+03:53 
+
+03:53 there are all of our Photoshop mock-ups
+03:55 
+
+03:55 all of our code League legal documents
+03:58 
+
+03:58 anything we need and so once we've
+04:01 
+
+04:01 joined everything's gonna start pulling
+04:02 
+
+04:02 down and there it is and anyone on the
+04:05 
+
+04:05 team can change a file in here and it
+04:07 
+
+04:07 just synchronizes immediately so it's
+04:12 
+
+04:12 you can think of this kind of like
+04:13 
+
+04:13 Google Docs except you don't have to
+04:16 
+
+04:16 change the way you work you can use
+04:18 
+
+04:18 office you can use Photoshop so you can
+04:20 
+
+04:20 use all of your favorite applications
+04:21 
+
+04:21 you can even be online or offline so if
+04:24 
+
+04:24 the Wi-Fi cuts out when you reconnect
+04:27 
+
+04:27 everything it syncs up problem okay so
+04:33 
+
+04:33 Dropbox is so you can see how Dropbox is
+04:36 
+
+04:36 good for private sharing but often what
+04:38 
+
+04:38 you want to do is put this put stuff
+04:39 
+
+04:39 online and so there's a lot we do around
+04:42 
+
+04:42 this but as one example say you were
+04:44 
+
+04:44 just on TV and you took a bunch of
+04:48 
+
+04:48 pictures and now you want to make them
+04:49 
+
+04:49 available to your friends Dropbox makes
+04:52 
+
+04:52 this absolutely painless so all you have
+04:54 
+
+04:54 to do is take a folder full of files and
+04:57 
+
+04:57 put them in your Dropbox photo gallery
+05:01 
+
+05:01 and Dropbox will automatically create a
+05:03 
+
+05:03 web viewable gallery that you can give
+05:06 
+
+05:06 you a link that you can then drop in an
+05:07 
+
+05:07 email or an IM or and it does what you'd
+05:10 
+
+05:10 expect
+05:13 
+
+05:13 so I think that's that's a quick tour of
+05:15 
+
+05:15 Dropbox week if we want we can review
+05:19 
+
+05:19 that well we'll just move on before we
+05:21 
+
+05:21 leave you we want to make a couple quick
+05:23 
+
+05:23 announcements so we'll jump back in so
+05:29 
+
+05:29 we've been in private beta for a while
+05:31 
+
+05:31 and we've gotten a lot of great feature
+05:34 
+
+05:34 requests in in our forum we've had over
+05:35 
+
+05:35 a thousand requests for a Linux client
+05:38 
+
+05:38 and we're happy to announce that today
+05:39 
+
+05:39 we're at linux support is going live and
+05:41 
+
+05:41 we'll have a Linux client available for
+05:43 
+
+05:43 you to download okay next next often you
+05:50 
+
+05:50 need to get to your files on the go it's
+05:52 
+
+05:52 ridiculous that you can get to an email
+05:54 
+
+05:54 you sent two years ago from your phone
+05:55 
+
+05:55 or book a flight but you can't get to
+05:57 
+
+05:57 the document you're working out five
+05:58 
+
+05:58 minutes ago so we have an iPhone
+05:59 
+
+05:59 optimized interface that also goes live
+06:02 
+
+06:02 today and we've also had tremendous
+06:07 
+
+06:07 demand for Dropbox over nearly two
+06:09 
+
+06:09 hundred thousand people have signed up
+06:12 
+
+06:12 on our waiting list to try Dropbox and
+06:14 
+
+06:14 we're happy to announce that tonight for
+06:17 
+
+06:17 the first time drop out because Dropbox
+06:18 
+
+06:18 will be publicly available so all of you
+06:20 
+
+06:20 can log on and give it a shot and and
+06:25 
+
+06:25 okay and not only that but our most
+06:29 
+
+06:29 common feature request has been for more
+06:31 
+
+06:31 storage and next week we'll be making
+06:33 
+
+06:33 that available for either $10 a month or
+06:36 
+
+06:36 $100 a year roughly 450 gigabytes of
+06:39 
+
+06:39 storage but lastly if you don't want to
+06:42 
+
+06:42 pay for it
+06:45 
+
+06:45 the first piece the first 500 people to
+06:46 
+
+06:46 visit this link up there get Dropbox
+06:48 
+
+06:48 comm slash beta /tc 50 and who enter in
+06:52 
+
+06:52 the code TC 50 will get a premium
+06:56 
+
+06:56 account for free once we launch them we
+07:01 
+
+07:01 can hook you up we have our laptops out
+07:04 
+
+07:04 yeah but anyway so you can see the most
+07:07 
+
+07:07 important thing that we want you to take
+07:09 
+
+07:09 away from this is that Dropbox doesn't
+07:11 
+
+07:11 change the way you work and and just the
+07:17 
+
+07:17 speed and ease of use that we offer and
+07:19 
+
+07:19 please visit us at
+07:25 
+
+07:25 www.resumeserviceplus.com does that
+08:19 
+
+08:19 these companies need to sort of that
+08:21 
+
+08:21 they have internally so that you know
+08:24 
+
+08:24 Microsoft's gonna be a little bit slower
+08:25 
+
+08:25 to release in that client Google might
+08:27 
+
+08:27 not want to release a tool that makes it
+08:29 
+
+08:29 really easy to release
+08:31 
+
+08:31 native office documents across a team
+08:33 
+
+08:33 and they have all these integration
+08:35 
+
+08:35 things so they need to make you know
+08:36 
+
+08:36 Google Docs needs to work with whatever
+08:38 
+
+08:38 stores offering may provide
+08:44 
+
+08:44 i microsoft has a product called folder
+08:47 
+
+08:47 share with yep which is pretty good how
+08:49 
+
+08:49 does way so this is this is kind of like
+08:54 
+
+08:54 folder share except you also have a copy
+08:55 
+
+08:55 in the cloud and the clients for Windows
+08:60 
+
+08:60 and Mac work a lot more seamlessly and
+09:01 
+
+09:01 so what we got what we added in addition
+09:03 
+
+09:03 to folder share is also the web
+09:04 
+
+09:04 interface and the ability to share files
+09:07 
+
+09:07 among teams or in groups of people ok
+09:11 
+
+09:11 Josh I like the user interface and and
+09:14 
+
+09:14 you know tough recovery from us it was a
+09:16 
+
+09:16 good recovery from a tough Wi-Fi am
+09:18 
+
+09:18 tough tough Wi-Fi bug question how do
+09:21 
+
+09:21 you deal with in a work group
+09:23 
+
+09:23 environment multiple people editing the
+09:25 
+
+09:25 same document at the same time sure so
+09:28 
+
+09:28 you might encounter that on a flight or
+09:30 
+
+09:30 whatever so Dropbox will detect
+09:33 
+
+09:33 conflicts automatically and if you've
+09:36 
+
+09:36 entered a file and then someone else is
+09:37 
+
+09:37 out of that before you it'll detect that
+09:39 
+
+09:39 your change is conflicting and it'll
+09:41 
+
+09:41 spin out a local copy then you're left
+09:44 
+
+09:44 with having to resolve the differences
+09:46 
+
+09:46 that's right right now your luck to have
+09:48 
+
+09:48 having to resolve differences just
+09:49 
+
+09:49 because you know it's difficult to add
+09:52 
+
+09:52 or there's no one merging algorithm that
+09:54 
+
+09:54 works best for everybody or for every
+09:56 
+
+09:56 kind of file can you use that technology
+10:00 
+
+10:00 to kind of detect changes into what kind
+10:05 
+
+10:05 of other products you can build it into
+10:07 
+
+10:07 well that's a good question so I mean we
+10:09 
+
+10:09 our first focus is files but you know
+10:11 
+
+10:11 our lives are fragmented around you know
+10:14 
+
+10:14 our files and our email contact sync
+10:15 
+
+10:15 eventually we want to build in this kind
+10:18 
+
+10:18 of sync functionality into any
+10:19 
+
+10:19 application that you use that then makes
+10:22 
+
+10:22 you competitive that many common many
+10:26 
+
+10:26 services out there shiver sync is one
+10:28 
+
+10:28 yeah you know to some extent you know
+10:31 
+
+10:31 sorry that sugarsync is one and you have
+10:36 
+
+10:36 apple you know you can use I this
+10:39 
+
+10:39 culture to some exchange that and they
+10:41 
+
+10:41 are also building something interesting
+10:42 
+
+10:42 around that concept so how do you
+10:44 
+
+10:44 straight competitor what we're focusing
+10:47 
+
+10:47 first on files and we do the best job
+10:50 
+
+10:50 with files and we're the only one that's
+10:52 
+
+10:52 a completely cross-platform for example
+10:54 
+
+10:54 and mobile and what we're trying to do
+10:56 
+
+10:56 is build the simplest and most seamless
+10:57 
+
+10:57 user experience around files and then
+10:59 
+
+10:59 once there's proven demand we can move
+11:01 
+
+11:01 into other you know arenas like syncing
+11:03 
+
+11:03 your email or contacts and things like
+11:05 
+
+11:05 that do you think the the $9.99
+11:09 
+
+11:09 ninety-five a month and a hundred
+11:11 
+
+11:11 dollars a year is enough to you know
+11:14 
+
+11:14 make revenues and be a company yeah I
+11:16 
+
+11:16 mean we've again at the most common
+11:19 
+
+11:19 request we've we've gotten in the forums
+11:20 
+
+11:20 is for people requesting more stores and
+11:22 
+
+11:22 there's like okay I'll pay I'll pay
+11:24 
+
+11:24 so you what's your default amount the
+11:27 
+
+11:27 free account is two gigabytes and there
+11:30 
+
+11:30 will always be a free account and that
+11:32 
+
+11:32 would be available tonight for everybody
+11:35 
+
+11:35 awesome great job was here for Dropbox
+11:38 
+
+11:38 well then

@@ -1,0 +1,695 @@
+00:03 Okay, this is the moment that we've all been waiting for. I mean, I'm biased,
+00:08 but I think this is what disrupt is all about. So, over the past two days, 20 of
+00:14 the world's most promising startups have been pitching right here on the disrupt stage. They've shown off their products
+00:19 with live demos, face tough questions from top investors, and now only the best remain. So, welcome to the finals
+00:26 of the startup battlefield. Yeah, that's right.
+00:33 Today, these finalists will be competing for $100,000 equityfree and the title of TechCrunch
+00:40 Disrupt 2025 startup battlefield champion. Once again, they'll be
+00:45 pitching and demoing for six minutes and then our judges will get to dig a little deeper with 8minute Q&As's. The stakes
+00:52 couldn't be higher and the pitches you you're about to see are the culmination of months of hard work and fierce
+00:59 competition. Of course, they've probably been working on these companies for even longer. So, to help us decide, make the
+01:05 right decision, and see who takes home the Startup Battlefield Cup, we've
+01:10 assembled an all-star panel of judges. I'm going to have those judges come out as I introduce them.
+01:17 First up, we have Kevin Rose, a partner at True Ventures and the founding CEO of
+01:22 the newly rebooted social platform DIG, where he now serves as board chair, investor, and key adviser. Kevin also
+01:29 hosts the Kevin Rose Show and co-hosts the Random Show with Tim Ferrris. Next we have Alien Lee, the founder of Cowboy
+01:36 Ventures, a leading seedstage focused venture firm investing in enterprise and consumer software, including um Alien
+01:44 was a partner at Kleiner Perkins for over a decade, founding CEO of digital media company RMG Networks and worked at
+01:49 GAP and operating roles. Next, we have Marlon Nichols, co-founder
+01:54 and managing general partner at MAC Venture Capital. Under his leadership, MAC has grown into one of North
+01:60 America's largest seedstage venture firms. Next, we have Kevin Hartz,
+02:05 co-founder and general partner at AAR, an early stage venture capital firm. He
+02:10 co-founded Eventbrite, a publicly traded company, and served as the CEO for the first 11 years. Last but not least, we
+02:18 have Kristen Green, the founder and managing partner of Forerunner, the consumer-driven venture capital firm
+02:24 partnering with ambitious founders and companies redefining industries, combining an unconventional blend of
+02:30 professional experiences and acquired investment expertise. Kristen loed 4ERunner in 2012. So, welcome all of our
+02:37 judges. Now we are going to bring out our very
+02:43 first startup battlefield finalist. That finalist is Charter Space. Presenting for Charter Space is founder and CEO
+02:51 Yukchi Chan. [Music]
+02:56 [Applause] [Music]
+03:04 Hi, I'm Yuki, founder and CEO of Chi Autopace. Space has a money problem.
+03:12 Today, fewer than 300 of the over 14,000 satellites in orbit are insured, leaving
+03:20 over $150 billion of assets completely exposed.
+03:26 By 2030, that risk will triple. Now, without insurance, there is no credit.
+03:32 Without credit, there is no capital. And without capital, the space economy
+03:38 stalls. This isn't the first time humanity has faced this problem. Before we had
+03:44 rockets, we had sales. In the late 1600s, exploration was a gamble. Each
+03:52 voyage risked everything a captain or an investor owned.
+03:58 Then a new kind of explorer emerged. In a little coffee house in London, ship
+04:03 captains and merchants traded stories of distant horizons and found the courage
+04:09 to fund the unknown. What began as risk became opportunity
+04:15 and then a market and eventually Lloyds of London, the foundation of modern
+04:21 insurance that transformed exploration from a personal gamble into a global
+04:28 economy that carried humanity across and beyond the seas.
+04:33 Charter is building that infrastructure for space. We are the first space
+04:38 fintech company. Our platform bridges engineering, insurance, and finance by
+04:44 capturing real time engineering data of spacecraft as they're being built and transforms that data into a living
+04:51 picture of spacecraft risk. We help engineers reduce uncertainty.
+04:58 Investors, we give investors security when backing the next generation of explorers and we
+05:04 help insurers price coverage with confidence. Now, here to help me demonstrate what
+05:10 Charter actually looks like is this satellite built by our friends at the
+05:16 University of Washington's Husky Satellite Lab. They're are building more satellites just like this one on Charter
+05:23 right now to be launched into orbit over the next few years. Over to the demo, please. Today, we're
+05:30 going to use our software to take a look inside. Now, if you're building a satellite, this is what you'll see when
+05:35 you first log in. A complete snapshot of your mission.
+05:42 Every subsystem, every test, every change made by every engineer.
+05:48 This is your entire program at a single glance, all updating in real time as
+05:54 your team builds. With the data we capture across our verticalized feature set, our AI powered satellite health
+06:01 check analyzes and estimates risk before it ever becomes a problem. We highlight
+06:06 components that need attention, flag potential risks, and give engineers the insight to strengthen their designs long
+06:13 before launch. Now, let's switch perspectives. This is
+06:18 what this same satellite looks like to an insurance underwriter about to bet millions of dollars on its success. Same
+06:26 data, different lens. With CHO, underwriters can watch missions unfold live, track progress as risks are
+06:33 retired, and give continuous feedback. And with each fix and each improvement,
+06:40 this builds something bigger than just a satellite. It builds trust. And that's
+06:46 what shorter actually does. We build trust not just in machines, but in
+06:52 engineers, in explorers, in the dreamers who dare to reach for the stars.
+06:58 Back to the slides, please. We're already partnered with the US government, NASA Jet Propulsion Lab, and
+07:04 the six largest insurance companies in the space market. Commercial companies
+07:09 and universities are already building over two dozen satellites on our software with over a hundred more
+07:15 waiting to join. Our team has lived this journey. We have been investors,
+07:21 engineers, and program managers. We have we come from NASA, the US Air Force and
+07:27 Maxar. I started my career as an engineer in the Singapore Army where I served with my co-founder Yukun and I
+07:34 was an operator in the industry for years as both a space lawyer and a satellite mission manager. We're already
+07:39 backed by top fintech and space VCs and today we're taking the next step to lead
+07:44 the charge for space insurance. Jord is proud to announce that we have acquired a YCbacked insure and licensed insurance
+07:52 brokerage. Bringing brokerage in-house lets us use our data to bind policies with our
+07:57 insurance partners directly, not just for your space assets, but for every insurance need your space company has.
+08:03 We're bridging the full spectrum from data to coverage and delivering a seamless hightouch experience. Our first
+08:11 four customers are already on their way to more comprehensive and accurate coverage.
+08:17 Today we start with insurance, but we're going so much further than that. To build credit, structured debt, and the
+08:24 financial infrastructure to scale space, we need what every frontier relies on,
+08:29 trust. Jordan is building that trust. And with that, we can build the banks, the
+08:36 lenders, and the long-term capital to fund the future. That future starts with
+08:42 data. That future starts with insurance. That future starts
+08:49 with chor. Thank you.
+08:55 Judges, who has questions? Yeah, I can start. So it it feels like
+09:01 this is in some sense a kind of like a GitHub in in a way in that you check in
+09:07 you get to see who's touching the actual hardware themselves and checking in what they're doing to the specific hardware.
+09:14 Um do you see this as something where because you have that complete point of
+09:19 contact you're able to derisk it because you see every single thing that is actually touched the actual physical
+09:25 hardware. How do you think about this real- time data that you talk about and then also how do you apply AI to that?
+09:31 That's a great question. So, uh I'm going to break it up in two parts. So, in terms of the real-time data aspect,
+09:36 you know, we aren't really providing the insight ourselves. We actually give the power back to the teams to monitor their
+09:42 own inputs. And in terms of the pipeline between underwriters and teams, you know, these underwriters have uh they've
+09:48 insured assets for 30 40 years. And so, they have seen a wide breath of different types of spacecraft. And so um
+09:55 in terms of de-risking um that's exactly the sort of input that these uh that these folks would want both from their own internal teams as well as um the
+10:02 best risk analysts on the on the planet. Um in terms of how we use AI actually uh
+10:07 we use a variety of different AI techniques including uh NLP and rag uh to actually structure and make sense of
+10:12 a lot of the inputs that are provided to us uh and translate them uh to our uh
+10:17 ontological data model so that the insurers can actually uh grasp and streamline their analysis a lot faster.
+10:25 Can I uh double click on that a little bit? But I actually have a a daughter who's studying engineering and she's tried to use AI to kind of check some of
+10:31 her work. And where the models are right now, they're kind of notoriously bad at math and sometimes they make up
+10:37 formulas. Mh. So like when I saw risk scores, like how do you troubleshoot your AI to make sure
+10:42 that it's actually not making up formulas and that it's getting all the numbers right? Like what goes into
+10:48 assessing the risk from a real risk perspective? I'm glad you asked. So I'd like to take a step back. The AI actually doesn't do
+10:54 the risk analysis itself. What it does is it structures unstructured data and provides that into a format that our
+11:00 data model can ingest a data model in the so classical CS sense of a a structured contextually aware database.
+11:06 Um in terms of how we prevent hallucinations wait can you go back to the risk score? So yeah the risk I assume is like what's
+11:13 the risk that this part is going to fail or that this rocket's not going to launch. So you're saying it's what is
+11:18 the risk score? Yes. So the risk score is actually we spent the last 18 months developing it by essentially understanding and
+11:25 ingesting the insight from these underwriters um across their 30 40 years worth of experience. So really they've
+11:31 told us how they assess and we streamline that massively. So we bake all of that in. It's not exactly an
+11:37 expert system in the AI sense but it's a system for experts. So it's not engineering risk, it's how
+11:44 an insurer would think about how risky this product is. Those two are actually co- terminus. Most of most underwriters in the in uh
+11:51 space industry are engineers themselves. So the way that they look at it is engineering risk mitigation. It's really
+11:56 two sides of the same coin. They're looking at likelihood of the spacecraft failing from a financial perspective. But that's the exact sort of analysis
+12:03 that you'd have to do internally because the incentives are very closely aligned. Nobody wants the satellite to fail.
+12:09 I I want to quickly um talk about or click into the real time aspect of this.
+12:15 It it it feels like um when underwriting this uh as an insurer like what matters
+12:21 is the final product and you want to underwrite the the final product and um you're you're going to get like a a bill
+12:27 of goods or whatever and you'll see what's inside it. So why is it necessary for me to see real time, you know, how
+12:34 this thing is being built. I'm glad you asked. So underwriters enjoy getting involved because that
+12:40 gives them greater confidence and you know as I touched on a lot in my uh presentation trust in the team's
+12:45 building. Uh a lot of these spacecraft especially with the smaller companies um these are effectively uh custom and
+12:51 novel spacecraft that are being built for the first time. Even if they're using commercially available offthe-shelf components they're
+12:57 configured in brand new ways. And so that introduces a lot of risk at the interface level. And so underwriters
+13:03 want to see the evolution of how a satellite has been built. you know, what were the design considerations? How did they test things? If they've uh
+13:09 developed novel components, u you know, how do they how do they actually go about resolving anomalies when they
+13:15 occur during testing? Because anomalies always occur during testing. And so really, it's part of building a
+13:21 relationship. This is what the underwriters currently do. They spend anywhere between 6 months to five years
+13:26 working with teams ahead of a mission to actually underwrite. We don't really want to shortcut that. Um, but we do
+13:32 want to streamline as much as possible. By making the data available um and providing a layer of verification uh we
+13:39 can help inspire more trust. So are they underwriting the mission or the or the product?
+13:46 Well the mission is the product. The satellite is meant to go up and do certain things. You can't deliver the end product which is data communications
+13:52 what have you without the mission succeeding. Um now in terms of what's being actually uh insured for generally
+13:59 it would be the asset value of the spacecraft plus whatever it takes to you know it's principle of indemnification you know what it would take to restore
+14:05 the company to uh where it used to be but in certain instances we've noted that it's actually possible to ensure
+14:10 projected revenue. Can I do one more please? Okay. Um it so the the product it feels
+14:18 like embedded finance to me in some ways right and um when I think about embedded
+14:23 finance at least at least in today's world it's um understanding real time transactions so you know exactly what's
+14:30 going on at every moment um so that you can make a a quick decision. Um,
+14:37 I'll give you what you know what you said about um, understanding step by step while you're building the product,
+14:42 but it would it I don't know. It seems to me that like what would really matter is what starts happening when you start
+14:49 to launch and being able to track what's happening um, at at that point in time.
+14:54 Any plans to to do anything around that? Yes. So we would love to expand further
+14:59 down the or later in the mission timeline to actually start taking in and integrating telemetry data and other
+15:04 types of uh unordered health parameters. Um the reason why we're emphasizing so
+15:10 much on the pre-launch phase and the engineering and manufacturing phase is because one that's where the
+15:15 underwriters currently focus on. Um and second that actually correlates to uh historical loss rates and how uh why
+15:23 spacecraft fail rather. um they generally fail due to intu uh intrinsic system failures, you know, mechanical
+15:28 faults, electrical faults. Um things that could have been caught on the ground um had there been enough visibility uh and transparency and
+15:35 somebody was paying close enough attention. Um and so that's why we're focusing on where we are today. Um but
+15:40 we do intend to expand much much further. Thank you. You uh I think you mentioned by the way
+15:47 great presentation. Yeah. Thank you. Uh you you mentioned you had raised money already. How much have you
+15:53 raised? Uh we have never actually publicly declared how much we've raised. Okay. Um I guess I won't get an answer
+16:00 there. Uh north of 5 million. North of 5 million. Okay. Uh talk about
+16:06 the the market and the competitive uh landscape out there.
+16:12 Absolutely. So in terms of the market size, we estimate it to be about 15 billion today uh and about 50 billion by
+16:18 the end of this decade. Um so within the next four years we we note a lot of exponential growth in um both value of
+16:25 assets on orbit as well as number of assets on orbit. Um in terms of competition um well well most satellites
+16:32 are currently built on Excel which is a terrifying fact but that's unfortunately true. Um and so you know there's legacy
+16:39 incumbents like Excel that uh are sort of horizontalized and that's really sort of um on the at the engineering level
+16:45 but there isn't really anybody interacting on the embedded finance side. Um how insurance is currently
+16:52 underwritten is oh I essentially have to print out a 5,000page report and I have to send it to the insurance underwriters
+16:57 and they spend a really really long time going back and forth with me. So that's what we are that's our primary
+17:02 competition manual processes and a lot of Excel. Did you look at any models out there in the insurance business like
+17:09 Coalition for example and in cyber uh or did you gain any inspiration from any
+17:14 models that that do similar data?
+17:20 Uh no we did not. Um mainly because space is uh while we've been insuring
+17:26 spacecraft for the last 60 years it the paradigm has really shifted on the industry side. We've seen a big shift
+17:32 from big satellites to small satellites and so a lot of things are changing. Um we don't think there's really a whole lot of precedent out there. U we would
+17:38 love to learn more about other models. I'm relatively new to insurance. My only exposure so far prior to this was I had
+17:44 to try and get insurance for a satellite and it didn't go super well. Um one question. Okay. I'm going to sneak in one question
+17:51 to close it out. Sorry. Um so just kind of stepping back and thinking about the value of this product and what you're
+17:57 driving. Do you is your um is the is the biggest goal to open up the market to
+18:04 make it more acceptable or comfortable for more insurers to come to the market or is it to refine the process and get
+18:12 to better more accurate maybe cheaper insurance? Well, we I believe we achieved the first
+18:18 by doing the second. Um, by streamlining the market and driving down underwriting
+18:23 costs, which is currently the biggest contributor to premiums, we can expand the market massively and that opens up the door to other forms of finance. And
+18:30 ultimately, that's what we really want to solve. We want to solve the big money problem in space so that more folks can
+18:36 access space and we can well grow, thrive, and expand for our children.
+18:41 Okay, give it up for Charter. Thank you.
+18:47 Let's bring out our next startup. That startup is Glide. Presenting for Glide is founder and CEO Kevin Deamoa.
+18:56 [Music]
+19:03 [Applause] Hi everybody. How's everybody doing today? Uh so we are the future of roadto
+19:09 rail transportation and we'll show you why. My name is Kevin Demo. I'm the founder CEO of Glide. Um I've been in logistics for the past 23 years as an
+19:16 engineer, as an innovator as well as a tactician. retired military, six years active duty with the army and then I
+19:21 fought fires right here um in in California for a while. Um a couple of
+19:27 my notable uh projects that I've worked on um I I was I founded SpaceX's flight module logistics organization and the
+19:33 first person in the world to commercially ship, launch, recover, and then relaunch a rocket. And before I I
+19:38 started Glide, I I launched Harley-Davidson's first ebike, Serial 1. So I've been a part of a lot of
+19:44 innovation. Uh but the industry that I love has gone unchanged. Uh roads are extremely congested, rail um severely
+19:52 underutilized. And the only way that you can transport goods from road to rail is via a process called transloading.
+19:58 Transloading involves a bunch of capital equipment, cranes, forklifts, driage trucks, trains, train carts, a bunch of
+20:05 people, and a lot of moves and it costs a lot of money. Traditionally, it takes about two to six weeks for a fully
+20:10 loaded train uh to move from point to point. And guess what? They charge you for it. What we have here at Glide is a
+20:16 very elegant solution. Two vehicles and a software. The top one is called Raiden. Raiden is a fully autonomous uh
+20:22 vehicle purposely built for contested logistics as well as uh industrial parks. And the bottom our our commercial
+20:29 workhorse uh the GliderM capable of picking up a fully loaded 20oot container uh and transporting it from
+20:35 road directly on the rail and vice versa. uh combining these two together, one move, one vehicle, one person in
+20:42 order to optimize logistics forever. I want to show you a video on what Raiden is. So Raiden is the first of its kind,
+20:49 purposely built. Um it can get underneath any roadbased trailer, any rail-based car with little to no modification. We access the rails the
+20:56 same way a traditional high rail vehicle would access the rails. It's for every single uh commodity in the world, and we
+21:01 operate as a solo or a pack. We have the only patent in the world for this technology. Uh we actually are are are
+21:07 equipped with sensor fusion. So we have the ability to do track inspection, debris avoidance. We're on road,
+21:12 off-road, and we can operate in austere location. So we're perfect for the military. Um we we operate utilizing
+21:18 sensor fusion. The other side of us, we don't need new infrastructure to be put in place. We actually take a road
+21:24 sighting instead of a rail sighting. And given I'm a SpaceX, we're looking to re-industrialize here on Earth at Mars
+21:30 and beyond. Our target markets are the first mile. Um it is our most crucial mile. Uh we
+21:35 see ourselves as a baton runner. Uh we start with ports, railroads and and industrial parks. The next step is
+21:41 commercial, all the noncool stuff, lumber, manufacturing. Um and then we step down to contest logistics um and
+21:48 support with uh border security as well as um uh um as as well as uh dual use.
+21:55 Um our business model is mobility as a service. So we uh charge customers $300,000 a year plus a nominal fee per
+22:01 ton mile. uh say we ship the container 20 miles down the road uh covering uh uh 40,000 pounds. We're only charged $150.
+22:08 What our customers get is complete uh um 100% uptime, 622% of cost elimination,
+22:15 and we're able to save them $12.3 million out of the gate. For us as a business, if we shipped a 100,000
+22:20 containers, which is equivalent to uh shipping one and a half days at the Port of Long
+22:26 Beach, that ships about 70,000 TUS per day, that one glider generates $15.3 million in revenue. Um that means after
+22:33 the the first year, we have almost 100% uh profit margin from year 10 to year
+22:38 15. Uh outside of OPEX, uh our traction to date has been amazing. We have five
+22:43 pilots in five regions and uh we have over $70 million in customer commitments. Uh next year we're
+22:49 forecasted to do $6.7 million in revenue and we've raised to date $6 million. Our
+22:54 team is equipped with some of the best in the world in aerospace, defense, uh venture, and as well as traditional
+22:60 railroaders. And we're backed by Outlander, Slawson and Co. the Veterans Fund and Tim Draper himself. So the next
+23:07 time you go to go ship it, don't ship it, just glide it. Join us as we look to re-industrialize it all. But we'll show
+23:12 you exactly how we're going to do this. Let's go to demo. So this is Ezra 16. This is our AI
+23:18 orchestrator. Um it's powered by um AI agents in the background. And this is the customer experience. We're able to
+23:24 do this in just five clicks. So you walk through the the regular experience like you you'll do with a traditional freight
+23:30 brokerage. Uh so you'll put in your your material loads and then the next step is
+23:35 uh you'll start to put in how many pallets uh you have um that you're going to be loaded into your truck.
+23:43 And then finally, you'll have your PC's that you put in. Right. Once you're in this screen, we'll hit next. And then
+23:49 we'll slide over to our vehicle view. And this will be the view of our of our Raiden. So Raiden um is is our fully
+23:57 purpose autonomous vehicle. And what he'll do or she will do is uh come out and show you her capabilities.
+24:05 Come on, Raiden. Come on out.
+24:10 So Raiden is purposely built. Uh Raiden, you were able to get underneath any roadbased training rail-based cart.
+24:15 Little to no modification. This is perfect for contested logistics as well as doing ISR missions for the military.
+24:21 Um I needed to be on this. Thank you, Raiden. So let's go back to Ezra 16. So say we're in an environment uh where you
+24:29 know regulations are at hand. What we'll do is go to our glider rim. So, right here at TechCrunch, at Battlefield here
+24:36 in San Francisco, our world premiere, the Glider Rim.
+24:44 [Music]
+25:11 [Music] Thank you so much. So, the next time you go to go ship it, don't ship it, just
+25:17 glide it. Thank you, judges.
+25:24 Okay, I'm gonna go first this time. Um, incredible background. Very cool presentation. I appreciate it. Um, I'm
+25:31 learning in real time while you're while you're telling us. Um, just maybe tell us a little bit about your goto market
+25:37 strategy over the next like 12 months, 24 months. Who are going to be the key customers you're going to go to? What do
+25:43 you think is going to be top of mind for them as they're thinking about deploying this new technology? And what might a
+25:49 test or a pilot look like? Absolutely. So, we're actually deploying Gladim in just two weeks. Uh, so Gladim
+25:55 just came off the line. Um, and Gladim comes off the line with both FRA as well as DOT certification. That's all we have
+26:01 to do is hire a CDL driver. Uh, the railroad that we've contracted with actually provides them with GCORE
+26:07 certification. So, it's a D-risk um application. We put the driver in in the vehicle and then that they're assigned
+26:13 to either do containerization at an industrial park or any kind of commodities that they want to transport. At this particular industrial park,
+26:20 Kansas Proving Grounds in um Parsons, Kansas, they have aggregate. They work with Dan Zimmerman that does munitions
+26:26 um as well as containerization. So, you're selling into the industrial park. Yeah. And you had to make partnerships with
+26:31 the railroads to be able to fully put it to Yeah. So, we don't sell our product. We
+26:38 actually build really cool product for us to operate and then service other folks. Okay. Um so, that's that's where the that's
+26:44 where our magic happens. So, we're able to uh charge our customers $300,000 per year that covers all of our operational
+26:49 costs. Um, and plus a nominal fee per ton mile, the lowest ton mileage in all the industry. Um, so that we can offset
+26:56 tariffs as well as traditional uh hikes in the uh demand for logistical costs. Nice. Thanks.
+27:02 So, it sounds more like a services business as opposed to more of a a tech or you know um software business. Uh you
+27:10 mentioned pilots. um talk a little bit about those and um you know what does a pilot actually look like the details of
+27:16 a pilot today and what's the path to that pilot becoming a a commercial contract? Yes, it's a great question. So a pilot
+27:23 today looks like a regular logistics operations. You you you hire a driver um and that driver picks up your load and
+27:29 then delivers that load from pointtooint destination. That's that's that's all our pilot is on the on the commercial
+27:35 side. On the defense side, it's a little different. So we from the defense side, we actually have to sell directly
+27:40 because they don't do um sustainment contracts that way. Um so those pilots will be more demonstrative uh
+27:46 demonstrative uh pilots and then we'll we'll tack on a sustainment contract.
+27:52 Can you tell me a little bit about the uh the actual vehicles themselves? Like what are you building yourself? What are you outsourcing? Seems like a very
+27:58 capital intensive business. So I'd love to hear the breakdown there. No, no, of course. Uh in hindsight looks capital intensives, but it's not. So our
+28:04 our Glad Ms are actually partnered in conjunction with um a a packar as well as custom truck and every vehicle that
+28:10 we buy with them um they're uh they have a lease agreement with them. So it's a 5year uh payback period. Um so we're
+28:16 able to capitalize utilizing our ouruh mobility as a service uh $300,000 and
+28:21 pay off that vehicle in 68 months. Um and every vehicle comes off the line with that. Raiden on the other hand is
+28:28 is funded by us. Um and Raiden costs about $300,000 a piece uh to do it. We
+28:33 won't deploy a Raiden out unless we have a military contract to actually cover it. We'll foot the bill for the first
+28:38 pilot. We we foot the bill for the first one. Uh and we'll demonstrate that out to folks. Um if they like it, then they'll they'll buy.
+28:44 And one of those looked electric and one is gas or how does that work? Yeah, so they're both hybrid. Um so we have a 300 kilowatt hour battery and
+28:50 then the range range extender for the military. It's uh kind of propellant agnostic. They utilize JP8 or kerosene.
+28:56 Some folks use diesel as well. So we can we can put whatever powertrain that they need on it. Amazing. For customers, is most of the
+29:03 ROI labor savings? Uh, so for so for customers, the ROI is is more so the the the capital as well
+29:10 as labor savings. So in the in the traditional transload, you have your forklift costs, your crane costs, all of
+29:16 your capital equipment plus your operational overhead for all your people. Um, and then the actual um the
+29:21 the merge detention um and all the terminal handling charges that are tacked on to the landed costs.
+29:27 Got it. Okay. So I guess in terms of your pilots or when you're trying to sell in, what kind of resistance are you
+29:33 seeing? Some of these like ports are unionized like there might be some resistance to some of the change. What
+29:39 what resistance do you anticipate and how do you plan on overcoming it? That's a great question. So we we haven't gotten any resistance. What
+29:45 we've targeted are the short lines and short lines in the United States um are all independently owned. Um and they're
+29:51 typically within towns. They're they have maybe a 15 to 33 mile uh stretch. So we just we have to get permission
+29:57 from the short lines themselves. Uh we'll write a contract forou and then they'll essentially sell us um their
+30:03 track time. So we get uh utilization on the other side of that we actually will do track inspection for them. So it's a
+30:09 trade of of uh of services and then what we do for them this is the first time in history you're able to put an LTL
+30:16 license truckload shipment on their rail line. So the name of the game is up in their utilization on their track themselves.
+30:21 Okay cool. Do you have any liability?
+30:27 Yes. So, so we have liability on our side. So, we we have um part of the MOU is for us to get liab liability
+30:33 insurance since we are a traditional transporter. Um and then the the rail line um dictates those terms.
+30:40 Yeah. Kevin, I'm glad you spoke about um the components of the cost of the traditional way of shipping, but um
+30:48 yeah, I'm trying to just understand the economics of it better of of your way. like how do you think about you know
+30:53 against that revenue you projected for next year what are like gross margins and and and the like?
+30:60 Yeah, that's that's a great question. So the the gross margins uh for us we're able to pay back the vehicle um in in
+31:06 the first six eight months is given our business model. Um just conservatively one vehicle will do about $3 million um
+31:12 in in in revenue uh with our operational costs being slightly underneath $300,000.
+31:18 that and that includes uh the driver um as well as any insuranceances that we pour into that specific truck. The way
+31:24 that we break down our business model is by is unit basis. Um essentially the same model that your typical assetbased
+31:30 carriers would would carry um in order to uh you know um uh finance their their
+31:35 business. What does scaling this business look like? Like h how can you bring these
+31:41 trucks online and what is the time frame there? No, it's a great question. And so the time frame is, you know, how fast can we
+31:47 get these out to our customers with with a uh backlog that we have, what we've allocated is 10 trucks per deployment.
+31:53 Um and uh we just we we put in an order with custom truck um with how many trucks that we want to build. Um they
+31:59 can do 24 to 36 trucks at a time and we deliver those and hire drivers on and that's that's essentially our our our
+32:06 process. Okay, let's have one more round of applause for Glide.
+32:11 Thank you. Really impressive. Let's bring out our next startup. That
+32:17 startup is Macrocycle. Presenting from Macrocycle is co-founder and CEO Stuart
+32:23 Pñena Feliz. [Music]
+32:33 [Applause]
+32:38 Today, over 99% of all the textiles globally produced end up in our
+32:44 landfills, in our oceans, or it is even incinerated. A linear economy growing to $3 trillion,
+32:51 shedding microplastics, impacting our health, polluting our environment, and we haven't had the technologies to
+32:57 resolve this crisis. A crisis I've experienced within my own lifetime. As the pristine beaches where
+33:03 I used to play as a kid in the Dominican Republic are now riddled with trash and textile waste washing upon the beach
+33:10 wave after wave. If a brand wants to acquire recycled polyester textile material today, they
+33:17 need to source it from bottles because the technologies of mechanical recycling cannot deal with the complexity of the
+33:23 garments that we wear, leaving disposal as the main viable solution at the end of life.
+33:30 The technologies that have been developed to address this quality challenge, advanced recycling, are then
+33:35 too energy intensive. They rely on breaking the polymers of the textiles
+33:40 down to the building blocks and then having to undergo all the traditional prochemical steps to arrive back to the
+33:47 original polymer. This means that the brands need to pay a green premium to adopt the solutions, inhibiting its
+33:53 adoption because of high costs. Microcycle can resolve both of these challenges thanks to our creative
+33:60 approach. Instead of breaking bonds, we are making new ones through our patented
+34:06 soenesis process platform. We're able to retain all the energy that went into making the original polymer. And instead
+34:13 of breaking the bonds, we instead force it to bond with itself to create a new intermediate called macro cycles.
+34:20 These intermediates allow us to bypass the prochemical industry entirely and produce a highquality product at a
+34:27 fraction of the cost. This is how our process works. Microcycle will acquire polyester
+34:33 containing textile waste from collectors. And whether they're multi fiber, multicolor, or multiaterial like
+34:39 the shirt or the pens that I'm wearing right now, we can undergo our preparatory set of solvents and
+34:44 operating conditions to remove the non-polyester impurities, the color and the dyes, and undergo our chemistry to
+34:51 improve its quality to produce our product. The macrocycle polyester resin,
+34:56 a high quality drop-in solution that has given me the privilege on this stage to present to you the world's first macro
+35:03 yarn. the solution the textile industry has been looking for as you can make yarn and garments out of 100%
+35:10 post-consumer textile waste to enable true circularity. And now to see how this works, we're
+35:16 going live out of Cambridge, Massachusetts, where we're going to dive in deeper into the decolorization
+35:21 process of our textile recycling technology. Here you can see a beaker with heavily
+35:28 colorized textile dyes. And what we do is that we can place this textile dyes
+35:33 in our solvent systems. Once they're placed in our solvent systems, you can see how quickly the color starts
+35:39 blending in with the solvent as it starts extracting the material from the textiles. From here, we can then simply
+35:46 put it through a rinse and wash process where you're going to see how the solvent is coming out with all the
+35:51 colors from the textiles while the material stays behind. It is that simple. We repeat this process a few
+35:58 times and we can produce that shiny clear white polyester textile material that the industry has been looking for.
+36:05 Thank you team for the demo. And with that we'll switch back over to our slides. You all saw how simple that was.
+36:12 That simplicity has enabled us to be the first chemical recycler to be able to claim that this material can be provided
+36:18 at price parity with the prochemical industry to enable mass adoption of this
+36:23 material. And this is only the beginning. We only incorporated two
+36:28 years ago, but since then we have been able to scale up 1500 times all the way to an industrial scale demo plant thanks
+36:36 to our unfair advantage. We are a chemistryonly innovation, not an
+36:41 equipment innovation. What that means is that we can leverage the existing infrastructure through contract
+36:47 manufacturing to produce larger batches of our product without ever having to put capital or steel on the ground. This
+36:54 is enabling us to move at rapid speed as represented by the fact that we're already generating $350,000
+37:02 in ARR from material sales and recycling services with customers in f fashion,
+37:08 footwear, and other verticals across the industry. And this is the momentum that will
+37:13 continue to use as by the end of the decade, we aim to have the capacity to recycle half of San Francisco yearly
+37:20 textile waste. That may not sound like much, but it already represents tens of millions of dollars in revenue and
+37:27 several billions of dollars in public market comparable value. And this is
+37:32 what we'll continue to do as we build additional plants and license our technology to address this global crisis
+37:38 in textiles beyond just polyester. My name is Stuart Pñena Feliz and I used
+37:44 to work at Exom Mobile's first recycling facility. After meeting my co-founder and the innovator of this technology at
+37:51 MIT, we have been able to onboard a diverse powerhouse of a team and a set
+37:56 of investors and adviserss that have been through this journey many times before, including those from the largest
+38:01 polyester textile producers in the world, giving us the confidence we have what it takes to get this venture off
+38:07 the ground. We have been incredibly lucky to be supported by numerous great organizations, but we're still going to
+38:14 need more help. If you can help us scale up our differentiated technology or are an investor interested in our future
+38:20 series A financing opportunities, let's connect. Textile is the fabric of our self our
+38:27 expressions. Let's make sure that the choices that we wear today are the resources of tomorrow
+38:33 and not the pollution of the past. And together Microcycle can create that
+38:38 cleaner, more circular future for everyone today.
+38:45 So good judges. Yeah, dude. I I I love your passion.
+38:51 That was that was terrific. Yeah. Um two quick questions. Um material cost parity. Are are you there?
+38:58 Is does it cost you and can you um sell the material at you know at this at on
+39:04 par with what they would buy it for today? And the other question is who is your customer in the um supply chain? Is
+39:10 it the the mill? Is it the actual um brand themselves or you know phenomenal question well let me answer
+39:16 that while you guys get to feel our textile it's been touched a few too many times but you can see how smooth it
+39:22 feels so to the first question is we are not a price parity today and that's simply because of the scale that we're
+39:27 operating at right now the only thing that's required for us to be able to reach price parity is to be able to set
+39:33 up the capex or the equipment to recover our solvent and purchase solvent at a large amount when you're purchasing in
+39:40 small amounts it becomes quite quite expensive, but once we're able to purchase a solvented amounts of industrial scale, our cost significantly
+39:46 comes down on top of our solvent recovery. So, we see with our first industrial facility, we'll be able to
+39:51 achieve price parity and with our second facility, once we go to a larger scale, there's a pathway to be able to provide
+39:57 a green discount. For the second question, there is a very interesting supply chain, but the reality is the
+40:03 economic buyers of our products are the brands. The brands are the ones that drive the flow of money and the brands
+40:09 dictate to the spin spinners and millers what material they get to use for their textile clothing. But the enduser of our
+40:17 products are those mills. So we will be physically providing uh our product to the mills and the transaction
+40:23 technically goes to the mills but it all carries over to the brands. So let's say we want to charge a higher pricing
+40:28 because we see a high demand for a product. The brands are the ones at the end responsible to it. And that's
+40:33 basically how the supply chain works. Right now, we have excellent conversation with fast fashion companies and footwear as you may have seen
+40:39 earlier. Uh, and they're all very excited over our solution because there's no one else out there claiming
+40:46 price parity with a drop in solution. I I think you mentioned that there was uh 350K in ARR. What um who is that
+40:55 particular customer? Like who is Yeah. So those customers are the fast fashion companies. Okay. So when you
+41:00 think about it as to why they care so much, why are they paying us? is because when you think of textile clothing in
+41:05 the landsfields, they can clearly see the brands that are responsible for it. So, they're the ones most heavily
+41:10 impacted by this solution. Now, the reality is that from our customer research, talking to dozens and dozens
+41:16 of customers, they want it, they won't pay for it. But what happens whenever you lower the cost barrier where they
+41:21 can adopt it at price parity and receive all the benefits? Mass adoption of the material. So, there's a customer that
+41:28 we're actually waiting negotiating with right now where next year they're in line to pay us hundreds of thousands of dollars for a paid trial. And the main
+41:35 reason why we haven't signed that yet is just because we don't have the capacity of production to produce how much they want for the first trials. And
+41:41 then um on the purchase side or the obtain obtaining the raw materials, the textiles, where where does where do you
+41:47 source it? Phenomenal question. I'll give you a good example that everyone knows here. The textile infrastructure has actually
+41:53 been welldeveloped because of the resale market, Goodwill. What happens to all the clothes that they cannot resell in
+41:58 the shelves currently? They're either being disposed of or they're being shipped to the global south. What happens if we can intercept all the
+42:04 supply chain and provide economic value and valorizing that waste? So, that's one example. There are many other
+42:11 different types of collector collectors. There's also post-industrial waste uh because when you cut garments, there's
+42:16 extra parts are be left around that are currently being incinerated. So right now in the US alone we see over 15
+42:23 million tons of textile waste that we can intercept. Even one of them is 1% of
+42:28 that total amount is more than plenty for our first industrial facility. And last question is the the solvent is
+42:33 that would you say that is what's proprietary or is it the whole solution that is great question is the combination of the
+42:40 solvents and the operating conditions. Our solvent is very selective towards the polyester and the operating
+42:45 conditions allows us to increase the selectivity to remove all the impurities like elastain, acrylics, cotton, buttons
+42:52 and zippers and so on. Thank you.
+42:57 What is the end of life for for a product made out of your product? It's the same. It's a drop in solution.
+43:04 It is identical. So I will not claim we can infinitely recycle because you always have yield losses. But for what
+43:10 that one equ equivalent molecule, it can be infinitely recycled through our technology.
+43:15 Okay. What does your waste look like? So our waste, so we do have a little bit
+43:21 of solvent uh that has to come out through our system and the solvent tends to carry all the contaminants that may
+43:26 have come through the initial feed stock. So if we do have trash coming in, we will have trash coming out like
+43:32 organic waste or dirt and so on. But for the things that can be valorized like the dyes for example, we can actually
+43:39 concentrate those dyes to be able to provide them back to the industry. So anything that has be has value, we can
+43:45 circularize. Anything that comes in as truly waste, there's only so much we can do. Is that um product that we were just
+43:51 touching a finished product? Uh yeah, that's a yarn out of 100% postconumer textile waves. We started
+43:57 with a multi-blend material. We extracted the impurities and we're able to upcycle the polyester and remove the
+44:04 color and then spin it into the yarn. As you think about kind of building this out, are there other form factors or
+44:10 other durabilities of the fiber that you could introduce a lot? Yes. So the product that we'll be
+44:16 providing is pellets. Pellets is the form factor that the industry uses and from there it can actually be spun into
+44:22 many different applications. Fiber, filament, yarns, cross, we can go on for a while. Uh and that depends on the
+44:28 customers. what is it that they want their final application to? We've received all the spec sheets from our customers and we're validating through
+44:34 those trials that we can meet the specs for all their different applications. I have two questions. One is you
+44:40 mentioned you need to get to scale to be at price par. What's that scale like? What's the volume or the revenue that
+44:45 you need to be at? And then on the demand side, if you had a dream list of customers that would validate your
+44:52 product, who's your what's your dream customer? What's the dream item that they're making that you would market and
+44:57 say like this is the future? This is where the world is going. Phenomenal question. So to the first question, our first facility that will
+45:03 allow us to reach prosperity is a 10,000 tons per year facility that is uh estimated to cost around $35 million in
+45:11 capital expenditures. Okay. To give you context, our competitors like Eastman Chemicals, one of our largest competitors, they're building a 100,000
+45:18 tons per year facility for $1 billion and they're still not claiming price parity because of the complexity of
+45:23 their technology. That's just to put things in context of like, yeah, we still will need capital, but it's relatively much lower compared to our
+45:29 competitors. As for the customers, I'm going to give you a cheating answer of we're talking to them right now, our
+45:35 dream customers right now. We are in conversations with them. Uh, but right now, um, I'll put it this way. There are
+45:41 several customers where they have products that are called like their Patagonia products. Think of like the
+45:46 high-end of that company where they have like that nice whether out outerwear or
+45:51 jacket and so on. Uh and actually our goal is to be able to make uh team
+45:57 blazers for the company made out of first product that we can pass on to our team to say look we did it together. We
+46:03 are creating the truly circular economy. Let's keep going. With that I wanted to say thank you all for the time. Truly
+46:08 appreciate it. Okay give it up for macrocycle.
+46:15 We have two more startups competing in the finals. The next startup is Nefrogen. Presenting for Nefrogen is
+46:22 co-founder and CEO Dimmitri Maxim. [Music]
+46:55 [Applause]
+47:00 I'm Dimmitri, the founder and CEO of Nefrogen, and we're using AI and high throughput screening to develop safer,
+47:08 more efficient gene delivery vehicles to cure diseases that are currently untreatable.
+47:14 Gene therapy or gene editing are completely new categories of medicine that have already cured several
+47:20 patients. Gene editing in particular won the Nobel Prize just 5 years ago.
+47:26 In a lot of ways, we're currently living the gene therapy revolution.
+47:31 But even though there are hundreds of gene therapies currently in clinical testing and several have already been used to cure patients, there are zero
+47:38 that target the kidney. There's really two reasons for this. One, the kidney has 15 different cell types that are all
+47:44 organized in this really intricate manner. And importantly, 15 is the most of any organ in the body. And two, the
+47:52 kidney by nature is a filtering organ. It's designed to keep most things out based on size and charge, including
+47:59 existing FDA approved delivery vehicles. Why does this matter? Why should we care? It really gets down to the problem
+48:05 that if kidney is just impossible to deliver to, right? And more importantly,
+48:10 if we can deliver to the kidney, we can possibly deliver these curative medicines anywhere.
+48:18 And that's what I've spent my whole career working on. My family's had kidney disease for four generations. And
+48:24 I started working on this kidney delivery problem when I was 14 years old in George Church's lab at Harvard Medical School and continued as both an
+48:31 undergraduate and graduate student at Stanford University. Kidney disease also affects a huge
+48:38 number of people. It's about 10% of the total global population has some form of kidney disease and approximately 100,000
+48:46 people in the US die each year from kidney related causes. The US government or Medicare also
+48:52 spends $86 billion to treat annually to treat kidney disease annually.
+48:58 A lot of you may have kidney disease. You might be part of this 10% or you might have family members who have suffered from it and seen how horrible
+49:05 of a disease at it at its source. But I bet a lot of you haven't seen a real life kidney before. So for our demo,
+49:12 which we'll switch to now, I'm going to show you some.
+49:22 So on the top we have a patient with polycystic kidney disease. They've undergone uh cyst formation which crowds
+49:29 out the healthy tissue that leads to fibrosis, scarring, and cell death. Unfortunately, this patient passed away.
+49:36 This smaller one down here is a healthy kidney. That's probably similar to what most of us have in our bodies here in
+49:42 the room. What if I told you that there was a way to turn this kidney into this one,
+49:48 reverse that patient's disease, and potentially save their life? Well, it turns out there is. I'll spoil
+49:55 that, but I'm going to go back to the slides to continue the story.
+50:00 So, since 2021, based on a nature genetics publication in mice from Yale University, we now know that kidney
+50:07 disease is reversible. Specifically, this patient's kidney disease. The problem is, like I
+50:13 mentioned earlier, without a way to deliver this potentially curative therapy to the kidney, a cure will never
+50:19 functionally be realized. And that's where my company Nefrogen comes in. We've developed two key
+50:25 technologies to solve a kidney delivery problem and to make curative therapy a reality. The reason why we need delivery
+50:32 vehicles or which are our our neoap system is because gene therapy if you
+50:37 just inject it into the bloodstream it just rapidly disintegrates. So you need like a a delivery vector which you can
+50:43 think of it like a fancy FedEx truck for getting to the disease cells in the body.
+50:50 And the way we find these FedEx trucks that are specific for kidney is using both high throughput screening in a
+50:55 laboratory and now AI like probably a lot of companies in this room. Um on the
+51:02 experimental side you can think of it as like we take an existing FDA approved vector that doesn't reach the kidney at
+51:07 all and we create billions and billions of variants of this vector. And then if each of those is a dart, our screening
+51:13 process is throwing those darts at a dart board to try and hit the bullseye which is the kidney.
+51:19 The difference is that we can throw 10 million more darts than our competitors due to innovations that our team has
+51:24 made in the experimental screening process. And then when you add an AI, you can drastically reduce the number of
+51:29 darts that you even need to throw to find that needle in a hay stack vector that can target the kidney cells.
+51:37 Using our lead vectors in our NEOAP portfolio, um we've shown delivery in mice and for the first time ever this
+51:44 week at Techrunch, which we unveiled on Monday, in human kidney tissue. So this is in a human kidney that's been kept
+51:50 alive outside of the body through a pumping mechanism to show transduction in a human system. We this the the all
+51:57 these results are currently going through peer review which is the standard uh you know scientific process for publication in a major journal but
+52:03 we wanted to release the pre-print to you today so that you could have a chance to read our work before it comes out in an official journal.
+52:10 We have a two-tier business model at Nefrogen. Our initial focus is to license the delivery vehicles for
+52:15 getting to kidney and possibly other organs to pharmaceutical companies. We've already closed um sponsorship
+52:22 funding from six major pharma companies to totaling over $600,000 um in value um including from Merc CGAA
+52:30 and Bristol Myers Squid. And although our short-term goal is to license the delivery vectors to enable pharma
+52:36 companies to make these curative medicines, our longerterm goal is to make our own therapies ourselves to cure
+52:41 kidney disease and other deadly diseases around the body. I want to wrap up by just acknowledging
+52:47 my team of field leaders in kidney disease and gene therapy from Stanford and Harvard Medical School including my
+52:53 co-founder Vive Bala who's a kidney doctor from Stanford and also my chief business officer Chang Hong who's a
+52:58 serial entrepreneur and has had several exits in the biotech space. We're raising our seed round with our existing
+53:04 syndicate of investors looking for more to add to that and we'll be happy to share more at our booth or during the
+53:09 Q&A. Thank you judges.
+53:16 I have I have so many questions. I'm I'm curious. Um you mentioned, you know,
+53:21 gene editing up front and then later uh delivery mechanisms. I don't understand how those two are related. How how are
+53:27 they related with your company? So the gene editor is what's delivered inside of the delivery system. So that's like the FedEx truck is the delivery and
+53:34 then what you put inside the truck is the gene editing. Okay. So h what are you putting inside
+53:39 of the truck? Crisper crisper cast therapy and and is there any uh how many genes
+53:46 are you going after? Because if you're going after too many genes, you're So you can either license just delivery to vector to a pharma who would then
+53:52 basically themselves take the product forward. I that's not you. Yes. But we also are have se we filed
+53:58 like six or seven patents on our own internal gene editors and the approaches that we use for specific kidney diseases. So like polycystic kidney
+54:04 disease which is a disease I showed on the stage that's our lead indication and our kind of go to market for our own therapies in the future is to go after
+54:10 genetically defined ones that have really high unmet need and then to expand to like all kidney disease like a universal chronic kidney disease gene
+54:17 therapy in the future. Gotcha. Understood. Okay. So you have two innovations. One is the
+54:22 actual gene editor for that use case for that illness and then it's the pod that
+54:28 delivers it the delivery mechanism that can be used for other things. Exactly. And you can either use your own
+54:34 package your own, you know, editor or you can license it to a pharma and they can use their own editor. Okay.
+54:40 Can can you talk um touch on just the timeline of FDA trials and when you'll
+54:47 be in market? Yeah. So I think that's why we've chosen this business model is because these licensing deals like even though right
+54:52 now we're just doing paid pilots and tech speak really um you know the the licensing deals can be 25 to 50 million
+54:58 upfront. I mean there's some that are 100, right? And so they generate revenue for the company and don't rely on us to have FDA approved drugs to generate
+55:05 revenue. And there's also a royalty on the back end. So if the pharma company gets the drug approved, then we get a 10% or single-digit royalty um you know
+55:12 on the back end. So it allows us a faster go to market strategy for the technology and it also expands the number of shots on goals. So we have
+55:18 like the pharma companies trying to make drugs and then we also make our own using the funding that they've given us. So we don't dilute as much, don't have
+55:23 to raise quite as much capital as like a traditional biotech would. That's great. Is is there an approval process for the medical device portion
+55:31 of what you're doing the delivery system? Um yeah, so it's actually just a chem chemical composition. Um the we don't we
+55:38 use FDA approved to actually administer the therapies. It's all the devices are all FDA approved. Um so it's really just
+55:44 the vector chemical composition. You give a license to a pharma to then use that sequence. They're allowed to use it
+55:50 um for for X diseases and you negotiate the the rights and the milestone payments. They'll pay you when they get
+55:55 to CL phase one, phase two, and then the royalties. Obviously, more upfront would be less on the back end is the idea.
+56:01 Yeah. I I don't know very much about delivery vector, so I apologize if this a dumb question, but like how
+56:07 predictable is it that the vector once you've discovered it is going to work on
+56:12 a specific population and how do you test it so that you like and how does a farmer company know how much it's worth
+56:18 to them to pay you for the vector? Yeah. Yeah. So the the key value inflections for like validating a
+56:23 delivery system is like we take a vector we test it in a mouse we show the data that I showed in mouse then you do it in a monkey and then you do it in humans
+56:30 right so until you do those three things like pharma could license it earlier and there's different pharmas that license the different phases so we're in content
+56:36 talks with all them but really like it comes down you have to validate in a large animal that's another inflection point past the mouse and so that's why
+56:42 the data we unveiled this week is to our knowledge the first time that they've done human um validation like in an
+56:48 Xvivo pumping system like I showed on the screen Um and so again it's going through peer review but the idea is is that you know we've now validated not
+56:54 just in the monkey but we've taken a step further to kind of further interest them and now we're kind of rapidly moving through those licensing
+56:60 conversations. Can I add to that just one bit about the cargo? So the cargo is also meant to be
+57:05 valid for anyone with a particular indication. So it's not like one needs to get a separate approval for a diff
+57:11 particular family or particular patient with a with a variant in their sequence. So for one disease we would have one
+57:17 cargo. Okay. Thanks. Yeah, I'm curious um why is the kidney
+57:25 not processing this? Like how are you able to get through? So, it's a great question. Um we've done
+57:30 some work in the paper that we put out to explain like you know the mechanism of the different receptors that were increasing or downregulating to get in.
+57:36 So, we have some understanding of the mechanism but to be honest it is sort of a brute force approach where you test billions and billions of variants. You
+57:42 have this really good screening process. you know, my co-founder Vake has large data sets from patients with disease to
+57:48 understand like the single cell data of like which cell types to target. And so you base a lot of the initial screening on that um to know the receptors, but at
+57:55 the end of the day, you're just finding ones that work and then you advance them forward um from there. So this isn't this is just you're you're
+58:01 happy that it's getting into the kidney, but this could cross the BBB, it could go anywhere. So when we do the screening, we also
+58:06 take tissues from every other we take samples from every other tissue and then like the way the AI works is it like
+58:12 weights all of those individually. So if it is really high in the brain and the kidney like obviously that's bad. So like it's kind of like a shopping list.
+58:17 If a pharma company says we want these really good kidney some liver because like polycystic liver disease is a thing
+58:23 then they can kind of come to us and then we can say okay this is the price for this one or this is the licensing structure we'd follow.
+58:28 Cool. Any final questions?
+58:36 All right then let's have one more round of applause for Nephrogen. Very done.
+58:45 Okay, we have one last startup battlefield company, so let's bring them out. That company is Unlisted.
+58:52 Presenting for Unlisted is founder and CEO Katie Hill.
+58:57 [Music]
+59:08 Hello, Techrunch Disrupt. My name is Katie Hill, founder and CEO of Unlisted,
+59:13 a revolutionary new real estate technology company helping buyers and sellers unlock the 98% of homes that
+59:21 aren't for sale yet. Unlisted was born when I mentioned to my neighbor that if he was ever interested
+59:27 in selling his house, I was interested in buying it. He wasn't ready to move yet, but he was thinking about his
+59:33 retirement and was thrilled to know that someone was interested in his home. We chatted a bit further and agreed that I
+59:38 would have a right of first refusal whenever he was ready. Neither of us was in the market to buy or sell, but there
+59:44 we were having a meaningful conversation about a future transaction. This got me thinking.
+59:50 Traditionally, real estate is treated as if it's black or white. A home is either for sale or not for sale. And each year
+59:56 only about 2% of homes list for sale. The current real estate platforms focus
+60:01 on this tiny sliver have leaving buyers to refresh their red fin feeds like slot
+60:08 machines, hoping to get lucky and have something good pop up so they can rush over and make the biggest financial
+60:13 decision of their lives. No wonder Zillow found that 65% of Americans cry
+60:18 when buying a home. But as my as my neighbor and I demonstrated, real estate is not black
+60:24 and white. There are shades of gray where almost twothirds of homeowners sit between I would sell today, I just
+60:30 haven't gotten around to cleaning out my attic to I know I'm going to sell next spring when my youngest graduates from
+60:36 high school to I'm always for sale for the right price. It's a $31 trillion
+60:42 market opportunity that Unlisted is designed to capture. Let's go to the demo.
+60:50 The Enlisted platform has every home in America. We created a beautiful profile
+60:55 for 121 million properties using AI, Google, and public record data. Supply
+61:02 side done. When buyers can't find what they're looking for in the 2% that are
+61:07 currently listed on the other sites, they can come to unlisted and see the entire market. Not only can buyers
+61:13 search every home in the US, they can join a wait list for homes they love that aren't for sale yet. Meaning buyers
+61:20 get to make the first move, proactively getting in line for their favorite homes. When buyers join weight lists,
+61:26 they indicate what they like about the home and their timeline to move, giving homeowners all new insight into the
+61:32 marketability of their property. Homeowners can take control of their property profile, meaning they can have
+61:39 full control over how their home appears online. They can edit property data, add
+61:44 photos, and soon track home maintenance. It's the digital equivalent of curb appeal, allowing homeowners to per
+61:51 perpetually collect interest in their most important asset. Our vision is that
+61:56 these property profiles become digital assets that sit next to the physical asset
+62:01 allowing um and then and then they can be passed from homeowner to homeowner um creating an incredible record of history
+62:08 of record for the home. Um
+62:14 let's see where am I going from there? Oh, uh,
+62:19 we'll go to we'll we'll go back to the slides to look at the at the unlisted business model. Oh, and and what I was going to say is, uh, real estate, as you
+62:26 can imagine, is interested in what we're doing because when homeowners, um, homeowners can also provide their
+62:31 timelines to move, which means that we're able to then match buyers timelines with with homeowner timelines
+62:37 so that we're starting to set up uh, future looking transactions, which is where then our revenue model comes in.
+62:42 So, we've created a product that allows realtors to uh take a look at the the um
+62:49 the activity that's happening in our uh system, as well as advertise to local audiences.
+62:56 Not only do they generate revenue for us, which we've on we're on track to book a million dollars worth of contracts by the end of the year, but
+63:02 they also invite their clients, homeowners, and buyers to the platform, which means Unlisted gets paid to
+63:08 acquire users. And it's working. Um, my slides have
+63:13 been updated since yesterday because the tech crunch effect is in full force. Over 1.42 million uh property profiles
+63:20 have been viewed. Homeowners have updated their property profiles to the tune of $1.2 billion and 8 billion worth
+63:29 of homes have been weightlisted just since June. All of this user activity generates
+63:35 valuable data. One example that you saw earlier in the demo is that homeowners can add their
+63:40 time their timelines to move. um meaning that we can share this data with uh all
+63:47 kinds of advertisers who are interested in reaching these specific audiences from Home Depot who wants to reach
+63:53 homeowners who are going to be in their homes for the next 20 years to Northwestern Mutual who wants to reach homeowners who don't have a plan for
+63:59 their properties to Rocket Mortgage who um knows buyers will be ready in a
+64:05 couple years to Sabes who wants to talk to homeowners who are ready to sell soon. We have this is just one data
+64:11 point. We have thousands of data points and that's why we see ourselves as a data company, not a real estate company.
+64:17 As our data continues to increase in value daily, all of this brings our flywheel full
+64:23 circle back to revenue. It's important to mention that Enlisted is not a brokerage and does not not
+64:28 collect commissions or referral fees. Um, we want to be with the homeowner the whole time that they're in their home,
+64:35 not just when they're ready to transact. Uh our vision is to be this this ongoing
+64:41 resource that allows us to set ourselves apart from all of the crowded space in
+64:46 real estate. It's a it's a mission that our team believes in passionately.
+64:52 And speaking of the team, uh I'm a two-time VC backed founder and Chicago Booth MBA. Sam is a software engineer
+65:00 leader with more than 20 years worth of experience. We have an incredible team uh some of which are with us today, the
+65:06 rest of which are watching on the live stream. Thanks to them that were here today.
+65:11 Wrap it up. We've raised $3 million worth of uh funding from Hurst Lab and um are uh
+65:18 supported by incredible adviserss from tech, media, and uh real estate.
+65:25 Real estate is ripe for disruption. There's a ton of shakeups going on right now, and we're here to be part of it.
+65:30 Everybody download the app. It's live now. Thank you
+65:36 judges. I've been waiting for I guess uh I guess five companies now before I saw the um
+65:42 the four quadrants. So, thanks for putting that. I'm I'm sorry. Sorry. Um I So two-sided marketplace
+65:50 essentially, right? Um I get I get one side which is the um the the potential buyer, right? You're you're you're um
+65:57 out you're looking. So yes, you're going to sign up. Um, I get that you're sourcing all your data. Um, you it's
+66:03 it's autom automated. You're using um online tools, etc. How do you get the disinterested um seller to actually um
+66:11 participate and and engage? And I saw you put up a number um on the on the um
+66:16 the line chart about um how many um sellers or the value of the um homes on
+66:22 the platform, but how many actual um sellers, how many homes is on the platform and how is that number growing?
+66:28 Great question. So that to answer the last question, so it's about 1,400 homes valued at about $1.2 billion. Um it our
+66:36 product does tend to skew a little bit luxury um because there's this element of privacy that folks like um in terms
+66:42 of how we get the sellers onto the platform. So when a buyer joins a wait list, we do outreach to the homeowner,
+66:48 letting them know that they have a wait list for their home. Um if they're already on the platform, that goes via
+66:53 email. If they're not on the platform, then we use direct mail. We actually work with a wedding invitation company
+66:59 that we've repurposed for um this notification. Um so it's really elegant,
+67:04 feels legit, it's heavy. Um and historically we've had a 10% response rate on those mailers, which is like
+67:10 pretty above the average. So thanks. So does it need to start with a buyer
+67:16 taking an action or stepping back? are you scraping data in, you know, may
+67:21 maybe a neighborhood to kind of prepopulate a map and then I can go in and say, "Oh, these are the five houses
+67:28 I'm interested in." And you can go off from that direction. That's exactly right. So, we we actually purchased the data from a real estate
+67:34 data company that it's it's all the county assessor data currently. Um that then we've sort of um augmented
+67:41 to to make it look pretty and look good. Um and yeah, we populated the entire like the whole neighbor your your home
+67:46 is probably on there. Okay. Um, and then the idea is that the buyers can see everything and then make an take an
+67:53 action on the ones that they want to. And in the meantime though, if you're a homeowner and you want to just come to the platform and grab control of your
+67:59 property profile, you can do that as well. And can taking control of it can mean editing it. Can it take it offline too?
+68:06 Yeah, you you can request to remove it. Um, what what I found is that when we get those requests, if I mention to
+68:12 them, you can take full control. You can um, you know, mention that you're in your forever home. If you're in your
+68:17 forever home, our algorithm does demote you in the results that we're showing to buyers. And we have yet to have anyone
+68:24 actually pursue the full removal. I think it's just like when they know they can do something about it, that's really what they're looking for.
+68:29 Where does the pricing come from? Where does the the pricing um for real estate agents?
+68:35 Well, the suggested pricing for a home, oh, we purchased that as well right now.
+68:40 Okay. It's a um it's it's an AVM estimate that's provided by the same data provider. Um, eventually we do hope
+68:46 to have our own estimates on there that would account for how big a weight list is for a property. Um, but that'll be a
+68:51 little bit Yeah. further in the future. Also, after claiming your home, you have full control. You can put what you think
+68:57 your house is worth. Yeah. Yeah. Can you talk a little bit about how you view this playing out? Like, will you
+69:02 focus on people claiming their homes and building kind of fan bases for houses and then monetize later? When you think
+69:09 about monetization, how do you think that's going to develop over time? and and how how do you think you're going to
+69:15 build a a venture scalable business? So, I think that in terms of the value of the data, um I'm just the one data
+69:23 point of um you know, when people are going to move is is incredibly valuable.
+69:28 Um I if if I remember correctly, our um our current the current pipeline that we
+69:34 have represents like $36 million worth of commissions alone. So, I mean that's just the real estate side. Um but then
+69:42 eventually when we have enough uh you know traction on the site the idea that
+69:47 all those different home related companies anybody who wants to reach reach households you know will be in a
+69:53 position to advertise through us or also at the aggregate like we'll be able to
+69:58 see that a certain percentage of the population is planning on moving from out of a neighborhood in the next three
+70:04 years like that might be information the school district wants to know or the city wants to know. So um that's that's our vision. curious when I when I think
+70:11 about new startups entering a space where there's already big incumbents playing here. You know, some of these
+70:17 things like making me make make me move functionality I've seen before. The weight list is really cool. How do you
+70:23 think about this in terms of being a standalone product versus just some nice features for a bigger site? Yeah, great question. So, um a couple
+70:29 things with with that like with a Zillow or Redfin or Homes. Um, first of all, they're all using MLS data and we're
+70:36 purposely avoiding that because those data licenses are fairly restrictive. Actually kind of prevent them from doing
+70:41 what we're doing right now because they can't blend the data sets um in a in a free way based on those data licenses.
+70:47 Um, the other thing is that um those that space is so competitive those
+70:52 homes.com, realtor, Zillow, we believe if one of them moved into that space that we would become a prime acquisition
+70:59 target. Why did um the make me move feature that we saw get why did that not work?
+71:04 So I actually had a chance to meet Rich Barton about I don't know two months ago and when we chatted briefly and it the
+71:12 numbers were just kind of wacky. People like put these crazy numbers in there that it there wasn't really much you could do with it anyways. So they just
+71:18 kind of went nuts and then it became this not very meaningful data point so they just took it down. Um, our hope is
+71:25 that well that there's like a level of seriousness then that's communicated with that number. So if you put a crazy
+71:31 number on there, the odds that your weight list is going to increase would not be as good. So and the idea is that
+71:37 in time the weight list will become a valuable data point for the home. A home with a bigger weight list will be worth
+71:42 more than a home without a weight list. And so there's an incentive there to behave.
+71:47 Final quick question. [Music] All right, give it up for Unlisted.
+71:57 Okay, that concludes the Startup Battlefield finals. The judges are going to follow me backstage and they're going
+72:03 to pick a winner. That winner will be announced right here at the end of the day. So, make sure you're here for that. But before we do that, please give it up
+72:10 one more time for our founders and our incredible judges.

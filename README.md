@@ -23,6 +23,20 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Codex MCP
+
+This repo includes a project-scoped Codex MCP server configuration in `.codex/config.toml`.
+
+- Run Codex from the repository root (`c:\dev\pitchr`).
+- The project must be trusted in Codex for project-scoped config to load.
+- Verify the server with:
+
+```bash
+codex mcp get supabase
+```
+
+- Do not use `codex mcp add` for this repo setup because it writes to user config at `~/.codex/config.toml`.
+
 ## Scripts
 
 | Command | Description |
