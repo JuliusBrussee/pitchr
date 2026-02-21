@@ -23,7 +23,8 @@ yarn test:watch      # Watch mode
 - **Language:** TypeScript 5.9.3 (strict mode)
 - **Tests:** Vitest 3.2.4 + Testing Library + jsdom
 - **Shaders:** GLSL loaded via raw-loader (next.config.ts)
-- **Storage:** localStorage (MVP) — no database, no auth
+- **Database:** Supabase (Postgres + Storage) via `@supabase/supabase-js` 2.97.0
+- **Storage:** localStorage for runs (MVP), Supabase Storage for deck files
 
 ## Architecture
 
@@ -43,15 +44,18 @@ Data flows: Page -> Hook -> API route -> Controller -> Service -> LLM/Storage
 ```
 app/(app)/           # Route pages: dashboard, session, results/[runId], history
 app/api/pitch/       # API endpoints: run/ (POST, GET), run/[runId]/ (GET, DELETE)
+app/api/deck/        # API endpoints: upload (POST), list (GET), [deckId] (GET, DELETE)
 views/components/    # Reusable UI components
 hooks/               # Custom React hooks (useMediaStream, useSessionState, etc.)
-services/            # Business logic (analysisService, scoringService, etc.)
+services/            # Business logic (analysisService, scoringService, deckService, etc.)
 models/              # Data schemas + localStorage CRUD
 lib/llm/             # Claude/Gemini API clients
+lib/supabase.ts      # Supabase client singleton
 lib/prompts/         # LLM prompt templates (system, rubric, rewrite)
 config/              # Rubric definitions, pitch mode configs
 types/               # Shared TypeScript types
 store/               # Client-side state management
+migrations/          # Supabase SQL migrations (decks, slides, storage bucket, policies)
 ```
 
 ## Code Conventions
@@ -146,9 +150,21 @@ Score bands: 0-39 Needs Work, 40-59 Getting There, 60-79 Solid, 80-100 Investor-
 - Test files: `__tests__/[name].test.ts(x)` co-located with source
 - Use `data-testid` for element selection in component tests
 
+## Supabase
+
+- **Client:** `lib/supabase.ts` — singleton via `createClient()` using public env vars
+- **Tables:** `decks` (metadata), `slides` (per-slide extracted text, FK to decks with cascade delete)
+- **Storage bucket:** `decks` (50 MB limit, public access — no auth in MVP)
+- **Service:** `services/deckService.ts` — all DB + storage CRUD for deck upload/retrieval
+- **Migrations:** `migrations/` — 4 SQL files (decks table, slides table, storage bucket, public policies)
+- **Setup guide:** `docs/SUPABASE_SETUP.md`
+- No RLS or auth — MVP uses anonymous public access
+
 ## Environment Variables
 
 ```env
+NEXT_PUBLIC_SUPABASE_URL=   # Supabase project URL (required for deck features)
+NEXT_PUBLIC_SUPABASE_ANON_KEY= # Supabase anon key (required for deck features)
 ANTHROPIC_API_KEY=     # Claude API (required for LLM scoring)
 GOOGLE_AI_API_KEY=     # Gemini fallback (optional)
 ELEVENLABS_API_KEY=    # TTS coach voice (Tier 1, optional)
