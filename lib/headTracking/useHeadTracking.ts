@@ -46,6 +46,11 @@ interface PoseEstimate {
   roll: number;
 }
 
+interface FrameBiasEstimate {
+  yawBias: number;
+  pitchBias: number;
+}
+
 interface CalibrationState {
   startTs: number;
   sampleCount: number;
@@ -56,6 +61,13 @@ interface CalibrationState {
   pitch0: number;
   roll0: number;
   isCalibrated: boolean;
+}
+
+interface YawBalanceState {
+  positiveMeanAbsYaw: number;
+  negativeMeanAbsYaw: number;
+  positiveSamples: number;
+  negativeSamples: number;
 }
 
 interface PerformanceState {
@@ -87,12 +99,29 @@ const METRIC_EPS = 0.002;
 const MIN_VIDEO_TIME_STEP_MS = 0.5;
 const NO_FACE_GRACE_MS = 220;
 const STATE_DWELL_MS = 120;
+const YAW_BALANCE_MIN_SAMPLE_DEG = 5;
+const YAW_BALANCE_MIN_SIDE_SAMPLES = 14;
+const YAW_BALANCE_ALPHA = 0.14;
+const YAW_BALANCE_SCALE_MIN = 0.82;
+const YAW_BALANCE_SCALE_MAX = 1.22;
+const FRAME_BIAS_MAX_DEG = 8;
+const FRAME_BIAS_MIN_FACE_WIDTH = 0.08;
+const FRAME_BIAS_EYE_Y_CENTER = 0.42;
+const FRAME_BIAS_YAW_FACTOR = 2.2;
+const FRAME_BIAS_PITCH_FACTOR = 2.6;
+
+const IGNORABLE_INFERENCE_MESSAGES = [
+  "created tensorflow lite xnnpack delegate for cpu",
+  "info: created tensorflow lite xnnpack delegate for cpu",
+];
 
 const THRESH = {
-  AWAY_ENTER_DEG: 18,
-  AWAY_EXIT_DEG: 13,
+  AWAY_ENTER_DEG: 14,
+  AWAY_EXIT_DEG: 10,
   DOWN_ENTER_DEG: 16,
   DOWN_EXIT_DEG: 11,
+  UP_ENTER_DEG: 14,
+  UP_EXIT_DEG: 10,
   POSE_EMA_ALPHA: 0.45,
   ENGAGEMENT_ALPHA: 0.45,
 };
@@ -172,6 +201,15 @@ function newRollingWindowState(): RollingWindowState {
       down: 0,
       no_face: 0,
     },
+  };
+}
+
+function newYawBalanceState(): YawBalanceState {
+  return {
+    positiveMeanAbsYaw: 0,
+    negativeMeanAbsYaw: 0,
+    positiveSamples: 0,
+    negativeSamples: 0,
   };
 }
 
@@ -296,10 +334,13 @@ function bestPoseEstimate(result: FaceLandmarkerResult): PoseEstimate | null {
   const fromHeuristic = heuristicPoseDegrees(result);
 
   if (fromMatrix && fromHeuristic) {
+    const blendedYaw = fromMatrix.yaw * 0.45 + fromHeuristic.yaw * 0.55;
+    const blendedPitch = fromMatrix.pitch * 0.35 + fromHeuristic.pitch * 0.65;
+    const blendedRoll = fromMatrix.roll * 0.6 + fromHeuristic.roll * 0.4;
     return {
-      yaw: fromMatrix.yaw,
-      pitch: Math.abs(fromMatrix.pitch) * Math.sign(fromHeuristic.pitch || 1),
-      roll: fromMatrix.roll,
+      yaw: blendedYaw,
+      pitch: blendedPitch,
+      roll: blendedRoll,
     };
   }
 
@@ -308,29 +349,118 @@ function bestPoseEstimate(result: FaceLandmarkerResult): PoseEstimate | null {
 
 function classifyTargetState(yawDeg: number, pitchDeg: number, currentState: HeadTrackingState): HeadTrackingState {
   const absYaw = Math.abs(yawDeg);
+  const upEnter = pitchDeg <= -THRESH.UP_ENTER_DEG;
+  const upExit = pitchDeg <= -THRESH.UP_EXIT_DEG;
 
   if (currentState === "no_face" || currentState === "facing") {
     if (pitchDeg >= THRESH.DOWN_ENTER_DEG) return "down";
+    if (upEnter) return "away";
     if (absYaw >= THRESH.AWAY_ENTER_DEG) return "away";
     return "facing";
   }
 
   if (currentState === "down") {
     if (pitchDeg >= THRESH.DOWN_EXIT_DEG) return "down";
+    if (upEnter) return "away";
     if (absYaw >= THRESH.AWAY_ENTER_DEG) return "away";
     return "facing";
   }
 
   if (pitchDeg >= THRESH.DOWN_ENTER_DEG) return "down";
+  if (upExit) return "away";
   if (absYaw >= THRESH.AWAY_EXIT_DEG) return "away";
   return "facing";
 }
 
 function instantPoseScore(yawDeg: number, pitchDeg: number) {
-  const yawPenalty = clamp((Math.abs(yawDeg) - 3) / Math.max(1, THRESH.AWAY_ENTER_DEG - 3), 0, 1);
-  const pitchPenalty = clamp((pitchDeg - 2) / Math.max(1, THRESH.DOWN_ENTER_DEG - 2), 0, 1);
-  const penalty = Math.max(yawPenalty, pitchPenalty);
-  return clampScore((1 - penalty) * 100);
+  const absYaw = Math.abs(yawDeg);
+  const yawPenalty = clamp((absYaw - 2) / 10, 0, 1);
+  const downPenalty = clamp((pitchDeg - 1.5) / 9, 0, 1);
+  const upPenalty = clamp((Math.abs(Math.min(pitchDeg, 0)) - 1.5) / 8, 0, 1);
+  const penalty = Math.max(yawPenalty, downPenalty, upPenalty);
+  const shapedPenalty = Math.pow(penalty, 1.15);
+  return clampScore((1 - shapedPenalty) * 100);
+}
+
+function getErrorMessage(err: unknown) {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+function isIgnorableRuntimeMessage(message: string) {
+  const normalized = message.trim().toLowerCase();
+  return IGNORABLE_INFERENCE_MESSAGES.some((needle) => normalized.includes(needle));
+}
+
+function stringifyConsoleArg(arg: unknown): string {
+  if (typeof arg === "string") return arg;
+  if (arg instanceof Error) return arg.message;
+  try {
+    return JSON.stringify(arg);
+  } catch {
+    return String(arg);
+  }
+}
+
+function applyYawBalance(rawYaw: number, state: YawBalanceState) {
+  const absYaw = Math.abs(rawYaw);
+  if (absYaw < YAW_BALANCE_MIN_SAMPLE_DEG) return rawYaw;
+
+  if (rawYaw >= 0) {
+    state.positiveSamples += 1;
+    if (state.positiveMeanAbsYaw === 0) {
+      state.positiveMeanAbsYaw = absYaw;
+    } else {
+      state.positiveMeanAbsYaw += YAW_BALANCE_ALPHA * (absYaw - state.positiveMeanAbsYaw);
+    }
+  } else {
+    state.negativeSamples += 1;
+    if (state.negativeMeanAbsYaw === 0) {
+      state.negativeMeanAbsYaw = absYaw;
+    } else {
+      state.negativeMeanAbsYaw += YAW_BALANCE_ALPHA * (absYaw - state.negativeMeanAbsYaw);
+    }
+  }
+
+  if (state.positiveSamples < YAW_BALANCE_MIN_SIDE_SAMPLES || state.negativeSamples < YAW_BALANCE_MIN_SIDE_SAMPLES) {
+    return rawYaw;
+  }
+
+  const targetMean = (state.positiveMeanAbsYaw + state.negativeMeanAbsYaw) / 2;
+  if (targetMean <= 0) return rawYaw;
+
+  const positiveScale = clamp(
+    targetMean / Math.max(state.positiveMeanAbsYaw, 1e-4),
+    YAW_BALANCE_SCALE_MIN,
+    YAW_BALANCE_SCALE_MAX
+  );
+  const negativeScale = clamp(
+    targetMean / Math.max(state.negativeMeanAbsYaw, 1e-4),
+    YAW_BALANCE_SCALE_MIN,
+    YAW_BALANCE_SCALE_MAX
+  );
+
+  return rawYaw >= 0 ? rawYaw * positiveScale : rawYaw * negativeScale;
+}
+
+function estimateFrameBias(result: FaceLandmarkerResult): FrameBiasEstimate | null {
+  const lm = result.faceLandmarks?.[0];
+  if (!lm || lm.length < 264) return null;
+
+  const leftEyeOuter = lm[33];
+  const rightEyeOuter = lm[263];
+  const eyeMidX = (leftEyeOuter.x + rightEyeOuter.x) / 2;
+  const eyeMidY = (leftEyeOuter.y + rightEyeOuter.y) / 2;
+  const faceWidth = Math.abs(rightEyeOuter.x - leftEyeOuter.x);
+  const normalizedWidth = Math.max(faceWidth, FRAME_BIAS_MIN_FACE_WIDTH);
+
+  const offCenterX = (eyeMidX - 0.5) / normalizedWidth;
+  const offCenterY = (eyeMidY - FRAME_BIAS_EYE_Y_CENTER) / normalizedWidth;
+
+  return {
+    yawBias: clamp(offCenterX * FRAME_BIAS_YAW_FACTOR, -FRAME_BIAS_MAX_DEG, FRAME_BIAS_MAX_DEG),
+    pitchBias: clamp(offCenterY * FRAME_BIAS_PITCH_FACTOR, -FRAME_BIAS_MAX_DEG, FRAME_BIAS_MAX_DEG),
+  };
 }
 
 function ensureCanvasSize(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
@@ -442,6 +572,7 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
   const drawingUtilsRef = useRef<DrawingUtils | null>(null);
 
   const poseEmaRef = useRef({ yaw: 0, pitch: 0, roll: 0, hasPose: false });
+  const yawBalanceRef = useRef<YawBalanceState>(newYawBalanceState());
   const engagementEmaRef = useRef({ value: 100, hasValue: false });
   const inferIntervalMsRef = useRef(INFER_INTERVAL_DEFAULT_MS);
   const lastInferTsRef = useRef(0);
@@ -449,6 +580,8 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
   const inferSamplesRef = useRef<number[]>([]);
   const lastResultsRef = useRef<FaceLandmarkerResult | null>(null);
   const hasFreshResultsRef = useRef(false);
+  const lastInferenceErrorRef = useRef<string | null>(null);
+  const originalConsoleErrorRef = useRef<typeof console.error | null>(null);
 
   const performanceRef = useRef<PerformanceState>({
     inferenceMs: 0,
@@ -468,9 +601,34 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
   });
   const lastFaceSeenTsRef = useRef(-Infinity);
 
+  const removeConsoleErrorFilter = useCallback(() => {
+    if (!originalConsoleErrorRef.current) return;
+    console.error = originalConsoleErrorRef.current;
+    originalConsoleErrorRef.current = null;
+  }, []);
+
+  const installConsoleErrorFilter = useCallback(() => {
+    if (originalConsoleErrorRef.current) return;
+
+    const baseConsoleError = console.error;
+    originalConsoleErrorRef.current = baseConsoleError;
+
+    console.error = (...args: unknown[]) => {
+      const message = args.map(stringifyConsoleArg).join(" ");
+      if (isIgnorableRuntimeMessage(message)) {
+        if (debugEnabled) {
+          console.debug("[headTracking] Suppressed benign MediaPipe console error:", message);
+        }
+        return;
+      }
+      baseConsoleError(...args);
+    };
+  }, [debugEnabled]);
+
   const stop = useCallback(() => {
     runningRef.current = false;
     setIsRunning(false);
+    removeConsoleErrorFilter();
 
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
@@ -512,14 +670,16 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
     resetRollingWindowState(rollingWindowRef.current);
 
     poseEmaRef.current = { yaw: 0, pitch: 0, roll: 0, hasPose: false };
+    yawBalanceRef.current = newYawBalanceState();
     engagementEmaRef.current = { value: 100, hasValue: false };
     committedStateRef.current = "no_face";
     pendingTransitionRef.current = { state: null, since: 0 };
     lastFaceSeenTsRef.current = -Infinity;
+    lastInferenceErrorRef.current = null;
 
     setMetrics(INITIAL_METRICS);
     lastPublishedRef.current = INITIAL_METRICS;
-  }, [canvasRef]);
+  }, [canvasRef, removeConsoleErrorFilter]);
 
   const publishMetrics = useCallback((now: number, next: HeadTrackingMetrics) => {
     const last = lastPublishedRef.current;
@@ -621,6 +781,8 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
         }
       }
 
+      installConsoleErrorFilter();
+
       const filesetResolver = await getFilesetResolver();
       const landmarker = await createFaceLandmarkerWithFallback(filesetResolver);
 
@@ -650,6 +812,7 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
       calibrationRef.current = newCalibrationState();
       resetRollingWindowState(rollingWindowRef.current);
       poseEmaRef.current = { yaw: 0, pitch: 0, roll: 0, hasPose: false };
+      yawBalanceRef.current = newYawBalanceState();
       engagementEmaRef.current = { value: 100, hasValue: false };
       committedStateRef.current = "no_face";
       pendingTransitionRef.current = { state: null, since: 0 };
@@ -658,6 +821,7 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
       lastUiUpdateTsRef.current = 0;
       lastResultsRef.current = null;
       hasFreshResultsRef.current = false;
+      lastInferenceErrorRef.current = null;
       lastPublishedRef.current = INITIAL_METRICS;
 
       const frameLoop = () => {
@@ -693,11 +857,35 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
           lastVideoTsMsRef.current = videoTsMs;
           const inferStart = performance.now();
-          lastResultsRef.current = activeLandmarker.detectForVideo(activeVideo, videoTsMs);
-          perf.inferenceMs = performance.now() - inferStart;
+          try {
+            lastResultsRef.current = activeLandmarker.detectForVideo(activeVideo, videoTsMs);
+            perf.inferenceMs = performance.now() - inferStart;
+            hasFreshResultsRef.current = true;
+            updateAdaptiveInferInterval(perf.inferenceMs);
 
-          hasFreshResultsRef.current = true;
-          updateAdaptiveInferInterval(perf.inferenceMs);
+            if (lastInferenceErrorRef.current !== null) {
+              lastInferenceErrorRef.current = null;
+              setError(null);
+            }
+          } catch (inferErr) {
+            perf.inferenceMs = performance.now() - inferStart;
+            hasFreshResultsRef.current = true;
+            lastResultsRef.current = null;
+
+            const message = getErrorMessage(inferErr);
+            if (isIgnorableRuntimeMessage(message)) {
+              if (debugEnabled && lastInferenceErrorRef.current !== "IGNORABLE") {
+                console.debug("[headTracking] Ignored MediaPipe runtime message:", message);
+              }
+              lastInferenceErrorRef.current = "IGNORABLE";
+            } else if (lastInferenceErrorRef.current !== message) {
+              lastInferenceErrorRef.current = message;
+              setError(`Face tracking runtime warning: ${message}`);
+              if (debugEnabled) {
+                console.warn("[headTracking] Runtime inference warning:", message);
+              }
+            }
+          }
         }
 
         const results = lastResultsRef.current;
@@ -754,16 +942,20 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
             const adjustedYaw = rawPose.yaw - calibration.yaw0;
             const adjustedPitch = rawPose.pitch - calibration.pitch0;
             const adjustedRoll = rawPose.roll - calibration.roll0;
+            const frameBias = estimateFrameBias(results);
+            const compensatedYaw = frameBias ? adjustedYaw - frameBias.yawBias : adjustedYaw;
+            const compensatedPitch = frameBias ? adjustedPitch - frameBias.pitchBias : adjustedPitch;
+            const balancedYaw = applyYawBalance(compensatedYaw, yawBalanceRef.current);
 
             const poseEma = poseEmaRef.current;
             if (!poseEma.hasPose) {
-              poseEma.yaw = adjustedYaw;
-              poseEma.pitch = adjustedPitch;
+              poseEma.yaw = balancedYaw;
+              poseEma.pitch = compensatedPitch;
               poseEma.roll = adjustedRoll;
               poseEma.hasPose = true;
             } else {
-              poseEma.yaw = THRESH.POSE_EMA_ALPHA * adjustedYaw + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.yaw;
-              poseEma.pitch = THRESH.POSE_EMA_ALPHA * adjustedPitch + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.pitch;
+              poseEma.yaw = THRESH.POSE_EMA_ALPHA * balancedYaw + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.yaw;
+              poseEma.pitch = THRESH.POSE_EMA_ALPHA * compensatedPitch + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.pitch;
               poseEma.roll = THRESH.POSE_EMA_ALPHA * adjustedRoll + (1 - THRESH.POSE_EMA_ALPHA) * poseEma.roll;
             }
 
@@ -795,8 +987,10 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
           const poseScore = instantPoseScore(yawOut, pitchOut);
           const windowScore = rolling.facingPct;
+          const fusedScore = clampScore(poseScore * 0.9 + windowScore * 0.1);
+          const stateCap = nextState === "away" ? 32 : nextState === "down" ? 40 : 100;
           const targetEngagement =
-            nextState === "no_face" ? engagementEmaRef.current.value : clampScore(poseScore * 0.8 + windowScore * 0.2);
+            nextState === "no_face" ? engagementEmaRef.current.value : Math.min(stateCap, fusedScore);
 
           const engagementEma = engagementEmaRef.current;
           if (!engagementEma.hasValue) {
@@ -833,7 +1027,17 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
       setError(message);
       stop();
     }
-  }, [applyStateDwell, canvasRef, debugEnabled, externalStream, publishMetrics, stop, updateAdaptiveInferInterval, videoRef]);
+  }, [
+    applyStateDwell,
+    canvasRef,
+    debugEnabled,
+    externalStream,
+    installConsoleErrorFilter,
+    publishMetrics,
+    stop,
+    updateAdaptiveInferInterval,
+    videoRef,
+  ]);
 
   useEffect(() => {
     if (!autoStart) return;

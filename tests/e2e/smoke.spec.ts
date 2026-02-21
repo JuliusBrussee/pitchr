@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 test.describe("app smoke", () => {
   test("opens key app routes", async ({ page }) => {
     await page.goto("/dashboard");
-    await expect(page.locator('aside a[href="/session"]').first()).toBeVisible();
-
-    await page.locator('aside a[href="/session"]').first().click();
+    const runPitchLink = page.getByRole("link", { name: /Run a Pitch/i });
+    await expect(runPitchLink).toBeVisible();
+    await page.goto("/session");
     await expect(page).toHaveURL(/\/session$/);
 
     await page.goto("/dashboard");

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
@@ -9,7 +9,7 @@ import { useDeckSlides } from '@/hooks/useDeckSlides';
 import { useSTT } from '@/hooks/useSTT';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
-import type { SpeechBubble } from '@/hooks/useSessionState';
+import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import type { DeckRecord } from '@/services/deckService';
 
 export default function SessionPage() {
@@ -17,6 +17,8 @@ export default function SessionPage() {
   const session = useSessionState();
   const stt = useSTT();
   const { setOrbState } = useTheme();
+  const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
+  const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
@@ -69,25 +71,39 @@ export default function SessionPage() {
     setOrbState(session.orbState);
   }, [session.orbState, setOrbState]);
 
-  // Build speech bubbles from real STT transcript when recording, otherwise mock bubbles
-  const speechBubbles: SpeechBubble[] = useMemo(() => {
-    if (stt.isRecording) {
-      const segments = stt.transcriptSegments.map((text, i) => ({
-        id: `stt-${i}`,
-        text,
-        expiresAt: Number.MAX_SAFE_INTEGER,
-      }));
-      if (stt.liveText.trim()) {
-        segments.push({
-          id: 'stt-live',
-          text: stt.liveText,
-          expiresAt: Number.MAX_SAFE_INTEGER,
-        });
-      }
-      return segments;
+  const {
+    engagementScore,
+    state: headState,
+    error: headTrackingError,
+    debugEnabled: headTrackingDebugEnabled,
+  } = useHeadTracking({
+    videoRef: trackingVideoRef,
+    canvasRef: trackingCanvasRef,
+    stream: media.stream,
+    autoStart: true,
+    enabled: session.isSessionActive && media.isCameraOn,
+  });
+
+  useEffect(() => {
+    if (!headTrackingDebugEnabled) return;
+    if (!session.isSessionActive || !media.isCameraOn) return;
+    if (headTrackingError) {
+      console.warn('[headTracking] initialization or runtime error', headTrackingError);
+      return;
     }
-    return session.speechBubbles;
-  }, [stt.isRecording, stt.transcriptSegments, stt.liveText, session.speechBubbles]);
+    console.debug('[headTracking] initialized');
+  }, [
+    headTrackingDebugEnabled,
+    session.isSessionActive,
+    media.isCameraOn,
+    headTrackingError,
+  ]);
+
+  useEffect(() => {
+    if (!headTrackingDebugEnabled) return;
+    if (!session.isSessionActive || !media.isCameraOn) return;
+    console.debug('[headTracking] state transition', headState);
+  }, [headTrackingDebugEnabled, session.isSessionActive, media.isCameraOn, headState]);
 
   const handleStartSession = useCallback(() => {
     session.startSession();
@@ -120,7 +136,10 @@ export default function SessionPage() {
         toggleMic={media.toggleMic}
         orbState={session.orbState}
         orbIntensity={0.6}
-        speechBubbles={speechBubbles}
+        engagementScore={engagementScore}
+        headState={headState}
+        showEngagement={session.isSessionActive && media.isCameraOn}
+        headTrackingError={headTrackingError}
         isSessionActive={session.isSessionActive}
         onStartSession={handleStartSession}
         onStopSession={handleStopSession}
@@ -142,6 +161,19 @@ export default function SessionPage() {
         isSessionActive={session.isSessionActive}
         sttError={stt.error}
         sttSaved={stt.saved}
+      />
+      <video
+        ref={trackingVideoRef}
+        autoPlay
+        playsInline
+        muted
+        className="sr-only"
+        aria-hidden="true"
+      />
+      <canvas
+        ref={trackingCanvasRef}
+        className="sr-only"
+        aria-hidden="true"
       />
     </>
   );

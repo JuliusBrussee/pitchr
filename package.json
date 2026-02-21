@@ -17,6 +17,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.32",
     "@react-pdf/renderer": "^4.3.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
@@ -33,6 +34,7 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/express": "^4.17.21",
     "@types/node": "^22.10.0",
