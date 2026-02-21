@@ -24,6 +24,7 @@ import {
   getModeLabel,
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui';
+import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 
 /* ——— Types ——— */
 
@@ -36,6 +37,7 @@ interface HistoryRun {
   one_line_verdict: string;
   createdAt: string;
   duration_seconds: number;
+  audioUrl?: string;
   deck?: string;
   dateGroup: 'today' | 'yesterday' | 'thisWeek' | 'earlier';
 }
@@ -46,6 +48,7 @@ interface RunRecord {
   inputType: string;
   overallScore: number;
   createdAt: string;
+  audioUrl?: string;
   analysis: {
     one_line_verdict: string;
     delivery_metrics: { duration_seconds: number };
@@ -120,6 +123,7 @@ export default function HistoryPage() {
           one_line_verdict: r.analysis.one_line_verdict,
           createdAt: r.createdAt,
           duration_seconds: r.analysis.delivery_metrics.duration_seconds,
+          audioUrl: r.audioUrl,
           deck: undefined,
           dateGroup: getDateGroup(r.createdAt),
         }));
@@ -365,6 +369,13 @@ export default function HistoryPage() {
                           </span>
                         </div>
 
+                        {/* Recording playback */}
+                        {run.audioUrl && (
+                          <div className="flex-shrink-0">
+                            <RecordingPlayer recordingUrl={run.audioUrl} compact />
+                          </div>
+                        )}
+
                         {/* Score badge */}
                         <div className="flex-shrink-0">
                           <ScoreBadge score={run.overallScore} size="sm" />
@@ -509,6 +520,11 @@ export default function HistoryPage() {
                           >
                             {run.one_line_verdict}
                           </p>
+
+                          {/* Recording playback */}
+                          {run.audioUrl && (
+                            <RecordingPlayer recordingUrl={run.audioUrl} compact />
+                          )}
 
                           {/* Meta row */}
                           <div className="flex items-center gap-3 mt-auto pt-1">
