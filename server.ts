@@ -51,6 +51,10 @@ wss.on("connection", (clientWs) => {
   const audioQueue: string[] = [];
   let transcript = "";
   const segments: { text: string; start: number; end: number }[] = [];
+  let stopRequested = false;
+  let saveDone = false;
+  let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+  let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
   function forwardToClient(obj: object) {
     if (clientWs.readyState === WebSocket.OPEN) {
@@ -65,6 +69,16 @@ wss.on("connection", (clientWs) => {
   }
 
   function flushAndSave() {
+    if (saveDone) return;
+    saveDone = true;
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      saveTimeout = null;
+    }
+    if (fallbackTimeout) {
+      clearTimeout(fallbackTimeout);
+      fallbackTimeout = null;
+    }
     // #region agent log
     const half = Math.floor(transcript.length / 2);
     const firstHalf = transcript.slice(0, half);
@@ -132,6 +146,13 @@ wss.on("connection", (clientWs) => {
         // #region agent log
         fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:committed_transcript_with_timestamps", message: "replaced segment H6", data: { lastLen: lastText.length, newLen: msg.text.length }, timestamp: Date.now(), hypothesisId: "H6", runId: "post-fix" }) }).catch(() => {});
         // #endregion
+        if (stopRequested && !saveDone && !saveTimeout) {
+          saveTimeout = setTimeout(async () => {
+            saveTimeout = null;
+            await flushAndSave();
+            if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
+          }, 800);
+        }
         return;
       }
 
@@ -141,6 +162,13 @@ wss.on("connection", (clientWs) => {
       // #endregion
       transcript += msg.text;
       segments.push({ text: msg.text, start, end });
+      if (stopRequested && !saveDone && !saveTimeout) {
+        saveTimeout = setTimeout(async () => {
+          saveTimeout = null;
+          await flushAndSave();
+          if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
+        }, 800);
+      }
     }
   });
 
@@ -162,6 +190,7 @@ wss.on("connection", (clientWs) => {
       return;
     }
     if (msg.type === "stop") {
+      stopRequested = true;
       if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
         elevenLabsWs.send(
           JSON.stringify({
@@ -172,11 +201,12 @@ wss.on("connection", (clientWs) => {
           })
         );
       }
-      // Wait for ElevenLabs to send final committed transcript before saving and closing
-      setTimeout(() => {
-        flushAndSave();
+      // Fallback: if no final commit arrives within 4s, save what we have and close
+      fallbackTimeout = setTimeout(async () => {
+        fallbackTimeout = null;
+        await flushAndSave();
         if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
-      }, 2000);
+      }, 4000);
       return;
     }
     if (msg.message_type === "input_audio_chunk") {
@@ -189,7 +219,9 @@ wss.on("connection", (clientWs) => {
   });
 
   clientWs.on("close", () => {
-    if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
+    // When client sends "stop" it closes the socket; keep ElevenLabs open so we can
+    // receive the final committed transcript and save before closing.
+    if (!stopRequested && elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
       elevenLabsWs.close();
     }
   });
