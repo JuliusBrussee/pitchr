@@ -10,8 +10,8 @@
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
   --blur-strength: 20px;
-  --aura-color: rgba(107, 33, 168, 0.06);
-  --aura-secondary: rgba(37, 99, 235, 0.04);
+  --aura-color: rgba(255, 89, 65, 0.05);
+  --aura-secondary: rgba(255, 170, 51, 0.03);
 }
 
 .dark {
@@ -24,8 +24,8 @@
   --text-secondary: #9ca3af;
   --text-muted: #6b7280;
   --blur-strength: 16px;
-  --aura-color: rgba(107, 33, 168, 0.10);
-  --aura-secondary: rgba(37, 99, 235, 0.06);
+  --aura-color: rgba(255, 89, 65, 0.08);
+  --aura-secondary: rgba(255, 170, 51, 0.05);
 }
 
 @keyframes fadeInUp {

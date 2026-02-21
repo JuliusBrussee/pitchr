@@ -31,8 +31,8 @@ describe('getScoreColor', () => {
   it('returns yellow for getting-there', () => {
     expect(getScoreColor(50)).toBe('#eab308');
   });
-  it('returns blue for solid', () => {
-    expect(getScoreColor(70)).toBe('#3b82f6');
+  it('returns amber for solid', () => {
+    expect(getScoreColor(70)).toBe('#ffaa33');
   });
   it('returns green for investor-ready', () => {
     expect(getScoreColor(85)).toBe('#22c55e');
@@ -52,8 +52,8 @@ describe('getModeColor', () => {
   it('returns orange for elevator', () => {
     expect(getModeColor('elevator')).toBe('#f97316');
   });
-  it('returns purple for vc_pitch', () => {
-    expect(getModeColor('vc_pitch')).toBe('#8b5cf6');
+  it('returns coral for vc_pitch', () => {
+    expect(getModeColor('vc_pitch')).toBe('#ff5941');
   });
 });
 

@@ -219,7 +219,7 @@ In two years, every team that practices a pitch will practice it with us. We'd l
 
 function getScoreBand(score: number): { label: string; color: string; bg: string } {
   if (score >= 80) return { label: 'Investor-Ready', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
-  if (score >= 60) return { label: 'Solid', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' };
+  if (score >= 60) return { label: 'Solid', color: '#ffaa33', bg: 'rgba(255,170,51,0.12)' };
   if (score >= 40) return { label: 'Getting There', color: '#eab308', bg: 'rgba(234,179,8,0.12)' };
   return { label: 'Needs Work', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' };
 }
@@ -255,7 +255,7 @@ function getImpactColor(impact: Impact): { text: string; bg: string } {
 function getCategoryColor(score: number, max: number): string {
   const pct = score / max;
   if (pct >= 0.8) return '#22c55e';
-  if (pct >= 0.6) return '#3b82f6';
+  if (pct >= 0.6) return '#ffaa33';
   if (pct >= 0.4) return '#eab308';
   return '#ef4444';
 }
@@ -336,7 +336,7 @@ export default function ResultsPage() {
           <Link
             href="/session"
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold no-underline transition-all duration-200"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }}
+            style={{ background: '#1c1210', color: '#fff0eb' }}
           >
             <RotateCcw size={13} />
             Run Again
@@ -375,7 +375,7 @@ export default function ResultsPage() {
             <div className="flex items-start gap-3">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                style={{ background: '#1c1210' }}
               >
                 <Brain size={16} className="text-white" />
               </div>
@@ -482,7 +482,7 @@ export default function ResultsPage() {
           <GlassCard className="h-full flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Sparkles size={14} style={{ color: '#8b5cf6' }} />
+                <Sparkles size={14} style={{ color: '#ff5941' }} />
                 <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Tightened Rewrite
                 </h2>
@@ -671,7 +671,7 @@ export default function ResultsPage() {
           <Link
             href="/session"
             className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold no-underline transition-all duration-200"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }}
+            style={{ background: '#1c1210', color: '#fff0eb' }}
           >
             <RotateCcw size={13} />
             Run Again

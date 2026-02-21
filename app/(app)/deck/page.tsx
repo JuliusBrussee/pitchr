@@ -120,7 +120,7 @@ const SHIMMER_CSS = `
 
 const shimmerStyle: React.CSSProperties = {
   background:
-    'linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.08) 30%, rgba(59, 130, 246, 0.08) 50%, rgba(124, 58, 237, 0.08) 70%, transparent 100%)',
+    'linear-gradient(90deg, transparent 0%, rgba(255, 89, 65, 0.06) 30%, rgba(255, 170, 51, 0.06) 50%, rgba(255, 89, 65, 0.06) 70%, transparent 100%)',
   backgroundSize: '200% 100%',
   animation: 'deck-shimmer 2.5s ease-in-out infinite',
 };
@@ -159,9 +159,9 @@ export default function DeckPage() {
         <div className="flex items-center gap-3">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)' }}
+            style={{ backgroundColor: 'rgba(255, 89, 65, 0.10)' }}
           >
-            <FolderOpen size={18} style={{ color: '#a855f7' }} />
+            <FolderOpen size={18} style={{ color: '#ff5941' }} />
           </div>
           <div>
             <h1
@@ -191,9 +191,11 @@ export default function DeckPage() {
           />
 
           <button
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 hover:scale-[1.03] active:scale-[0.97]"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-[1.03] active:scale-[0.97]"
             style={{
-              boxShadow: '0 4px 20px rgba(124, 58, 237, 0.25)',
+              background: '#1c1210',
+              color: '#fff0eb',
+              boxShadow: '0 4px 20px rgba(255, 89, 65, 0.2)',
             }}
           >
             <Plus size={16} />
@@ -220,10 +222,10 @@ export default function DeckPage() {
           className="relative flex flex-col items-center justify-center gap-3 py-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 group overflow-hidden"
           style={{
             borderColor: isDragOver
-              ? 'rgba(124, 58, 237, 0.5)'
+              ? 'rgba(255, 89, 65, 0.4)'
               : 'var(--border-color)',
             backgroundColor: isDragOver
-              ? 'rgba(124, 58, 237, 0.05)'
+              ? 'rgba(255, 89, 65, 0.04)'
               : 'transparent',
           }}
         >
@@ -251,7 +253,7 @@ export default function DeckPage() {
               style={{ color: 'var(--text-primary)' }}
             >
               Drop your slides here or{' '}
-              <span className="text-purple-500 hover:text-purple-400 cursor-pointer transition-colors duration-200">
+              <span style={{ color: '#ff5941' }} className="cursor-pointer transition-colors duration-200">
                 click to upload
               </span>
             </p>
@@ -290,17 +292,17 @@ export default function DeckPage() {
           <div
             className="relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-5 cursor-pointer transition-all duration-300 group overflow-hidden hover:scale-[1.02]"
             style={{
-              borderColor: 'rgba(124, 58, 237, 0.25)',
+              borderColor: 'rgba(255, 89, 65, 0.2)',
               backgroundColor: 'var(--bg-surface)',
               backdropFilter: 'blur(var(--blur-strength))',
               WebkitBackdropFilter: 'blur(var(--blur-strength))',
               minHeight: '320px',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.45)';
+              e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.35)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.25)';
+              e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.2)';
             }}
           >
             {/* Radial glow effect on hover */}
@@ -308,7 +310,7 @@ export default function DeckPage() {
               className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
                 background:
-                  'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.1) 0%, rgba(59, 130, 246, 0.04) 50%, transparent 70%)',
+                  'radial-gradient(circle at 50% 50%, rgba(255, 89, 65, 0.08) 0%, rgba(255, 170, 51, 0.03) 50%, transparent 70%)',
               }}
             />
 
@@ -323,13 +325,13 @@ export default function DeckPage() {
               className="flex items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 group-hover:scale-110"
               style={{
                 background:
-                  'linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(59, 130, 246, 0.15))',
+                  'linear-gradient(135deg, rgba(255, 89, 65, 0.12), rgba(255, 170, 51, 0.10))',
               }}
             >
               <Sparkles
                 size={28}
                 className="transition-transform duration-500 group-hover:rotate-12"
-                style={{ color: '#a855f7' }}
+                style={{ color: '#ff5941' }}
               />
             </div>
 
@@ -353,7 +355,7 @@ export default function DeckPage() {
               className="absolute bottom-0 left-0 right-0 h-0.5 opacity-40 group-hover:opacity-80 transition-opacity duration-300"
               style={{
                 background:
-                  'linear-gradient(90deg, #7c3aed, #3b82f6, #7c3aed)',
+                  'linear-gradient(90deg, #ff5941, #ffaa33, #ff5941)',
               }}
             />
           </div>

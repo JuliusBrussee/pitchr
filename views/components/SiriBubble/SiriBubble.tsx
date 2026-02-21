@@ -19,8 +19,8 @@ function CSSFallback({ size, fluid }: { size: SiriBubbleProps['size']; fluid: bo
   const { width, height } = resolveSize(size, fluid);
   return (
     <div
-      style={{ width, height }}
-      className="rounded-full bg-gradient-to-br from-purple-600 to-blue-500 opacity-80 blur-sm animate-pulse"
+      style={{ width, height, background: 'radial-gradient(circle, #ff5941, #e63b26, #1c1210)' }}
+      className="rounded-full opacity-80 blur-sm animate-pulse"
     />
   );
 }

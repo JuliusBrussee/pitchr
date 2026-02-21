@@ -5,7 +5,7 @@ import { OrbState } from '@/views/components/SiriBubble';
 
 // Aura color mappings matching SiriBubble states
 const AURA_COLORS: Record<OrbState, { primary: string; secondary: string }> = {
-  idle:     { primary: 'rgba(107,33,168,0.06)',  secondary: 'rgba(37,99,235,0.04)' },
+  idle:     { primary: 'rgba(255,89,65,0.05)',   secondary: 'rgba(255,170,51,0.03)' },
   active:   { primary: 'rgba(6,182,212,0.06)',   secondary: 'rgba(59,130,246,0.04)' },
   positive: { primary: 'rgba(34,197,94,0.06)',   secondary: 'rgba(16,185,129,0.04)' },
   negative: { primary: 'rgba(239,68,68,0.08)',   secondary: 'rgba(249,115,22,0.04)' },
@@ -13,7 +13,7 @@ const AURA_COLORS: Record<OrbState, { primary: string; secondary: string }> = {
 };
 
 const DARK_AURA_COLORS: Record<OrbState, { primary: string; secondary: string }> = {
-  idle:     { primary: 'rgba(107,33,168,0.10)',  secondary: 'rgba(37,99,235,0.06)' },
+  idle:     { primary: 'rgba(255,89,65,0.08)',   secondary: 'rgba(255,170,51,0.05)' },
   active:   { primary: 'rgba(6,182,212,0.10)',   secondary: 'rgba(59,130,246,0.06)' },
   positive: { primary: 'rgba(34,197,94,0.10)',   secondary: 'rgba(16,185,129,0.06)' },
   negative: { primary: 'rgba(239,68,68,0.12)',   secondary: 'rgba(249,115,22,0.06)' },

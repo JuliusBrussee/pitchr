@@ -222,7 +222,7 @@ export default function SettingsPage() {
                   className="flex items-center justify-center w-14 h-14 rounded-full flex-shrink-0 text-white font-bold text-lg"
                   style={{
                     background:
-                      'linear-gradient(135deg, #9333ea 0%, #6366f1 100%)',
+                      'linear-gradient(135deg, #1c1210 0%, #2a1a16 100%)',
                   }}
                 >
                   JB
@@ -278,11 +278,11 @@ export default function SettingsPage() {
                       style={{
                         backgroundColor:
                           feedbackIntensity === opt.key
-                            ? 'rgba(147, 51, 234, 0.15)'
+                            ? 'rgba(255, 89, 65, 0.12)'
                             : 'transparent',
                         color:
                           feedbackIntensity === opt.key
-                            ? '#a855f7'
+                            ? '#ff5941'
                             : 'var(--text-muted)',
                         borderRight: '1px solid var(--border-color)',
                       }}
@@ -354,12 +354,12 @@ export default function SettingsPage() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
                         style={{
                           backgroundColor: isSelected
-                            ? 'rgba(147, 51, 234, 0.15)'
+                            ? 'rgba(255, 89, 65, 0.12)'
                             : 'var(--bg-surface-hover)',
                           color: isSelected
-                            ? '#a855f7'
+                            ? '#ff5941'
                             : 'var(--text-secondary)',
-                          border: `1px solid ${isSelected ? 'rgba(147, 51, 234, 0.3)' : 'var(--border-color)'}`,
+                          border: `1px solid ${isSelected ? 'rgba(255, 89, 65, 0.25)' : 'var(--border-color)'}`,
                         }}
                       >
                         {isSelected && <Check size={10} strokeWidth={3} />}
@@ -485,11 +485,11 @@ export default function SettingsPage() {
                       style={{
                         backgroundColor:
                           theme === opt.key
-                            ? 'rgba(147, 51, 234, 0.15)'
+                            ? 'rgba(255, 89, 65, 0.12)'
                             : 'transparent',
                         color:
                           theme === opt.key
-                            ? '#a855f7'
+                            ? '#ff5941'
                             : 'var(--text-muted)',
                         borderRight: '1px solid var(--border-color)',
                       }}

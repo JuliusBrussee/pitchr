@@ -143,8 +143,8 @@ const RECOMMENDATION_GRADIENTS: Record<string, string> = {
   evidence: 'linear-gradient(135deg, #22c55e, #16a34a)',
   market: 'linear-gradient(135deg, #f97316, #ea580c)',
   delivery: 'linear-gradient(135deg, #ef4444, #dc2626)',
-  structure: 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-  clarity: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+  structure: 'linear-gradient(135deg, #ff5941, #e63b26)',
+  clarity: 'linear-gradient(135deg, #ffaa33, #f59e0b)',
 };
 
 const RECOMMENDATION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {

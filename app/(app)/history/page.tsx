@@ -204,8 +204,8 @@ export default function HistoryPage() {
                   pillColor = '#f97316';
                   pillBg = 'rgba(249,115,22,0.12)';
                 } else if (filter.value === 'vc_pitch') {
-                  pillColor = '#8b5cf6';
-                  pillBg = 'rgba(139,92,246,0.12)';
+                  pillColor = '#ff5941';
+                  pillBg = 'rgba(255,89,65,0.12)';
                 } else {
                   pillColor = 'var(--text-primary)';
                   pillBg = 'var(--bg-surface-hover)';

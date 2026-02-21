@@ -13,7 +13,7 @@ export function getScoreColor(score: number): string {
   const colors: Record<ScoreBand, string> = {
     'needs-work': '#ef4444',
     'getting-there': '#eab308',
-    'solid': '#3b82f6',
+    'solid': '#ffaa33',
     'investor-ready': '#22c55e',
   };
   return colors[band];
@@ -36,7 +36,7 @@ export function getScoreBandLabel(score: number): string {
 }
 
 export function getModeColor(mode: PitchMode): string {
-  return mode === 'elevator' ? '#f97316' : '#8b5cf6';
+  return mode === 'elevator' ? '#f97316' : '#ff5941';
 }
 
 export function getModeBgColor(mode: PitchMode): string {
@@ -49,8 +49,8 @@ export function getModeLabel(mode: PitchMode): string {
 }
 
 export const RUBRIC_COLORS: Record<string, string> = {
-  structure: '#8b5cf6',
-  clarity: '#3b82f6',
+  structure: '#ff5941',
+  clarity: '#ffaa33',
   evidence: '#22c55e',
   market: '#f97316',
   delivery: '#ef4444',

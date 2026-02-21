@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { OrbState } from '@/views/components/SiriBubble';
 
 export interface MetricValues {
@@ -37,7 +38,10 @@ export interface SessionState {
   insights: InsightEntry[];
   speechBubbles: SpeechBubble[];
   isSessionActive: boolean;
+  isPaused: boolean;
   startSession: () => void;
+  pauseSession: () => void;
+  resumeSession: () => void;
   stopSession: () => void;
 }
 

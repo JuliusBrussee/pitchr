@@ -11,7 +11,6 @@ import {
   Timer,
   ArrowRight,
   Lightbulb,
-  Sparkles,
 } from 'lucide-react';
 import {
   GlassCard,
@@ -24,36 +23,6 @@ import {
   getModeLabel,
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui/colors';
-
-/* ─── Breathing Pulse Animation (injected via useEffect) ─── */
-
-const BREATHE_STYLE_ID = 'pitchr-breathe-keyframes';
-
-const BREATHE_CSS = [
-  '@keyframes breathe {',
-  '  0%, 100% {',
-  '    box-shadow: 0 0 20px rgba(255,89,65,0.25), 0 0 40px rgba(255,170,51,0.1);',
-  '    transform: scale(1);',
-  '  }',
-  '  50% {',
-  '    box-shadow: 0 0 30px rgba(255,89,65,0.4), 0 0 60px rgba(255,170,51,0.15);',
-  '    transform: scale(1.015);',
-  '  }',
-  '}',
-].join('\n');
-
-function useBreathingAnimation() {
-  useEffect(() => {
-    if (document.getElementById(BREATHE_STYLE_ID)) return;
-    const style = document.createElement('style');
-    style.id = BREATHE_STYLE_ID;
-    style.textContent = BREATHE_CSS;
-    document.head.appendChild(style);
-    return () => {
-      style.remove();
-    };
-  }, []);
-}
 
 /* ─── Mock Data (PRD-aligned) ─── */
 
@@ -151,7 +120,7 @@ function Sparkline({
   data,
   width = 240,
   height = 80,
-  strokeColor = '#8b5cf6',
+  strokeColor = '#ff5941',
   gradientId = 'sparkGrad',
 }: {
   data: number[];
@@ -220,8 +189,6 @@ function Sparkline({
 /* ─── Page Component ─── */
 
 export default function DashboardPage() {
-  useBreathingAnimation();
-
   // Defer dynamic values to client to avoid hydration mismatch
   const [greeting, setGreeting] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
@@ -270,20 +237,18 @@ export default function DashboardPage() {
           style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
         >
           <Link href="/session" className="block no-underline">
-            <button
-              className="w-full rounded-2xl border-0 px-8 py-4 cursor-pointer
-                         flex items-center justify-center gap-3
-                         text-white font-semibold text-base
-                         transition-all duration-300"
-              style={{
-                background: '#1c1210',
-                animation: 'breathe 3s ease-in-out infinite',
-              }}
-            >
-              <Zap size={20} className="text-white" />
-              Run a Pitch
-              <Sparkles size={16} className="text-white/70" />
-            </button>
+            <div className="session-start-wrap" style={{ borderRadius: 16, padding: 2 }}>
+              <div className="session-start-glow" />
+              <button
+                className="session-start-btn w-full border-0 px-8 cursor-pointer
+                           flex items-center justify-center gap-3
+                           font-semibold text-base"
+                style={{ borderRadius: 14, padding: '16px 0' }}
+              >
+                <Zap size={20} />
+                Run a Pitch
+              </button>
+            </div>
           </Link>
         </div>
 

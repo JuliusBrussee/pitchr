@@ -147,7 +147,7 @@ function ChecklistRow({ item }: { item: ChecklistItem }) {
 function InsightCard({ insight }: { insight: InsightEntry }) {
   const colorMap = {
     positive: '#22c55e',
-    suggestion: '#3b82f6',
+    suggestion: '#ffaa33',
     neutral: 'var(--text-secondary)',
   };
 
