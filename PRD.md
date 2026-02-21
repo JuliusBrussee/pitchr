@@ -3,8 +3,20 @@
 > **One-sentence definition:** An AI pitch coach that listens to your pitch, scores it with an investor-grade rubric, and gives a prioritized fix-list—with history and progress tracking.
 
 **Version:** 1.0 — MVP
-**Last updated:** 2026-02-21
-**Branch:** `other-pages`
+**Last updated:** 2026-02-22
+**Branch:** `main` (current active development branch: `test/face-detection`)
+
+---
+
+## Status Snapshot (as of 2026-02-22)
+
+This PRD remains the target MVP spec, but implementation has diverged in a few areas. Current progress highlights:
+
+- UI redesign work landed for dashboard/history/analytics pages (still largely mock-data backed).
+- Session page includes a live coaching surface with Siri bubble and a background head-tracking engagement bubble.
+- Reusable head-tracking hook exists at `lib/headTracking/useHeadTracking.ts` with session integration.
+- Playwright-based local smoke coverage exists (`playwright.config.ts`, `tests/e2e/*`) for route/session/head-tracking checks.
+- Core PRD pipeline (run API, storage models, controller/service orchestration, LLM prompt pack) is still pending.
 
 ---
 
@@ -70,6 +82,9 @@
 | Score trend over time | Build |
 | Dashboard with CTA and recent runs | Build |
 
+Current implementation note:
+- UI shell for several Tier 0 screens exists, but the full run-analysis backend and real data wiring defined in this PRD are not yet complete.
+
 ### Tier 1 — Nice-to-Have (bolt on if time allows)
 
 | Feature | Status |
@@ -84,10 +99,13 @@
 | Feature | Why |
 |---------|-----|
 | Real-time live feedback overlay while speaking | Scope suicide for MVP |
-| Video-based body language scoring | Needs working vision pipeline |
+| Full video-based body language scoring | Needs robust vision + calibration pipeline beyond MVP scope |
 | YC pitch database ingestion | Fake credibility; use curated heuristics instead |
 | Interactive voice agent conversation | ElevenLabs TTS only, not interactive |
 | User authentication / multi-tenant | Not needed for hack demo |
+
+Clarification:
+- A lightweight head-orientation engagement indicator is currently implemented for the live session UX. This is not the full rubric-grade body-language scoring described above.
 
 ---
 
@@ -908,14 +926,16 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 | Asset | Status | Reuse Plan |
 |-------|--------|------------|
 | Dashboard page | Mock data, good layout | Wire to real data from `RunStore` |
-| Session page | Video/slides dual view | Refactor to mode → input → analyzing flow |
-| History page | Mock data, filters work | Wire to real storage, add delete |
+| Session page | Live coaching UI with Siri bubble + engagement bubble | PRD session flow (mode → input → analyzing) still needs dedicated implementation |
+| History page | Redesigned UI, currently mock-data backed | Wire to real storage, add delete |
 | Analytics page | Mock charts | Merge useful parts into History or keep as Tier 1 |
 | SiriBubble orb | Fully working with animations | Use as loading/analyzing state indicator |
 | MetricsPanel | Mock simulation | Wire to real `DeliveryMetrics` from analysis |
 | AppSidebar | Working navigation | Update nav items, keep theme toggle |
 | useMediaStream | Camera/mic access | Extend for audio-only recording mode |
-| useSessionState | Mock simulation loop | Replace with `usePitchRun` connected to real API |
+| useSessionState | Mock simulation loop | Replace with usePitchRun connected to real API |
+| Head tracking engine | Implemented in lib/headTracking/useHeadTracking.ts | Reuse only as optional engagement signal; keep rubric scoring pipeline separate |
+| E2E browser testing | Playwright smoke/head suites implemented | Extend for full golden-path (/session → /results → /history) once API pipeline exists |
 | Theme system | Dark/light working | Keep as-is |
 | Three.js setup | WebGL, shaders working | Keep as-is |
 
@@ -952,7 +972,7 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 
 ## 16. Implementation Phases
 
-### Phase 1 — Foundation (Models + Storage + API Shell)
+### Phase 1 — Foundation (Models + Storage + API Shell) [Status: Not started]
 
 **Goal:** Data flows end-to-end with mock analysis.
 
@@ -964,7 +984,7 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 6. Create `config/sampleResult.ts` cached demo result
 7. Verify: POST a pitch → GET result → GET history → DELETE
 
-### Phase 2 — LLM Pipeline (Real Scoring)
+### Phase 2 — LLM Pipeline (Real Scoring) [Status: Not started]
 
 **Goal:** Claude returns real analysis for any pitch.
 
@@ -976,7 +996,7 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 6. Add JSON schema validation + fallback to cached result
 7. Verify: POST real pitch text → get real scored analysis
 
-### Phase 3 — Frontend — Results + History
+### Phase 3 — Frontend — Results + History [Status: In progress, UI-first]
 
 **Goal:** Beautiful results page and working history.
 
@@ -988,7 +1008,7 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 6. Wire dashboard to real stats + recent runs
 7. Verify: Full golden path with real UI
 
-### Phase 4 — Frontend — Session Flow
+### Phase 4 — Frontend — Session Flow [Status: Partially in progress, different implementation path]
 
 **Goal:** Mode selection → input → analysis → results.
 
@@ -1000,7 +1020,7 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 6. Add `AnalysisLoading` state with SiriBubble orb
 7. Verify: Complete demo path works end-to-end
 
-### Phase 5 — Polish + Tier 1 (if time allows)
+### Phase 5 — Polish + Tier 1 (if time allows) [Status: Not started]
 
 **Goal:** Demo-ready polish and optional features.
 
@@ -1092,6 +1112,10 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 
 ### MVP is shippable when:
 
+Progress note:
+- Checklist below remains the acceptance gate for the PRD-defined MVP flow.
+- Current implementation has delivered UI and head-tracking groundwork, but most items below are still pending full completion.
+
 - [ ] User can select Elevator or VC Pitch mode
 - [ ] User can paste text and get analysis in <10 seconds
 - [ ] Score /100 is displayed with 5-category rubric breakdown
@@ -1115,3 +1139,4 @@ Keep one pre-computed `AnalysisResult` JSON in `config/sampleResult.ts` for demo
 ---
 
 *This PRD is the single source of truth for the Pitchr MVP. All implementation decisions should reference this document. When in doubt, ship less and ship it clean.*
+
