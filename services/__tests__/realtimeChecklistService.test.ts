@@ -71,6 +71,7 @@ describe('realtimeChecklistService', () => {
         'The market is a multi billion category and we are raising a seed round.',
       previousItems: previous,
       scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+      sessionStartedAtMs: nowMs - 5_000,
       nowMs,
     });
 
@@ -92,11 +93,55 @@ describe('realtimeChecklistService', () => {
         'This market is worth billions and we are raising now.',
       previousItems: createInitialChecklistState('elevator'),
       scheduler: { lastEvaluatedAtMs: nowMs - 1000, lastEvaluatedWordCount: 40 },
+      sessionStartedAtMs: nowMs - 2_000,
       nowMs,
       force: true,
     });
 
     expect(result).not.toBeNull();
     expect(result?.message.type).toBe('checklist_update');
+  });
+
+  it('marks missing required items as failed after the 30 second window', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    const result = await evaluateRealtimeChecklist({
+      mode: 'elevator',
+      transcript: 'We built a product and help teams automate workflows.',
+      previousItems: createInitialChecklistState('elevator'),
+      scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+      sessionStartedAtMs: nowMs - 31_000,
+      nowMs,
+    });
+
+    expect(result).not.toBeNull();
+    const problem = result?.items.find((item) => item.id === 'problem_statement');
+    expect(problem?.status).toBe('failed');
+    expect(problem?.evidence).toContain('Not covered within the first 30 seconds.');
+  });
+
+  it('allows failed items to recover to completed if they are later covered', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    const previous = createInitialChecklistState('elevator');
+    previous[0] = {
+      ...previous[0],
+      status: 'failed',
+      confidence: 0.9,
+      evidence: 'Not covered within the first 30 seconds.',
+    };
+
+    const result = await evaluateRealtimeChecklist({
+      mode: 'elevator',
+      transcript: 'My name is Alice and we are building better hiring software.',
+      previousItems: previous,
+      scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+      sessionStartedAtMs: nowMs - 40_000,
+      nowMs,
+    });
+
+    expect(result).not.toBeNull();
+    const intro = result?.items.find((item) => item.id === 'intro_hook');
+    expect(intro?.status).toBe('completed');
   });
 });

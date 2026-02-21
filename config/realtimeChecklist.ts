@@ -5,6 +5,8 @@ import type {
 } from '@/types/checklist';
 import type { PitchMode } from '@/types/pitch';
 
+const REQUIRED_ITEM_FAIL_AFTER_SECONDS = 30;
+
 export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
   {
     id: 'intro_hook',
@@ -13,6 +15,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'Open with who you are, what you do, and why this matters immediately.',
     order: 1,
     requiredModes: ['elevator', 'vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\bmy name is\\b',
       '\\bi am\\b',
@@ -35,6 +38,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'State the pain clearly and make the cost of the problem explicit.',
     order: 2,
     requiredModes: ['elevator', 'vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\bproblem\\b',
       '\\bpain\\b',
@@ -56,6 +60,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'Explain your product or approach and how it solves the problem.',
     order: 3,
     requiredModes: ['elevator', 'vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\bwe built\\b',
       '\\bwe created\\b',
@@ -77,6 +82,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'Quantify market size or opportunity to show venture-scale potential.',
     order: 4,
     requiredModes: ['elevator', 'vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\bmarket\\b',
       '\\btam\\b',
@@ -98,6 +104,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'Show how the company makes money with pricing or revenue mechanics.',
     order: 5,
     requiredModes: ['vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\bwe charge\\b',
       '\\bsubscription\\b',
@@ -119,6 +126,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'Provide concrete proof points like growth, revenue, users, or retention.',
     order: 6,
     requiredModes: ['vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\bgrowth\\b',
       '\\bgrowing\\b',
@@ -141,6 +149,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'Establish founder or team credibility and why this team can win.',
     order: 7,
     requiredModes: ['vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\bfounder\\b',
       '\\bco-founder\\b',
@@ -162,6 +171,7 @@ export const REALTIME_CHECKLIST_ITEMS: readonly ChecklistDefinition[] = [
       'Close with a clear ask: funding, customer action, or next-step CTA.',
     order: 8,
     requiredModes: ['elevator', 'vc_pitch'],
+    requiredFailAfterSeconds: REQUIRED_ITEM_FAIL_AFTER_SECONDS,
     cuePatterns: [
       '\\braising\\b',
       '\\bfunding\\b',

@@ -48,4 +48,27 @@ describe('MetricsPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'VC Pitch' }));
     expect(onModeChange).toHaveBeenCalledWith('vc_pitch');
   });
+
+  it('renders failed status label for failed checklist rows', () => {
+    const failedChecklist: RealtimeChecklistItemState[] = [
+      {
+        ...checklist[0],
+        status: 'failed',
+        evidence: 'Not covered within the first 30 seconds.',
+      },
+    ];
+
+    render(
+      <MetricsPanel
+        metrics={{ wpm: 120, fillerWords: 0, conciseness: 7, clarity: 7 }}
+        checklist={failedChecklist}
+        insights={[]}
+        isSessionActive
+        selectedMode="elevator"
+        onModeChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('failed')).toBeTruthy();
+  });
 });

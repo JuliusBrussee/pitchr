@@ -11,11 +11,13 @@ describe('buildRealtimeChecklistPrompt', () => {
     const prompt = buildRealtimeChecklistPrompt({
       mode: 'vc_pitch',
       transcript,
+      sessionElapsedSeconds: 12,
       checklist,
       previousItems,
     });
 
     expect(prompt).toContain('Pitch mode: vc_pitch');
+    expect(prompt).toContain('Session elapsed seconds: 12');
     expect(prompt).toContain('id: intro_hook');
     expect(prompt).toContain('id: ask');
     expect(prompt).toContain(transcript);

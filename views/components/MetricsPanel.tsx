@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Circle, Minus, Sparkles } from 'lucide-react';
+import { Check, Circle, Minus, Sparkles, X } from 'lucide-react';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
 import type { PitchMode } from '@/types/pitch';
 import type { InsightEntry, MetricValues } from '@/hooks/useSessionState';
@@ -255,8 +255,17 @@ function ChecklistRow({ item }: { item: RealtimeChecklistItemState }) {
   const iconMap = {
     completed: <Check size={14} className="text-green-500" />,
     partial: <Minus size={14} className="text-amber-500" />,
+    failed: <X size={14} className="text-red-500" />,
     uncovered: <Circle size={14} style={{ color: 'var(--text-muted)' }} />,
   };
+  const statusLabel =
+    item.status === 'completed'
+      ? 'completed'
+      : item.status === 'partial'
+        ? 'partial'
+        : item.status === 'failed'
+          ? 'failed'
+          : 'pending';
   return (
     <div className="rounded-lg border px-2.5 py-2" style={{ borderColor: 'var(--border-color)' }}>
       <div className="flex items-center gap-2.5">
@@ -266,22 +275,38 @@ function ChecklistRow({ item }: { item: RealtimeChecklistItemState }) {
         <span
           className="text-sm transition-colors duration-300"
           style={{
-            color: item.status === 'completed' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            color:
+              item.status === 'failed'
+                ? '#ef4444'
+                : item.status === 'completed'
+                  ? 'var(--text-primary)'
+                  : 'var(--text-secondary)',
             textDecoration: item.status === 'completed' ? 'line-through' : undefined,
-            opacity: item.status === 'uncovered' ? 0.7 : 1,
+            opacity: item.status === 'uncovered' || item.status === 'failed' ? 0.85 : 1,
           }}
         >
           {item.label}
         </span>
-        <span
-          className="ml-auto text-[10px] font-semibold rounded px-1.5 py-0.5"
-          style={{
-            color: 'var(--text-muted)',
-            backgroundColor: 'var(--border-color)',
-          }}
-        >
-          {Math.round(item.confidence * 100)}%
-        </span>
+        <div className="ml-auto flex items-center gap-1">
+          <span
+            className="text-[10px] uppercase font-semibold rounded px-1.5 py-0.5"
+            style={{
+              color: item.status === 'failed' ? '#ef4444' : 'var(--text-muted)',
+              backgroundColor: 'var(--border-color)',
+            }}
+          >
+            {statusLabel}
+          </span>
+          <span
+            className="text-[10px] font-semibold rounded px-1.5 py-0.5"
+            style={{
+              color: 'var(--text-muted)',
+              backgroundColor: 'var(--border-color)',
+            }}
+          >
+            {Math.round(item.confidence * 100)}%
+          </span>
+        </div>
       </div>
       {item.evidence ? (
         <p className="text-[11px] mt-1.5 ml-7" style={{ color: 'var(--text-muted)' }}>

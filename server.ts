@@ -83,6 +83,7 @@ wss.on("connection", (clientWs) => {
   let sessionStarted = false;
   const audioQueue: string[] = [];
   let transcript = "";
+  let livePartialTranscript = "";
   const segments: { text: string; start: number; end: number }[] = [];
   let stopRequested = false;
   let saveDone = false;
@@ -110,6 +111,15 @@ wss.on("connection", (clientWs) => {
     );
   }
 
+  function getChecklistTranscript(): string {
+    const committed = transcript.trim();
+    const partial = livePartialTranscript.trim();
+    if (!partial) return committed;
+    if (!committed) return partial;
+    if (committed.endsWith(partial)) return committed;
+    return `${committed} ${partial}`.trim();
+  }
+
   function queueChecklistEvaluation(force = false): void {
     if (checklistInFlight) {
       checklistPending = true;
@@ -122,9 +132,10 @@ wss.on("connection", (clientWs) => {
       try {
         const result = await evaluateRealtimeChecklist({
           mode: checklistSession.mode,
-          transcript,
+          transcript: getChecklistTranscript(),
           previousItems: checklistSession.items,
           scheduler: checklistSession.scheduler,
+          sessionStartedAtMs: checklistSession.startedAtMs,
           force,
         });
 
@@ -198,10 +209,11 @@ wss.on("connection", (clientWs) => {
       fallbackTimeout = null;
     }
     // #region agent log
-    const half = Math.floor(transcript.length / 2);
-    const firstHalf = transcript.slice(0, half);
-    const secondHalf = transcript.slice(half);
-    fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:flushAndSave", message: "before write", data: { transcriptLen: transcript.length, segmentsCount: segments.length, segmentTexts: segments.map((s) => s.text.length), firstHalfEqSecond: firstHalf === secondHalf, transcriptStart: transcript.slice(0, 100) }, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
+    const finalTranscript = getChecklistTranscript();
+    const half = Math.floor(finalTranscript.length / 2);
+    const firstHalf = finalTranscript.slice(0, half);
+    const secondHalf = finalTranscript.slice(half);
+    fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:flushAndSave", message: "before write", data: { transcriptLen: finalTranscript.length, segmentsCount: segments.length, segmentTexts: segments.map((s) => s.text.length), firstHalfEqSecond: firstHalf === secondHalf, transcriptStart: finalTranscript.slice(0, 100) }, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
     // #endregion
     const baseDir = path.join(process.cwd(), "transcript");
     const txtDir = path.join(baseDir, "txt");
@@ -219,8 +231,8 @@ wss.on("connection", (clientWs) => {
     const jsonPath = path.join(jsonDir, `transcript_${ts}.json`);
     const jsonSegments = segmentsByPhrase(segments);
     try {
-      fs.writeFileSync(txtPath, transcript, "utf8");
-      fs.writeFileSync(jsonPath, JSON.stringify({ transcript, segments: jsonSegments }, null, 2), "utf8");
+      fs.writeFileSync(txtPath, finalTranscript, "utf8");
+      fs.writeFileSync(jsonPath, JSON.stringify({ transcript: finalTranscript, segments: jsonSegments }, null, 2), "utf8");
       forwardToClient({ type: "saved", transcriptPath: txtPath, jsonPath });
       if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
     } catch (e) {
@@ -251,11 +263,21 @@ wss.on("connection", (clientWs) => {
       return;
     }
     forwardToClient(msg);
+    if (msg.message_type === "partial_transcript") {
+      const nextPartial = msg.text?.trim() ?? "";
+      if (nextPartial !== livePartialTranscript) {
+        livePartialTranscript = nextPartial;
+        queueChecklistEvaluation(false);
+      }
+      return;
+    }
+
     const isCommitted =
       msg.message_type === "committed_transcript_with_timestamps" ||
       msg.message_type === "committed_transcript";
 
     if (isCommitted && msg.text) {
+      livePartialTranscript = "";
       const lastText = segments.length > 0 ? segments[segments.length - 1].text : null;
       const words = msg.words ?? [];
       const lastEnd = segments.length > 0 ? segments[segments.length - 1].end : 0;
@@ -323,7 +345,8 @@ wss.on("connection", (clientWs) => {
         forwardToClient({ type: "checklist_error", error: "Invalid pitch mode." });
         return;
       }
-      checklistSession = createRealtimeChecklistSessionState(msg.mode);
+      checklistSession = createRealtimeChecklistSessionState(msg.mode, Date.now());
+      livePartialTranscript = "";
       sendChecklistSnapshot("heuristic");
       return;
     }

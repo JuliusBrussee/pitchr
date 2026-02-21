@@ -4,17 +4,23 @@ import type { PitchMode } from '@/types/pitch';
 export interface BuildRealtimeChecklistPromptInput {
   mode: PitchMode;
   transcript: string;
+  sessionElapsedSeconds: number;
   checklist: ChecklistDefinition[];
   previousItems: RealtimeChecklistItemState[];
 }
 
-function formatChecklistItem(item: ChecklistDefinition): string {
+function formatChecklistItem(item: ChecklistDefinition, mode: PitchMode): string {
   const cues = item.cuePatterns.join(', ');
   const hints = item.semanticHints.join(', ');
+  const requiredInMode = item.requiredModes.includes(mode);
   return [
     `- id: ${item.id}`,
     `  label: ${item.label}`,
     `  description: ${item.description}`,
+    `  required_in_mode: ${requiredInMode ? 'yes' : 'no'}`,
+    `  required_fail_after_seconds: ${
+      item.requiredFailAfterSeconds == null ? 'none' : item.requiredFailAfterSeconds
+    }`,
     `  cue_patterns: ${cues}`,
     `  semantic_hints: ${hints}`,
   ].join('\n');
@@ -33,7 +39,7 @@ export const REALTIME_CHECKLIST_RESPONSE_SCHEMA = `{
   "items": [
     {
       "id": "intro_hook|problem_statement|solution_overview|market_opportunity|business_model|traction_metrics|team|ask",
-      "status": "uncovered|partial|completed",
+      "status": "uncovered|partial|completed|failed",
       "confidence": number,
       "evidence": string
     }
@@ -44,6 +50,7 @@ export const REALTIME_CHECKLIST_RESPONSE_SCHEMA = `{
 export function buildRealtimeChecklistPrompt({
   mode,
   transcript,
+  sessionElapsedSeconds,
   checklist,
   previousItems,
 }: BuildRealtimeChecklistPromptInput): string {
@@ -51,9 +58,10 @@ export function buildRealtimeChecklistPrompt({
 Return JSON only. No markdown. No explanations.
 
 Pitch mode: ${mode}
+Session elapsed seconds: ${sessionElapsedSeconds}
 
 Checklist definition:
-${checklist.map(formatChecklistItem).join('\n')}
+${checklist.map((item) => formatChecklistItem(item, mode)).join('\n')}
 
 Previous checklist state (monotonic target):
 ${formatPreviousItems(previousItems)}
@@ -62,6 +70,7 @@ Rules:
 - Evaluate semantic coverage, not exact wording only.
 - If an item is implied but weakly supported, use "partial".
 - Use "completed" only when the transcript clearly covers the item.
+- Use "failed" only if an item is required in this mode, has not been completed, and elapsed seconds meet/exceed required_fail_after_seconds.
 - confidence must be between 0 and 1.
 - evidence must be a short quote or paraphrase from transcript.
 - Return all checklist ids exactly once.

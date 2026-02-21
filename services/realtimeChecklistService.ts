@@ -19,14 +19,14 @@ const OPENROUTER_SYSTEM_PROMPT =
 
 const MIN_EVALUATION_INTERVAL_MS = 6000;
 const FORCE_EVALUATION_INTERVAL_MS = 10000;
-const MIN_WORD_DELTA = 16;
-const MIN_TRANSCRIPT_WORDS = 18;
+const MIN_WORD_DELTA = 6;
+const MIN_TRANSCRIPT_WORDS = 6;
 const TAIL_WORD_LIMIT = 750;
+const REQUIRED_ITEM_FAIL_AFTER_SECONDS_DEFAULT = 30;
 
-const STATUS_ORDER: Record<ChecklistStatus, number> = {
+const NON_COMPLETED_STATUS_ORDER: Record<'uncovered' | 'partial', number> = {
   uncovered: 0,
   partial: 1,
-  completed: 2,
 };
 
 const CHECKLIST_IDS = new Set<ChecklistItemId>([
@@ -75,6 +75,7 @@ export interface RealtimeChecklistSchedulerState {
 
 export interface RealtimeChecklistSessionState {
   mode: PitchMode;
+  startedAtMs: number;
   items: RealtimeChecklistItemState[];
   scheduler: RealtimeChecklistSchedulerState;
 }
@@ -91,6 +92,7 @@ export interface EvaluateRealtimeChecklistInput {
   transcript: string;
   previousItems: RealtimeChecklistItemState[];
   scheduler: RealtimeChecklistSchedulerState;
+  sessionStartedAtMs: number;
   nowMs?: number;
   force?: boolean;
 }
@@ -134,7 +136,12 @@ function parseJsonPayload(raw: string): RawChecklistPayload {
 }
 
 function isChecklistStatus(value: string): value is ChecklistStatus {
-  return value === 'uncovered' || value === 'partial' || value === 'completed';
+  return (
+    value === 'uncovered' ||
+    value === 'partial' ||
+    value === 'completed' ||
+    value === 'failed'
+  );
 }
 
 function clampConfidence(value: number): number {
@@ -160,10 +167,6 @@ function normalizeRawItems(payload: RawChecklistPayload): Map<ChecklistItemId, N
   return map;
 }
 
-function getHigherStatus(a: ChecklistStatus, b: ChecklistStatus): ChecklistStatus {
-  return STATUS_ORDER[a] >= STATUS_ORDER[b] ? a : b;
-}
-
 function normalizeEvidence(evidence: string): string {
   return evidence.replace(/\s+/g, ' ').trim().slice(0, 180);
 }
@@ -182,9 +185,13 @@ function pickNextHint(items: RealtimeChecklistItemState[]): string | null {
   return `Cover "${pending.label}" with one concrete sentence.`;
 }
 
-export function createRealtimeChecklistSessionState(mode: PitchMode): RealtimeChecklistSessionState {
+export function createRealtimeChecklistSessionState(
+  mode: PitchMode,
+  startedAtMs: number = Date.now(),
+): RealtimeChecklistSessionState {
   return {
     mode,
+    startedAtMs,
     items: createInitialChecklistState(mode),
     scheduler: {
       lastEvaluatedAtMs: 0,
@@ -238,6 +245,7 @@ function evaluateHeuristicChecklist(
   transcript: string,
   checklist: ChecklistDefinition[],
 ): Map<ChecklistItemId, NormalizedChecklistItem> {
+  const normalizedTranscript = transcript.toLowerCase();
   const map = new Map<ChecklistItemId, NormalizedChecklistItem>();
   for (const item of checklist) {
     let hitCount = 0;
@@ -247,10 +255,20 @@ function evaluateHeuristicChecklist(
       hitCount += matches?.length ?? 0;
     }
 
+    const semanticHitCount = item.semanticHints.reduce((count, hint) => {
+      const tokens = hint.toLowerCase().split(/\s+/).filter(Boolean);
+      if (tokens.length === 0) return count;
+      const matchedTokens = tokens.filter((token) =>
+        normalizedTranscript.includes(token),
+      ).length;
+      return count + (matchedTokens >= Math.ceil(tokens.length / 2) ? 1 : 0);
+    }, 0);
+
     const evidence = findHeuristicEvidence(transcript, item.cuePatterns);
     const status: ChecklistStatus =
-      hitCount >= 2 ? 'completed' : hitCount >= 1 ? 'partial' : 'uncovered';
-    const confidence = hitCount >= 2 ? 0.62 : hitCount >= 1 ? 0.46 : 0.18;
+      hitCount >= 1 ? 'completed' : semanticHitCount >= 1 ? 'partial' : 'uncovered';
+    const confidence =
+      status === 'completed' ? 0.62 : status === 'partial' ? 0.42 : 0.16;
 
     map.set(item.id, {
       id: item.id,
@@ -330,16 +348,65 @@ async function completeWithOpenRouter(userPrompt: string): Promise<string> {
   throw new Error('OpenRouter realtime checklist request failed.');
 }
 
+function getHigherNonCompletedStatus(
+  a: ChecklistStatus,
+  b: ChecklistStatus,
+): 'uncovered' | 'partial' {
+  const first = a === 'partial' ? 'partial' : 'uncovered';
+  const second = b === 'partial' ? 'partial' : 'uncovered';
+  return NON_COMPLETED_STATUS_ORDER[first] >= NON_COMPLETED_STATUS_ORDER[second]
+    ? first
+    : second;
+}
+
+function mergeChecklistStatus({
+  previousStatus,
+  candidateStatus,
+  required,
+  timedOut,
+}: {
+  previousStatus: ChecklistStatus;
+  candidateStatus: ChecklistStatus;
+  required: boolean;
+  timedOut: boolean;
+}): ChecklistStatus {
+  if (previousStatus === 'completed' || candidateStatus === 'completed') {
+    return 'completed';
+  }
+
+  const candidateFailed = candidateStatus === 'failed' && required && timedOut;
+  if (previousStatus === 'failed' || candidateFailed) {
+    return 'failed';
+  }
+
+  const baseStatus = getHigherNonCompletedStatus(previousStatus, candidateStatus);
+  if (required && timedOut) return 'failed';
+  return baseStatus;
+}
+
+function getRequiredFailAfterSeconds(definition: ChecklistDefinition): number {
+  if (typeof definition.requiredFailAfterSeconds === 'number') {
+    return definition.requiredFailAfterSeconds;
+  }
+  return REQUIRED_ITEM_FAIL_AFTER_SECONDS_DEFAULT;
+}
+
+function makeFailedEvidence(failAfterSeconds: number): string {
+  return `Not covered within the first ${Math.round(failAfterSeconds)} seconds.`;
+}
+
 function mergeChecklistStates({
   mode,
   previousItems,
   candidateItems,
   evaluatedAtIso,
+  sessionElapsedSeconds,
 }: {
   mode: PitchMode;
   previousItems: RealtimeChecklistItemState[];
   candidateItems: Map<ChecklistItemId, NormalizedChecklistItem>;
   evaluatedAtIso: string;
+  sessionElapsedSeconds: number;
 }): RealtimeChecklistItemState[] {
   const previousMap = new Map(previousItems.map((item) => [item.id, item]));
   const checklist = getChecklistDefinitions(mode);
@@ -355,17 +422,30 @@ function mergeChecklistStates({
 
     const previousStatus = fallbackPrevious?.status ?? 'uncovered';
     const candidateStatus = candidate?.status ?? 'uncovered';
-    const status = getHigherStatus(previousStatus, candidateStatus);
+    const required = definition.requiredModes.includes(mode);
+    const failAfterSeconds = getRequiredFailAfterSeconds(definition);
+    const timedOut = required && sessionElapsedSeconds >= failAfterSeconds;
+    const status = mergeChecklistStatus({
+      previousStatus,
+      candidateStatus,
+      required,
+      timedOut,
+    });
 
-    const confidence = clampConfidence(
+    const rawConfidence = clampConfidence(
       status === previousStatus
         ? Math.max(fallbackPrevious?.confidence ?? 0, candidate?.confidence ?? 0)
         : candidate?.confidence ?? fallbackPrevious?.confidence ?? 0,
     );
+    const confidence = status === 'failed' ? Math.max(rawConfidence, 0.9) : rawConfidence;
 
-    const evidence = normalizeEvidence(
+    const mergedEvidence = normalizeEvidence(
       candidate?.evidence || fallbackPrevious?.evidence || '',
     );
+    const evidence =
+      status === 'failed'
+        ? mergedEvidence || makeFailedEvidence(failAfterSeconds)
+        : mergedEvidence;
 
     const changed =
       status !== (fallbackPrevious?.status ?? 'uncovered') ||
@@ -377,7 +457,7 @@ function mergeChecklistStates({
       status,
       confidence,
       evidence,
-      required: definition.requiredModes.includes(mode),
+      required,
       lastUpdatedAt: changed ? evaluatedAtIso : fallbackPrevious?.lastUpdatedAt ?? evaluatedAtIso,
     };
   });
@@ -408,16 +488,19 @@ export function buildChecklistUpdateMessage({
 async function evaluateWithOpenRouter({
   mode,
   transcript,
+  sessionElapsedSeconds,
   previousItems,
 }: {
   mode: PitchMode;
   transcript: string;
+  sessionElapsedSeconds: number;
   previousItems: RealtimeChecklistItemState[];
 }): Promise<{ items: Map<ChecklistItemId, NormalizedChecklistItem>; nextHint: string | null }> {
   const checklist = getChecklistDefinitions(mode);
   const userPrompt = buildRealtimeChecklistPrompt({
     mode,
     transcript: takeTailWords(transcript),
+    sessionElapsedSeconds,
     checklist,
     previousItems,
   });
@@ -445,6 +528,10 @@ export async function evaluateRealtimeChecklist(
   if (!shouldEvaluate) return null;
 
   const evaluatedAtIso = new Date(nowMs).toISOString();
+  const sessionElapsedSeconds = Math.max(
+    0,
+    (nowMs - input.sessionStartedAtMs) / 1000,
+  );
   const wordCount = countWords(input.transcript);
   let source: ChecklistUpdateSource = 'openrouter';
   let candidateItems: Map<ChecklistItemId, NormalizedChecklistItem>;
@@ -454,6 +541,7 @@ export async function evaluateRealtimeChecklist(
     const llm = await evaluateWithOpenRouter({
       mode: input.mode,
       transcript: input.transcript,
+      sessionElapsedSeconds,
       previousItems: input.previousItems,
     });
     candidateItems = llm.items;
@@ -471,6 +559,7 @@ export async function evaluateRealtimeChecklist(
     previousItems: input.previousItems,
     candidateItems,
     evaluatedAtIso,
+    sessionElapsedSeconds,
   });
 
   const message = buildChecklistUpdateMessage({

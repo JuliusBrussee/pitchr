@@ -10,7 +10,7 @@ export type ChecklistItemId =
   | 'team'
   | 'ask';
 
-export type ChecklistStatus = 'uncovered' | 'partial' | 'completed';
+export type ChecklistStatus = 'uncovered' | 'partial' | 'completed' | 'failed';
 
 export type ChecklistUpdateSource = 'openrouter' | 'heuristic';
 
@@ -20,6 +20,7 @@ export interface ChecklistDefinition {
   description: string;
   order: number;
   requiredModes: PitchMode[];
+  requiredFailAfterSeconds?: number;
   cuePatterns: string[];
   semanticHints: string[];
 }
