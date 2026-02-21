@@ -8,4 +8,6 @@ export { TimeRangeSelector } from './TimeRangeSelector';
 export type { TimeRange } from './TimeRangeSelector';
 export { CategoryBar } from './CategoryBar';
 export { EmptyState } from './EmptyState';
+export { InsightCard } from './InsightCard';
+export { RecommendationCard } from './RecommendationCard';
 export * from './colors';

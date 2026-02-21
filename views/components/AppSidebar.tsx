@@ -22,14 +22,14 @@ interface AppSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', mock: true },
-  { id: 'session', label: 'Live Session', icon: Radio, href: '/session', mock: false },
-  { id: 'history', label: 'History', icon: Clock, href: '/history', mock: true },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics', mock: true },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { id: 'session', label: 'Live Session', icon: Radio, href: '/session' },
+  { id: 'history', label: 'History', icon: Clock, href: '/history' },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
 ];
 
 const TOOL_ITEMS = [
-  { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck', mock: true },
+  { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck' },
 ];
 
 export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
@@ -79,18 +79,6 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
             >
               <Icon size={18} />
               <span className="flex-1">{item.label}</span>
-              {item.mock && (
-                <span
-                  className="text-[8px] font-medium uppercase tracking-wider px-1 py-0.5 rounded"
-                  style={{
-                    color: 'var(--text-muted)',
-                    backgroundColor: 'var(--border-color)',
-                    lineHeight: 1,
-                  }}
-                >
-                  mock
-                </span>
-              )}
             </Link>
           );
         })}
@@ -119,18 +107,6 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
             >
               <Icon size={18} />
               <span className="flex-1">{item.label}</span>
-              {item.mock && (
-                <span
-                  className="text-[8px] font-medium uppercase tracking-wider px-1 py-0.5 rounded"
-                  style={{
-                    color: 'var(--text-muted)',
-                    backgroundColor: 'var(--border-color)',
-                    lineHeight: 1,
-                  }}
-                >
-                  mock
-                </span>
-              )}
             </Link>
           );
         })}
