@@ -126,6 +126,7 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
 
         const renderTask = page.render({
           canvasContext: ctx,
+          canvas,
           viewport: scaledViewport,
         });
         activeRenderRef.current = renderTask;
