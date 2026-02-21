@@ -12,6 +12,7 @@ import { useRecorder } from '@/hooks/useRecorder';
 import { uploadRecording } from '@/services/recordingService';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
+import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import type { DeckRecord } from '@/services/deckService';
@@ -173,8 +174,10 @@ function SessionPageContent() {
   const handleStopSession = useCallback(() => {
     session.stopSession();
     stt.stop();
-    recorder.stopRecording(); // fire-and-forget stop; blob captured in auto-submit
-  }, [session, stt, recorder]);
+    // Do NOT stop the recorder here — the auto-submit effect handles stopping
+    // and capturing the blob for upload. Stopping here causes a race condition
+    // where the blob is lost before the effect can retrieve it.
+  }, [session, stt]);
 
   const handleSessionToggle = useCallback(() => {
     if (session.isSessionActive) {
@@ -303,6 +306,7 @@ function SessionPageContent() {
         className="sr-only"
         aria-hidden="true"
       />
+      <AnalyzingOverlay isVisible={isAnalyzing} />
     </>
   );
 }
