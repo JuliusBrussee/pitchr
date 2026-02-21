@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   User,
   Camera,
@@ -164,10 +164,39 @@ export default function SettingsPage() {
   const [theme, setTheme] = useState<ThemeChoice>('system');
   const [compactMode, setCompactMode] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((data) => {
+        setFeedbackIntensity(data.feedback_intensity);
+        setRealtimeCoaching(data.realtime_coaching);
+        setPostSessionReport(data.post_session_report);
+        setSelectedFocusAreas(data.focus_areas);
+        setAutoRecord(data.auto_record);
+        const mins = Math.floor(data.timer_seconds / 60);
+        const secs = data.timer_seconds % 60;
+        setTimerMinutes(mins);
+        setTimerSeconds(secs);
+        setTheme(data.theme);
+        setCompactMode(data.compact_mode);
+      })
+      .catch(() => {});
+  }, []);
+
+  function persistSetting(updates: Record<string, unknown>) {
+    fetch('/api/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    }).catch(() => {});
+  }
+
   const toggleFocusArea = (id: string) => {
-    setSelectedFocusAreas((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id],
-    );
+    setSelectedFocusAreas((prev) => {
+      const next = prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id];
+      persistSetting({ focus_areas: next });
+      return next;
+    });
   };
 
   const adjustTimer = (delta: number) => {
@@ -175,6 +204,7 @@ export default function SettingsPage() {
     if (totalSeconds < 60 || totalSeconds > 30 * 60) return;
     setTimerMinutes(Math.floor(totalSeconds / 60));
     setTimerSeconds(totalSeconds % 60);
+    persistSetting({ timer_seconds: totalSeconds });
   };
 
   const formattedTimer = `${timerMinutes}:${String(timerSeconds).padStart(2, '0')}`;
@@ -273,7 +303,7 @@ export default function SettingsPage() {
                   {intensityOptions.map((opt) => (
                     <button
                       key={opt.key}
-                      onClick={() => setFeedbackIntensity(opt.key)}
+                      onClick={() => { setFeedbackIntensity(opt.key); persistSetting({ feedback_intensity: opt.key }); }}
                       className="px-3 py-1.5 text-xs font-medium transition-all duration-200"
                       style={{
                         backgroundColor:
@@ -305,7 +335,7 @@ export default function SettingsPage() {
               >
                 <ToggleSwitch
                   enabled={realtimeCoaching}
-                  onToggle={() => setRealtimeCoaching((p) => !p)}
+                  onToggle={() => setRealtimeCoaching((p) => { persistSetting({ realtime_coaching: !p }); return !p; })}
                 />
               </SettingRow>
 
@@ -321,7 +351,7 @@ export default function SettingsPage() {
               >
                 <ToggleSwitch
                   enabled={postSessionReport}
-                  onToggle={() => setPostSessionReport((p) => !p)}
+                  onToggle={() => setPostSessionReport((p) => { persistSetting({ post_session_report: !p }); return !p; })}
                 />
               </SettingRow>
 
@@ -422,7 +452,7 @@ export default function SettingsPage() {
               >
                 <ToggleSwitch
                   enabled={autoRecord}
-                  onToggle={() => setAutoRecord((p) => !p)}
+                  onToggle={() => setAutoRecord((p) => { persistSetting({ auto_record: !p }); return !p; })}
                 />
               </SettingRow>
 
@@ -480,7 +510,7 @@ export default function SettingsPage() {
                   {themeOptions.map((opt) => (
                     <button
                       key={opt.key}
-                      onClick={() => setTheme(opt.key)}
+                      onClick={() => { setTheme(opt.key); persistSetting({ theme: opt.key }); }}
                       className="px-3 py-1.5 text-xs font-medium transition-all duration-200"
                       style={{
                         backgroundColor:
@@ -512,7 +542,7 @@ export default function SettingsPage() {
               >
                 <ToggleSwitch
                   enabled={compactMode}
-                  onToggle={() => setCompactMode((p) => !p)}
+                  onToggle={() => setCompactMode((p) => { persistSetting({ compact_mode: !p }); return !p; })}
                 />
               </SettingRow>
             </SectionCard>
@@ -553,6 +583,12 @@ export default function SettingsPage() {
 
               <div className="flex items-center gap-3">
                 <button
+                  onClick={async () => {
+                    if (!confirm('Delete all pitch runs? This cannot be undone.')) return;
+                    const runs = await fetch('/api/pitch/run').then((r) => r.json());
+                    await Promise.all(runs.map((r: { id: string }) => fetch(`/api/pitch/run/${r.id}`, { method: 'DELETE' })));
+                    alert('All data deleted.');
+                  }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
                   style={{
                     color: '#ef4444',
