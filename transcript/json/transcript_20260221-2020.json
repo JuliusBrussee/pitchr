@@ -1,0 +1,80 @@
+{
+  "transcript": "This is a test. I am testing if this works. I hope this works. Oh my goodness, it actually works. Yes. 11 loves. Yeah, 11 loves works, bro. It was just a routing issue. I hate to say it. It was just a routing issue. You're the one who added all the Turkish. How did I add Turkish? Literally, the comments are in Turkish. Oh shit. I think the UI or the text encoding corruption is coming from your laptop. The text encoding? The reason that we're getting Turkish",
+  "segments": [
+    {
+      "text": "This is a test.",
+      "start": 0,
+      "end": 0.8362416107382551
+    },
+    {
+      "text": "I am testing if this works.",
+      "start": 0.8362416107382551,
+      "end": 2.3414765100671144
+    },
+    {
+      "text": "I hope this works.",
+      "start": 2.3414765100671144,
+      "end": 3.3449664429530204
+    },
+    {
+      "text": "Oh my goodness, it actually works.",
+      "start": 3.3449664429530204,
+      "end": 5.2404474272930655
+    },
+    {
+      "text": "Yes.",
+      "start": 5.2404474272930655,
+      "end": 5.4634451901566
+    },
+    {
+      "text": "11 loves.",
+      "start": 5.4634451901566,
+      "end": 5.965190156599553
+    },
+    {
+      "text": "Yeah, 11 loves works, bro.",
+      "start": 5.965190156599553,
+      "end": 7.414675615212528
+    },
+    {
+      "text": "It was just a routing issue.",
+      "start": 7.414675615212528,
+      "end": 8.975659955257271
+    },
+    {
+      "text": "I hate to say it.",
+      "start": 8.975659955257271,
+      "end": 9.923400447427293
+    },
+    {
+      "text": "It was just a routing issue.",
+      "start": 9.923400447427293,
+      "end": 11.484384787472035
+    },
+    {
+      "text": "You're the one who added all the Turkish.",
+      "start": 11.484384787472035,
+      "end": 13.770111856823265
+    },
+    {
+      "text": "How did I add Turkish? Literally, the comments are in Turkish.",
+      "start": 13.770111856823265,
+      "end": 17.226577181208054
+    },
+    {
+      "text": "Oh shit.",
+      "start": 17.226577181208054,
+      "end": 17.672572706935124
+    },
+    {
+      "text": "I think the UI or the text encoding corruption is coming from your laptop.",
+      "start": 17.672572706935124,
+      "end": 21.798031319910514
+    },
+    {
+      "text": "The text encoding? The reason that we're getting Turkish",
+      "start": 21.798031319910514,
+      "end": 24.92
+    }
+  ]
+}
