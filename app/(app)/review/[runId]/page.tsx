@@ -4,7 +4,6 @@ import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, ChevronUp, Flag } from 'lucide-react';
-import { getRun } from '@/models/run';
 import {
   formatReviewBulletLine,
   formatReviewBullets,
@@ -36,8 +35,29 @@ export default function ReviewPage() {
       setCheckedStorage(true);
       return;
     }
-    setRun(getRun(runId));
-    setCheckedStorage(true);
+    fetch(`/api/pitch/run/${runId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && !data.error) {
+          setRun({
+            id: data.id,
+            createdAt: data.created_at,
+            mode: data.mode,
+            inputType: data.input_type,
+            transcript: data.transcript,
+            audioUrl: data.audio_url ?? undefined,
+            analysis: data.analysis,
+            overallScore: data.overall_score,
+          });
+        } else {
+          setRun(null);
+        }
+        setCheckedStorage(true);
+      })
+      .catch(() => {
+        setRun(null);
+        setCheckedStorage(true);
+      });
   }, [runId]);
 
   const bullets = useMemo(
