@@ -247,3 +247,80 @@
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
+/* ——— Generate Deck Modal ——— */
+
+.generate-input-focus:focus {
+  border-color: rgba(255, 89, 65, 0.4) !important;
+  box-shadow: 0 0 0 3px rgba(255, 89, 65, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.generate-input-focus::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.generate-icon-glow {
+  animation: generate-glow 3s ease-in-out infinite;
+}
+
+@keyframes generate-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(255, 89, 65, 0.08); }
+  50% { box-shadow: 0 0 20px rgba(255, 89, 65, 0.18); }
+}
+
+.generate-btn-hover:not(:disabled):hover {
+  transform: translateY(-1px) scale(1.005);
+  box-shadow: 0 8px 32px rgba(255, 89, 65, 0.45), 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+.generate-btn-hover:not(:disabled):hover .generate-btn-shine {
+  animation: generate-shine 0.7s ease-out;
+}
+
+.generate-btn-hover:not(:disabled):active {
+  transform: translateY(0) scale(0.99);
+  transition-duration: 0.1s;
+}
+
+@keyframes generate-shine {
+  to { transform: translateX(200%) skewX(-18deg); }
+}
+
+.generate-orb-pulse {
+  animation: generate-orb 2s ease-in-out infinite;
+}
+
+@keyframes generate-orb {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 60px rgba(255, 89, 65, 0.3), 0 0 120px rgba(255, 170, 51, 0.15);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 80px rgba(255, 89, 65, 0.45), 0 0 160px rgba(255, 170, 51, 0.25);
+  }
+}
+
+.generate-icon-spin {
+  animation: generate-spin 4s linear infinite;
+}
+
+@keyframes generate-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.generate-overlay-enter {
+  animation: generate-overlay-in 0.3s ease-out;
+}
+
+@keyframes generate-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 0.98; }
+}
+
+.generate-scroll-fade {
+  mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+}

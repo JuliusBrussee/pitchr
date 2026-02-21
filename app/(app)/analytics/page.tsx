@@ -6,23 +6,18 @@ import {
   TrendingUp,
   Clock,
   ArrowUpRight,
-  CheckCircle,
-  AlertTriangle,
-  Target,
-  Lightbulb,
-  Sparkles,
+  Activity,
+  MessageSquare,
 } from 'lucide-react';
 import {
   GlassCard,
   StatCard,
-  CategoryBar,
-  TagPill,
   SectionHeader,
   TimeRangeSelector,
-  getRubricColor,
+  EmptyState,
 } from '@/views/components/ui';
 import type { TimeRange } from '@/views/components/ui';
-import { getScoreColor } from '@/views/components/ui';
+import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
 
 /* ——— Types ——— */
 
@@ -32,17 +27,17 @@ interface RunRecord {
   created_at: string;
   analysis: {
     rubric_breakdown: { category: string; score: number; max_score: number }[];
-    delivery_metrics: { wpm: number; duration_seconds: number; filler_words: { count: number }[] };
+    delivery_metrics: {
+      wpm: number;
+      duration_seconds: number;
+      filler_words: { word: string; count: number }[];
+      repeated_phrases: string[];
+      within_time_limit: boolean;
+    };
   };
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  structure: 'Structure',
-  clarity: 'Clarity & Concision',
-  evidence: 'Evidence & Traction',
-  market: 'Market & Differentiation',
-  delivery: 'Delivery',
-};
+/* ——— Helpers ——— */
 
 function getDaysAgo(days: number): Date {
   const d = new Date();
@@ -68,84 +63,110 @@ function computeTrend(runs: RunRecord[]): { label: string; value: number }[] {
     }));
 }
 
-function computeRubricAverages(runs: RunRecord[]) {
-  const categories = ['structure', 'clarity', 'evidence', 'market', 'delivery'];
-  if (runs.length === 0) {
-    return categories.map((id) => ({ id, label: CATEGORY_LABELS[id], score: 0, maxScore: 20 }));
+function formatSessionLabel(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/* ——— Compute functions ——— */
+
+function computeStatDeltas(runs: RunRecord[]) {
+  if (runs.length < 2) {
+    return {
+      scoreDelta: undefined as string | undefined,
+      scoreDir: undefined as 'up' | 'down' | undefined,
+      scoreIsGood: undefined as boolean | undefined,
+      durationDelta: undefined as string | undefined,
+      durationDir: undefined as 'up' | 'down' | undefined,
+      durationIsGood: undefined as boolean | undefined,
+    };
   }
-  return categories.map((id) => {
-    const scores = runs
-      .map((r) => r.analysis.rubric_breakdown.find((rb) => rb.category === id))
-      .filter(Boolean);
-    const avg = scores.length > 0
-      ? scores.reduce((sum, s) => sum + s!.score, 0) / scores.length
-      : 0;
-    return { id, label: CATEGORY_LABELS[id], score: Math.round(avg * 10) / 10, maxScore: 20 };
+
+  const mid = Math.floor(runs.length / 2);
+  // runs are sorted newest-first from the API
+  const newerHalf = runs.slice(0, mid);
+  const olderHalf = runs.slice(mid);
+
+  const avgNewer = newerHalf.reduce((s, r) => s + r.overall_score, 0) / newerHalf.length;
+  const avgOlder = olderHalf.reduce((s, r) => s + r.overall_score, 0) / olderHalf.length;
+  const scoreDiff = Math.round(avgNewer - avgOlder);
+
+  const newerDur = newerHalf.filter((r) => r.analysis.delivery_metrics?.duration_seconds != null);
+  const olderDur = olderHalf.filter((r) => r.analysis.delivery_metrics?.duration_seconds != null);
+
+  let durationDelta: string | undefined;
+  let durationDir: 'up' | 'down' | undefined;
+  let durationIsGood: boolean | undefined;
+
+  if (newerDur.length > 0 && olderDur.length > 0) {
+    const avgNewerDur = newerDur.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / newerDur.length;
+    const avgOlderDur = olderDur.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / olderDur.length;
+    const durDiff = Math.round(avgNewerDur - avgOlderDur);
+    if (durDiff !== 0) {
+      durationDelta = `${Math.abs(durDiff)}s`;
+      durationDir = durDiff > 0 ? 'up' : 'down';
+      durationIsGood = durDiff < 0; // shorter = better
+    }
+  }
+
+  return {
+    scoreDelta: scoreDiff !== 0 ? `${Math.abs(scoreDiff)} pts` : undefined,
+    scoreDir: scoreDiff > 0 ? 'up' as const : scoreDiff < 0 ? 'down' as const : undefined,
+    scoreIsGood: scoreDiff !== 0 ? scoreDiff > 0 : undefined,
+    durationDelta,
+    durationDir,
+    durationIsGood,
+  };
+}
+
+function computeRubricTrend(runs: RunRecord[]): { label: string; scores: { category: string; score: number }[] }[] {
+  return runs
+    .slice()
+    .reverse()
+    .map((r) => ({
+      label: formatSessionLabel(r.created_at),
+      scores: (r.analysis.rubric_breakdown ?? []).map((rb) => ({
+        category: rb.category,
+        score: rb.score,
+      })),
+    }));
+}
+
+function computeWpmTrend(runs: RunRecord[]): { label: string; wpm: number }[] {
+  return runs
+    .slice()
+    .reverse()
+    .filter((r) => r.analysis.delivery_metrics?.wpm != null)
+    .map((r) => ({
+      label: formatSessionLabel(r.created_at),
+      wpm: r.analysis.delivery_metrics.wpm,
+    }));
+}
+
+function computeFillerData(runs: RunRecord[]): {
+  trend: { label: string; total: number }[];
+  aggregate: { word: string; total: number }[];
+} {
+  const chronological = runs.slice().reverse();
+  const trend = chronological.map((r) => {
+    const fillers = r.analysis.delivery_metrics?.filler_words ?? [];
+    const total = fillers.reduce((s, f) => s + (f.count ?? 0), 0);
+    return { label: formatSessionLabel(r.created_at), total };
   });
+
+  const wordMap = new Map<string, number>();
+  for (const r of runs) {
+    for (const f of r.analysis.delivery_metrics?.filler_words ?? []) {
+      if (f.word) {
+        wordMap.set(f.word, (wordMap.get(f.word) ?? 0) + (f.count ?? 0));
+      }
+    }
+  }
+  const aggregate = Array.from(wordMap.entries())
+    .map(([word, total]) => ({ word, total }))
+    .sort((a, b) => b.total - a.total);
+
+  return { trend, aggregate };
 }
-
-function computeInsights(rubric: ReturnType<typeof computeRubricAverages>) {
-  const sorted = [...rubric].sort((a, b) => b.score / b.maxScore - a.score / a.maxScore);
-  const insights: { type: 'strength' | 'improve'; title: string; body: string }[] = [];
-  if (sorted.length > 0) {
-    const best = sorted[0];
-    insights.push({
-      type: 'strength',
-      title: `Strong ${best.label.toLowerCase()} performance`,
-      body: `Averaging ${best.score}/${best.maxScore} across sessions. Keep maintaining this strength.`,
-    });
-  }
-  if (sorted.length > 1) {
-    const second = sorted[1];
-    insights.push({
-      type: 'strength',
-      title: `Consistent ${second.label.toLowerCase()}`,
-      body: `Scoring ${second.score}/${second.maxScore} on average. This is a solid foundation to build on.`,
-    });
-  }
-  const worst = sorted[sorted.length - 1];
-  if (worst) {
-    insights.push({
-      type: 'improve',
-      title: `${worst.label} needs attention`,
-      body: `Averaging ${worst.score}/${worst.maxScore}. Focus on improving this area for the biggest score gains.`,
-    });
-  }
-  if (sorted.length > 1) {
-    const secondWorst = sorted[sorted.length - 2];
-    insights.push({
-      type: 'improve',
-      title: `Room to grow in ${secondWorst.label.toLowerCase()}`,
-      body: `Currently at ${secondWorst.score}/${secondWorst.maxScore}. Small improvements here will compound.`,
-    });
-  }
-  return insights;
-}
-
-function computeRecommendations(rubric: ReturnType<typeof computeRubricAverages>) {
-  const sorted = [...rubric].sort((a, b) => a.score / a.maxScore - b.score / b.maxScore);
-  return sorted.slice(0, 3).map((cat) => ({
-    title: `Improve your ${cat.label.toLowerCase()}`,
-    description: `Currently averaging ${cat.score}/${cat.maxScore}. Practice sessions focused on ${cat.id} to reach your target score.`,
-    tag: cat.id,
-  }));
-}
-
-/* ——— Gradient map for recommendation icon backgrounds ——————— */
-
-const RECOMMENDATION_GRADIENTS: Record<string, string> = {
-  evidence: 'linear-gradient(135deg, #22c55e, #16a34a)',
-  market: 'linear-gradient(135deg, #f97316, #ea580c)',
-  delivery: 'linear-gradient(135deg, #ef4444, #dc2626)',
-  structure: 'linear-gradient(135deg, #ff5941, #e63b26)',
-  clarity: 'linear-gradient(135deg, #ffaa33, #f59e0b)',
-};
-
-const RECOMMENDATION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  evidence: Target,
-  market: Lightbulb,
-  delivery: Sparkles,
-};
 
 /* ——— Page Component ——————————————————————————————————————————— */
 
@@ -164,15 +185,17 @@ export default function AnalyticsPage() {
 
   const filteredRuns = useMemo(() => filterByRange(allRuns, range), [allRuns, range]);
   const trendData = useMemo(() => computeTrend(filteredRuns), [filteredRuns]);
-  const rubricCategories = useMemo(() => computeRubricAverages(filteredRuns), [filteredRuns]);
-  const insights = useMemo(() => computeInsights(rubricCategories), [rubricCategories]);
-  const recommendations = useMemo(() => computeRecommendations(rubricCategories), [rubricCategories]);
+  const deltas = useMemo(() => computeStatDeltas(filteredRuns), [filteredRuns]);
+  const rubricTrend = useMemo(() => computeRubricTrend(filteredRuns), [filteredRuns]);
+  const wpmTrend = useMemo(() => computeWpmTrend(filteredRuns), [filteredRuns]);
+  const fillerData = useMemo(() => computeFillerData(filteredRuns), [filteredRuns]);
 
   const avgScore = filteredRuns.length > 0
     ? Math.round(filteredRuns.reduce((s, r) => s + r.overall_score, 0) / filteredRuns.length)
     : 0;
-  const avgDurationSecs = filteredRuns.length > 0
-    ? Math.round(filteredRuns.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / filteredRuns.length)
+  const runsWithDuration = filteredRuns.filter((r) => r.analysis.delivery_metrics?.duration_seconds != null);
+  const avgDurationSecs = runsWithDuration.length > 0
+    ? Math.round(runsWithDuration.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / runsWithDuration.length)
     : 0;
   const avgDurationStr = `${Math.floor(avgDurationSecs / 60)}:${(avgDurationSecs % 60).toString().padStart(2, '0')}`;
 
@@ -201,6 +224,9 @@ export default function AnalyticsPage() {
           label="Overall Score"
           value={`${avgScore}/100`}
           icon={<TrendingUp size={16} />}
+          delta={deltas.scoreDelta}
+          deltaDirection={deltas.scoreDir}
+          deltaIsGood={deltas.scoreIsGood}
           animationDelay="60ms"
         />
         <StatCard
@@ -213,6 +239,9 @@ export default function AnalyticsPage() {
           label="Avg Duration"
           value={avgDurationStr}
           icon={<Clock size={16} />}
+          delta={deltas.durationDelta}
+          deltaDirection={deltas.durationDir}
+          deltaIsGood={deltas.durationIsGood}
           animationDelay="180ms"
         />
         <StatCard
@@ -237,47 +266,55 @@ export default function AnalyticsPage() {
                   : 'All time'}
           </span>
         </div>
-        <ScoreTrendChart data={trendData} />
+        {filteredRuns.length === 0 ? (
+          <EmptyState message="No sessions in this time range" />
+        ) : (
+          <ScoreTrendChart data={trendData} />
+        )}
       </GlassCard>
 
-      {/* Two-Column: Rubric Breakdown + Top Insights */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Rubric Breakdown */}
-        <GlassCard animationDelay="360ms">
-          <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
-          <div className="flex flex-col gap-3.5">
-            {rubricCategories.map((cat, i) => (
-              <CategoryBar
-                key={cat.id}
-                label={cat.label}
-                score={cat.score}
-                maxScore={cat.maxScore}
-                color={getRubricColor(cat.id)}
-                delay={i}
-              />
-            ))}
-          </div>
-        </GlassCard>
-
-        {/* Top Insights */}
-        <GlassCard animationDelay="420ms">
-          <SectionHeader className="mb-4">Top Insights</SectionHeader>
-          <div className="flex flex-col gap-3">
-            {insights.map((insight, i) => (
-              <InsightCard key={i} {...insight} delay={i} />
-            ))}
-          </div>
-        </GlassCard>
-      </div>
-
-      {/* Practice Recommendations */}
-      <GlassCard animationDelay="480ms">
-        <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
-        <div className="grid grid-cols-3 gap-4">
-          {recommendations.map((rec, i) => (
-            <RecommendationCard key={i} {...rec} delay={i} />
-          ))}
+      {/* Rubric Category Trend */}
+      <GlassCard animationDelay="360ms">
+        <div className="flex items-center justify-between mb-5">
+          <SectionHeader>Rubric Category Trend</SectionHeader>
+          <Activity size={16} style={{ color: 'var(--text-muted)' }} />
         </div>
+        {filteredRuns.length === 0 ? (
+          <EmptyState message="No sessions to show rubric trends" />
+        ) : (
+          <RubricTrendChart data={rubricTrend} />
+        )}
+      </GlassCard>
+
+      {/* Speaking Pace / WPM Trend */}
+      <GlassCard animationDelay="420ms">
+        <div className="flex items-center justify-between mb-5">
+          <SectionHeader>Speaking Pace</SectionHeader>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            Ideal: 130–160 WPM
+          </span>
+        </div>
+        {wpmTrend.length === 0 ? (
+          <EmptyState message="No WPM data available" />
+        ) : (
+          <WpmTrendChart data={wpmTrend} />
+        )}
+      </GlassCard>
+
+      {/* Filler Words */}
+      <GlassCard animationDelay="480ms">
+        <div className="flex items-center justify-between mb-5">
+          <SectionHeader>Filler Words</SectionHeader>
+          <MessageSquare size={16} style={{ color: 'var(--text-muted)' }} />
+        </div>
+        {filteredRuns.length === 0 ? (
+          <EmptyState message="No filler word data available" />
+        ) : (
+          <div className="grid grid-cols-2 gap-6">
+            <FillerTrendChart data={fillerData.trend} />
+            <FillerAggregateTable data={fillerData.aggregate} />
+          </div>
+        )}
       </GlassCard>
 
       {/* Bottom spacer */}
@@ -394,108 +431,407 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
   );
 }
 
-function InsightCard({
-  type,
-  title,
-  body,
-  delay,
-}: {
-  type: 'strength' | 'improve';
-  title: string;
-  body: string;
-  delay: number;
-}) {
-  const isStrength = type === 'strength';
-  const borderColor = isStrength ? '#22c55e' : '#f59e0b';
-  const iconColor = isStrength ? '#22c55e' : '#f59e0b';
-  const Icon = isStrength ? CheckCircle : AlertTriangle;
+const CATEGORY_LABELS: Record<string, string> = {
+  structure: 'Structure',
+  clarity: 'Clarity',
+  evidence: 'Evidence',
+  market: 'Market',
+  delivery: 'Delivery',
+};
+
+function RubricTrendChart({ data }: { data: { label: string; scores: { category: string; score: number }[] }[] }) {
+  const maxVal = 20;
+  const yLabels = [20, 15, 10, 5, 0];
+  const categories = Object.keys(RUBRIC_COLORS);
 
   return (
-    <div
-      className="rounded-xl p-3 border transition-all duration-200 animate-fade-in-up"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-        borderLeftWidth: 3,
-        borderLeftColor: borderColor,
-        animationDelay: `${480 + delay * 60}ms`,
-        animationFillMode: 'both',
-      }}
-    >
-      <div className="flex items-start gap-2.5">
-        <span className="flex-shrink-0 mt-0.5" style={{ color: iconColor }}>
-          <Icon size={15} />
-        </span>
-        <div>
-          <p
-            className="text-xs font-semibold mb-0.5"
-            style={{ color: 'var(--text-primary)' }}
+    <div>
+      <div className="flex gap-0" style={{ height: 220 }}>
+        {/* Y-axis labels */}
+        <div
+          className="flex flex-col justify-between pr-3 py-1"
+          style={{ width: 36 }}
+        >
+          {yLabels.map((y) => (
+            <span
+              key={y}
+              className="text-[10px] font-medium tabular-nums text-right leading-none"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {y}
+            </span>
+          ))}
+        </div>
+
+        {/* Chart area */}
+        <div className="flex-1 flex flex-col">
+          <div
+            className="flex-1 flex items-end gap-2 relative"
+            style={{
+              borderBottom: '1px solid var(--border-color)',
+              borderLeft: '1px solid var(--border-color)',
+            }}
           >
-            {title}
-          </p>
-          <p
-            className="text-xs leading-relaxed"
-            style={{ color: 'var(--text-secondary)' }}
+            {/* Horizontal grid lines */}
+            {[25, 50, 75].map((pct) => (
+              <div
+                key={pct}
+                className="absolute left-0 right-0"
+                style={{
+                  bottom: `${pct}%`,
+                  height: 1,
+                  backgroundColor: 'var(--border-color)',
+                }}
+              />
+            ))}
+
+            {/* Grouped bars per session */}
+            {data.map((session, i) => (
+              <div
+                key={i}
+                className="flex-1 flex items-end justify-center gap-[2px] relative z-10 group cursor-default"
+              >
+                {categories.map((cat) => {
+                  const score = session.scores.find((s) => s.category === cat)?.score ?? 0;
+                  const heightPct = (score / maxVal) * 100;
+                  return (
+                    <div
+                      key={cat}
+                      className="rounded-t-sm transition-all duration-500 ease-out"
+                      style={{
+                        width: '16%',
+                        minWidth: 3,
+                        maxWidth: 8,
+                        height: `${heightPct}%`,
+                        backgroundColor: getRubricColor(cat),
+                        opacity: 0.85,
+                      }}
+                    />
+                  );
+                })}
+                {/* Tooltip on hover */}
+                <div
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full px-2 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-20"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-hover)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <div className="text-[10px] font-semibold mb-1">{session.label}</div>
+                  {categories.map((cat) => {
+                    const score = session.scores.find((s) => s.category === cat)?.score ?? 0;
+                    return (
+                      <div key={cat} className="flex items-center gap-1.5 text-[10px]">
+                        <span
+                          className="inline-block w-2 h-2 rounded-full"
+                          style={{ backgroundColor: getRubricColor(cat) }}
+                        />
+                        <span>{CATEGORY_LABELS[cat] ?? cat}</span>
+                        <span className="font-bold ml-auto pl-2">{score}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* X-axis labels */}
+          <div className="flex gap-2 mt-2">
+            {data.map((d, i) => (
+              <div key={i} className="flex-1 text-center">
+                <span
+                  className="text-[10px] font-medium"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {d.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Legend row */}
+      <div className="flex items-center justify-center gap-4 mt-3">
+        {categories.map((cat) => (
+          <div key={cat} className="flex items-center gap-1.5">
+            <span
+              className="inline-block w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: getRubricColor(cat) }}
+            />
+            <span className="text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              {CATEGORY_LABELS[cat] ?? cat}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WpmTrendChart({ data }: { data: { label: string; wpm: number }[] }) {
+  const maxWpm = Math.max(200, ...data.map((d) => d.wpm)) + 10;
+  const minWpm = 0;
+  const range = maxWpm - minWpm;
+
+  // Y-axis labels: round to nearest 20
+  const yStep = 40;
+  const yLabels: number[] = [];
+  for (let v = 0; v <= maxWpm; v += yStep) {
+    yLabels.push(v);
+  }
+  yLabels.reverse();
+
+  const idealLow = 130;
+  const idealHigh = 160;
+  const idealBottomPct = ((idealLow - minWpm) / range) * 100;
+  const idealHeightPct = ((idealHigh - idealLow) / range) * 100;
+
+  function getWpmColor(wpm: number): string {
+    if (wpm >= idealLow && wpm <= idealHigh) return '#22c55e';
+    if (wpm < idealLow) return '#f59e0b';
+    return '#ef4444';
+  }
+
+  return (
+    <div className="flex gap-0" style={{ height: 220 }}>
+      {/* Y-axis labels */}
+      <div
+        className="flex flex-col justify-between pr-3 py-1"
+        style={{ width: 36 }}
+      >
+        {yLabels.map((y) => (
+          <span
+            key={y}
+            className="text-[10px] font-medium tabular-nums text-right leading-none"
+            style={{ color: 'var(--text-muted)' }}
           >
-            {body}
-          </p>
+            {y}
+          </span>
+        ))}
+      </div>
+
+      {/* Chart area */}
+      <div className="flex-1 flex flex-col">
+        <div
+          className="flex-1 flex items-end gap-1 relative"
+          style={{
+            borderBottom: '1px solid var(--border-color)',
+            borderLeft: '1px solid var(--border-color)',
+          }}
+        >
+          {/* Ideal zone band */}
+          <div
+            className="absolute left-0 right-0 z-0"
+            style={{
+              bottom: `${idealBottomPct}%`,
+              height: `${idealHeightPct}%`,
+              backgroundColor: 'rgba(34, 197, 94, 0.08)',
+              borderTop: '1px dashed rgba(34, 197, 94, 0.4)',
+              borderBottom: '1px dashed rgba(34, 197, 94, 0.4)',
+            }}
+          />
+
+          {/* Bars */}
+          {data.map((d, i) => {
+            const heightPct = ((d.wpm - minWpm) / range) * 100;
+            const barColor = getWpmColor(d.wpm);
+
+            return (
+              <div
+                key={i}
+                className="flex-1 flex flex-col items-center justify-end relative z-10"
+              >
+                <div
+                  className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
+                  style={{
+                    height: `${heightPct}%`,
+                    backgroundColor: barColor,
+                    opacity: 0.85,
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    style={{
+                      background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.15))',
+                    }}
+                  />
+                  <div
+                    className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-hover)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    {d.wpm} WPM
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* X-axis labels */}
+        <div className="flex gap-1 mt-2">
+          {data.map((d, i) => (
+            <div key={i} className="flex-1 text-center">
+              <span
+                className="text-[10px] font-medium"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {d.label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
   );
 }
 
-function RecommendationCard({
-  title,
-  description,
-  tag,
-  delay,
-}: {
-  title: string;
-  description: string;
-  tag: string;
-  delay: number;
-}) {
-  const Icon = RECOMMENDATION_ICONS[tag] ?? Target;
-  const gradient = RECOMMENDATION_GRADIENTS[tag] ?? 'linear-gradient(135deg, #6b7280, #4b5563)';
-  const tagColor = getRubricColor(tag);
+function FillerTrendChart({ data }: { data: { label: string; total: number }[] }) {
+  const maxVal = Math.max(1, ...data.map((d) => d.total));
+  const yStep = Math.max(1, Math.ceil(maxVal / 4));
+  const yLabels: number[] = [];
+  for (let v = 0; v <= maxVal + yStep; v += yStep) {
+    yLabels.push(v);
+  }
+  const yMax = yLabels[yLabels.length - 1];
+  yLabels.reverse();
 
   return (
-    <div
-      className="rounded-xl border p-4 flex flex-col gap-3 transition-all duration-200 animate-fade-in-up hover:scale-[1.01]"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-        animationDelay: `${540 + delay * 60}ms`,
-        animationFillMode: 'both',
-      }}
-    >
-      <div className="flex items-center gap-2.5">
+    <div>
+      <h4 className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
+        Filler Count per Session
+      </h4>
+      <div className="flex gap-0" style={{ height: 180 }}>
+        {/* Y-axis labels */}
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{ background: gradient }}
+          className="flex flex-col justify-between pr-3 py-1"
+          style={{ width: 30 }}
         >
-          <Icon size={16} className="text-white" />
+          {yLabels.map((y) => (
+            <span
+              key={y}
+              className="text-[10px] font-medium tabular-nums text-right leading-none"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {y}
+            </span>
+          ))}
         </div>
-        <h3
-          className="text-sm font-semibold leading-snug"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {title}
-        </h3>
+
+        {/* Chart area */}
+        <div className="flex-1 flex flex-col">
+          <div
+            className="flex-1 flex items-end gap-1 relative"
+            style={{
+              borderBottom: '1px solid var(--border-color)',
+              borderLeft: '1px solid var(--border-color)',
+            }}
+          >
+            {data.map((d, i) => {
+              const heightPct = yMax > 0 ? (d.total / yMax) * 100 : 0;
+              return (
+                <div
+                  key={i}
+                  className="flex-1 flex flex-col items-center justify-end relative z-10"
+                >
+                  <div
+                    className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
+                    style={{
+                      height: `${heightPct}%`,
+                      backgroundColor: '#f59e0b',
+                      opacity: 0.85,
+                    }}
+                  >
+                    <div
+                      className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      style={{
+                        background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.15))',
+                      }}
+                    />
+                    <div
+                      className="absolute -top-7 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none"
+                      style={{
+                        backgroundColor: 'var(--bg-surface-hover)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)',
+                      }}
+                    >
+                      {d.total}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* X-axis labels */}
+          <div className="flex gap-1 mt-2">
+            {data.map((d, i) => (
+              <div key={i} className="flex-1 text-center">
+                <span
+                  className="text-[10px] font-medium"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {d.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <p
-        className="text-xs leading-relaxed"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        {description}
-      </p>
-      <div className="self-start">
-        <TagPill
-          label={tag.charAt(0).toUpperCase() + tag.slice(1)}
-          color={tagColor}
-        />
-      </div>
+    </div>
+  );
+}
+
+function FillerAggregateTable({ data }: { data: { word: string; total: number }[] }) {
+  const maxTotal = Math.max(1, ...data.map((d) => d.total));
+  const topItems = data.slice(0, 8);
+
+  return (
+    <div>
+      <h4 className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
+        Most Used Filler Words
+      </h4>
+      {topItems.length === 0 ? (
+        <div className="flex items-center justify-center h-[180px]">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No filler words detected</span>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {topItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <span
+                className="text-xs font-mono font-medium shrink-0"
+                style={{ color: 'var(--text-primary)', width: 72 }}
+              >
+                &ldquo;{item.word}&rdquo;
+              </span>
+              <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--bg-surface-hover)' }}>
+                <div
+                  className="h-full rounded-full transition-all duration-500"
+                  style={{
+                    width: `${(item.total / maxTotal) * 100}%`,
+                    backgroundColor: '#f59e0b',
+                    opacity: 0.8,
+                  }}
+                />
+              </div>
+              <span
+                className="text-[11px] font-bold tabular-nums shrink-0"
+                style={{ color: 'var(--text-secondary)', width: 24, textAlign: 'right' }}
+              >
+                {item.total}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

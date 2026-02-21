@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Target,
@@ -10,7 +10,7 @@ import {
   Calendar,
   Timer,
   ArrowRight,
-  Lightbulb,
+  Mic,
 } from 'lucide-react';
 import {
   GlassCard,
@@ -18,22 +18,23 @@ import {
   ScoreBadge,
   TagPill,
   SectionHeader,
+  CategoryBar,
+  InsightCard,
+  RecommendationCard,
+  EmptyState,
   getModeColor,
   getModeBgColor,
   getModeLabel,
+  getRubricColor,
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui/colors';
+import {
+  computeRubricAverages,
+  computeInsights,
+  computeRecommendations,
+} from '@/lib/analytics';
 
 /* ——— Types ——— */
-
-interface DashboardRun {
-  id: string;
-  mode: PitchMode;
-  overallScore: number;
-  one_line_verdict: string;
-  createdAt: string;
-  duration_seconds: number;
-}
 
 interface RunRecord {
   id: string;
@@ -42,24 +43,10 @@ interface RunRecord {
   created_at: string;
   analysis: {
     one_line_verdict: string;
+    rubric_breakdown: { category: string; score: number; max_score: number }[];
     delivery_metrics: { duration_seconds: number };
   };
 }
-
-interface StatsData {
-  totalRuns: number;
-  averageScore: number;
-  bestScore: number;
-  trend: number[];
-}
-
-const PITCH_TIPS = [
-  'Start with a bold claim or surprising stat — investors hear hundreds of pitches; hook them in the first 10 seconds.',
-  'Use "we" instead of "I" to emphasize the team. Investors bet on teams, not individuals.',
-  'Keep your ask specific. "We\'re raising $2M at $10M pre" is stronger than "we\'re looking for funding."',
-  'Pause after key points. Silence builds weight and gives your audience time to absorb.',
-  'Practice the transition between your problem slide and solution slide — that\'s where most pitches lose momentum.',
-];
 
 /* ——— Helpers ——— */
 
@@ -94,114 +81,35 @@ function formatRunDate(iso: string): string {
   });
 }
 
-/* ——— Sparkline SVG Component ——— */
-
-function Sparkline({
-  data,
-  width = 240,
-  height = 80,
-  strokeColor = '#ff5941',
-  gradientId = 'sparkGrad',
-}: {
-  data: number[];
-  width?: number;
-  height?: number;
-  strokeColor?: string;
-  gradientId?: string;
-}) {
-  if (data.length < 2) return null;
-
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const padding = 4;
-
-  const points = data.map((val, i) => {
-    const x = padding + (i / (data.length - 1)) * (width - padding * 2);
-    const y = padding + (1 - (val - min) / range) * (height - padding * 2);
-    return { x, y };
-  });
-
-  const linePath = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
-    .join(' ');
-
-  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
-
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      width="100%"
-      height="100%"
-      preserveAspectRatio="none"
-      className="overflow-visible"
-    >
-      <defs>
-        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={strokeColor} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={strokeColor} stopOpacity={0.02} />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#${gradientId})`} />
-      <path
-        d={linePath}
-        fill="none"
-        stroke={strokeColor}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-      {/* End dot */}
-      <circle
-        cx={points[points.length - 1].x}
-        cy={points[points.length - 1].y}
-        r="4"
-        fill={strokeColor}
-        stroke="var(--bg-surface)"
-        strokeWidth="2"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
-
 /* ——— Page Component ——— */
 
 export default function DashboardPage() {
-  // Defer dynamic values to client to avoid hydration mismatch
   const [greeting, setGreeting] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
-  const [tip, setTip] = useState('');
-  const [stats, setStats] = useState<StatsData>({ totalRuns: 0, averageScore: 0, bestScore: 0, trend: [] });
-  const [recentRuns, setRecentRuns] = useState<DashboardRun[]>([]);
+  const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
 
   useEffect(() => {
     setGreeting(getGreeting());
     setFormattedDate(getFormattedDate());
-    setTip(PITCH_TIPS[Math.floor(Math.random() * PITCH_TIPS.length)]);
 
-    Promise.all([
-      fetch('/api/pitch/run/stats').then((r) => r.json()),
-      fetch('/api/pitch/run?limit=3').then((r) => r.json()),
-    ])
-      .then(([statsData, runsData]) => {
-        setStats({ totalRuns: 0, averageScore: 0, bestScore: 0, trend: [], ...statsData });
-        if (Array.isArray(runsData)) {
-          setRecentRuns(
-            runsData.map((r: RunRecord) => ({
-              id: r.id,
-              mode: r.mode as PitchMode,
-              overallScore: r.overall_score,
-              one_line_verdict: r.analysis.one_line_verdict,
-              createdAt: r.created_at,
-              duration_seconds: r.analysis.delivery_metrics.duration_seconds,
-            })),
-          );
-        }
-      })
-      .catch(() => {});
+    fetch('/api/pitch/run')
+      .then((r) => r.json())
+      .then((data) => setAllRuns(Array.isArray(data) ? data : []))
+      .catch(() => setAllRuns([]));
   }, []);
+
+  const totalRuns = allRuns.length;
+  const averageScore = totalRuns > 0
+    ? Math.round(allRuns.reduce((s, r) => s + r.overall_score, 0) / totalRuns)
+    : 0;
+  const bestScore = totalRuns > 0
+    ? Math.max(...allRuns.map((r) => r.overall_score))
+    : 0;
+
+  const rubricCategories = useMemo(() => computeRubricAverages(allRuns), [allRuns]);
+  const insights = useMemo(() => computeInsights(rubricCategories), [rubricCategories]);
+  const recommendations = useMemo(() => computeRecommendations(rubricCategories), [rubricCategories]);
+  const recentRuns = allRuns.slice(0, 3);
 
   return (
     <main
@@ -213,42 +121,37 @@ export default function DashboardPage() {
         borderColor: 'var(--border-color)',
       }}
     >
-      <div className="max-w-5xl mx-auto">
-        {/* ——— Welcome Header ——— */}
+      <div className="max-w-5xl mx-auto flex flex-col gap-6">
+        {/* ——— Header: Greeting + CTA ——— */}
         <div
-          className="mb-6 animate-fade-in-up"
+          className="flex items-center justify-between animate-fade-in-up"
           style={{ animationDelay: '0s', animationFillMode: 'both' }}
         >
-          <h1
-            className="text-2xl font-bold mb-1"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            {greeting}, Founder
-          </h1>
-          <p
-            className="text-sm flex items-center gap-1.5"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <Calendar size={14} />
-            {formattedDate}
-          </p>
-        </div>
-
-        {/* ——— Run a Pitch CTA ——— */}
-        <div
-          className="mb-8 animate-fade-in-up"
-          style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
-        >
-          <Link href="/session" className="block no-underline">
-            <div className="session-start-wrap" style={{ borderRadius: 16, padding: 2 }}>
+          <div>
+            <h1
+              className="text-2xl font-bold mb-1"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {greeting}, Founder
+            </h1>
+            <p
+              className="text-sm flex items-center gap-1.5"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              <Calendar size={14} />
+              {formattedDate}
+            </p>
+          </div>
+          <Link href="/session" className="no-underline">
+            <div className="session-start-wrap" style={{ borderRadius: 12, padding: 2 }}>
               <div className="session-start-glow" />
               <button
-                className="session-start-btn w-full border-0 px-8 cursor-pointer
-                           flex items-center justify-center gap-3
-                           font-semibold text-base"
-                style={{ borderRadius: 14, padding: '16px 0' }}
+                className="session-start-btn border-0 px-6 cursor-pointer
+                           flex items-center gap-2
+                           font-semibold text-sm"
+                style={{ borderRadius: 10, padding: '10px 20px' }}
               >
-                <Zap size={20} />
+                <Zap size={16} />
                 Run a Pitch
               </button>
             </div>
@@ -256,173 +159,161 @@ export default function DashboardPage() {
         </div>
 
         {/* ——— Stat Cards Row ——— */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4">
           <StatCard
             label="Total Runs"
-            value={String(stats.totalRuns)}
+            value={String(totalRuns)}
             icon={<Target size={16} />}
-            delta="+3"
-            deltaDirection="up"
-            deltaIsGood
-            animationDelay="0.1s"
+            animationDelay="0.08s"
           />
           <StatCard
             label="Average Score"
-            value={`${stats.averageScore}/100`}
+            value={`${averageScore}/100`}
             icon={<TrendingUp size={16} />}
-            delta="+4"
-            deltaDirection="up"
-            deltaIsGood
-            animationDelay="0.16s"
+            animationDelay="0.14s"
           />
           <StatCard
             label="Best Score"
-            value={`${stats.bestScore}/100`}
+            value={`${bestScore}/100`}
             icon={<Trophy size={16} />}
-            animationDelay="0.22s"
+            animationDelay="0.20s"
           />
         </div>
 
-        {/* ——— Two-Column Layout ——— */}
-        <div className="grid grid-cols-5 gap-6">
-          {/* Left Column — Recent Runs (3/5) */}
-          <div className="col-span-3">
-            <div
-              className="mb-4 animate-fade-in-up"
-              style={{ animationDelay: '0.28s', animationFillMode: 'both' }}
-            >
-              <SectionHeader>Recent Runs</SectionHeader>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {recentRuns.map((run, i) => (
-                <Link
-                  key={run.id}
-                  href={`/results/${run.id}`}
-                  className="no-underline block"
-                >
-                  <div
-                    className="group rounded-xl border p-4 transition-all duration-200 cursor-pointer animate-fade-in-up"
-                    style={{
-                      backgroundColor: 'var(--bg-surface)',
-                      borderColor: 'var(--border-color)',
-                      animationDelay: `${0.32 + i * 0.06}s`,
-                      animationFillMode: 'both',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--bg-surface-hover)';
-                      e.currentTarget.style.borderColor =
-                        'var(--bg-surface-hover)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor =
-                        'var(--bg-surface)';
-                      e.currentTarget.style.borderColor =
-                        'var(--border-color)';
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      {/* Left: mode pill + meta + verdict */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <TagPill
-                            label={getModeLabel(run.mode)}
-                            color={getModeColor(run.mode)}
-                            bgColor={getModeBgColor(run.mode)}
-                          />
-                          <span
-                            className="flex items-center gap-1 text-xs"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            <Calendar size={11} />
-                            {formatRunDate(run.createdAt)}
-                          </span>
-                          <span
-                            className="flex items-center gap-1 text-xs"
-                            style={{ color: 'var(--text-muted)' }}
-                          >
-                            <Timer size={11} />
-                            {formatDuration(run.duration_seconds)}
-                          </span>
-                        </div>
-                        <p
-                          className="text-sm truncate leading-snug"
-                          style={{ color: 'var(--text-secondary)' }}
-                        >
-                          {run.one_line_verdict}
-                        </p>
-                      </div>
-
-                      {/* Right: score badge + arrow */}
-                      <div className="flex items-center gap-3 ml-4 flex-shrink-0">
-                        <ScoreBadge score={run.overallScore} />
-                        <ArrowRight
-                          size={14}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                          style={{ color: 'var(--text-muted)' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Right Column — Score Trend + Pitch Tip (2/5) */}
-          <div className="col-span-2 flex flex-col gap-4">
-            {/* Score Trend Sparkline */}
-            <GlassCard animationDelay="0.36s">
-              <SectionHeader className="mb-4">
-                <TrendingUp size={12} />
-                Score Trend
-              </SectionHeader>
-              <div className="h-24 w-full">
-                <Sparkline data={stats.trend} strokeColor="#ff5941" />
+        {totalRuns === 0 ? (
+          <GlassCard animationDelay="0.26s">
+            <EmptyState
+              icon={<Mic size={32} style={{ color: 'var(--text-muted)' }} />}
+              message="No pitch runs yet. Run your first pitch to see your breakdown here."
+            />
+          </GlassCard>
+        ) : (
+          <>
+            {/* ——— Rubric Breakdown ——— */}
+            <GlassCard animationDelay="0.26s">
+              <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
+              <div className="flex flex-col gap-3.5">
+                {rubricCategories.map((cat, i) => (
+                  <CategoryBar
+                    key={cat.id}
+                    label={cat.label}
+                    score={cat.score}
+                    maxScore={cat.maxScore}
+                    color={getRubricColor(cat.id)}
+                    delay={i}
+                  />
+                ))}
               </div>
-              <div className="flex items-center justify-between mt-3">
-                <span
-                  className="text-xs tabular-nums"
+            </GlassCard>
+
+            {/* ——— Top Insights + Practice Recommendations ——— */}
+            <div className="grid grid-cols-2 gap-4">
+              <GlassCard animationDelay="0.32s">
+                <SectionHeader className="mb-4">Top Insights</SectionHeader>
+                <div className="flex flex-col gap-3">
+                  {insights.map((insight, i) => (
+                    <InsightCard key={i} {...insight} delay={i} />
+                  ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard animationDelay="0.38s">
+                <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
+                <div className="flex flex-col gap-3">
+                  {recommendations.map((rec, i) => (
+                    <RecommendationCard key={i} {...rec} delay={i} />
+                  ))}
+                </div>
+              </GlassCard>
+            </div>
+
+            {/* ——— Recent Runs ——— */}
+            <div
+              className="animate-fade-in-up"
+              style={{ animationDelay: '0.44s', animationFillMode: 'both' }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <SectionHeader>Recent Runs</SectionHeader>
+                <Link
+                  href="/history"
+                  className="text-xs font-medium no-underline flex items-center gap-1 transition-opacity hover:opacity-80"
                   style={{ color: 'var(--text-muted)' }}
                 >
-                  {stats.trend.length} runs
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <span
-                    className="text-xs"
-                    style={{ color: 'var(--text-muted)' }}
-                  >
-                    Latest
-                  </span>
-                  <ScoreBadge
-                    score={stats.trend[stats.trend.length - 1]}
-                    size="sm"
-                  />
-                </div>
+                  View All
+                  <ArrowRight size={12} />
+                </Link>
               </div>
-            </GlassCard>
 
-            {/* Pitch Tip */}
-            <GlassCard animationDelay="0.44s">
-              <div className="flex items-center gap-2 mb-3">
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: '#eab30818' }}
-                >
-                  <Lightbulb size={14} style={{ color: '#eab308' }} />
-                </div>
-                <SectionHeader>Pitch Tip</SectionHeader>
+              <div className="flex flex-col gap-2">
+                {recentRuns.map((run, i) => (
+                  <Link
+                    key={run.id}
+                    href={`/results/${run.id}`}
+                    className="no-underline block"
+                  >
+                    <div
+                      className="group rounded-xl border p-4 transition-all duration-200 cursor-pointer animate-fade-in-up"
+                      style={{
+                        backgroundColor: 'var(--bg-surface)',
+                        borderColor: 'var(--border-color)',
+                        animationDelay: `${0.48 + i * 0.06}s`,
+                        animationFillMode: 'both',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
+                        e.currentTarget.style.borderColor = 'var(--bg-surface-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <TagPill
+                              label={getModeLabel(run.mode as PitchMode)}
+                              color={getModeColor(run.mode as PitchMode)}
+                              bgColor={getModeBgColor(run.mode as PitchMode)}
+                            />
+                            <span
+                              className="flex items-center gap-1 text-xs"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              <Calendar size={11} />
+                              {formatRunDate(run.created_at)}
+                            </span>
+                            <span
+                              className="flex items-center gap-1 text-xs"
+                              style={{ color: 'var(--text-muted)' }}
+                            >
+                              <Timer size={11} />
+                              {formatDuration(run.analysis.delivery_metrics?.duration_seconds ?? 0)}
+                            </span>
+                          </div>
+                          <p
+                            className="text-sm truncate leading-snug"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            {run.analysis?.one_line_verdict ?? 'Pitch analysis'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3 ml-4 flex-shrink-0">
+                          <ScoreBadge score={run.overall_score} />
+                          <ArrowRight
+                            size={14}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                            style={{ color: 'var(--text-muted)' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
               </div>
-              <p
-                className="text-sm leading-relaxed"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                &ldquo;{tip}&rdquo;
-              </p>
-            </GlassCard>
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </main>
   );
