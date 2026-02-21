@@ -1,21 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Upload,
   FileText,
   MoreHorizontal,
   Sparkles,
-  Search,
   Plus,
   Clock,
   BarChart2,
   Presentation,
   FolderOpen,
   Image,
+  Search,
 } from 'lucide-react';
+import { SearchInput, SectionHeader, ScoreBadge, EmptyState } from '@/views/components/ui';
 
-/* ─── Mock Data ─── */
+/* ─── Types ─── */
 
 interface MockDeck {
   id: string;
@@ -27,6 +28,8 @@ interface MockDeck {
   gradient: string;
   accentIcon: 'presentation' | 'fileText' | 'barChart' | 'image' | 'folderOpen';
 }
+
+/* ─── Mock Data ─── */
 
 const MOCK_DECKS: MockDeck[] = [
   {
@@ -99,209 +102,276 @@ const ICON_MAP = {
   folderOpen: FolderOpen,
 };
 
+/* ─── Helpers ─── */
+
+const glassStyles = {
+  backgroundColor: 'var(--bg-surface)',
+  backdropFilter: 'blur(var(--blur-strength))',
+  WebkitBackdropFilter: 'blur(var(--blur-strength))',
+  borderColor: 'var(--border-color)',
+};
+
+const SHIMMER_CSS = `
+@keyframes deck-shimmer {
+  0%, 100% { background-position: -200% 0; }
+  50% { background-position: 200% 0; }
+}
+`;
+
+const shimmerStyle: React.CSSProperties = {
+  background:
+    'linear-gradient(90deg, transparent 0%, rgba(124, 58, 237, 0.08) 30%, rgba(59, 130, 246, 0.08) 50%, rgba(124, 58, 237, 0.08) 70%, transparent 100%)',
+  backgroundSize: '200% 100%',
+  animation: 'deck-shimmer 2.5s ease-in-out infinite',
+};
+
+/* ─── Component ─── */
+
 export default function DeckPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
+
+  // Inject shimmer keyframes once on mount
+  useEffect(() => {
+    const id = 'deck-shimmer-keyframes';
+    if (document.getElementById(id)) return;
+    const style = document.createElement('style');
+    style.id = id;
+    style.textContent = SHIMMER_CSS;
+    document.head.appendChild(style);
+    return () => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    };
+  }, []);
 
   const filteredDecks = MOCK_DECKS.filter((deck) =>
     deck.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
-      <main
-        className="flex-1 flex flex-col gap-5 overflow-y-auto rounded-2xl p-6 border"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          backdropFilter: `blur(var(--blur-strength))`,
-          WebkitBackdropFilter: `blur(var(--blur-strength))`,
-          borderColor: 'var(--border-color)',
-        }}
-      >
-        {/* ─── Header ─── */}
-        <div className="flex items-center justify-between gap-4 animate-fade-in-up">
-          <div className="flex items-center gap-3">
-            <FolderOpen size={24} style={{ color: 'var(--text-primary)' }} />
+    <main
+      className="flex-1 flex flex-col gap-5 overflow-y-auto rounded-2xl p-6 border"
+      style={glassStyles}
+    >
+      {/* ─── Header ─── */}
+      <div className="flex items-center justify-between gap-4 flex-wrap animate-fade-in-up">
+        <div className="flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: 'rgba(124, 58, 237, 0.12)' }}
+          >
+            <FolderOpen size={18} style={{ color: '#a855f7' }} />
+          </div>
+          <div>
             <h1
-              className="text-2xl font-bold tracking-tight"
+              className="text-xl font-bold tracking-tight"
               style={{ color: 'var(--text-primary)' }}
             >
               Deck Manager
             </h1>
-            <span
-              className="text-xs font-medium px-2 py-0.5 rounded-full"
-              style={{
-                color: 'var(--text-muted)',
-                backgroundColor: 'var(--border-color)',
-              }}
-            >
-              {MOCK_DECKS.length} decks
-            </span>
           </div>
-
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <div
-              className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-colors"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)',
-              }}
-            >
-              <Search size={15} style={{ color: 'var(--text-muted)' }} />
-              <input
-                type="text"
-                placeholder="Search decks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none outline-none text-sm w-44"
-                style={{ color: 'var(--text-primary)' }}
-              />
-            </div>
-
-            {/* Upload New Button */}
-            <button
-              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 hover:scale-[1.03] active:scale-[0.97]"
-              style={{
-                boxShadow: '0 4px 20px rgba(124, 58, 237, 0.25)',
-              }}
-            >
-              <Plus size={16} />
-              Upload New
-            </button>
-          </div>
-        </div>
-
-        {/* ─── Upload Dropzone ─── */}
-        <div
-          className="animate-fade-in-up"
-          style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
-        >
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragOver(true);
-            }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={(e) => {
-              e.preventDefault();
-              setIsDragOver(false);
-            }}
-            className="relative flex flex-col items-center justify-center gap-3 py-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 group overflow-hidden"
+          <span
+            className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full tabular-nums"
             style={{
-              borderColor: isDragOver
-                ? 'rgba(124, 58, 237, 0.5)'
-                : 'var(--border-color)',
-              backgroundColor: isDragOver
-                ? 'rgba(124, 58, 237, 0.05)'
-                : 'transparent',
+              color: 'var(--text-muted)',
+              backgroundColor: 'var(--border-color)',
             }}
           >
-            {/* Animated border shimmer */}
+            {MOCK_DECKS.length} decks
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search decks..."
+            className="w-52"
+          />
+
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all duration-300 bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 hover:scale-[1.03] active:scale-[0.97]"
+            style={{
+              boxShadow: '0 4px 20px rgba(124, 58, 237, 0.25)',
+            }}
+          >
+            <Plus size={16} />
+            Upload New
+          </button>
+        </div>
+      </div>
+
+      {/* ─── Upload Dropzone ─── */}
+      <div
+        className="animate-fade-in-up"
+        style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
+      >
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragOver(false);
+          }}
+          className="relative flex flex-col items-center justify-center gap-3 py-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-300 group overflow-hidden"
+          style={{
+            borderColor: isDragOver
+              ? 'rgba(124, 58, 237, 0.5)'
+              : 'var(--border-color)',
+            backgroundColor: isDragOver
+              ? 'rgba(124, 58, 237, 0.05)'
+              : 'transparent',
+          }}
+        >
+          {/* Animated shimmer overlay on hover */}
+          <div
+            className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+            style={shimmerStyle}
+          />
+
+          <div
+            className="flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-300 group-hover:scale-110"
+            style={{
+              backgroundColor: 'var(--bg-surface-hover)',
+            }}
+          >
+            <Upload
+              size={22}
+              style={{ color: 'var(--text-secondary)' }}
+              className="transition-transform duration-300 group-hover:-translate-y-0.5"
+            />
+          </div>
+          <div className="text-center relative z-10">
+            <p
+              className="text-sm font-medium"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Drop your slides here or{' '}
+              <span className="text-purple-500 hover:text-purple-400 cursor-pointer transition-colors duration-200">
+                click to upload
+              </span>
+            </p>
+            <p
+              className="text-xs mt-1"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              PDF, PPTX, Google Slides
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── Section Label ─── */}
+      <div
+        className="animate-fade-in-up"
+        style={{ animationDelay: '0.08s', animationFillMode: 'both' }}
+      >
+        <SectionHeader icon={<Presentation size={13} />}>
+          Your Decks
+        </SectionHeader>
+      </div>
+
+      {/* ─── Deck Grid ─── */}
+      <div
+        className="grid gap-4"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        }}
+      >
+        {/* Create with AI Card */}
+        <div
+          className="animate-fade-in-up"
+          style={{ animationDelay: '0.1s', animationFillMode: 'both' }}
+        >
+          <div
+            className="relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-5 cursor-pointer transition-all duration-300 group overflow-hidden hover:scale-[1.02]"
+            style={{
+              borderColor: 'rgba(124, 58, 237, 0.25)',
+              backgroundColor: 'var(--bg-surface)',
+              backdropFilter: 'blur(var(--blur-strength))',
+              WebkitBackdropFilter: 'blur(var(--blur-strength))',
+              minHeight: '320px',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.45)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(124, 58, 237, 0.25)';
+            }}
+          >
+            {/* Radial glow effect on hover */}
             <div
               className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
               style={{
                 background:
-                  'linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.08), transparent)',
-                backgroundSize: '200% 100%',
-                animation: 'shimmer 2s ease-in-out infinite',
+                  'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.1) 0%, rgba(59, 130, 246, 0.04) 50%, transparent 70%)',
               }}
             />
 
+            {/* Shimmer sweep on hover */}
             <div
-              className="flex items-center justify-center w-12 h-12 rounded-xl transition-transform duration-300 group-hover:scale-110"
+              className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+              style={shimmerStyle}
+            />
+
+            {/* Sparkle icon container */}
+            <div
+              className="flex items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 group-hover:scale-110"
               style={{
-                backgroundColor: 'var(--bg-surface-hover)',
+                background:
+                  'linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(59, 130, 246, 0.15))',
               }}
             >
-              <Upload
-                size={22}
-                style={{ color: 'var(--text-secondary)' }}
-                className="transition-transform duration-300 group-hover:-translate-y-0.5"
+              <Sparkles
+                size={28}
+                className="transition-transform duration-500 group-hover:rotate-12"
+                style={{ color: '#a855f7' }}
               />
             </div>
-            <div className="text-center">
-              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                Drop your slides here or{' '}
-                <span className="text-purple-500 hover:text-purple-400 cursor-pointer">
-                  click to upload
-                </span>
+
+            <div className="text-center relative z-10">
+              <p
+                className="text-sm font-semibold"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                Create with AI
               </p>
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                PDF, PPTX, Google Slides
+              <p
+                className="text-xs mt-1.5 max-w-[200px] leading-relaxed"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Describe your pitch and let AI build the slides for you
               </p>
             </div>
+
+            {/* Gradient accent bar at bottom */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-0.5 opacity-40 group-hover:opacity-80 transition-opacity duration-300"
+              style={{
+                background:
+                  'linear-gradient(90deg, #7c3aed, #3b82f6, #7c3aed)',
+              }}
+            />
           </div>
         </div>
 
-        {/* ─── Deck Grid ─── */}
-        <div
-          className="grid gap-4"
-          style={{
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-          }}
-        >
-          {/* Create with AI Card */}
+        {/* Deck Cards */}
+        {filteredDecks.length === 0 ? (
           <div
-            className="animate-fade-in-up"
-            style={{ animationDelay: '0.1s', animationFillMode: 'both' }}
+            className="col-span-full animate-fade-in-up"
+            style={{ animationDelay: '0.15s', animationFillMode: 'both' }}
           >
-            <div
-              className="relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-6 cursor-pointer transition-all duration-300 group overflow-hidden hover:scale-[1.02]"
-              style={{
-                borderColor: 'rgba(124, 58, 237, 0.25)',
-                backgroundColor: 'var(--bg-surface)',
-                backdropFilter: `blur(var(--blur-strength))`,
-                WebkitBackdropFilter: `blur(var(--blur-strength))`,
-                minHeight: '320px',
-              }}
-            >
-              {/* Glow effect */}
-              <div
-                className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
-                style={{
-                  background:
-                    'radial-gradient(circle at 50% 50%, rgba(124, 58, 237, 0.08) 0%, transparent 70%)',
-                }}
-              />
-
-              {/* Sparkle icon */}
-              <div
-                className="flex items-center justify-center w-16 h-16 rounded-2xl transition-all duration-300 group-hover:scale-110"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15), rgba(59, 130, 246, 0.15))',
-                }}
-              >
-                <Sparkles
-                  size={28}
-                  className="transition-transform duration-500 group-hover:rotate-12"
-                  style={{ color: '#a855f7' }}
-                />
-              </div>
-
-              <div className="text-center relative z-10">
-                <p
-                  className="text-sm font-semibold"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  Create with AI
-                </p>
-                <p className="text-xs mt-1.5 max-w-[180px]" style={{ color: 'var(--text-muted)' }}>
-                  Describe your pitch and let AI build the slides for you
-                </p>
-              </div>
-
-              {/* Gradient accent bar */}
-              <div
-                className="absolute bottom-0 left-0 right-0 h-0.5 opacity-40 group-hover:opacity-80 transition-opacity duration-300"
-                style={{
-                  background: 'linear-gradient(90deg, #7c3aed, #3b82f6, #7c3aed)',
-                }}
-              />
-            </div>
+            <EmptyState
+              icon={<Search size={32} style={{ color: 'var(--text-muted)' }} />}
+              message="No decks match your search."
+            />
           </div>
-
-          {/* Deck Cards */}
-          {filteredDecks.map((deck, index) => {
+        ) : (
+          filteredDecks.map((deck, index) => {
             const AccentIcon = ICON_MAP[deck.accentIcon];
 
             return (
@@ -317,18 +387,29 @@ export default function DeckPage() {
                   className="relative flex flex-col rounded-2xl border overflow-hidden cursor-pointer transition-all duration-300 group hover:scale-[1.02]"
                   style={{
                     backgroundColor: 'var(--bg-surface)',
-                    backdropFilter: `blur(var(--blur-strength))`,
-                    WebkitBackdropFilter: `blur(var(--blur-strength))`,
+                    backdropFilter: 'blur(var(--blur-strength))',
+                    WebkitBackdropFilter: 'blur(var(--blur-strength))',
                     borderColor: 'var(--border-color)',
                     boxShadow: '0 2px 12px rgba(0, 0, 0, 0.04)',
                   }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      '0 8px 32px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor =
+                      'var(--bg-surface-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow =
+                      '0 2px 12px rgba(0, 0, 0, 0.04)';
+                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                  }}
                 >
-                  {/* Thumbnail Area */}
+                  {/* Gradient Thumbnail Area */}
                   <div
                     className="relative h-40 flex items-center justify-center overflow-hidden"
                     style={{ background: deck.gradient }}
                   >
-                    {/* Floating shapes for visual richness */}
+                    {/* Decorative floating shapes for visual richness */}
                     <div
                       className="absolute inset-0 opacity-20"
                       style={{
@@ -347,7 +428,7 @@ export default function DeckPage() {
                       style={{ backgroundColor: 'white' }}
                     />
 
-                    {/* Center icon */}
+                    {/* Center accent icon */}
                     <AccentIcon
                       size={40}
                       className="relative z-10 text-white/70 transition-transform duration-300 group-hover:scale-110"
@@ -359,48 +440,65 @@ export default function DeckPage() {
                       {deck.slides} slides
                     </div>
 
-                    {/* More menu */}
-                    <button
-                      className="absolute top-3 right-3 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                    >
+                    {/* More options menu (reveals on hover) */}
+                    <button className="absolute top-3 right-3 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200 opacity-0 group-hover:opacity-100">
                       <MoreHorizontal size={16} />
                     </button>
                   </div>
 
                   {/* Card Body */}
                   <div className="flex flex-col gap-3 p-4">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <h3
-                        className="text-sm font-semibold leading-tight"
+                        className="text-sm font-semibold leading-tight truncate"
                         style={{ color: 'var(--text-primary)' }}
                       >
                         {deck.title}
                       </h3>
+                      <ScoreBadge score={deck.avgScore} size="sm" />
                     </div>
 
-                    {/* Last used */}
+                    {/* Last used timestamp */}
                     <div className="flex items-center gap-1.5">
-                      <Clock size={12} style={{ color: 'var(--text-muted)' }} />
-                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                      <Clock
+                        size={12}
+                        style={{ color: 'var(--text-muted)' }}
+                      />
+                      <span
+                        className="text-xs"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
                         {deck.lastUsed}
                       </span>
                     </div>
 
                     {/* Stats row */}
                     <div
-                      className="flex items-center gap-4 pt-2 border-t"
+                      className="flex items-center gap-4 pt-3 border-t"
                       style={{ borderColor: 'var(--border-color)' }}
                     >
                       <div className="flex items-center gap-1.5">
-                        <Presentation size={12} style={{ color: 'var(--text-muted)' }} />
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
+                        <Presentation
+                          size={12}
+                          style={{ color: 'var(--text-muted)' }}
+                        />
+                        <span
+                          className="text-xs font-medium"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
                           {deck.practices} runs
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5">
-                        <BarChart2 size={12} style={{ color: 'var(--text-muted)' }} />
-                        <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>
-                          {deck.avgScore}%
+                        <BarChart2
+                          size={12}
+                          style={{ color: 'var(--text-muted)' }}
+                        />
+                        <span
+                          className="text-xs font-medium"
+                          style={{ color: 'var(--text-secondary)' }}
+                        >
+                          Avg {deck.avgScore}%
                         </span>
                       </div>
                     </div>
@@ -408,8 +506,22 @@ export default function DeckPage() {
                 </div>
               </div>
             );
-          })}
-        </div>
-      </main>
+          })
+        )}
+      </div>
+
+      {/* ─── Footer Summary ─── */}
+      <div
+        className="flex items-center justify-center animate-fade-in-up"
+        style={{
+          animationDelay: '0.5s',
+          animationFillMode: 'both',
+        }}
+      >
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          {filteredDecks.length} of {MOCK_DECKS.length} decks shown
+        </span>
+      </div>
+    </main>
   );
 }

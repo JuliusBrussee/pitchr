@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 
 interface SidebarContextValue {
   onStartSession?: () => void;
@@ -53,10 +53,15 @@ export function useSidebar() {
 /** Hook for the session page to register its controls with the sidebar */
 export function useSidebarSession(onStartSession: () => void, isSessionActive: boolean) {
   const { registerSession, unregisterSession } = useSidebar();
+  const onStartSessionRef = useRef(onStartSession);
+  onStartSessionRef.current = onStartSession;
 
   useEffect(() => {
-    registerSession({ onStartSession, isSessionActive });
-  }, [registerSession, onStartSession, isSessionActive]);
+    registerSession({
+      onStartSession: () => onStartSessionRef.current(),
+      isSessionActive,
+    });
+  }, [registerSession, isSessionActive]);
 
   useEffect(() => {
     return () => unregisterSession();
