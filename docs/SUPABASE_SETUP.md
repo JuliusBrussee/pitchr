@@ -1,0 +1,54 @@
+# Supabase Setup Guide
+
+## 1. Project Credentials
+
+Add these to your `.env.local` file:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Find these in: Supabase Dashboard → Settings → API
+
+## 2. Run Migrations
+
+All SQL migrations live in `migrations/` at the project root. Run them **in order** in the Supabase Dashboard → SQL Editor:
+
+| File | What it does |
+|------|-------------|
+| `01-create-decks-table.sql` | Creates the `decks` table (deck metadata) |
+| `02-create-slides-table.sql` | Creates the `slides` table (per-slide text, FK to decks) |
+| `03-create-decks-storage-bucket.sql` | Creates the `decks` storage bucket (public, 50 MB limit) |
+| `04-storage-policies.sql` | Adds public read/upload/delete policies (no auth in MVP) |
+
+**Quick run (all at once):**
+
+```bash
+cat migrations/*.sql | pbcopy
+```
+
+Then paste into the SQL Editor and execute.
+
+All migrations use `if not exists` / `on conflict` guards, so they're safe to re-run.
+
+## 3. Verify Setup
+
+After running the migrations, verify in Supabase Dashboard:
+
+- **Table Editor:** `decks` and `slides` tables should appear
+- **Storage:** `decks` bucket should appear
+- **API:** Test with `curl` or browser:
+  ```
+  GET https://your-project.supabase.co/rest/v1/decks
+  Headers: apikey: your-anon-key
+  ```
+
+## File Path Convention
+
+Uploaded files are stored as:
+
+```
+decks/{deck_id}/original.pptx   (or .pdf)
+decks/{deck_id}/slides.pdf      (converted PDF, always present)
+```
