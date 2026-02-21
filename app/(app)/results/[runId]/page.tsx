@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -28,7 +28,11 @@ import {
   ShieldCheck,
   BarChart3,
   Mic,
+  Link2,
 } from 'lucide-react';
+import { useMiroSync } from '@/hooks/useMiroSync';
+import { MiroSyncPanel } from '@/views/components/MiroSyncPanel';
+import type { MiroFixBoardResponse, MiroSyncedFix, MiroTopFixInput } from '@/services/miro/miroTypes';
 
 /* ═══════════════════════════════════════════════════════════════
    PRD-aligned Mock Data — Results /100 scoring
@@ -78,6 +82,13 @@ interface AnalysisResult {
   top_fixes: Fix[];
   rewrite_script: string;
   delivery_metrics: DeliveryMetrics;
+}
+
+interface MiroBoardLink {
+  boardId: string;
+  boardUrl: string;
+  createdAt: string;
+  fallback?: boolean;
 }
 
 const MOCK_RUN = {
@@ -217,6 +228,38 @@ In two years, every team that practices a pitch will practice it with us. We'd l
    Helpers
    ═══════════════════════════════════════════════════════════════ */
 
+function miroStorageKey(runId: string) {
+  return `pitchr:miro:run:${runId}`;
+}
+
+function isValidMiroBoardLink(link: MiroBoardLink) {
+  if (!link.boardId || !link.boardUrl || link.fallback) return false;
+  if (link.boardId.startsWith('stub-board-')) return false;
+
+  try {
+    const url = new URL(link.boardUrl);
+    return url.hostname.includes('miro.com') && url.pathname.includes('/app/board/');
+  } catch {
+    return false;
+  }
+}
+
+function toMiroRequest(run: typeof MOCK_RUN, analysis: AnalysisResult) {
+  return {
+    runId: run.id,
+    mode: run.mode,
+    oneLineVerdict: analysis.one_line_verdict,
+    rewriteScript: analysis.rewrite_script,
+    topFixes: analysis.top_fixes.map<MiroTopFixInput>((fix) => ({
+      rank: fix.rank,
+      category: fix.category,
+      impact: fix.impact,
+      issue: fix.issue,
+      fix: fix.fix,
+    })),
+  };
+}
+
 function getScoreBand(score: number): { label: string; color: string; bg: string } {
   if (score >= 80) return { label: 'Investor-Ready', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
   if (score >= 60) return { label: 'Solid', color: '#ffaa33', bg: 'rgba(255,170,51,0.12)' };
@@ -286,15 +329,137 @@ export default function ResultsPage() {
   const band = getScoreBand(analysis.overall_score);
   const [showFullTranscript, setShowFullTranscript] = useState(false);
   const [copiedRewrite, setCopiedRewrite] = useState(false);
+  const [miroBoard, setMiroBoard] = useState<MiroBoardLink | null>(null);
+  const [isCreatingMiroBoard, setIsCreatingMiroBoard] = useState(false);
+  const [miroCreateError, setMiroCreateError] = useState<string | null>(null);
+  const [miroFallbackMessage, setMiroFallbackMessage] = useState<string | null>(null);
+  const [miroWarnings, setMiroWarnings] = useState<string[]>([]);
+  const [syncedFixes, setSyncedFixes] = useState<MiroSyncedFix[]>([]);
 
   const totalFillers = analysis.delivery_metrics.filler_words.reduce((s, f) => s + f.count, 0);
   const modeLabel = run.mode === 'elevator' ? 'Elevator Pitch' : 'VC Pitch (2 min)';
+  const syncEnabled = Boolean(miroBoard?.boardId);
+
+  const { snapshot, isSyncing, error: miroSyncError, syncNow, consecutiveFailures } = useMiroSync({
+    runId: run.id,
+    boardId: miroBoard?.boardId,
+    enabled: syncEnabled,
+    pollIntervalMs: Number(process.env.NEXT_PUBLIC_MIRO_POLL_INTERVAL_MS || 30000),
+  });
+
+  const syncedFixMap = useMemo(() => {
+    const map = new Map<number, MiroSyncedFix>();
+    for (const fix of syncedFixes) {
+      map.set(fix.rank, fix);
+    }
+    return map;
+  }, [syncedFixes]);
 
   function handleCopyRewrite() {
     navigator.clipboard.writeText(analysis.rewrite_script);
     setCopiedRewrite(true);
     setTimeout(() => setCopiedRewrite(false), 2000);
   }
+
+  async function handleCreateMiroBoard() {
+    setIsCreatingMiroBoard(true);
+    setMiroCreateError(null);
+    setMiroFallbackMessage(null);
+    try {
+      const response = await fetch('/api/miro/fix-board', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toMiroRequest(run, analysis)),
+      });
+      const json = (await response.json()) as MiroFixBoardResponse & { error?: string };
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to create Miro board');
+      }
+
+      const boardLink: MiroBoardLink = {
+        boardId: json.boardId,
+        boardUrl: json.boardUrl,
+        createdAt: json.createdAt,
+        fallback: Boolean(json.fallback),
+      };
+      if (boardLink.fallback) {
+        setMiroBoard(null);
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(miroStorageKey(run.id));
+        }
+        setMiroFallbackMessage(json.message || 'Miro API unavailable. Running in fallback mode.');
+      } else if (!isValidMiroBoardLink(boardLink)) {
+        setMiroBoard(null);
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(miroStorageKey(run.id));
+        }
+        throw new Error('Received an invalid Miro board link. Please create the board again.');
+      } else {
+        setMiroBoard(boardLink);
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(miroStorageKey(run.id), JSON.stringify(boardLink));
+        }
+        if (json.message) {
+          setMiroFallbackMessage(json.message);
+        }
+      }
+    } catch (error) {
+      setMiroCreateError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsCreatingMiroBoard(false);
+    }
+  }
+
+  async function handleDownloadFallbackMarkdown() {
+    try {
+      const response = await fetch('/api/miro/fix-board/markdown', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(toMiroRequest(run, analysis)),
+      });
+      const json = (await response.json()) as { markdown: string; filename: string; error?: string };
+      if (!response.ok) {
+        throw new Error(json.error || 'Failed to generate markdown fallback');
+      }
+
+      const blob = new Blob([json.markdown], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = json.filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setMiroCreateError(error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const saved = window.localStorage.getItem(miroStorageKey(run.id));
+    if (!saved) return;
+    try {
+      const parsed = JSON.parse(saved) as MiroBoardLink;
+      if (isValidMiroBoardLink(parsed)) {
+        setMiroBoard(parsed);
+      } else {
+        window.localStorage.removeItem(miroStorageKey(run.id));
+      }
+    } catch {
+      window.localStorage.removeItem(miroStorageKey(run.id));
+    }
+  }, [run.id]);
+
+  useEffect(() => {
+    if (!snapshot) return;
+    setSyncedFixes(snapshot.fixes);
+    setMiroWarnings(snapshot.warnings);
+    if (snapshot.fallback && snapshot.message) {
+      setMiroFallbackMessage(snapshot.message);
+    }
+  }, [snapshot]);
 
   return (
     <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
@@ -330,7 +495,47 @@ export default function ResultsPage() {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {miroBoard && !miroBoard.fallback ? (
+            <a
+              href={miroBoard.boardUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium no-underline transition-all duration-200"
+              style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            >
+              <Link2 size={14} />
+              Open Miro Board
+            </a>
+          ) : (
+            <button
+              onClick={handleCreateMiroBoard}
+              disabled={isCreatingMiroBoard}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all duration-200"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-secondary)',
+                opacity: isCreatingMiroBoard ? 0.6 : 1,
+              }}
+            >
+              {isCreatingMiroBoard ? 'Creating Board...' : 'Create Fix Board in Miro'}
+            </button>
+          )}
+          {miroBoard ? (
+            <button
+              onClick={() => void syncNow()}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium transition-all duration-200"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-secondary)',
+                opacity: isSyncing ? 0.6 : 1,
+              }}
+            >
+              {isSyncing ? 'Syncing...' : 'Sync from Miro'}
+            </button>
+          ) : null}
           <SmallButton icon={<Share2 size={14} />} label="Share" />
           <SmallButton icon={<Download size={14} />} label="Export" />
           <Link
@@ -345,6 +550,50 @@ export default function ResultsPage() {
       </div>
 
       {/* ─── Verdict + Score Hero ─── */}
+      {(miroCreateError || miroFallbackMessage || miroSyncError || miroWarnings.length > 0) ? (
+        <div className="flex flex-col gap-2 animate-fade-in-up" style={{ animationDelay: '20ms' }}>
+          {miroCreateError ? (
+            <div
+              className="rounded-xl border px-3 py-2 text-xs"
+              style={{ borderColor: 'rgba(239,68,68,0.3)', color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)' }}
+            >
+              {miroCreateError}
+            </div>
+          ) : null}
+          {miroFallbackMessage ? (
+            <div
+              className="rounded-xl border px-3 py-2 text-xs flex items-center justify-between gap-2"
+              style={{ borderColor: 'rgba(245,158,11,0.3)', color: '#b45309', backgroundColor: 'rgba(245,158,11,0.08)' }}
+            >
+              <span>{miroFallbackMessage}</span>
+              <button
+                onClick={() => void handleDownloadFallbackMarkdown()}
+                className="px-2 py-1 rounded-lg border text-[11px]"
+                style={{ borderColor: 'rgba(245,158,11,0.4)', color: '#b45309' }}
+              >
+                Download Markdown
+              </button>
+            </div>
+          ) : null}
+          {miroSyncError ? (
+            <div
+              className="rounded-xl border px-3 py-2 text-xs"
+              style={{ borderColor: 'rgba(239,68,68,0.3)', color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)' }}
+            >
+              Sync error: {miroSyncError}
+            </div>
+          ) : null}
+          {miroWarnings.length > 0 ? (
+            <div
+              className="rounded-xl border px-3 py-2 text-xs"
+              style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)', backgroundColor: 'var(--bg-surface)' }}
+            >
+              {miroWarnings[0]}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-12 gap-4 animate-fade-in-up" style={{ animationDelay: '40ms' }}>
 
         {/* Score Ring */}
@@ -468,13 +717,31 @@ export default function ResultsPage() {
           </div>
           <div className="flex flex-col gap-3">
             {analysis.top_fixes.map((fix, i) => (
-              <FixCard key={fix.rank} fix={fix} delay={i} />
+              <FixCard key={fix.rank} fix={fix} delay={i} miroStatus={syncedFixMap.get(fix.rank)} />
             ))}
           </div>
         </GlassCard>
       </div>
 
       {/* ─── Two-column: Rewrite + Delivery Metrics ─── */}
+      {miroBoard ? (
+        <div className="animate-fade-in-up" style={{ animationDelay: '190ms' }}>
+          <MiroSyncPanel
+            fixes={syncedFixes}
+            isSyncing={isSyncing}
+            lastSyncedAt={snapshot?.syncedAt}
+            error={miroSyncError}
+            boardUrl={miroBoard.boardUrl}
+            onSyncNow={() => void syncNow()}
+          />
+          {consecutiveFailures > 0 ? (
+            <div className="text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+              Backoff active after {consecutiveFailures} failed sync attempt{consecutiveFailures === 1 ? '' : 's'}.
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-4">
 
         {/* Rewrite Panel */}
@@ -769,7 +1036,7 @@ function QuickStat({ label, value, sub, ok }: { label: string; value: string; su
   );
 }
 
-function FixCard({ fix, delay }: { fix: Fix; delay: number }) {
+function FixCard({ fix, delay, miroStatus }: { fix: Fix; delay: number; miroStatus?: MiroSyncedFix }) {
   const impact = getImpactColor(fix.impact);
   const CatIcon = getCategoryIcon(fix.category);
 
@@ -808,6 +1075,31 @@ function FixCard({ fix, delay }: { fix: Fix; delay: number }) {
             >
               {fix.impact} impact
             </span>
+            {miroStatus ? (
+              <span
+                className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{
+                  backgroundColor:
+                    miroStatus.status === 'done'
+                      ? 'rgba(34,197,94,0.10)'
+                      : miroStatus.status === 'doing'
+                        ? 'rgba(59,130,246,0.10)'
+                        : miroStatus.status === 'blocked'
+                          ? 'rgba(239,68,68,0.10)'
+                          : 'rgba(245,158,11,0.10)',
+                  color:
+                    miroStatus.status === 'done'
+                      ? '#22c55e'
+                      : miroStatus.status === 'doing'
+                        ? '#3b82f6'
+                        : miroStatus.status === 'blocked'
+                          ? '#ef4444'
+                          : '#f59e0b',
+                }}
+              >
+                miro: {miroStatus.status}
+              </span>
+            ) : null}
           </div>
 
           {/* Issue */}

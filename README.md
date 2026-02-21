@@ -73,6 +73,24 @@ Notes:
 npx playwright install chromium
 ```
 
+## Miro Integration
+
+Results page supports Miro fix-board export and sync.
+
+Environment setup in `.env.local`:
+
+```bash
+MIRO_ENABLED=true
+MIRO_PROVIDER=rest
+MIRO_ACCESS_TOKEN=...
+MIRO_TEAM_ID=...
+NEXT_PUBLIC_MIRO_POLL_INTERVAL_MS=30000
+```
+
+If credentials are missing, the app falls back to stub mode and markdown export.
+
+See: `docs/integrations/miro.md`
+
 ## License
 
 MIT
