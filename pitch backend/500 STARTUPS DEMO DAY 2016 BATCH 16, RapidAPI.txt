@@ -1,0 +1,169 @@
+00:00 hi everyone my name is Edo and I'm the
+00:04 
+
+00:04 CEO and founder of rapid API where we
+00:06 
+
+00:06 help app developers create their apps
+00:08 
+
+00:08 faster four years ago I've started the
+00:13 
+
+00:13 dev shop with two really good friends of
+00:14 
+
+00:14 mine but what we soon realized was that
+00:17 
+
+00:17 most of their time was spent on
+00:19 
+
+00:19 rewriting the same pieces of code just
+00:22 
+
+00:22 as a very quick example every app we
+00:24 
+
+00:24 have built had to sign up in a sign in
+00:26 
+
+00:26 page and yet we had to spend days and
+00:28 
+
+00:28 sometimes even weeks rewriting that same
+00:31 
+
+00:31 piece of code when we looked at
+00:33 
+
+00:33 enterprises around us we realized their
+00:35 
+
+00:35 problem was even larger these small
+00:38 
+
+00:38 pieces of code for them including
+00:40 
+
+00:40 working with old legacy code and big
+00:43 
+
+00:43 enterprise system which meant they were
+00:45 
+
+00:45 moving super fast which if we just look
+00:48 
+
+00:48 at SCP as an example it took them
+00:50 
+
+00:50 between 12 to 18 months to create new
+00:52 
+
+00:52 apps on their platform just think about
+00:54 
+
+00:54 it over a year before a software company
+00:57 
+
+00:57 can deploy apps and that is why we've
+00:59 
+
+00:59 created rapid API wrap an API lets those
+01:02 
+
+01:02 developers take those pieces of code
+01:04 
+
+01:04 that they repeat all the time and put
+01:06 
+
+01:06 them into small functional box
+01:08 
+
+01:08 developers can later drag and drop this
+01:10 
+
+01:10 box and that's constructor software and
+01:12 
+
+01:12 the best part is developers can use an
+01:14 
+
+01:14 open-source marketplace to share those
+01:16 
+
+01:16 box and as they can collaborate with
+01:19 
+
+01:19 other developers and create software
+01:21 
+
+01:21 even faster enterprises can utilize the
+01:24 
+
+01:24 same technology and install those block
+01:26 
+
+01:26 on premise that way they can leverage
+01:28 
+
+01:28 that and work even faster in fact we've
+01:32 
+
+01:32 managed to take the process of
+01:33 
+
+01:33 developing apps on the ebay platform
+01:35 
+
+01:35 from over 18 months before it to less
+01:38 
+
+01:38 than five weeks we've rapid at the eye
+01:39 
+
+01:39 and developers love being able to move
+01:43 
+
+01:43 so fast and that is why we have over
+01:46 
+
+01:46 5000 active developers in our platform
+01:49 
+
+01:49 generating over 35,000 dollars in mor
+01:52 
+
+01:52 and it has been growing forty-eight
+01:55 
+
+01:55 percent month over month for the past
+01:57 
+
+01:57 six months we're a team of young
+02:01 
+
+02:01 technical founders and we're truly avid
+02:03 
+
+02:03 about changing the way software is being
+02:05 
+
+02:05 developed if you think any of your
+02:07 
+
+02:07 portfolio companies and I'm sure there
+02:09 
+
+02:09 are a lot in this room can benefit from
+02:11 
+
+02:11 moving faster from moving blazingly fast
+02:14 
+
+02:14 please come and talk to us after the
+02:16 
+
+02:16 pitches thank you very much
