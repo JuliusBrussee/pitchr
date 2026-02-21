@@ -1,24 +1,29 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
 import { useSessionState } from '@/hooks/useSessionState';
 import { useDeckSlides } from '@/hooks/useDeckSlides';
 import { useSTT } from '@/hooks/useSTT';
+import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import type { DeckRecord } from '@/services/deckService';
 
 export default function SessionPage() {
+  const router = useRouter();
   const media = useMediaStream();
   const session = useSessionState();
   const stt = useSTT();
+  const pitchRun = usePitchRun();
   const { setOrbState } = useTheme();
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const hasTriggeredAnalysis = useRef(false);
 
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
@@ -52,6 +57,8 @@ export default function SessionPage() {
     nextSlide,
     prevSlide,
     renderSlideToCanvas,
+    isLoading: isLoadingPdf,
+    error: pdfError,
   } = useDeckSlides(selectedDeck?.pdf_url ?? null);
 
   // Keyboard shortcuts for slide navigation
@@ -105,7 +112,30 @@ export default function SessionPage() {
     console.debug('[headTracking] state transition', headState);
   }, [headTrackingDebugEnabled, session.isSessionActive, media.isCameraOn, headState]);
 
+  // When STT confirms transcript saved, trigger analysis and save to Supabase
+  useEffect(() => {
+    if (!stt.saved || hasTriggeredAnalysis.current) return;
+    const transcript = stt.transcriptSegments.join(' ').trim();
+    if (!transcript) return;
+
+    hasTriggeredAnalysis.current = true;
+
+    pitchRun
+      .runPitchAnalysis({
+        mode: 'elevator',
+        inputType: 'audio',
+        transcript,
+      })
+      .then((result) => {
+        router.push(`/results/${result.runId}`);
+      })
+      .catch(() => {
+        // Error state is set in pitchRun.error
+      });
+  }, [stt.saved, stt.transcriptSegments, pitchRun, router]);
+
   const handleStartSession = useCallback(() => {
+    hasTriggeredAnalysis.current = false;
     session.startSession();
     stt.start();
   }, [session, stt]);
@@ -153,6 +183,8 @@ export default function SessionPage() {
         selectedDeckId={selectedDeckId}
         onSelectDeck={setSelectedDeckId}
         isLoadingDecks={isLoadingDecks}
+        isLoadingPdf={isLoadingPdf}
+        pdfError={pdfError}
       />
       <MetricsPanel
         metrics={session.metrics}
@@ -161,6 +193,8 @@ export default function SessionPage() {
         isSessionActive={session.isSessionActive}
         sttError={stt.error}
         sttSaved={stt.saved}
+        isAnalyzing={pitchRun.isAnalyzing}
+        analysisError={pitchRun.error}
       />
       <video
         ref={trackingVideoRef}

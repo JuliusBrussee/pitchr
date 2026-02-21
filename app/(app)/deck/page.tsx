@@ -5,6 +5,7 @@ import {
   Upload,
   FileText,
   Trash2,
+  Download,
   Sparkles,
   Plus,
   Clock,
@@ -139,6 +140,24 @@ export default function DeckPage() {
       setDecks((prev) => prev.filter((d) => d.id !== deckId));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete deck');
+    }
+  };
+
+  // Download handler
+  const handleDownload = async (deck: DeckRecord) => {
+    try {
+      const res = await fetch(deck.pdf_url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${deck.name}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Download failed');
     }
   };
 
@@ -486,16 +505,28 @@ export default function DeckPage() {
                   {deck.slide_count} slides
                 </div>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(deck.id);
-                  }}
-                  className="absolute top-3 right-3 p-1.5 rounded-lg text-white/70 hover:text-red-400 hover:bg-white/15 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                  aria-label="Delete deck"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownload(deck);
+                    }}
+                    className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200"
+                    aria-label="Download deck"
+                  >
+                    <Download size={16} />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(deck.id);
+                    }}
+                    className="p-1.5 rounded-lg text-white/70 hover:text-red-400 hover:bg-white/15 transition-all duration-200"
+                    aria-label="Delete deck"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
               {/* Card Body */}

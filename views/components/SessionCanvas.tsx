@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, Download } from 'lucide-react';
 import { SiriBubble } from '@/views/components/SiriBubble';
 import { EngagementBubble } from '@/views/components/EngagementBubble';
 import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
@@ -29,11 +29,13 @@ interface SessionCanvasProps {
   slideCount?: number;
   onNextSlide?: () => void;
   onPrevSlide?: () => void;
-  renderSlideToCanvas?: (canvas: HTMLCanvasElement) => Promise<void>;
+  renderSlideToCanvas?: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
   decks?: Array<{ id: string; name: string; slide_count: number }>;
   selectedDeckId?: string | null;
   onSelectDeck?: (deckId: string | null) => void;
   isLoadingDecks?: boolean;
+  isLoadingPdf?: boolean;
+  pdfError?: string | null;
 }
 
 export function SessionCanvas({
@@ -61,6 +63,8 @@ export function SessionCanvas({
   selectedDeckId,
   onSelectDeck,
   isLoadingDecks,
+  isLoadingPdf,
+  pdfError,
 }: SessionCanvasProps) {
   const [focusMode, setFocusMode] = useState<'slides' | 'camera'>('slides');
 
@@ -90,6 +94,8 @@ export function SessionCanvas({
             selectedDeckId={selectedDeckId}
             onSelectDeck={onSelectDeck}
             isLoadingDecks={isLoadingDecks}
+            isLoadingPdf={isLoadingPdf}
+            pdfError={pdfError}
           />
         ) : (
           <CameraView stream={stream} isFocused />
@@ -270,21 +276,60 @@ function SlideViewer({
   selectedDeckId,
   onSelectDeck,
   isLoadingDecks,
+  isLoadingPdf,
+  pdfError,
 }: {
   pdfUrl?: string | null;
-  renderSlideToCanvas?: (canvas: HTMLCanvasElement) => Promise<void>;
+  renderSlideToCanvas?: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
   currentSlide: number;
   slideCount: number;
   decks?: Array<{ id: string; name: string; slide_count: number }>;
   selectedDeckId?: string | null;
   onSelectDeck?: (deckId: string | null) => void;
   isLoadingDecks?: boolean;
+  isLoadingPdf?: boolean;
+  pdfError?: string | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const handleDownload = () => {
+    if (!pdfUrl) return;
+    const a = document.createElement('a');
+    a.href = pdfUrl;
+    a.download = '';
+    a.click();
+  };
+
+  // Render slide to canvas, re-render on slide change or container resize
   useEffect(() => {
     if (!canvasRef.current || !renderSlideToCanvas) return;
-    renderSlideToCanvas(canvasRef.current);
+
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+
+    // Render once layout is settled
+    const doRender = () => {
+      if (!canvasRef.current || !renderSlideToCanvas) return;
+      renderSlideToCanvas(canvasRef.current);
+    };
+
+    // Use requestAnimationFrame to ensure container dimensions are computed
+    const rafId = requestAnimationFrame(doRender);
+
+    // Re-render on container resize
+    let observer: ResizeObserver | null = null;
+    if (container) {
+      observer = new ResizeObserver(() => {
+        requestAnimationFrame(doRender);
+      });
+      observer.observe(container);
+    }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer?.disconnect();
+    };
   }, [renderSlideToCanvas, currentSlide]);
 
   if (!pdfUrl) {
@@ -321,18 +366,69 @@ function SlideViewer({
     );
   }
 
+  // Loading state
+  if (isLoadingPdf) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: 'rgba(255,255,255,0.8)' }}
+          />
+          <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            Loading slides...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (pdfError) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
+        <div className="flex flex-col items-center gap-3">
+          <Monitor size={36} style={{ color: '#ef4444' }} />
+          <p className="text-xs font-medium" style={{ color: '#ef4444' }}>
+            Failed to load slides
+          </p>
+          <p className="text-xs max-w-xs text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {pdfError}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
+    <div
+      ref={containerRef}
+      className="absolute inset-0 flex items-center justify-center"
+      style={{ backgroundColor: '#1a1a1a' }}
+    >
       <canvas ref={canvasRef} className="max-w-full max-h-full" />
       {slideCount > 0 && (
-        <div
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-medium"
-          style={{
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            color: 'rgba(255,255,255,0.8)',
-          }}
-        >
-          {currentSlide} / {slideCount}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <div
+            className="px-3 py-1 rounded-full text-xs font-medium"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              color: 'rgba(255,255,255,0.8)',
+            }}
+          >
+            {currentSlide} / {slideCount}
+          </div>
+          <button
+            onClick={handleDownload}
+            className="p-1.5 rounded-full transition-all duration-200 hover:bg-white/20"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              color: 'rgba(255,255,255,0.8)',
+            }}
+            aria-label="Download deck"
+          >
+            <Download size={14} />
+          </button>
         </div>
       )}
     </div>
@@ -345,14 +441,19 @@ function SlideViewerMini({
   currentSlide,
 }: {
   pdfUrl?: string | null;
-  renderSlideToCanvas?: (canvas: HTMLCanvasElement) => Promise<void>;
+  renderSlideToCanvas?: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
   currentSlide?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current || !renderSlideToCanvas) return;
-    renderSlideToCanvas(canvasRef.current);
+    const rafId = requestAnimationFrame(() => {
+      if (canvasRef.current && renderSlideToCanvas) {
+        renderSlideToCanvas(canvasRef.current);
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [renderSlideToCanvas, currentSlide]);
 
   if (!pdfUrl) {

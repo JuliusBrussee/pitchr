@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(process.cwd()),
-  serverExternalPackages: ['pdf-parse'],
+  serverExternalPackages: ['pdf-parse', '@react-pdf/renderer', 'yoga-layout'],
   turbopack: {
     rules: {
       '*.glsl': {

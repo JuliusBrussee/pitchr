@@ -12,7 +12,7 @@ export interface UseDeckSlidesReturn {
   goToSlide: (n: number) => void;
   nextSlide: () => void;
   prevSlide: () => void;
-  renderSlideToCanvas: (canvas: HTMLCanvasElement) => Promise<void>;
+  renderSlideToCanvas: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
 }
 
 export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
@@ -22,6 +22,8 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const renderTaskRef = useRef(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const activeRenderRef = useRef<any>(null);
 
   // Load PDF document
   useEffect(() => {
@@ -38,11 +40,16 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
 
     (async () => {
       try {
-        const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-          'pdfjs-dist/build/pdf.worker.mjs',
-          import.meta.url,
-        ).toString();
+        // Load from CDN to avoid bundler conflict with pdfjs-dist's internal webpack runtime
+        const PDFJS_VERSION = '5.4.624';
+        const CDN = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}`;
+        const pdfjsLib = await import(
+          /* webpackIgnore: true */
+          `${CDN}/build/pdf.min.mjs`
+        );
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          `${CDN}/build/pdf.worker.min.mjs`;
 
         const doc = await pdfjsLib.getDocument(pdfUrl).promise;
         if (cancelled) return;
@@ -82,27 +89,57 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
     async (canvas: HTMLCanvasElement) => {
       if (!pdfDoc) return;
 
+      // Cancel any in-flight render on this canvas
+      if (activeRenderRef.current) {
+        activeRenderRef.current.cancel();
+        activeRenderRef.current = null;
+      }
+
       const taskId = ++renderTaskRef.current;
-      const page = await pdfDoc.getPage(currentSlide);
 
-      // Check if this render is still current
-      if (taskId !== renderTaskRef.current) return;
+      try {
+        const page = await pdfDoc.getPage(currentSlide);
 
-      const containerWidth = canvas.parentElement?.clientWidth ?? canvas.width;
-      const containerHeight = canvas.parentElement?.clientHeight ?? canvas.height;
-      const viewport = page.getViewport({ scale: 1 });
+        // Check if this render is still current
+        if (taskId !== renderTaskRef.current) return;
 
-      // Scale to fit container while maintaining aspect ratio
-      const scale = Math.min(
-        containerWidth / viewport.width,
-        containerHeight / viewport.height,
-      );
-      const scaledViewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale: 1 });
 
-      canvas.width = scaledViewport.width;
-      canvas.height = scaledViewport.height;
+        // Get container dimensions, falling back to reasonable defaults
+        const containerWidth = canvas.parentElement?.clientWidth || 800;
+        const containerHeight = canvas.parentElement?.clientHeight || 600;
 
-      await page.render({ canvas, viewport: scaledViewport }).promise;
+        // Scale to fit container while maintaining aspect ratio
+        const scale = Math.min(
+          containerWidth / viewport.width,
+          containerHeight / viewport.height,
+        );
+        const scaledViewport = page.getViewport({ scale });
+
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const renderTask = page.render({
+          canvasContext: ctx,
+          viewport: scaledViewport,
+        });
+        activeRenderRef.current = renderTask;
+
+        await renderTask.promise;
+        activeRenderRef.current = null;
+      } catch (e) {
+        // Ignore cancellation errors
+        if (e instanceof Error && e.message.includes('cancel')) return;
+        // Only log if this is still the current render task
+        if (taskId === renderTaskRef.current) {
+          console.error('Failed to render slide:', e);
+        }
+      }
     },
     [pdfDoc, currentSlide],
   );
@@ -116,6 +153,6 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
     goToSlide,
     nextSlide,
     prevSlide,
-    renderSlideToCanvas,
+    renderSlideToCanvas: pdfDoc ? renderSlideToCanvas : null,
   };
 }
