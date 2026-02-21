@@ -8,7 +8,7 @@ test.describe("head tracking", () => {
 
     await expect(page.getByText("Engagement")).toBeVisible();
     await expect(page.getByLabel("Engagement unavailable")).toBeVisible();
-    await expect(page.getByText("N/A")).toBeVisible();
+    await expect(page.getByText("No Face")).toBeVisible();
   });
 
   test("hides engagement bubble when camera is toggled off", async ({ page }) => {
@@ -17,7 +17,12 @@ test.describe("head tracking", () => {
     await page.getByLabel("Start session").click();
     await expect(page.getByText("Engagement")).toBeVisible();
 
-    await page.getByRole("button", { name: /^Camera$/ }).click();
+    const cameraToggle = page.getByRole("button", { name: /^Camera$/ });
+
+    await cameraToggle.click();
     await expect(page.getByText("Engagement")).toHaveCount(0);
+
+    await cameraToggle.click();
+    await expect(page.getByText("Engagement")).toBeVisible();
   });
 });

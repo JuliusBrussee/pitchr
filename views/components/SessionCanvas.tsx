@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, Download } from 'lucide-react';
 import { SiriBubble } from '@/views/components/SiriBubble';
+import { EngagementBubble } from '@/views/components/EngagementBubble';
+import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
 import type { OrbState } from '@/views/components/SiriBubble';
-import type { SpeechBubble } from '@/hooks/useSessionState';
+import type { HeadTrackingState } from '@/lib/headTracking/useHeadTracking';
 
 interface SessionCanvasProps {
   stream: MediaStream | null;
@@ -15,7 +17,10 @@ interface SessionCanvasProps {
   toggleMic: () => void;
   orbState: OrbState;
   orbIntensity: number;
-  speechBubbles: SpeechBubble[];
+  engagementBand?: HeadTrackingEngagementBand;
+  headState?: HeadTrackingState;
+  showEngagement?: boolean;
+  headTrackingError?: string | null;
   isSessionActive: boolean;
   onStartSession: () => void;
   onStopSession: () => void;
@@ -41,7 +46,10 @@ export function SessionCanvas({
   toggleMic,
   orbState,
   orbIntensity,
-  speechBubbles,
+  engagementBand = 'no_face',
+  headState = 'no_face',
+  showEngagement = false,
+  headTrackingError,
   isSessionActive,
   onStartSession,
   onStopSession,
@@ -115,19 +123,17 @@ export function SessionCanvas({
           </button>
         )}
 
-        {/* SiriBubble (top-right) */}
+        {/* SiriBubble + Engagement (top-right) */}
         {isSessionActive && (
-          <div className="absolute top-4 right-4 z-10">
+          <div className="absolute top-4 right-4 z-10 flex items-start gap-2">
             <SiriBubble state={orbState} intensity={orbIntensity} size="sm" />
+            <EngagementBubble
+              band={engagementBand}
+              state={headState}
+              visible={showEngagement}
+            />
           </div>
         )}
-
-        {/* Speech Bubbles */}
-        <div className="absolute top-4 right-20 z-10 flex flex-col gap-2 max-w-xs">
-          {speechBubbles.map(bubble => (
-            <SpeechBubbleChip key={bubble.id} text={bubble.text} />
-          ))}
-        </div>
       </div>
 
       {/* Playback & Media Controls Bar */}
@@ -182,6 +188,11 @@ export function SessionCanvas({
           ) : null}
         </div>
       </div>
+      {headTrackingError ? (
+        <p className="text-xs px-1" style={{ color: 'var(--text-muted)' }}>
+          Face tracking unavailable
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -526,30 +537,5 @@ function CameraView({
       className={`${isFocused ? 'absolute inset-0' : ''} w-full h-full object-cover`}
       style={{ transform: 'scaleX(-1)' }}
     />
-  );
-}
-
-function SpeechBubbleChip({ text }: { text: string }) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    requestAnimationFrame(() => setVisible(true));
-  }, []);
-
-  return (
-    <div
-      className="px-3 py-2 rounded-full text-xs font-medium border transition-all duration-500"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        backdropFilter: `blur(var(--blur-strength))`,
-        WebkitBackdropFilter: `blur(var(--blur-strength))`,
-        borderColor: 'var(--border-color)',
-        color: 'var(--text-primary)',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(-8px)',
-      }}
-    >
-      {text}
-    </div>
   );
 }
