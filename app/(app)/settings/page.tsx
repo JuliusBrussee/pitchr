@@ -586,8 +586,8 @@ export default function SettingsPage() {
                 <button
                   onClick={async () => {
                     if (!confirm('Delete all pitch runs? This cannot be undone.')) return;
-                    const runs = await fetch('/api/pitch/run').then((r) => r.json());
-                    if (!Array.isArray(runs)) return;
+                    const payload = await fetch('/api/pitch/run?includePending=true').then((r) => r.json());
+                    const runs = Array.isArray(payload?.runs) ? payload.runs : [];
                     await Promise.all(runs.map((r: { id: string }) => fetch(`/api/pitch/run/${r.id}`, { method: 'DELETE' })));
                     alert('All data deleted.');
                   }}

@@ -35,7 +35,7 @@ const httpServer = createServer(app);
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
 wss.on("connection", (clientWs) => {
-  const apiKey = process.env.ELEVENLABS_API_KEY?.trim();
+  const apiKey = process.env.ELEVENLABS_API_KEY_STT?.trim() || process.env.ELEVENLABS_API_KEY?.trim();
   if (!apiKey) {
     clientWs.send(JSON.stringify({ type: "error", error: "Server configuration error." }));
     clientWs.close();

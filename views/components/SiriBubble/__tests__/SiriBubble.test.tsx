@@ -54,7 +54,8 @@ describe('SiriBubble component', () => {
 
   it('applies className prop', () => {
     const { container } = render(<SiriBubble state="idle" className="my-custom-class" />);
-    expect(container.firstChild).toHaveClass('my-custom-class');
+    const wrapper = container.firstChild as HTMLElement;
+    expect(wrapper.classList.contains('my-custom-class')).toBe(true);
   });
 
   it('applies correct size dimensions', () => {

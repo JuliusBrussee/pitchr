@@ -3,22 +3,60 @@ import {
   PitchValidationError,
   runPitchAnalysisController,
 } from '@/controllers/pitchController';
-import { listRuns } from '@/services/runService';
-import type { CreatePitchRunErrorResponse } from '@/types/pitch';
-import type { PitchMode } from '@/types/pitch';
+import { computeRunStats, listRuns } from '@/services/runService';
+import type {
+  CreatePitchRunErrorResponse,
+  ListPitchRunsResponse,
+  Run,
+} from '@/types/pitch';
+
+function toRunResponse(run: Awaited<ReturnType<typeof listRuns>>[number]): Run {
+  const isComplete = run.status === 'complete';
+  return {
+    id: run.id,
+    createdAt: run.created_at,
+    startedAt: run.started_at ?? undefined,
+    completedAt: run.completed_at ?? undefined,
+    mode: run.mode,
+    status: run.status,
+    error: run.error_message ?? undefined,
+    inputType: run.input_type,
+    transcript: run.transcript,
+    audioUrl: run.audio_url ?? undefined,
+    analysis: isComplete ? run.analysis.outputs.feedback : undefined,
+    analysisVersion: isComplete ? run.analysis.analysisVersion : undefined,
+    coverage: isComplete ? run.analysis.coverage : undefined,
+    outputs: isComplete ? run.analysis.outputs : undefined,
+    meta: isComplete ? run.analysis.meta : run.meta ?? undefined,
+    overallScore: run.overall_score,
+    fallback: run.is_fallback,
+  };
+}
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = request.nextUrl;
-    const mode = searchParams.get('mode') as PitchMode | null;
+    const mode = searchParams.get('mode');
     const limitParam = searchParams.get('limit');
-    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
+    const includePending = searchParams.get('includePending') === 'true';
+    const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
+    const parsedMode = mode === 'elevator' || mode === 'vc_pitch' ? mode : undefined;
 
-    const runs = await listRuns({
-      mode: mode ?? undefined,
-      limit: limit && !isNaN(limit) ? limit : undefined,
-    });
-    return NextResponse.json(runs);
+    const allRuns = await listRuns({ mode: parsedMode });
+    const visibleRuns = includePending
+      ? allRuns
+      : allRuns.filter((run) => run.status === 'complete');
+    const runs =
+      Number.isFinite(limit) && limit !== undefined
+        ? visibleRuns.slice(0, limit)
+        : visibleRuns;
+
+    const response: ListPitchRunsResponse = {
+      runs: runs.map(toRunResponse),
+      stats: computeRunStats(visibleRuns),
+    };
+
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to list runs' },
@@ -29,19 +67,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   let body: unknown;
-
   try {
     body = await request.json();
   } catch {
-    const response: CreatePitchRunErrorResponse = {
-      error: 'Invalid JSON body',
-    };
+    const response: CreatePitchRunErrorResponse = { error: 'Invalid JSON body' };
     return NextResponse.json(response, { status: 400 });
   }
 
   try {
     const result = await runPitchAnalysisController(body);
-    return NextResponse.json(result, { status: 201 });
+    const statusCode = result.status === 'complete' ? 201 : 202;
+    return NextResponse.json(result, { status: statusCode });
   } catch (error) {
     if (error instanceof PitchValidationError) {
       const response: CreatePitchRunErrorResponse = { error: error.message };
@@ -49,10 +85,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const response: CreatePitchRunErrorResponse = {
-      error:
-        error instanceof Error
-          ? error.message
-          : 'Failed to analyze pitch.',
+      error: error instanceof Error ? error.message : 'Failed to analyze pitch.',
     };
     return NextResponse.json(response, { status: 500 });
   }

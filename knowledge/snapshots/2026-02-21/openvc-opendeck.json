@@ -1,0 +1,12 @@
+{
+  "source_id": "openvc-opendeck",
+  "source_url": "https://www.openvc.app/opendeck",
+  "source_title": "OpenVC OpenDeck",
+  "snapshot_date": "2026-02-21",
+  "access_status": "gated",
+  "key_rules_do": [],
+  "key_rules_dont": [],
+  "confidence_score": 0.2,
+  "content_hash_sha256": "020beeeb032c65305f08399fde414b5b2b5ba442c1e7fab29043924c47bbe76d",
+  "screenshot_path": "knowledge/snapshots/2026-02-21/openvc-opendeck.png"
+}

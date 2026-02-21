@@ -1,0 +1,22 @@
+{
+  "source_id": "yc-investor-vs-customer-pitch",
+  "source_url": "https://www.ycombinator.com/library/7u-how-pitching-investors-is-different-than-pitching-customers",
+  "source_title": "YC: Investors vs Customers Pitching",
+  "snapshot_date": "2026-02-21",
+  "access_status": "full",
+  "key_rules_do": [
+    "Michael Seibel: So in summary, the customer pitch and the investor pitch are two very different things. The investor is trying to understand, can you build a big business? The customer is trying to understand, does your product solve their specific problem? Because there are two different motivations for these two different audiences, most likely you're going to need two different pitches. So that's one thing that you should focus on, even at the early stage of your company.",
+    "Investors invest in teams not slides. Your slides should make your ideas more clear. Here are design principles to follow when creating your pitch deck and story."
+  ],
+  "key_rules_dont": [
+    "Michael Seibel: When you think about where to use this customer pitch, it can be on a sales call. If you have the front page of your website, you can be in your to-do, your help, here FAQ. It can be in user interviews. A lot of the language is really relevant to their audience. On the other hand, when you're talking to an investor, unless you're pitching a consumer product that you're pretty sure that they'd want to use, you have to assume that they don't really understand the problem.",
+    "Michael Seibel: The best example I give about this is pitching Google. Imagine if I was pitching Google and I said, \"Google organizes the world's information.\" For an investor, that's actually not telling them anything. If they understood what Google did already, then sure, they'll be great. But if they don't really understand what Google does, that doesn't tell them anything. It doesn't create any picture in there.",
+    "Michael Seibel: A much better pitch for Google is to say, \"Google's a new type of search engine. With Google, you actually go to our website, you type what you want to know into a search box, you click enter, and we report in an ordered list websites that we think can help you with the information you're looking for. What makes people different is that those websites are ranked by how other websites link to them. And so those results are way more relevant.\" That is something that people can understand, even if they don't use a search engine. That is something that people can understand when they don't know any of the jargon of your industry.",
+    "Michael Seibel: And so you have to really, really carefully think when you're thinking about an investor pitch. Your investor pitch is probably not something you want to put on your website. It's probably not something that feels comfortable when you're talking to a customer. It's something that really is only typically reserved for your pitch deck. If your front page of your website and your pitch deck are saying the same thing and you don't have a product where you assume the customer is also a user—a product like Yelp or Uber—you might be doing it wrong.",
+    "Michael Seibel: So an investor pitch, typically the investor is curious about: One, what do you do? In the simplest language possible. Two, how far along are you? Just idea phase? Are you building the product? Have you launched the product? Do you have customers? Deep growth? Three, how big of a total addressable market do you think you're addressing? Four, how do you plan to charge your users? Five, what do you think you know about this market that other people or competitors don't understand? And six, who's on your team? Specifically, who are the founders? More specifically, do you have the ability to build the product that you are trying to bring to market?",
+    "Biggest mistakes first-time founders make"
+  ],
+  "confidence_score": 0.6666666666666666,
+  "content_hash_sha256": "8196e52f0f73db6a17b3a295025962e4e5ad4aaafd8e1a90242e8b4c14dc8ea2",
+  "screenshot_path": "knowledge/snapshots/2026-02-21/yc-investor-vs-customer-pitch.png"
+}

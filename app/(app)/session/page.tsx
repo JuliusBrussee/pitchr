@@ -1,27 +1,56 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
 import { useSessionState } from '@/hooks/useSessionState';
 import { useDeckSlides } from '@/hooks/useDeckSlides';
 import { useSTT } from '@/hooks/useSTT';
+import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import type { SpeechBubble } from '@/hooks/useSessionState';
 import type { DeckRecord } from '@/services/deckService';
+import type { PitchMode } from '@/types/pitch';
+import type { SlideRecord } from '@/services/deckService';
 
 export default function SessionPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+          <p style={{ color: 'var(--text-muted)' }}>Loading session...</p>
+        </main>
+      }
+    >
+      <SessionPageContent />
+    </Suspense>
+  );
+}
+
+function SessionPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const media = useMediaStream();
   const session = useSessionState();
   const stt = useSTT();
+  const { runPitchAnalysis, isAnalyzing, error: runError } = usePitchRun();
   const { setOrbState } = useTheme();
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const deckTextCacheRef = useRef<Record<string, string>>({});
+  const autoSubmitLockRef = useRef(false);
 
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
+  const modeFromQuery = searchParams.get('mode');
+  const pitchMode: PitchMode =
+    modeFromQuery === 'elevator' || modeFromQuery === 'vc_pitch'
+      ? modeFromQuery
+      : 'vc_pitch';
 
   // Fetch available decks on mount
   useEffect(() => {
@@ -43,6 +72,27 @@ export default function SessionPage() {
     () => decks.find((d) => d.id === selectedDeckId) ?? null,
     [decks, selectedDeckId],
   );
+
+  const loadDeckText = useCallback(async (deckId: string): Promise<string | undefined> => {
+    if (deckTextCacheRef.current[deckId]) {
+      return deckTextCacheRef.current[deckId];
+    }
+    const response = await fetch(`/api/deck/${deckId}`);
+    if (!response.ok) {
+      throw new Error('Failed to load selected deck text for analysis.');
+    }
+    const payload = (await response.json()) as { slides?: SlideRecord[] };
+    const deckText = (payload.slides ?? [])
+      .map((slide) => slide.text?.trim() ?? '')
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
+    if (deckText) {
+      deckTextCacheRef.current[deckId] = deckText;
+      return deckText;
+    }
+    return undefined;
+  }, []);
 
   const {
     currentSlide,
@@ -90,6 +140,8 @@ export default function SessionPage() {
   }, [stt.isRecording, stt.transcriptSegments, stt.liveText, session.speechBubbles]);
 
   const handleStartSession = useCallback(() => {
+    setAnalysisError(null);
+    autoSubmitLockRef.current = false;
     session.startSession();
     stt.start();
   }, [session, stt]);
@@ -109,6 +161,57 @@ export default function SessionPage() {
 
   // Register session controls with the shared sidebar
   useSidebarSession(handleSessionToggle, session.isSessionActive);
+
+  useEffect(() => {
+    if (!stt.saved || autoSubmitLockRef.current) {
+      return;
+    }
+
+    const transcript = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
+    if (!transcript) {
+      autoSubmitLockRef.current = true;
+      setAnalysisError('Transcript was saved but no text was captured for analysis.');
+      return;
+    }
+
+    autoSubmitLockRef.current = true;
+    session.setOrbState('active');
+
+    void (async () => {
+      try {
+        let deckText: string | undefined;
+        if (selectedDeckId !== null) {
+          try {
+            deckText = await loadDeckText(selectedDeckId);
+          } catch {
+            deckText = undefined;
+          }
+        }
+        const result = await runPitchAnalysis({
+          mode: pitchMode,
+          inputType: 'audio',
+          transcript,
+          deckText,
+        });
+        router.push(`/results/${result.runId}`);
+      } catch (error) {
+        autoSubmitLockRef.current = false;
+        setAnalysisError(
+          error instanceof Error ? error.message : 'Failed to run pitch analysis.',
+        );
+        session.setOrbState('idle');
+      }
+    })();
+  }, [
+    loadDeckText,
+    pitchMode,
+    router,
+    runPitchAnalysis,
+    selectedDeckId,
+    session,
+    stt.saved,
+    stt.transcriptSegments,
+  ]);
 
   return (
     <>
@@ -140,8 +243,8 @@ export default function SessionPage() {
         checklist={session.checklist}
         insights={session.insights}
         isSessionActive={session.isSessionActive}
-        sttError={stt.error}
-        sttSaved={stt.saved}
+        sttError={analysisError ?? runError ?? stt.error}
+        sttSaved={stt.saved && !isAnalyzing}
       />
     </>
   );

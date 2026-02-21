@@ -43,9 +43,9 @@ interface HistoryRun {
 interface RunRecord {
   id: string;
   mode: string;
-  input_type: string;
-  overall_score: number;
-  created_at: string;
+  inputType: string;
+  overallScore: number;
+  createdAt: string;
   analysis: {
     one_line_verdict: string;
     delivery_metrics: { duration_seconds: number };
@@ -109,19 +109,19 @@ export default function HistoryPage() {
   useEffect(() => {
     fetch('/api/pitch/run')
       .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data)) { setLoading(false); return; }
+      .then((payload: { runs?: RunRecord[] }) => {
+        const data = Array.isArray(payload.runs) ? payload.runs : [];
         const mapped = (data as RunRecord[]).map((r, i) => ({
           id: r.id,
           number: data.length - i,
           mode: r.mode as PitchMode,
-          inputType: r.input_type as 'audio' | 'text',
-          overallScore: r.overall_score,
+          inputType: r.inputType as 'audio' | 'text',
+          overallScore: r.overallScore,
           one_line_verdict: r.analysis.one_line_verdict,
-          createdAt: r.created_at,
+          createdAt: r.createdAt,
           duration_seconds: r.analysis.delivery_metrics.duration_seconds,
           deck: undefined,
-          dateGroup: getDateGroup(r.created_at),
+          dateGroup: getDateGroup(r.createdAt),
         }));
         setRuns(mapped);
       })

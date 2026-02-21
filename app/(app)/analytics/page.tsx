@@ -28,8 +28,8 @@ import { getScoreColor } from '@/views/components/ui';
 
 interface RunRecord {
   id: string;
-  overall_score: number;
-  created_at: string;
+  overallScore: number;
+  createdAt: string;
   analysis: {
     rubric_breakdown: { category: string; score: number; max_score: number }[];
     delivery_metrics: { wpm: number; duration_seconds: number; filler_words: { count: number }[] };
@@ -55,16 +55,16 @@ function filterByRange(runs: RunRecord[], range: TimeRange): RunRecord[] {
   if (range === 'All') return runs;
   const daysMap: Record<string, number> = { '7D': 7, '30D': 30, '90D': 90 };
   const cutoff = getDaysAgo(daysMap[range]);
-  return runs.filter((r) => new Date(r.created_at) >= cutoff);
+  return runs.filter((r) => new Date(r.createdAt) >= cutoff);
 }
 
 function computeTrend(runs: RunRecord[]): { label: string; value: number }[] {
   return runs
     .slice()
     .reverse()
-    .map((r) => ({
-      label: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: r.overall_score,
+      .map((r) => ({
+      label: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: r.overallScore,
     }));
 }
 
@@ -157,7 +157,9 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetch('/api/pitch/run')
       .then((r) => r.json())
-      .then((data) => setAllRuns(Array.isArray(data) ? data : []))
+      .then((payload: { runs?: RunRecord[] }) =>
+        setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
+      )
       .catch(() => setAllRuns([]))
       .finally(() => setLoading(false));
   }, []);
@@ -169,7 +171,7 @@ export default function AnalyticsPage() {
   const recommendations = useMemo(() => computeRecommendations(rubricCategories), [rubricCategories]);
 
   const avgScore = filteredRuns.length > 0
-    ? Math.round(filteredRuns.reduce((s, r) => s + r.overall_score, 0) / filteredRuns.length)
+    ? Math.round(filteredRuns.reduce((s, r) => s + r.overallScore, 0) / filteredRuns.length)
     : 0;
   const avgDurationSecs = filteredRuns.length > 0
     ? Math.round(filteredRuns.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / filteredRuns.length)

@@ -1,0 +1,75 @@
+{
+  "transcript": "Hi everyone, we are Pitcher. We basically are building an AI platform that helps people pitch better in general, like for startups, hackathons, investors. Basically, any situation where you need to be present. The idea is that pitching is really hard and people don't always get time to practice. And feedback is inconsistent because different people say different things. So Pitcher solves that by using AI to analyze your pitch and gives you feedback like scores and stuff. We are planning to integrate a lot of advanced things like multiple models and video analysis, body language, slides too. And we compare your pitch to Y Combinator or other good pitches and tells you what toimprove on. There will be a dashboard where you can see history and track performance over time. This can be huge for a lot of people who pitch. There's a big market. We think this will become standard in a way people are able to prepare pitches. So yeah, that is Pitcher.",
+  "segments": [
+    {
+      "text": "Hi everyone, we are Pitcher.",
+      "start": 0,
+      "end": 1.3337278106508879
+    },
+    {
+      "text": "We basically are building an AI platform that helps people pitch better in general, like for startups, hackathons, investors.",
+      "start": 1.3337278106508879,
+      "end": 7.287869822485208
+    },
+    {
+      "text": "Basically, any situation where you need to be present.",
+      "start": 7.287869822485208,
+      "end": 9.860059171597634
+    },
+    {
+      "text": "The idea is that pitching is really hard and people don't always get time to practice.",
+      "start": 9.860059171597634,
+      "end": 13.956508875739647
+    },
+    {
+      "text": "And feedback is inconsistent because different people say different things.",
+      "start": 13.956508875739647,
+      "end": 17.52899408284024
+    },
+    {
+      "text": "So Pitcher solves that by using AI to analyze your pitch and gives you feedback like scores and stuff.",
+      "start": 17.52899408284024,
+      "end": 22.387573964497044
+    },
+    {
+      "text": "We are planning to integrate a lot of advanced things like multiple models and video analysis, body language, slides too.",
+      "start": 22.387573964497044,
+      "end": 28.151183431952667
+    },
+    {
+      "text": "And we compare your pitch to Y Combinator or other good pitches and tells you what to",
+      "start": 28.151183431952667,
+      "end": 32.2
+    },
+    {
+      "text": "improve on.",
+      "start": 32.2,
+      "end": 32.79985018726592
+    },
+    {
+      "text": "There will be a dashboard where you can see history and track performance over time.",
+      "start": 32.79985018726592,
+      "end": 37.38052434456929
+    },
+    {
+      "text": "This can be huge for a lot of people who pitch.",
+      "start": 37.38052434456929,
+      "end": 39.94352059925094
+    },
+    {
+      "text": "There's a big market.",
+      "start": 39.94352059925094,
+      "end": 41.08868913857678
+    },
+    {
+      "text": "We think this will become standard in a way people are able to prepare pitches.",
+      "start": 41.08868913857678,
+      "end": 45.39670411985019
+    },
+    {
+      "text": "So yeah, that is Pitcher.",
+      "start": 45.39670411985019,
+      "end": 46.760000000000005
+    }
+  ]
+}

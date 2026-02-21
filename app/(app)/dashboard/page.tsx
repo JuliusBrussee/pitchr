@@ -38,8 +38,8 @@ interface DashboardRun {
 interface RunRecord {
   id: string;
   mode: string;
-  overall_score: number;
-  created_at: string;
+  overallScore: number;
+  createdAt: string;
   analysis: {
     one_line_verdict: string;
     delivery_metrics: { duration_seconds: number };
@@ -181,20 +181,19 @@ export default function DashboardPage() {
     setFormattedDate(getFormattedDate());
     setTip(PITCH_TIPS[Math.floor(Math.random() * PITCH_TIPS.length)]);
 
-    Promise.all([
-      fetch('/api/pitch/run/stats').then((r) => r.json()),
-      fetch('/api/pitch/run?limit=3').then((r) => r.json()),
-    ])
-      .then(([statsData, runsData]) => {
-        setStats({ totalRuns: 0, averageScore: 0, bestScore: 0, trend: [], ...statsData });
-        if (Array.isArray(runsData)) {
+    fetch('/api/pitch/run?limit=3')
+      .then((r) => r.json())
+      .then((payload: { runs?: RunRecord[]; stats?: StatsData }) => {
+        const runsData = Array.isArray(payload.runs) ? payload.runs : [];
+        setStats({ totalRuns: 0, averageScore: 0, bestScore: 0, trend: [], ...(payload.stats ?? {}) });
+        if (runsData.length > 0) {
           setRecentRuns(
             runsData.map((r: RunRecord) => ({
               id: r.id,
               mode: r.mode as PitchMode,
-              overallScore: r.overall_score,
+              overallScore: r.overallScore,
               one_line_verdict: r.analysis.one_line_verdict,
-              createdAt: r.created_at,
+              createdAt: r.createdAt,
               duration_seconds: r.analysis.delivery_metrics.duration_seconds,
             })),
           );
