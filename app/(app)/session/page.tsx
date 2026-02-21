@@ -1,35 +1,75 @@
 'use client';
 
-import { useEffect, useCallback, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
 import { useSessionState } from '@/hooks/useSessionState';
-import { usePitchRun } from '@/hooks/usePitchRun';
+import { useDeckSlides } from '@/hooks/useDeckSlides';
 import { useSTT } from '@/hooks/useSTT';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import type { SpeechBubble } from '@/hooks/useSessionState';
-import type { PitchMode } from '@/types/pitch';
-
-const DEFAULT_MODE: PitchMode = 'vc_pitch';
+import type { DeckRecord } from '@/services/deckService';
 
 export default function SessionPage() {
-  const router = useRouter();
   const media = useMediaStream();
   const session = useSessionState();
-  const pitchRun = usePitchRun();
   const stt = useSTT();
   const { setOrbState } = useTheme();
-  const analysisTriggeredRef = useRef(false);
-  const [hasSessionStarted, setHasSessionStarted] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
 
+  // Deck state
+  const [decks, setDecks] = useState<DeckRecord[]>([]);
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+  const [isLoadingDecks, setIsLoadingDecks] = useState(true);
+
+  // Fetch available decks on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/deck');
+        if (!res.ok) throw new Error('Failed to load decks');
+        const data = await res.json();
+        setDecks(data);
+      } catch {
+        // Silently fail — deck picker just won't show decks
+      } finally {
+        setIsLoadingDecks(false);
+      }
+    })();
+  }, []);
+
+  const selectedDeck = useMemo(
+    () => decks.find((d) => d.id === selectedDeckId) ?? null,
+    [decks, selectedDeckId],
+  );
+
+  const {
+    currentSlide,
+    slideCount,
+    nextSlide,
+    prevSlide,
+    renderSlideToCanvas,
+  } = useDeckSlides(selectedDeck?.pdf_url ?? null);
+
+  // Keyboard shortcuts for slide navigation
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight') nextSlide();
+      else if (e.key === 'ArrowLeft') prevSlide();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [nextSlide, prevSlide]);
+
+  // Sync orb state to ThemeProvider for reactive aura
   useEffect(() => {
     setOrbState(session.orbState);
   }, [session.orbState, setOrbState]);
 
+  // Build speech bubbles from real STT transcript when recording, otherwise mock bubbles
   const speechBubbles: SpeechBubble[] = useMemo(() => {
     if (stt.isRecording) {
       const segments = stt.transcriptSegments.map((text, i) => ({
@@ -50,84 +90,24 @@ export default function SessionPage() {
   }, [stt.isRecording, stt.transcriptSegments, stt.liveText, session.speechBubbles]);
 
   const handleStartSession = useCallback(() => {
-    if (pitchRun.isAnalyzing) return;
-    const resume = isPaused;
-    analysisTriggeredRef.current = false;
     session.startSession();
-    setHasSessionStarted(true);
-    setIsPaused(false);
-    void stt.start({ resume }).catch(() => {
-      session.stopSession();
-      setHasSessionStarted(false);
-      setIsPaused(false);
-    });
-  }, [isPaused, pitchRun.isAnalyzing, session, stt]);
+    stt.start();
+  }, [session, stt]);
 
-  const handlePauseSession = useCallback(() => {
-    if (pitchRun.isAnalyzing || !hasSessionStarted) return;
-    stt.pause();
+  const handleStopSession = useCallback(() => {
     session.stopSession();
-    session.setOrbState('neutral');
-    setIsPaused(true);
-  }, [hasSessionStarted, pitchRun.isAnalyzing, session, stt]);
-
-  const handleEndSession = useCallback(() => {
-    if (pitchRun.isAnalyzing || !hasSessionStarted) return;
     stt.stop();
-    session.stopSession();
-    setIsPaused(false);
-    setHasSessionStarted(false);
-  }, [hasSessionStarted, pitchRun.isAnalyzing, session, stt]);
+  }, [session, stt]);
 
   const handleSessionToggle = useCallback(() => {
-    if (pitchRun.isAnalyzing) return;
-
-    if (!hasSessionStarted || isPaused) {
-      handleStartSession();
+    if (session.isSessionActive) {
+      handleStopSession();
     } else {
-      handlePauseSession();
+      handleStartSession();
     }
-  }, [pitchRun.isAnalyzing, hasSessionStarted, isPaused, handleStartSession, handlePauseSession]);
+  }, [session.isSessionActive, handleStartSession, handleStopSession]);
 
-  useEffect(() => {
-    if (!stt.saved) {
-      analysisTriggeredRef.current = false;
-    }
-  }, [stt.saved]);
-
-  useEffect(() => {
-    if (!stt.saved || analysisTriggeredRef.current || pitchRun.isAnalyzing) {
-      return;
-    }
-
-    const transcript = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
-    if (!transcript) return;
-
-    analysisTriggeredRef.current = true;
-    session.setOrbState('neutral');
-
-    void pitchRun
-      .runPitchAnalysis({
-        mode: DEFAULT_MODE,
-        transcript,
-        inputType: 'audio',
-      })
-      .then(({ runId }) => {
-        session.setOrbState('positive');
-        router.push(`/review/${runId}`);
-      })
-      .catch(() => {
-        session.setOrbState('negative');
-        analysisTriggeredRef.current = false;
-      });
-  }, [
-    stt.saved,
-    stt.transcriptSegments,
-    pitchRun,
-    router,
-    session,
-  ]);
-
+  // Register session controls with the shared sidebar
   useSidebarSession(handleSessionToggle, session.isSessionActive);
 
   return (
@@ -142,19 +122,25 @@ export default function SessionPage() {
         orbIntensity={0.6}
         speechBubbles={speechBubbles}
         isSessionActive={session.isSessionActive}
-        hasSessionStarted={hasSessionStarted}
-        isPaused={isPaused}
-        isAnalyzing={pitchRun.isAnalyzing}
         onStartSession={handleStartSession}
-        onPauseSession={handlePauseSession}
-        onEndSession={handleEndSession}
+        onStopSession={handleStopSession}
+        pdfUrl={selectedDeck?.pdf_url ?? null}
+        currentSlide={currentSlide}
+        slideCount={slideCount}
+        onNextSlide={nextSlide}
+        onPrevSlide={prevSlide}
+        renderSlideToCanvas={renderSlideToCanvas}
+        decks={decks}
+        selectedDeckId={selectedDeckId}
+        onSelectDeck={setSelectedDeckId}
+        isLoadingDecks={isLoadingDecks}
       />
       <MetricsPanel
         metrics={session.metrics}
         checklist={session.checklist}
         insights={session.insights}
         isSessionActive={session.isSessionActive}
-        sttError={stt.error ?? pitchRun.error}
+        sttError={stt.error}
         sttSaved={stt.saved}
       />
     </>

@@ -1,4 +1,5 @@
 import { analyzePitch } from '@/services/analysisService';
+import { insertRun } from '@/services/runService';
 import type {
   CreatePitchRunRequest,
   CreatePitchRunResponse,
@@ -64,8 +65,18 @@ export async function runPitchAnalysisController(
     mode: payload.mode,
   });
 
+  const run = await insertRun({
+    mode: payload.mode,
+    input_type: payload.inputType,
+    transcript: payload.transcript,
+    audio_url: payload.audioUrl,
+    overall_score: analysis.overall_score,
+    analysis,
+    is_fallback: fallback,
+  });
+
   return {
-    runId: crypto.randomUUID(),
+    runId: run.id,
     status: 'complete',
     analysis,
     fallback,

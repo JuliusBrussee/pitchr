@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -24,118 +24,112 @@ import {
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor } from '@/views/components/ui';
 
-/* ——— Mock Data ———————————————————————————————————————————————— */
+/* ——— Types ——— */
 
-const SCORE_TREND: Record<TimeRange, { label: string; value: number }[]> = {
-  '7D': [
-    { label: 'Feb 15', value: 62 },
-    { label: 'Feb 16', value: 71 },
-    { label: 'Feb 17', value: 56 },
-    { label: 'Feb 18', value: 79 },
-    { label: 'Feb 19', value: 84 },
-    { label: 'Feb 20', value: 68 },
-    { label: 'Feb 21', value: 78 },
-  ],
-  '30D': [
-    { label: 'Jan 23', value: 52 },
-    { label: 'Jan 26', value: 58 },
-    { label: 'Jan 29', value: 64 },
-    { label: 'Feb 1', value: 61 },
-    { label: 'Feb 4', value: 67 },
-    { label: 'Feb 7', value: 72 },
-    { label: 'Feb 10', value: 70 },
-    { label: 'Feb 13', value: 75 },
-    { label: 'Feb 16', value: 71 },
-    { label: 'Feb 18', value: 79 },
-    { label: 'Feb 20', value: 84 },
-    { label: 'Feb 21', value: 78 },
-  ],
-  '90D': [
-    { label: 'Dec', value: 42 },
-    { label: 'Dec', value: 48 },
-    { label: 'Jan', value: 55 },
-    { label: 'Jan', value: 61 },
-    { label: 'Jan', value: 58 },
-    { label: 'Jan', value: 64 },
-    { label: 'Feb', value: 70 },
-    { label: 'Feb', value: 72 },
-    { label: 'Feb', value: 75 },
-    { label: 'Feb', value: 79 },
-    { label: 'Feb', value: 84 },
-    { label: 'Feb', value: 78 },
-  ],
-  All: [
-    { label: 'Oct', value: 32 },
-    { label: 'Oct', value: 38 },
-    { label: 'Nov', value: 44 },
-    { label: 'Nov', value: 51 },
-    { label: 'Dec', value: 48 },
-    { label: 'Dec', value: 55 },
-    { label: 'Jan', value: 61 },
-    { label: 'Jan', value: 64 },
-    { label: 'Jan', value: 67 },
-    { label: 'Feb', value: 72 },
-    { label: 'Feb', value: 79 },
-    { label: 'Feb', value: 78 },
-  ],
+interface RunRecord {
+  id: string;
+  overall_score: number;
+  created_at: string;
+  analysis: {
+    rubric_breakdown: { category: string; score: number; max_score: number }[];
+    delivery_metrics: { wpm: number; duration_seconds: number; filler_words: { count: number }[] };
+  };
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  structure: 'Structure',
+  clarity: 'Clarity & Concision',
+  evidence: 'Evidence & Traction',
+  market: 'Market & Differentiation',
+  delivery: 'Delivery',
 };
 
-const RUBRIC_CATEGORIES = [
-  { id: 'structure', label: 'Structure', score: 16.4, maxScore: 20 },
-  { id: 'clarity', label: 'Clarity & Concision', score: 15.8, maxScore: 20 },
-  { id: 'evidence', label: 'Evidence & Traction', score: 12.2, maxScore: 20 },
-  { id: 'market', label: 'Market & Differentiation', score: 14.6, maxScore: 20 },
-  { id: 'delivery', label: 'Delivery', score: 18.0, maxScore: 20 },
-];
+function getDaysAgo(days: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
 
-const INSIGHTS = [
-  {
-    type: 'strength' as const,
-    title: 'Exceptional delivery confidence',
-    body: 'Your vocal presence and pacing consistently score above 85th percentile across all sessions.',
-  },
-  {
-    type: 'strength' as const,
-    title: 'Strong narrative structure',
-    body: 'Problem \u2192 solution \u2192 traction flow is well-established. Keep the opening hook under 15 seconds.',
-  },
-  {
-    type: 'improve' as const,
-    title: 'Evidence section needs hard numbers',
-    body: 'Scoring 12.2/20 on Evidence & Traction. Add specific metrics: MRR, user count, growth rate.',
-  },
-  {
-    type: 'improve' as const,
-    title: 'Market sizing lacks depth',
-    body: 'TAM/SAM/SOM breakdown is vague. Use bottom-up calculation with cited sources for credibility.',
-  },
-  {
-    type: 'strength' as const,
-    title: 'Clarity improving over time',
-    body: 'Filler word usage dropped 40% over the last 30 days. Average WPM now in the ideal 140\u2013160 range.',
-  },
-];
+function filterByRange(runs: RunRecord[], range: TimeRange): RunRecord[] {
+  if (range === 'All') return runs;
+  const daysMap: Record<string, number> = { '7D': 7, '30D': 30, '90D': 90 };
+  const cutoff = getDaysAgo(daysMap[range]);
+  return runs.filter((r) => new Date(r.created_at) >= cutoff);
+}
 
-const RECOMMENDATIONS = [
-  {
-    title: 'Add traction proof points',
-    description:
-      'Record a VC Pitch run and focus on weaving 3 specific metrics into your evidence section. Target: 16/20 on Evidence.',
-    tag: 'evidence',
-  },
-  {
-    title: 'Refine your market slide',
-    description:
-      'Practice a 30-second segment on TAM/SAM/SOM using bottom-up analysis. Cite your data sources explicitly.',
-    tag: 'market',
-  },
-  {
-    title: 'Maintain delivery excellence',
-    description:
-      'Your delivery scores are strong. Keep practicing with the webcam on to maintain confidence and eye contact.',
-    tag: 'delivery',
-  },
-];
+function computeTrend(runs: RunRecord[]): { label: string; value: number }[] {
+  return runs
+    .slice()
+    .reverse()
+    .map((r) => ({
+      label: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: r.overall_score,
+    }));
+}
+
+function computeRubricAverages(runs: RunRecord[]) {
+  const categories = ['structure', 'clarity', 'evidence', 'market', 'delivery'];
+  if (runs.length === 0) {
+    return categories.map((id) => ({ id, label: CATEGORY_LABELS[id], score: 0, maxScore: 20 }));
+  }
+  return categories.map((id) => {
+    const scores = runs
+      .map((r) => r.analysis.rubric_breakdown.find((rb) => rb.category === id))
+      .filter(Boolean);
+    const avg = scores.length > 0
+      ? scores.reduce((sum, s) => sum + s!.score, 0) / scores.length
+      : 0;
+    return { id, label: CATEGORY_LABELS[id], score: Math.round(avg * 10) / 10, maxScore: 20 };
+  });
+}
+
+function computeInsights(rubric: ReturnType<typeof computeRubricAverages>) {
+  const sorted = [...rubric].sort((a, b) => b.score / b.maxScore - a.score / a.maxScore);
+  const insights: { type: 'strength' | 'improve'; title: string; body: string }[] = [];
+  if (sorted.length > 0) {
+    const best = sorted[0];
+    insights.push({
+      type: 'strength',
+      title: `Strong ${best.label.toLowerCase()} performance`,
+      body: `Averaging ${best.score}/${best.maxScore} across sessions. Keep maintaining this strength.`,
+    });
+  }
+  if (sorted.length > 1) {
+    const second = sorted[1];
+    insights.push({
+      type: 'strength',
+      title: `Consistent ${second.label.toLowerCase()}`,
+      body: `Scoring ${second.score}/${second.maxScore} on average. This is a solid foundation to build on.`,
+    });
+  }
+  const worst = sorted[sorted.length - 1];
+  if (worst) {
+    insights.push({
+      type: 'improve',
+      title: `${worst.label} needs attention`,
+      body: `Averaging ${worst.score}/${worst.maxScore}. Focus on improving this area for the biggest score gains.`,
+    });
+  }
+  if (sorted.length > 1) {
+    const secondWorst = sorted[sorted.length - 2];
+    insights.push({
+      type: 'improve',
+      title: `Room to grow in ${secondWorst.label.toLowerCase()}`,
+      body: `Currently at ${secondWorst.score}/${secondWorst.maxScore}. Small improvements here will compound.`,
+    });
+  }
+  return insights;
+}
+
+function computeRecommendations(rubric: ReturnType<typeof computeRubricAverages>) {
+  const sorted = [...rubric].sort((a, b) => a.score / a.maxScore - b.score / b.maxScore);
+  return sorted.slice(0, 3).map((cat) => ({
+    title: `Improve your ${cat.label.toLowerCase()}`,
+    description: `Currently averaging ${cat.score}/${cat.maxScore}. Practice sessions focused on ${cat.id} to reach your target score.`,
+    tag: cat.id,
+  }));
+}
 
 /* ——— Gradient map for recommendation icon backgrounds ——————— */
 
@@ -157,7 +151,30 @@ const RECOMMENDATION_ICONS: Record<string, React.ComponentType<{ size?: number; 
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('30D');
-  const trendData = SCORE_TREND[range];
+  const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/pitch/run')
+      .then((r) => r.json())
+      .then((data) => setAllRuns(Array.isArray(data) ? data : []))
+      .catch(() => setAllRuns([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredRuns = useMemo(() => filterByRange(allRuns, range), [allRuns, range]);
+  const trendData = useMemo(() => computeTrend(filteredRuns), [filteredRuns]);
+  const rubricCategories = useMemo(() => computeRubricAverages(filteredRuns), [filteredRuns]);
+  const insights = useMemo(() => computeInsights(rubricCategories), [rubricCategories]);
+  const recommendations = useMemo(() => computeRecommendations(rubricCategories), [rubricCategories]);
+
+  const avgScore = filteredRuns.length > 0
+    ? Math.round(filteredRuns.reduce((s, r) => s + r.overall_score, 0) / filteredRuns.length)
+    : 0;
+  const avgDurationSecs = filteredRuns.length > 0
+    ? Math.round(filteredRuns.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / filteredRuns.length)
+    : 0;
+  const avgDurationStr = `${Math.floor(avgDurationSecs / 60)}:${(avgDurationSecs % 60).toString().padStart(2, '0')}`;
 
   return (
     <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
@@ -182,35 +199,26 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-4 gap-4">
         <StatCard
           label="Overall Score"
-          value="78/100"
+          value={`${avgScore}/100`}
           icon={<TrendingUp size={16} />}
-          delta="+6"
-          deltaDirection="up"
           animationDelay="60ms"
         />
         <StatCard
           label="Sessions This Period"
-          value="12"
+          value={String(filteredRuns.length)}
           icon={<BarChart3 size={16} />}
-          delta="+3"
-          deltaDirection="up"
           animationDelay="120ms"
         />
         <StatCard
           label="Avg Duration"
-          value="5:12"
+          value={avgDurationStr}
           icon={<Clock size={16} />}
-          delta="-0:18"
-          deltaDirection="down"
-          deltaIsGood
           animationDelay="180ms"
         />
         <StatCard
-          label="Improvement Rate"
-          value="+14%"
+          label="Total Runs"
+          value={String(allRuns.length)}
           icon={<ArrowUpRight size={16} />}
-          delta="+4%"
-          deltaDirection="up"
           animationDelay="240ms"
         />
       </div>
@@ -238,7 +246,7 @@ export default function AnalyticsPage() {
         <GlassCard animationDelay="360ms">
           <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
           <div className="flex flex-col gap-3.5">
-            {RUBRIC_CATEGORIES.map((cat, i) => (
+            {rubricCategories.map((cat, i) => (
               <CategoryBar
                 key={cat.id}
                 label={cat.label}
@@ -255,7 +263,7 @@ export default function AnalyticsPage() {
         <GlassCard animationDelay="420ms">
           <SectionHeader className="mb-4">Top Insights</SectionHeader>
           <div className="flex flex-col gap-3">
-            {INSIGHTS.map((insight, i) => (
+            {insights.map((insight, i) => (
               <InsightCard key={i} {...insight} delay={i} />
             ))}
           </div>
@@ -266,7 +274,7 @@ export default function AnalyticsPage() {
       <GlassCard animationDelay="480ms">
         <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
         <div className="grid grid-cols-3 gap-4">
-          {RECOMMENDATIONS.map((rec, i) => (
+          {recommendations.map((rec, i) => (
             <RecommendationCard key={i} {...rec} delay={i} />
           ))}
         </div>

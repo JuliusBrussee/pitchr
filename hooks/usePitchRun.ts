@@ -1,13 +1,11 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { saveRun } from '@/models/run';
 import type { AnalysisResult } from '@/types/analysis';
 import type {
   CreatePitchRunErrorResponse,
   CreatePitchRunRequest,
   CreatePitchRunResponse,
-  Run,
 } from '@/types/pitch';
 
 export interface RunPitchAnalysisResult {
@@ -55,18 +53,6 @@ export function usePitchRun(): UsePitchRunReturn {
         }
 
         const success = payload as CreatePitchRunResponse & { fallback?: boolean };
-        const run: Run = {
-          id: success.runId,
-          createdAt: new Date().toISOString(),
-          mode: input.mode,
-          inputType: input.inputType,
-          transcript: input.transcript,
-          audioUrl: input.audioUrl,
-          analysis: success.analysis,
-          overallScore: success.analysis.overall_score,
-          fallback: success.fallback ?? false,
-        };
-        saveRun(run);
 
         return {
           runId: success.runId,
