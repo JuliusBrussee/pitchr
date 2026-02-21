@@ -13,7 +13,6 @@ import {
   MessageSquare,
   BarChart3,
 } from 'lucide-react';
-import { getRun } from '@/models/run';
 import type { Run } from '@/types/pitch';
 import type { FixImpact, RubricCategory } from '@/types/analysis';
 
@@ -77,9 +76,29 @@ export default function ResultsPage() {
       setCheckedStorage(true);
       return;
     }
-    const nextRun = getRun(runId);
-    setRun(nextRun);
-    setCheckedStorage(true);
+    fetch(`/api/pitch/run/${runId}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && !data.error) {
+          setRun({
+            id: data.id,
+            createdAt: data.created_at,
+            mode: data.mode,
+            inputType: data.input_type,
+            transcript: data.transcript,
+            audioUrl: data.audio_url ?? undefined,
+            analysis: data.analysis,
+            overallScore: data.overall_score,
+          });
+        } else {
+          setRun(null);
+        }
+        setCheckedStorage(true);
+      })
+      .catch(() => {
+        setRun(null);
+        setCheckedStorage(true);
+      });
   }, [runId]);
 
   const analysis = run?.analysis;
