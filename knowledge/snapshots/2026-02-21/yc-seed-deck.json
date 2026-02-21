@@ -1,0 +1,21 @@
+{
+  "source_id": "yc-seed-deck",
+  "source_url": "https://www.ycombinator.com/library/2u-how-to-build-your-seed-round-pitch-deck",
+  "source_title": "YC: Seed Round Pitch Deck",
+  "snapshot_date": "2026-02-21",
+  "access_status": "full",
+  "key_rules_do": [
+    "I’ve written about pitching before, and realized that what we were missing was a clear template for how founders should lay out their stories through slides. The deck below is a template for how I think companies should build seed decks. While the main target for this template is a company raising its seed round, the deck is not all that different from best practices for a Series A deck - which we’ll release next.",
+    "The key point to remember here is that founders should strive for clarity and concision. This is not the right place to write a treatise on your market or world philosophy. The simple truth is that there isn’t very much meaningful detail to explore for most seed stage companies. When founders pretend that there is, their stories get muddled, and the investors get lost.",
+    "Focus on narrative. The rest is commentary. (see footnote)",
+    "This is the only place in the deck where you can only have 1 slide for what you need to show. Any of the other slides in this deck should be treated as a first slide of a set. If you can keep the set to n=1, that’s ideal, but if you need more, that’s ok. You probably don’t want any set here where n > 3. This is a seed deck, remember.",
+    "Business model is important. You probably don’t know all the details yet, but you should know a lot of them. Lay it out. If you need more space to dig into something complicated, add slides.",
+    "Team! So important at seed. Talk about what makes your team particularly well suited to the problem. This should be about founders. Nobody cares about your advisors.",
+    "Tell the investor how much money you need, and what it gets you. If you can lay out where you’ll be inside of a year, which should make you Series A ready, that’s powerful",
+    "Investors invest in teams not slides. Your slides should make your ideas more clear. Here are design principles to follow when creating your pitch deck and story."
+  ],
+  "key_rules_dont": [],
+  "confidence_score": 0.6666666666666666,
+  "content_hash_sha256": "eff7eb206039e8fa591be0db88b5340a88f02f1012b9fa02c962f47a92818607",
+  "screenshot_path": "knowledge/snapshots/2026-02-21/yc-seed-deck.png"
+}

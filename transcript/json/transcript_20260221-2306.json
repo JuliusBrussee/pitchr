@@ -1,0 +1,70 @@
+{
+  "transcript": "Hi, we're Bootling Kitchen. In hackathons and student competitions, teams have one brutal constraint: two minutes to convince judges. But most teams can't get high-quality, consistent feedback, unstructured without hunting down mentors or wasting time debating slides. So they end up with a pitch that sounds fine, but misses the signals the judges actually score. Pitch is an AI pitch coach that takes your pitch script or audio, scores it with an investor grade rubric, and gives the three fixes that move your score the fastest. You get a rewritten version that fits the time limit, plus a historytimeline so you can see improvement across runs. Under the hood, this isn't a UI wrapper. We've run a structured evaluation pipeline, transcription if needed, rubric-based scoring with schema validator outputs, retrieval of proven pitch patterns, then a constrained rewrite and prioritized fix list. Every run is stored and comparable, so it's repeatable and measurable. Pitcher starts with hackathon teams as the beachhead and expands to accelerators and pre-seed founders. In two minutes, we can help you deliver a pitch that lands. Want to see your score live?",
+  "segments": [
+    {
+      "text": "Hi, we're Bootling Kitchen.",
+      "start": 0,
+      "end": 1.2578823529411765
+    },
+    {
+      "text": "In hackathons and student competitions, teams have one brutal constraint: two minutes to convince judges.",
+      "start": 1.2578823529411765,
+      "end": 6.14964705882353
+    },
+    {
+      "text": "But most teams can't get high-quality, consistent feedback, unstructured without hunting down mentors or wasting time debating slides.",
+      "start": 6.14964705882353,
+      "end": 12.392470588235295
+    },
+    {
+      "text": "So they end up with a pitch that sounds fine, but misses the signals the judges actually score.",
+      "start": 12.392470588235295,
+      "end": 16.81835294117647
+    },
+    {
+      "text": "Pitch is an AI pitch coach that takes your pitch script or audio, scores it with an investor grade rubric, and gives the three fixes that move your score the fastest.",
+      "start": 16.81835294117647,
+      "end": 24.552
+    },
+    {
+      "text": "You get a rewritten version that fits the time limit, plus a history",
+      "start": 24.552,
+      "end": 27.72
+    },
+    {
+      "text": "timeline so you can see improvement across runs.",
+      "start": 27.720000000000002,
+      "end": 29.84337522441652
+    },
+    {
+      "text": "Under the hood, this isn't a UI wrapper.",
+      "start": 29.84337522441652,
+      "end": 31.61285457809695
+    },
+    {
+      "text": "We've run a structured evaluation pipeline, transcription if needed, rubric-based scoring with schema validator outputs, retrieval of proven pitch patterns, then a constrained rewrite and prioritized fix list.",
+      "start": 31.61285457809695,
+      "end": 40.8583842010772
+    },
+    {
+      "text": "Every run is stored and comparable, so it's repeatable and measurable.",
+      "start": 40.8583842010772,
+      "end": 43.95497307001796
+    },
+    {
+      "text": "Pitcher starts with hackathon teams as the beachhead and expands to accelerators and pre-seed founders.",
+      "start": 43.95497307001796,
+      "end": 48.51138240574507
+    },
+    {
+      "text": "In two minutes, we can help you deliver a pitch that lands.",
+      "start": 48.51138240574507,
+      "end": 51.121364452423705
+    },
+    {
+      "text": "Want to see your score live?",
+      "start": 51.121364452423705,
+      "end": 52.36000000000001
+    }
+  ]
+}

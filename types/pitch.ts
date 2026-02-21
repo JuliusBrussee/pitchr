@@ -1,16 +1,33 @@
+import type {
+  AnalysisMeta,
+  AnalysisOutputs,
+  Coverage,
+  PitchStage,
+} from '@/types/analysis-v2';
 import type { AnalysisResult } from '@/types/analysis';
 
 export type PitchMode = 'elevator' | 'vc_pitch';
 export type InputType = 'audio' | 'text';
+export type RunStatus = 'queued' | 'running' | 'complete' | 'failed';
 
 export interface Run {
   id: string;
   createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
   mode: PitchMode;
+  status: RunStatus;
+  error?: string;
   inputType: InputType;
   transcript: string;
   audioUrl?: string;
-  analysis: AnalysisResult;
+  deckText?: string;
+  stage?: PitchStage;
+  analysis?: AnalysisResult;
+  analysisVersion?: 'v1' | 'v2';
+  coverage?: Coverage;
+  outputs?: AnalysisOutputs;
+  meta?: AnalysisMeta;
   overallScore: number;
   fallback?: boolean;
 }
@@ -20,13 +37,21 @@ export interface CreatePitchRunRequest {
   transcript: string;
   inputType: InputType;
   audioUrl?: string;
+  deckText?: string;
+  stage?: PitchStage;
+  regenerate?: 'feedback' | 'qa_1min';
 }
 
 export interface CreatePitchRunResponse {
   runId: string;
-  status: 'complete';
-  analysis: AnalysisResult;
+  status: RunStatus;
+  analysisVersion?: 'v2';
+  coverage?: Coverage;
+  outputs?: AnalysisOutputs;
+  meta?: AnalysisMeta;
+  analysis?: AnalysisResult;
   fallback?: boolean;
+  error?: string;
 }
 
 export interface CreatePitchRunErrorResponse {
@@ -40,4 +65,9 @@ export interface RunStats {
   averageScore: number;
   bestScore: number;
   trend: number[];
+}
+
+export interface ListPitchRunsResponse {
+  runs: Run[];
+  stats: RunStats;
 }

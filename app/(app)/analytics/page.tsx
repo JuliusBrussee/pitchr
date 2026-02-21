@@ -23,8 +23,8 @@ import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components
 
 interface RunRecord {
   id: string;
-  overall_score: number;
-  created_at: string;
+  overallScore: number;
+  createdAt: string;
   analysis: {
     rubric_breakdown: { category: string; score: number; max_score: number }[];
     delivery_metrics: {
@@ -50,16 +50,16 @@ function filterByRange(runs: RunRecord[], range: TimeRange): RunRecord[] {
   if (range === 'All') return runs;
   const daysMap: Record<string, number> = { '7D': 7, '30D': 30, '90D': 90 };
   const cutoff = getDaysAgo(daysMap[range]);
-  return runs.filter((r) => new Date(r.created_at) >= cutoff);
+  return runs.filter((r) => new Date(r.createdAt) >= cutoff);
 }
 
 function computeTrend(runs: RunRecord[]): { label: string; value: number }[] {
   return runs
     .slice()
     .reverse()
-    .map((r) => ({
-      label: new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: r.overall_score,
+      .map((r) => ({
+      label: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      value: r.overallScore,
     }));
 }
 
@@ -86,8 +86,8 @@ function computeStatDeltas(runs: RunRecord[]) {
   const newerHalf = runs.slice(0, mid);
   const olderHalf = runs.slice(mid);
 
-  const avgNewer = newerHalf.reduce((s, r) => s + r.overall_score, 0) / newerHalf.length;
-  const avgOlder = olderHalf.reduce((s, r) => s + r.overall_score, 0) / olderHalf.length;
+  const avgNewer = newerHalf.reduce((s, r) => s + r.overallScore, 0) / newerHalf.length;
+  const avgOlder = olderHalf.reduce((s, r) => s + r.overallScore, 0) / olderHalf.length;
   const scoreDiff = Math.round(avgNewer - avgOlder);
 
   const newerDur = newerHalf.filter((r) => r.analysis.delivery_metrics?.duration_seconds != null);
@@ -123,7 +123,7 @@ function computeRubricTrend(runs: RunRecord[]): { label: string; scores: { categ
     .slice()
     .reverse()
     .map((r) => ({
-      label: formatSessionLabel(r.created_at),
+      label: formatSessionLabel(r.createdAt),
       scores: (r.analysis.rubric_breakdown ?? []).map((rb) => ({
         category: rb.category,
         score: rb.score,
@@ -137,7 +137,7 @@ function computeWpmTrend(runs: RunRecord[]): { label: string; wpm: number }[] {
     .reverse()
     .filter((r) => r.analysis.delivery_metrics?.wpm != null)
     .map((r) => ({
-      label: formatSessionLabel(r.created_at),
+      label: formatSessionLabel(r.createdAt),
       wpm: r.analysis.delivery_metrics.wpm,
     }));
 }
@@ -150,7 +150,7 @@ function computeFillerData(runs: RunRecord[]): {
   const trend = chronological.map((r) => {
     const fillers = r.analysis.delivery_metrics?.filler_words ?? [];
     const total = fillers.reduce((s, f) => s + (f.count ?? 0), 0);
-    return { label: formatSessionLabel(r.created_at), total };
+    return { label: formatSessionLabel(r.createdAt), total };
   });
 
   const wordMap = new Map<string, number>();
@@ -178,7 +178,9 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetch('/api/pitch/run')
       .then((r) => r.json())
-      .then((data) => setAllRuns(Array.isArray(data) ? data : []))
+      .then((payload: { runs?: RunRecord[] }) =>
+        setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
+      )
       .catch(() => setAllRuns([]))
       .finally(() => setLoading(false));
   }, []);
@@ -191,7 +193,7 @@ export default function AnalyticsPage() {
   const fillerData = useMemo(() => computeFillerData(filteredRuns), [filteredRuns]);
 
   const avgScore = filteredRuns.length > 0
-    ? Math.round(filteredRuns.reduce((s, r) => s + r.overall_score, 0) / filteredRuns.length)
+    ? Math.round(filteredRuns.reduce((s, r) => s + r.overallScore, 0) / filteredRuns.length)
     : 0;
   const runsWithDuration = filteredRuns.filter((r) => r.analysis.delivery_metrics?.duration_seconds != null);
   const avgDurationSecs = runsWithDuration.length > 0

@@ -39,8 +39,8 @@ import {
 interface RunRecord {
   id: string;
   mode: string;
-  overall_score: number;
-  created_at: string;
+  overallScore: number;
+  createdAt: string;
   analysis: {
     one_line_verdict: string;
     rubric_breakdown: { category: string; score: number; max_score: number }[];
@@ -94,16 +94,18 @@ export default function DashboardPage() {
 
     fetch('/api/pitch/run')
       .then((r) => r.json())
-      .then((data) => setAllRuns(Array.isArray(data) ? data : []))
+      .then((payload: { runs?: RunRecord[] }) =>
+        setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
+      )
       .catch(() => setAllRuns([]));
   }, []);
 
   const totalRuns = allRuns.length;
   const averageScore = totalRuns > 0
-    ? Math.round(allRuns.reduce((s, r) => s + r.overall_score, 0) / totalRuns)
+    ? Math.round(allRuns.reduce((s, r) => s + r.overallScore, 0) / totalRuns)
     : 0;
   const bestScore = totalRuns > 0
-    ? Math.max(...allRuns.map((r) => r.overall_score))
+    ? Math.max(...allRuns.map((r) => r.overallScore))
     : 0;
 
   const rubricCategories = useMemo(() => computeRubricAverages(allRuns), [allRuns]);
@@ -281,7 +283,7 @@ export default function DashboardPage() {
                               style={{ color: 'var(--text-muted)' }}
                             >
                               <Calendar size={11} />
-                              {formatRunDate(run.created_at)}
+                              {formatRunDate(run.createdAt)}
                             </span>
                             <span
                               className="flex items-center gap-1 text-xs"
@@ -299,7 +301,7 @@ export default function DashboardPage() {
                           </p>
                         </div>
                         <div className="flex items-center gap-3 ml-4 flex-shrink-0">
-                          <ScoreBadge score={run.overall_score} />
+                          <ScoreBadge score={run.overallScore} />
                           <ArrowRight
                             size={14}
                             className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"

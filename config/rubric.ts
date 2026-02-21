@@ -1,7 +1,7 @@
-import type { RubricCategory } from '@/types/analysis';
+import type { DeckRubricCategory, RubricCategory } from '@/types/analysis-v2';
 
-export interface RubricCategoryDef {
-  id: RubricCategory;
+export interface RubricCategoryDef<TId extends string = string> {
+  id: TId;
   label: string;
   weight: number;
   description: string;
@@ -15,7 +15,12 @@ export interface ScoreBand {
   color: string;
 }
 
-export const RUBRIC_CATEGORIES: RubricCategoryDef[] = [
+export interface StageExpectationConfig {
+  stage: 'pre_seed' | 'seed' | 'series_a' | 'series_b';
+  expectations: string[];
+}
+
+export const SPOKEN_RUBRIC_CATEGORIES: RubricCategoryDef<RubricCategory>[] = [
   {
     id: 'structure',
     label: 'Structure',
@@ -63,6 +68,90 @@ export const RUBRIC_CATEGORIES: RubricCategoryDef[] = [
   },
 ];
 
+export const DECK_RUBRIC_CATEGORIES: RubricCategoryDef<DeckRubricCategory>[] = [
+  {
+    id: 'deck_narrative',
+    label: 'Deck Narrative',
+    weight: 20,
+    description:
+      'Deck progresses with a clear narrative arc from problem to ask.',
+    scoringCriteria:
+      'Reward coherent flow and slide sequencing. Penalize disjointed story flow.',
+  },
+  {
+    id: 'deck_clarity',
+    label: 'Deck Clarity',
+    weight: 20,
+    description:
+      'Slides are concise and readable with clear headlines and message hierarchy.',
+    scoringCriteria:
+      'Reward concise slides with one key message each. Penalize dense text walls.',
+  },
+  {
+    id: 'deck_evidence',
+    label: 'Deck Evidence',
+    weight: 20,
+    description:
+      'Deck includes verifiable proof points, metrics, and supporting references.',
+    scoringCriteria:
+      'Reward quantified traction, references, and benchmarked claims.',
+  },
+  {
+    id: 'deck_design',
+    label: 'Deck Design',
+    weight: 20,
+    description:
+      'Visual system supports credibility through consistency and focus.',
+    scoringCriteria:
+      'Reward legibility, consistency, and visual prioritization. Penalize clutter.',
+  },
+  {
+    id: 'deck_ask',
+    label: 'Deck Ask',
+    weight: 20,
+    description:
+      'Fundraise ask is explicit, specific, and tied to milestones.',
+    scoringCriteria:
+      'Reward concrete use-of-funds and milestone alignment. Penalize vague ask.',
+  },
+];
+
+export const STAGE_EXPECTATIONS: StageExpectationConfig[] = [
+  {
+    stage: 'pre_seed',
+    expectations: [
+      'Credible founder insight and clear problem ownership.',
+      'Sharp wedge and clear ICP over broad platform claims.',
+      'Evidence of speed: prototypes, pilots, or early demand signals.',
+    ],
+  },
+  {
+    stage: 'seed',
+    expectations: [
+      'Early repeatability in acquisition or retention.',
+      'Cohesive narrative connecting product to measurable traction.',
+      'Capital ask tied to explicit 12-18 month milestones.',
+    ],
+  },
+  {
+    stage: 'series_a',
+    expectations: [
+      'Clear growth mechanics with channel efficiency evidence.',
+      'Defensible differentiation under competitive pressure.',
+      'Mature forecasting and GTM execution plan.',
+    ],
+  },
+  {
+    stage: 'series_b',
+    expectations: [
+      'Scalable operating model with durable unit economics.',
+      'Multi-year category strategy and moat articulation.',
+      'Clear expansion plan with accountable KPI ownership.',
+    ],
+  },
+];
+
+export const RUBRIC_CATEGORIES = SPOKEN_RUBRIC_CATEGORIES;
 export const RUBRIC_TOTAL_WEIGHT = 100;
 
 export const SCORE_BANDS: ScoreBand[] = [
@@ -71,3 +160,4 @@ export const SCORE_BANDS: ScoreBand[] = [
   { min: 60, max: 79, label: 'Solid', color: '#3b82f6' },
   { min: 80, max: 100, label: 'Investor-Ready', color: '#22c55e' },
 ];
+

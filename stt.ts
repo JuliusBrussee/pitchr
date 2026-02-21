@@ -106,9 +106,9 @@ function shutdown(): void {
 
 // --- Main
 function main(): void {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const apiKey = process.env.ELEVENLABS_API_KEY_STT || process.env.ELEVENLABS_API_KEY;
   if (!apiKey?.trim()) {
-    console.error("Missing ELEVENLABS_API_KEY. Set it in .env.local.");
+    console.error("Missing ELEVENLABS_API_KEY_STT (or ELEVENLABS_API_KEY fallback). Set it in .env.local.");
     process.exit(1);
   }
 

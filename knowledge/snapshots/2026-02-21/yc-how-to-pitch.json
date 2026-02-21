@@ -1,0 +1,22 @@
+{
+  "source_id": "yc-how-to-pitch",
+  "source_url": "https://www.ycombinator.com/library/4b-how-to-pitch-your-company",
+  "source_title": "YC: How to Pitch Your Company",
+  "snapshot_date": "2026-02-21",
+  "access_status": "full",
+  "key_rules_do": [
+    "Too many people spend too much energy trying to make their idea sound impressive. It’s ok to keep it simple. Actually, it’s preferable. You want to explain what you do in the simplest language possible. This needs to be predigested. Your elevator pitch should be like baby food.",
+    "Your goal when answering this question should not be to have me understand your whole business but rather make me interested enough to ask follow-up questions.",
+    "Once you have answers to each of the seven questions your challenge is to make the answers as clear as possible. To do that you need to eliminate jargon, acronyms, marketing speak, and any ambiguous terms such as “platform”. Basically, make it sound dumber than you think it should."
+  ],
+  "key_rules_dont": [
+    "Walking me through the user path helps avoid explanations like, “We’re Google. We organize the world’s information by indexing the web.” With that description I’m lost.",
+    "When you’re estimating market size and what % you could own, there are two methods: top down and bottom up. With the top down approach you determine the total market and estimate your potential share of it. With bottom up you figure out where comparable products are sold, how many of them are sold, and what % of those sales you could take. I prefer the bottom up method because it helps you avoid a common top down pitfall, which is not narrowing down the customer enough. In the example above that could mean assuming all women are in your market - no matter their age or nationality.",
+    "For example: Gmail. A unique insight was that the email inbox is a personal database of communication and documents. Why would a user ever want to delete anything in their personal database? Gmail gave people enough storage so they would never have to delete a conversation. It’s not that people needed email. It already existed. And it’s not that people needed better email. That’s too vague. A unique insight is specific and doesn’t contain complicated language.",
+    "One mistake I often used to make at Justin.tv was offering a potpourri of business models (virtual goods, product placement, chat ads, contests, etc..). I was embarrassed to say Justin.tv would monetize with advertising when clearly that was the only answer. Own the simple business model.",
+    "Biggest mistakes first-time founders make"
+  ],
+  "confidence_score": 0.6666666666666666,
+  "content_hash_sha256": "c5de1863931d43e065b98ce9f6f3d88ca6a3cd1e10b5c6aae421b622fefbc94d",
+  "screenshot_path": "knowledge/snapshots/2026-02-21/yc-how-to-pitch.png"
+}

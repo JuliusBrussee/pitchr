@@ -1,11 +1,11 @@
 import type { LlmCompletionRequest, LlmProvider } from '@/lib/llm/types';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'google/gemini-3-flash-preview';
+const DEFAULT_MODEL = 'anthropic/claude-sonnet-4.6';
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_TOKENS = 4096;
 const DEFAULT_TIMEOUT_MS = 25_000;
-const MAX_ATTEMPTS = 2;
+const DEFAULT_MAX_ATTEMPTS = 2;
 
 interface OpenRouterMessage {
   content: string | Array<{ text?: string }>;
@@ -22,6 +22,20 @@ interface OpenRouterResponse {
 
 function shouldRetry(status: number): boolean {
   return status === 429 || status >= 500;
+}
+
+function isTransientError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error.name === 'AbortError') return true;
+  if (error instanceof TypeError) return true;
+  const message = error.message.toLowerCase();
+  return (
+    message.includes('network') ||
+    message.includes('socket') ||
+    message.includes('econnreset') ||
+    message.includes('etimedout') ||
+    message.includes('fetch failed')
+  );
 }
 
 function extractContent(message: OpenRouterMessage | undefined): string {
@@ -41,8 +55,9 @@ export class OpenRouterProvider implements LlmProvider {
     }
 
     const model = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_MODEL;
+    const maxAttempts = Math.max(1, request.maxAttempts ?? DEFAULT_MAX_ATTEMPTS);
 
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       const controller = new AbortController();
       const timeoutMs = request.timeoutMs ?? DEFAULT_TIMEOUT_MS;
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -70,12 +85,19 @@ export class OpenRouterProvider implements LlmProvider {
           signal: controller.signal,
         });
 
-        const payload = (await response.json()) as OpenRouterResponse;
+        const raw = await response.text();
+        let payload: OpenRouterResponse = {};
+        try {
+          payload = JSON.parse(raw) as OpenRouterResponse;
+        } catch {
+          payload = {};
+        }
+
         if (!response.ok) {
           const errorMessage =
             payload.error?.message ??
             `OpenRouter request failed with status ${response.status}`;
-          if (attempt < MAX_ATTEMPTS && shouldRetry(response.status)) {
+          if (attempt < maxAttempts && shouldRetry(response.status)) {
             continue;
           }
           throw new Error(errorMessage);
@@ -88,7 +110,7 @@ export class OpenRouterProvider implements LlmProvider {
 
         return content;
       } catch (error) {
-        if (attempt < MAX_ATTEMPTS) {
+        if (attempt < maxAttempts && isTransientError(error)) {
           continue;
         }
         if (error instanceof Error && error.name === 'AbortError') {

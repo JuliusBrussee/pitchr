@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import type { AnalysisResult } from '@/types/analysis';
+import type { AnalysisMeta, AnalysisOutputs } from '@/types/analysis-v2';
 import type {
   CreatePitchRunErrorResponse,
   CreatePitchRunRequest,
@@ -10,8 +10,14 @@ import type {
 
 export interface RunPitchAnalysisResult {
   runId: string;
-  analysis: AnalysisResult;
-  fallback: boolean;
+  status: CreatePitchRunResponse['status'];
+  analysis?: CreatePitchRunResponse['analysis'];
+  outputs?: AnalysisOutputs;
+  meta?: AnalysisMeta;
+  coverage?: 'spoken_only' | 'spoken+deck';
+  analysisVersion?: 'v2';
+  fallback?: boolean;
+  error?: string;
 }
 
 export interface UsePitchRunReturn {
@@ -40,9 +46,7 @@ export function usePitchRun(): UsePitchRunReturn {
           body: JSON.stringify(input),
         });
 
-        const payload = (await response.json()) as
-          | (CreatePitchRunResponse & { fallback?: boolean })
-          | CreatePitchRunErrorResponse;
+        const payload = (await response.json()) as CreatePitchRunResponse | CreatePitchRunErrorResponse;
 
         if (!response.ok) {
           throw new Error(
@@ -52,12 +56,18 @@ export function usePitchRun(): UsePitchRunReturn {
           );
         }
 
-        const success = payload as CreatePitchRunResponse & { fallback?: boolean };
+        const success = payload as CreatePitchRunResponse;
 
         return {
           runId: success.runId,
+          status: success.status,
           analysis: success.analysis,
-          fallback: success.fallback ?? false,
+          outputs: success.outputs,
+          meta: success.meta,
+          coverage: success.coverage,
+          analysisVersion: success.analysisVersion,
+          fallback: success.fallback,
+          error: success.error,
         };
       } catch (caughtError) {
         const message =
