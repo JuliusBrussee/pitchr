@@ -12,8 +12,8 @@ interface GenerateDeckModalProps {
 }
 
 const GENERATION_STEPS = [
-  { label: 'Crafting your story', icon: Wand2 },
-  { label: 'Building slides', icon: FileText },
+  { label: 'Analyzing your story', icon: Wand2 },
+  { label: 'Writing slides', icon: FileText },
   { label: 'Applying theme', icon: Palette },
   { label: 'Rendering PDF', icon: Sparkles },
 ];
@@ -514,7 +514,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess }: GenerateDeckMo
             className="text-center text-[10px] mt-3"
             style={{ color: 'var(--text-muted)' }}
           >
-            AI generates 10 slides — Title, Problem, Solution, Market, Product, Business Model, Traction, Competition, Team, and Ask
+            AI generates 8 slides — Hook, Problem, Solution, Traction, Market, Business Model, Team, and Ask
           </p>
         </div>
       </div>

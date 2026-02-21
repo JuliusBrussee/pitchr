@@ -16,13 +16,14 @@ export function ContentSlide({ slide, template, pageNumber }: ContentSlideProps)
   return (
     <SlideBase template={template} pageNumber={pageNumber}>
       <Text style={styles.headline}>{slide.headline}</Text>
+      <View style={styles.accentRule} />
       {slide.subheadline && (
         <Text style={styles.subheadline}>{slide.subheadline}</Text>
       )}
       {slide.callout && (
-        <View style={styles.calloutBox}>
-          <Text style={styles.calloutValue}>{slide.callout.value}</Text>
-          <Text style={styles.calloutLabel}>{slide.callout.label}</Text>
+        <View style={styles.bannerCallout}>
+          <Text style={styles.bannerCalloutValue}>{slide.callout.value}</Text>
+          <Text style={styles.bannerCalloutLabel}>{slide.callout.label}</Text>
         </View>
       )}
       <View style={styles.bulletContainer}>

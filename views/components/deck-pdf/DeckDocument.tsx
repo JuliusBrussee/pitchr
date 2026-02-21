@@ -1,9 +1,10 @@
 import { Document } from '@react-pdf/renderer';
 import React from 'react';
-import type { DeckTemplate, GeneratedDeck } from '@/types/deckGeneration';
+import type { DeckTemplate, GeneratedDeck, AnySlideType } from '@/types/deckGeneration';
 import { TitleSlide } from './TitleSlide';
 import { ContentSlide } from './ContentSlide';
 import { MetricsSlide } from './MetricsSlide';
+import { MarketSlide } from './MarketSlide';
 import { ComparisonSlide } from './ComparisonSlide';
 import { TeamSlide } from './TeamSlide';
 import { AskSlide } from './AskSlide';
@@ -14,18 +15,28 @@ interface DeckDocumentProps {
   companyName: string;
 }
 
-// Maps slide types to components. Market and Traction use MetricsSlide for
-// prominent callout display; Competition uses ComparisonSlide for table layout;
-// Team and Ask have their own layouts; everything else uses ContentSlide.
-const METRICS_TYPES = new Set(['market', 'traction']);
+// Map legacy 10-slide types to their new 8-slide equivalents
+const LEGACY_TYPE_MAP: Partial<Record<AnySlideType, AnySlideType>> = {
+  title: 'hook',
+  product: 'solution',
+  competition: 'market',
+};
+
+function resolveType(type: AnySlideType): AnySlideType {
+  return LEGACY_TYPE_MAP[type] || type;
+}
+
+// Types that use MetricsSlide for prominent callout display
+const METRICS_TYPES = new Set<AnySlideType>(['traction']);
 
 export function DeckDocument({ slides, template, companyName }: DeckDocumentProps) {
   return (
     <Document title={`${companyName} \u2014 Pitch Deck`} author="Pitchr">
       {slides.map((slide, index) => {
         const pageNumber = index + 1;
+        const resolvedType = resolveType(slide.type);
 
-        if (slide.type === 'title') {
+        if (resolvedType === 'hook') {
           return (
             <TitleSlide
               key={index}
@@ -36,7 +47,7 @@ export function DeckDocument({ slides, template, companyName }: DeckDocumentProp
           );
         }
 
-        if (METRICS_TYPES.has(slide.type)) {
+        if (METRICS_TYPES.has(resolvedType)) {
           return (
             <MetricsSlide
               key={index}
@@ -47,6 +58,18 @@ export function DeckDocument({ slides, template, companyName }: DeckDocumentProp
           );
         }
 
+        if (resolvedType === 'market') {
+          return (
+            <MarketSlide
+              key={index}
+              slide={slide}
+              template={template}
+              pageNumber={pageNumber}
+            />
+          );
+        }
+
+        // Legacy competition slides that weren't mapped (shouldn't happen, but safe)
         if (slide.type === 'competition') {
           return (
             <ComparisonSlide
@@ -58,7 +81,7 @@ export function DeckDocument({ slides, template, companyName }: DeckDocumentProp
           );
         }
 
-        if (slide.type === 'team') {
+        if (resolvedType === 'team') {
           return (
             <TeamSlide
               key={index}
@@ -69,7 +92,7 @@ export function DeckDocument({ slides, template, companyName }: DeckDocumentProp
           );
         }
 
-        if (slide.type === 'ask') {
+        if (resolvedType === 'ask') {
           return (
             <AskSlide
               key={index}
@@ -80,7 +103,7 @@ export function DeckDocument({ slides, template, companyName }: DeckDocumentProp
           );
         }
 
-        // Default: Problem, Solution, Product, Business Model
+        // Default: problem, solution, business_model, and any other content slides
         return (
           <ContentSlide
             key={index}
