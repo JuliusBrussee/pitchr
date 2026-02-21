@@ -54,9 +54,14 @@ function base64FromInt16(int16Array: Int16Array): string {
   return btoa(binary);
 }
 
+interface StartOptions {
+  resume?: boolean;
+}
+
 export interface UseSTTReturn {
   isRecording: boolean;
-  start: () => Promise<void>;
+  start: (options?: StartOptions) => Promise<void>;
+  pause: () => void;
   stop: () => void;
   liveText: string;
   transcriptSegments: string[];
@@ -116,79 +121,15 @@ export function useSTT(): UseSTTReturn {
     }
   }, []);
 
-  const stop = useCallback(() => {
-    stopMic();
-    const ws = wsRef.current;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'stop' }));
-      // Keep socket open so server can receive final commit and send "saved"
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = setTimeout(() => {
-        closeTimerRef.current = null;
-        if (wsRef.current) {
-          wsRef.current.close();
-          wsRef.current = null;
-        }
-      }, 6000);
-    } else if (ws) {
-      ws.close();
-      wsRef.current = null;
-    }
-    setIsRecording(false);
-    setLiveText('');
-  }, [stopMic]);
-
-  useEffect(() => {
-    return () => {
-      stop();
-    };
-  }, [stop]);
-
-  const start = useCallback(async () => {
-    setError(null);
-    setSaved(false);
-    setFeedbackText(null);
-    setFeedbackError(null);
-    setTranscriptSegments([]);
-    setLiveText('');
-
+  const startMicCapture = useCallback(async (): Promise<boolean> => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Microphone access denied or not supported.');
-      return;
-    }
 
-    const wsUrl = getWsUrl();
-    let ws: WebSocket;
-    try {
-      ws = new WebSocket(wsUrl);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'WebSocket error');
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-      return;
-    }
-    wsRef.current = ws;
-
-    let opened = false;
-    ws.onerror = () => setError('WebSocket error.');
-    ws.onclose = () => {
-      stopMic();
-      wsRef.current = null;
-      setIsRecording(false);
-      setLiveText('');
-      if (!opened) {
-        setError('Could not connect to transcript server. Run "npm run dev" (both Next and server) or start the server on port 3001.');
-      }
-    };
-    ws.onopen = () => {
-      opened = true;
-      setIsRecording(true);
-      const stream = streamRef.current;
-      if (!stream) return;
-      const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioContextCtor();
       audioContextRef.current = ctx;
       const sampleRate = ctx.sampleRate;
       const source = ctx.createMediaStreamSource(stream);
@@ -221,6 +162,118 @@ export function useSTT(): UseSTTReturn {
       silentGain.gain.value = 0;
       processor.connect(silentGain);
       silentGain.connect(ctx.destination);
+      return true;
+    } catch (e) {
+      stopMic();
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Microphone access denied or not supported.',
+      );
+      return false;
+    }
+  }, [sendChunk, stopMic]);
+
+  const pause = useCallback(() => {
+    stopMic();
+    setIsRecording(false);
+    setLiveText('');
+    setSaved(false);
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, [stopMic]);
+
+  const stop = useCallback(() => {
+    stopMic();
+    const ws = wsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'stop' }));
+      // Keep socket open so server can receive final commit and send "saved"
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = setTimeout(() => {
+        closeTimerRef.current = null;
+        if (wsRef.current) {
+          wsRef.current.close();
+          wsRef.current = null;
+        }
+      }, 6000);
+    } else if (ws) {
+      ws.close();
+      wsRef.current = null;
+    }
+    setIsRecording(false);
+    setLiveText('');
+  }, [stopMic]);
+
+  useEffect(() => {
+    return () => {
+      stop();
+    };
+  }, [stop]);
+
+  const start = useCallback(async (options?: StartOptions) => {
+    const resume = options?.resume === true;
+    setError(null);
+    setSaved(false);
+    setFeedbackText(null);
+    setFeedbackError(null);
+    setLiveText('');
+    if (!resume) {
+      setTranscriptSegments([]);
+    }
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    const existingWs = wsRef.current;
+    if (resume && existingWs && existingWs.readyState === WebSocket.OPEN) {
+      const micReady = await startMicCapture();
+      if (micReady) {
+        setIsRecording(true);
+      }
+      return;
+    }
+
+    if (existingWs) {
+      existingWs.close();
+      wsRef.current = null;
+    }
+
+    const wsUrl = getWsUrl();
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'WebSocket error');
+      return;
+    }
+    wsRef.current = ws;
+
+    let opened = false;
+    ws.onerror = () => setError('WebSocket error.');
+    ws.onclose = () => {
+      stopMic();
+      wsRef.current = null;
+      setIsRecording(false);
+      setLiveText('');
+      if (!opened) {
+        setError(
+          'Could not connect to transcript server. Run "npm run dev" (both Next and server) or start the server on port 3001.',
+        );
+      }
+    };
+    ws.onopen = () => {
+      opened = true;
+      void startMicCapture().then((micReady) => {
+        if (!micReady) {
+          ws.close();
+          return;
+        }
+        setIsRecording(true);
+      });
     };
 
     ws.onmessage = (event: MessageEvent) => {
@@ -286,11 +339,12 @@ export function useSTT(): UseSTTReturn {
         setError('Transcription error: ' + (msg.error ?? type));
       }
     };
-  }, [sendChunk, stopMic]);
+  }, [startMicCapture, stopMic]);
 
   return {
     isRecording,
     start,
+    pause,
     stop,
     liveText,
     transcriptSegments,

@@ -12,6 +12,7 @@ export interface Run {
   audioUrl?: string;
   analysis: AnalysisResult;
   overallScore: number;
+  fallback?: boolean;
 }
 
 export interface CreatePitchRunRequest {

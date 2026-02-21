@@ -28,7 +28,8 @@ function isRun(value: unknown): value is Run {
     (value.inputType === 'audio' || value.inputType === 'text') &&
     typeof value.transcript === 'string' &&
     typeof value.overallScore === 'number' &&
-    isAnalysisResult(value.analysis)
+    isAnalysisResult(value.analysis) &&
+    (value.fallback === undefined || typeof value.fallback === 'boolean')
   );
 }
 
