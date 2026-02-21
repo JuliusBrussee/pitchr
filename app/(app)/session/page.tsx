@@ -29,7 +29,6 @@ export default function SessionPage() {
   return (
     <div className="flex h-screen p-4 gap-4">
       <AppSidebar
-        activePage="session"
         onStartSession={handleSessionToggle}
         isSessionActive={session.isSessionActive}
       />

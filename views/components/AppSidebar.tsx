@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Radio,
@@ -12,31 +14,32 @@ import {
   Moon,
 } from 'lucide-react';
 import { useTheme } from '@/views/components/ThemeProvider';
+import { StartSessionButton } from '@/views/components/StartSessionButton';
 
 interface AppSidebarProps {
-  activePage: string;
-  onStartSession: () => void;
-  isSessionActive: boolean;
+  onStartSession?: () => void;
+  isSessionActive?: boolean;
 }
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'session', label: 'Live Session', icon: Radio },
-  { id: 'history', label: 'History', icon: Clock },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', mock: true },
+  { id: 'session', label: 'Live Session', icon: Radio, href: '/session', mock: false },
+  { id: 'history', label: 'History', icon: Clock, href: '/history', mock: true },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics', mock: true },
 ];
 
 const TOOL_ITEMS = [
-  { id: 'deck', label: 'Deck Manager', icon: FolderOpen },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck', mock: true },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings', mock: true },
 ];
 
-export function AppSidebar({ activePage, onStartSession, isSessionActive }: AppSidebarProps) {
+export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
   const { isDark, toggleTheme } = useTheme();
+  const pathname = usePathname();
 
   return (
     <aside
-      className="flex flex-col h-full w-60 rounded-2xl p-4 border"
+      className="flex flex-col h-full w-60 rounded-2xl p-4 border flex-shrink-0"
       style={{
         backgroundColor: 'var(--bg-surface)',
         backdropFilter: `blur(var(--blur-strength))`,
@@ -63,11 +66,12 @@ export function AppSidebar({ activePage, onStartSession, isSessionActive }: AppS
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon;
-          const isActive = activePage === item.id;
+          const isActive = pathname === item.href;
           return (
-            <button
+            <Link
               key={item.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+              href={item.href}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
               style={{
                 backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
                 color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -75,8 +79,20 @@ export function AppSidebar({ activePage, onStartSession, isSessionActive }: AppS
               }}
             >
               <Icon size={18} />
-              {item.label}
-            </button>
+              <span className="flex-1">{item.label}</span>
+              {item.mock && (
+                <span
+                  className="text-[8px] font-medium uppercase tracking-wider px-1 py-0.5 rounded"
+                  style={{
+                    color: 'var(--text-muted)',
+                    backgroundColor: 'var(--border-color)',
+                    lineHeight: 1,
+                  }}
+                >
+                  mock
+                </span>
+              )}
+            </Link>
           );
         })}
       </nav>
@@ -91,15 +107,32 @@ export function AppSidebar({ activePage, onStartSession, isSessionActive }: AppS
         </span>
         {TOOL_ITEMS.map(item => {
           const Icon = item.icon;
+          const isActive = pathname === item.href;
           return (
-            <button
+            <Link
               key={item.id}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
-              style={{ color: 'var(--text-secondary)' }}
+              href={item.href}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
+              style={{
+                backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+              }}
             >
               <Icon size={18} />
-              {item.label}
-            </button>
+              <span className="flex-1">{item.label}</span>
+              {item.mock && (
+                <span
+                  className="text-[8px] font-medium uppercase tracking-wider px-1 py-0.5 rounded"
+                  style={{
+                    color: 'var(--text-muted)',
+                    backgroundColor: 'var(--border-color)',
+                    lineHeight: 1,
+                  }}
+                >
+                  mock
+                </span>
+              )}
+            </Link>
           );
         })}
       </nav>
@@ -108,22 +141,17 @@ export function AppSidebar({ activePage, onStartSession, isSessionActive }: AppS
       <div className="flex-1" />
 
       {/* Start Session CTA */}
-      <button
-        onClick={onStartSession}
-        className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 ${
-          isSessionActive
-            ? 'bg-red-500 hover:bg-red-600'
-            : 'bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 animate-pulse-glow'
-        }`}
-        style={{
-          boxShadow: isSessionActive
-            ? '0 0 20px rgba(239,68,68,0.3)'
-            : undefined,
-        }}
-      >
-        <Play size={16} fill="currentColor" />
-        {isSessionActive ? 'End Session' : 'Start Session'}
-      </button>
+      {onStartSession ? (
+        <StartSessionButton onClick={onStartSession} isSessionActive={isSessionActive} />
+      ) : (
+        <Link
+          href="/session"
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 no-underline bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 animate-pulse-glow"
+        >
+          <Play size={16} fill="currentColor" />
+          Start Session
+        </Link>
+      )}
     </aside>
   );
 }
