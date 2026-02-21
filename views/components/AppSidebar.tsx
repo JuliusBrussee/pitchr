@@ -144,13 +144,15 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
       {onStartSession ? (
         <StartSessionButton onClick={onStartSession} isSessionActive={isSessionActive} />
       ) : (
-        <Link
-          href="/session"
-          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 no-underline bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 animate-pulse-glow"
-        >
-          <Play size={16} fill="currentColor" />
-          Start Session
-        </Link>
+        <div className="session-start-wrap">
+          <div className="session-start-glow" />
+          <Link href="/session" className="session-start-btn no-underline">
+            <span className="session-start-btn__icon">
+              <Play size={15} fill="currentColor" />
+            </span>
+            Start Session
+          </Link>
+        </div>
       )}
     </aside>
   );

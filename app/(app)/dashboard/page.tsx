@@ -1,63 +1,77 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AppSidebar } from '@/views/components/AppSidebar';
 import {
-  Flame,
-  TrendingUp,
-  Clock,
-  Zap,
   Target,
-  Upload,
-  Lightbulb,
-  ArrowRight,
+  TrendingUp,
+  Trophy,
+  Zap,
   Calendar,
   Timer,
+  ArrowRight,
+  Lightbulb,
 } from 'lucide-react';
+import {
+  GlassCard,
+  StatCard,
+  ScoreBadge,
+  TagPill,
+  SectionHeader,
+  getModeColor,
+  getModeBgColor,
+  getModeLabel,
+} from '@/views/components/ui';
+import type { PitchMode } from '@/views/components/ui/colors';
 
-/* ─── Mock Data ─── */
+/* ─── Mock Data (PRD-aligned) ─── */
 
-const STATS = [
-  { label: 'Total Sessions', value: '24', icon: Target, accent: '#8b5cf6' },
-  { label: 'Avg Score', value: '7.8/10', icon: TrendingUp, accent: '#22c55e' },
-  { label: 'Practice Streak', value: '5 days', icon: Flame, accent: '#f97316' },
-  { label: 'Practice Time', value: '12.5 hrs', icon: Clock, accent: '#3b82f6' },
-];
+interface MockRun {
+  id: string;
+  mode: PitchMode;
+  overallScore: number;
+  one_line_verdict: string;
+  createdAt: string;
+  duration_seconds: number;
+  deck?: string;
+}
 
-const RECENT_SESSIONS = [
+const RECENT_RUNS: MockRun[] = [
   {
-    id: 1,
-    name: 'Series A Pitch — Final Run',
-    date: 'Feb 20, 2026',
-    duration: '8m 42s',
-    score: 8.4,
+    id: '1',
+    mode: 'vc_pitch',
+    overallScore: 84,
+    one_line_verdict: 'Strong structure but needs concrete traction numbers',
+    createdAt: '2026-02-20T14:30:00Z',
+    duration_seconds: 522,
     deck: 'Series A Deck v3',
   },
   {
-    id: 2,
-    name: 'Investor Q&A Practice',
-    date: 'Feb 18, 2026',
-    duration: '12m 15s',
-    score: 7.1,
-    deck: 'Q&A Scenarios',
+    id: '2',
+    mode: 'vc_pitch',
+    overallScore: 71,
+    one_line_verdict: 'Good energy but closing section runs too long',
+    createdAt: '2026-02-18T10:15:00Z',
+    duration_seconds: 735,
+    deck: 'Series A Deck v3',
   },
   {
-    id: 3,
-    name: 'Product Demo Walkthrough',
-    date: 'Feb 16, 2026',
-    duration: '6m 33s',
-    score: 8.9,
-    deck: 'Product Demo Deck',
-  },
-  {
-    id: 4,
-    name: 'Elevator Pitch Sprint',
-    date: 'Feb 14, 2026',
-    duration: '2m 05s',
-    score: 6.5,
-    deck: 'One-Pager Deck',
+    id: '3',
+    mode: 'elevator',
+    overallScore: 89,
+    one_line_verdict: 'Punchy and clear — tighten the market claim',
+    createdAt: '2026-02-16T16:45:00Z',
+    duration_seconds: 38,
+    deck: 'Elevator 60-sec',
   },
 ];
+
+const STATS = {
+  totalRuns: 24,
+  averageScore: 78,
+  bestScore: 92,
+  trend: [62, 65, 68, 71, 67, 72, 74, 78, 84, 78],
+};
 
 const PITCH_TIPS = [
   'Start with a bold claim or surprising stat — investors hear hundreds of pitches; hook them in the first 10 seconds.',
@@ -66,6 +80,8 @@ const PITCH_TIPS = [
   'Pause after key points. Silence builds weight and gives your audience time to absorb.',
   'Practice the transition between your problem slide and solution slide — that\'s where most pitches lose momentum.',
 ];
+
+/* ─── Helpers ─── */
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -83,148 +99,261 @@ function getFormattedDate(): string {
   });
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 8) return '#22c55e';
-  if (score >= 7) return '#eab308';
-  return '#ef4444';
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m === 0) return `${s}s`;
+  return `${m}m ${s.toString().padStart(2, '0')}s`;
 }
 
-const randomTip = PITCH_TIPS[Math.floor(Math.random() * PITCH_TIPS.length)];
+function formatRunDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/* ─── Sparkline SVG Component ─── */
+
+function Sparkline({
+  data,
+  width = 240,
+  height = 80,
+  strokeColor = '#ff5941',
+  gradientId = 'sparkGrad',
+}: {
+  data: number[];
+  width?: number;
+  height?: number;
+  strokeColor?: string;
+  gradientId?: string;
+}) {
+  if (data.length < 2) return null;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const padding = 4;
+
+  const points = data.map((val, i) => {
+    const x = padding + (i / (data.length - 1)) * (width - padding * 2);
+    const y = padding + (1 - (val - min) / range) * (height - padding * 2);
+    return { x, y };
+  });
+
+  const linePath = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ');
+
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      width="100%"
+      height="100%"
+      preserveAspectRatio="none"
+      className="overflow-visible"
+    >
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={strokeColor} stopOpacity={0.3} />
+          <stop offset="100%" stopColor={strokeColor} stopOpacity={0.02} />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradientId})`} />
+      <path
+        d={linePath}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      {/* End dot */}
+      <circle
+        cx={points[points.length - 1].x}
+        cy={points[points.length - 1].y}
+        r="4"
+        fill={strokeColor}
+        stroke="var(--bg-surface)"
+        strokeWidth="2"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  );
+}
 
 /* ─── Page Component ─── */
 
 export default function DashboardPage() {
+  // Defer dynamic values to client to avoid hydration mismatch
+  const [greeting, setGreeting] = useState('');
+  const [formattedDate, setFormattedDate] = useState('');
+  const [tip, setTip] = useState('');
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+    setFormattedDate(getFormattedDate());
+    setTip(PITCH_TIPS[Math.floor(Math.random() * PITCH_TIPS.length)]);
+  }, []);
+
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar />
+    <main
+      className="flex-1 overflow-y-auto rounded-2xl border p-8"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        backdropFilter: 'blur(var(--blur-strength))',
+        WebkitBackdropFilter: 'blur(var(--blur-strength))',
+        borderColor: 'var(--border-color)',
+      }}
+    >
+      <div className="max-w-5xl mx-auto">
+        {/* ─── Welcome Header ─── */}
+        <div
+          className="mb-6 animate-fade-in-up"
+          style={{ animationDelay: '0s', animationFillMode: 'both' }}
+        >
+          <h1
+            className="text-2xl font-bold mb-1"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            {greeting}, Founder
+          </h1>
+          <p
+            className="text-sm flex items-center gap-1.5"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            <Calendar size={14} />
+            {formattedDate}
+          </p>
+        </div>
 
-      {/* Main content area */}
-      <main
-        className="flex-1 overflow-y-auto rounded-2xl border p-8"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          backdropFilter: `blur(var(--blur-strength))`,
-          WebkitBackdropFilter: `blur(var(--blur-strength))`,
-          borderColor: 'var(--border-color)',
-        }}
-      >
-        <div className="max-w-5xl mx-auto">
+        {/* ─── Run a Pitch CTA ─── */}
+        <div
+          className="mb-8 animate-fade-in-up"
+          style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
+        >
+          <Link href="/session" className="block no-underline">
+            <div className="session-start-wrap" style={{ borderRadius: 16, padding: 2 }}>
+              <div className="session-start-glow" />
+              <button
+                className="session-start-btn w-full border-0 px-8 cursor-pointer
+                           flex items-center justify-center gap-3
+                           font-semibold text-base"
+                style={{ borderRadius: 14, padding: '16px 0' }}
+              >
+                <Zap size={20} />
+                Run a Pitch
+              </button>
+            </div>
+          </Link>
+        </div>
 
-          {/* ─── Welcome Header ─── */}
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: '0s', animationFillMode: 'both' }}>
-            <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
-              {getGreeting()}, Founder
-            </h1>
-            <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-              <Calendar size={14} />
-              {getFormattedDate()}
-            </p>
-          </div>
+        {/* ─── Stat Cards Row ─── */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <StatCard
+            label="Total Runs"
+            value={String(STATS.totalRuns)}
+            icon={<Target size={16} />}
+            delta="+3"
+            deltaDirection="up"
+            deltaIsGood
+            animationDelay="0.1s"
+          />
+          <StatCard
+            label="Average Score"
+            value={`${STATS.averageScore}/100`}
+            icon={<TrendingUp size={16} />}
+            delta="+4"
+            deltaDirection="up"
+            deltaIsGood
+            animationDelay="0.16s"
+          />
+          <StatCard
+            label="Best Score"
+            value={`${STATS.bestScore}/100`}
+            icon={<Trophy size={16} />}
+            animationDelay="0.22s"
+          />
+        </div>
 
-          {/* ─── Quick Stats Row ─── */}
-          <div className="grid grid-cols-4 gap-4 mb-8">
-            {STATS.map((stat, i) => {
-              const Icon = stat.icon;
-              return (
-                <div
-                  key={stat.label}
-                  className="rounded-2xl border p-5 transition-all duration-200 animate-fade-in-up"
-                  style={{
-                    backgroundColor: 'var(--bg-surface)',
-                    borderColor: 'var(--border-color)',
-                    backdropFilter: `blur(var(--blur-strength))`,
-                    WebkitBackdropFilter: `blur(var(--blur-strength))`,
-                    animationDelay: `${0.05 + i * 0.06}s`,
-                    animationFillMode: 'both',
-                  }}
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                      {stat.label}
-                    </span>
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${stat.accent}18` }}
-                    >
-                      <Icon size={16} style={{ color: stat.accent }} />
-                    </div>
-                  </div>
-                  <div className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-                    {stat.value}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ─── Two-Column Section ─── */}
-          <div className="grid grid-cols-5 gap-6">
-
-            {/* Left — Recent Sessions (3/5 width) */}
+        {/* ─── Two-Column Layout ─── */}
+        <div className="grid grid-cols-5 gap-6">
+          {/* Left Column — Recent Runs (3/5) */}
+          <div className="col-span-3">
             <div
-              className="col-span-3 animate-fade-in-up"
-              style={{ animationDelay: '0.3s', animationFillMode: 'both' }}
+              className="mb-4 animate-fade-in-up"
+              style={{ animationDelay: '0.28s', animationFillMode: 'both' }}
             >
-              <h2 className="text-sm font-semibold uppercase tracking-wider mb-4" style={{ color: 'var(--text-muted)' }}>
-                Recent Sessions
-              </h2>
-              <div className="flex flex-col gap-2">
-                {RECENT_SESSIONS.map((session, i) => (
+              <SectionHeader>Recent Runs</SectionHeader>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {RECENT_RUNS.map((run, i) => (
+                <Link
+                  key={run.id}
+                  href={`/results/${run.id}`}
+                  className="no-underline block"
+                >
                   <div
-                    key={session.id}
                     className="group rounded-xl border p-4 transition-all duration-200 cursor-pointer animate-fade-in-up"
                     style={{
                       backgroundColor: 'var(--bg-surface)',
                       borderColor: 'var(--border-color)',
-                      animationDelay: `${0.35 + i * 0.06}s`,
+                      animationDelay: `${0.32 + i * 0.06}s`,
                       animationFillMode: 'both',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
-                      e.currentTarget.style.borderColor = 'var(--bg-surface-hover)';
+                      e.currentTarget.style.backgroundColor =
+                        'var(--bg-surface-hover)';
+                      e.currentTarget.style.borderColor =
+                        'var(--bg-surface-hover)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.backgroundColor =
+                        'var(--bg-surface)';
+                      e.currentTarget.style.borderColor =
+                        'var(--border-color)';
                     }}
                   >
                     <div className="flex items-center justify-between">
+                      {/* Left: mode pill + meta + verdict */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>
-                            {session.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-                          <span className="flex items-center gap-1">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <TagPill
+                            label={getModeLabel(run.mode)}
+                            color={getModeColor(run.mode)}
+                            bgColor={getModeBgColor(run.mode)}
+                          />
+                          <span
+                            className="flex items-center gap-1 text-xs"
+                            style={{ color: 'var(--text-muted)' }}
+                          >
                             <Calendar size={11} />
-                            {session.date}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Timer size={11} />
-                            {session.duration}
+                            {formatRunDate(run.createdAt)}
                           </span>
                           <span
-                            className="px-1.5 py-0.5 rounded text-[10px] font-medium"
-                            style={{
-                              backgroundColor: 'var(--border-color)',
-                              color: 'var(--text-secondary)',
-                            }}
+                            className="flex items-center gap-1 text-xs"
+                            style={{ color: 'var(--text-muted)' }}
                           >
-                            {session.deck}
+                            <Timer size={11} />
+                            {formatDuration(run.duration_seconds)}
                           </span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 ml-4">
-                        <div
-                          className="text-sm font-bold tabular-nums px-2.5 py-1 rounded-lg"
-                          style={{
-                            color: getScoreColor(session.score),
-                            backgroundColor: `${getScoreColor(session.score)}14`,
-                          }}
+                        <p
+                          className="text-sm truncate leading-snug"
+                          style={{ color: 'var(--text-secondary)' }}
                         >
-                          {session.score.toFixed(1)}
-                        </div>
+                          {run.one_line_verdict}
+                        </p>
+                      </div>
+
+                      {/* Right: score badge + arrow */}
+                      <div className="flex items-center gap-3 ml-4 flex-shrink-0">
+                        <ScoreBadge score={run.overallScore} />
                         <ArrowRight
                           size={14}
                           className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
@@ -233,124 +362,65 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Right — Quick Actions (2/5 width) */}
-            <div
-              className="col-span-2 flex flex-col gap-4 animate-fade-in-up"
-              style={{ animationDelay: '0.35s', animationFillMode: 'both' }}
-            >
-              <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                Quick Actions
-              </h2>
-
-              {/* New Practice Session */}
-              <Link
-                href="/session"
-                className="group rounded-2xl border p-5 transition-all duration-200 no-underline block"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-color)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                }}
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)' }}
-                  >
-                    <Zap size={18} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                      New Practice Session
-                    </div>
-                    <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                      Start a live AI-coached session with real-time feedback.
-                    </p>
-                  </div>
-                  <ArrowRight
-                    size={16}
-                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 mt-0.5"
-                    style={{ color: 'var(--text-muted)' }}
-                  />
-                </div>
-              </Link>
-
-              {/* Upload Deck */}
-              <Link
-                href="/deck"
-                className="group rounded-2xl border p-5 transition-all duration-200 no-underline block"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-color)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
-                }}
-              >
-                <div className="flex items-start gap-4">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #f97316, #eab308)' }}
-                  >
-                    <Upload size={18} className="text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold mb-0.5" style={{ color: 'var(--text-primary)' }}>
-                      Upload Deck
-                    </div>
-                    <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                      Add a pitch deck to practice with slide-by-slide guidance.
-                    </p>
-                  </div>
-                  <ArrowRight
-                    size={16}
-                    className="opacity-0 group-hover:opacity-100 transition-all duration-200 group-hover:translate-x-0.5 mt-0.5"
-                    style={{ color: 'var(--text-muted)' }}
-                  />
-                </div>
-              </Link>
-
-              {/* Pitch Tips */}
-              <div
-                className="rounded-2xl border p-5 animate-fade-in-up"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-color)',
-                  animationDelay: '0.5s',
-                  animationFillMode: 'both',
-                }}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: '#eab30818' }}
-                  >
-                    <Lightbulb size={14} style={{ color: '#eab308' }} />
-                  </div>
-                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-                    Pitch Tip
-                  </span>
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  &ldquo;{randomTip}&rdquo;
-                </p>
-              </div>
+                </Link>
+              ))}
             </div>
           </div>
+
+          {/* Right Column — Score Trend + Pitch Tip (2/5) */}
+          <div className="col-span-2 flex flex-col gap-4">
+            {/* Score Trend Sparkline */}
+            <GlassCard animationDelay="0.36s">
+              <SectionHeader className="mb-4">
+                <TrendingUp size={12} />
+                Score Trend
+              </SectionHeader>
+              <div className="h-24 w-full">
+                <Sparkline data={STATS.trend} strokeColor="#ff5941" />
+              </div>
+              <div className="flex items-center justify-between mt-3">
+                <span
+                  className="text-xs tabular-nums"
+                  style={{ color: 'var(--text-muted)' }}
+                >
+                  {STATS.trend.length} runs
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="text-xs"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Latest
+                  </span>
+                  <ScoreBadge
+                    score={STATS.trend[STATS.trend.length - 1]}
+                    size="sm"
+                  />
+                </div>
+              </div>
+            </GlassCard>
+
+            {/* Pitch Tip */}
+            <GlassCard animationDelay="0.44s">
+              <div className="flex items-center gap-2 mb-3">
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: '#eab30818' }}
+                >
+                  <Lightbulb size={14} style={{ color: '#eab308' }} />
+                </div>
+                <SectionHeader>Pitch Tip</SectionHeader>
+              </div>
+              <p
+                className="text-sm leading-relaxed"
+                style={{ color: 'var(--text-secondary)' }}
+              >
+                &ldquo;{tip}&rdquo;
+              </p>
+            </GlassCard>
+          </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }

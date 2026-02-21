@@ -16,7 +16,10 @@ interface SessionCanvasProps {
   orbIntensity: number;
   speechBubbles: SpeechBubble[];
   isSessionActive: boolean;
+  isPaused: boolean;
   onStartSession: () => void;
+  onPauseSession: () => void;
+  onResumeSession: () => void;
   onStopSession: () => void;
 }
 
@@ -30,7 +33,10 @@ export function SessionCanvas({
   orbIntensity,
   speechBubbles,
   isSessionActive,
+  isPaused,
   onStartSession,
+  onPauseSession,
+  onResumeSession,
   onStopSession,
 }: SessionCanvasProps) {
   const [focusMode, setFocusMode] = useState<'slides' | 'camera'>('slides');
@@ -124,12 +130,16 @@ export function SessionCanvas({
         <div className="flex items-center gap-1">
           <ControlButton icon={SkipBack} onClick={() => {}} label="Previous slide" size={16} />
           {isSessionActive ? (
-            <ControlButton icon={Pause} onClick={onStopSession} label="Pause session" primary />
+            isPaused ? (
+              <ControlButton icon={Play} onClick={onResumeSession} label="Resume session" primary />
+            ) : (
+              <ControlButton icon={Pause} onClick={onPauseSession} label="Pause session" primary />
+            )
           ) : (
             <ControlButton icon={Play} onClick={onStartSession} label="Start session" primary />
           )}
           {isSessionActive && (
-            <ControlButton icon={Square} onClick={onStopSession} label="Stop session" danger />
+            <StopButton onClick={onStopSession} isPaused={isPaused} />
           )}
           <ControlButton icon={SkipForward} onClick={() => {}} label="Next slide" size={16} />
         </div>
@@ -207,6 +217,25 @@ function ControlButton({
       aria-label={label}
     >
       <Icon size={size} fill={primary ? 'currentColor' : 'none'} />
+    </button>
+  );
+}
+
+function StopButton({ onClick, isPaused }: { onClick: () => void; isPaused: boolean }) {
+  return (
+    <button
+      onClick={onClick}
+      className="rounded-full transition-all duration-200 flex items-center gap-1.5 px-3 py-2"
+      style={{
+        backgroundColor: 'rgba(239,68,68,0.12)',
+        color: '#ef4444',
+      }}
+      aria-label="End session & view results"
+    >
+      <Square size={14} fill="currentColor" />
+      <span className="text-xs font-semibold">
+        {isPaused ? 'End Session' : 'Stop'}
+      </span>
     </button>
   );
 }

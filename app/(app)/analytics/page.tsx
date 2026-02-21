@@ -1,426 +1,295 @@
 'use client';
 
 import { useState } from 'react';
-import { AppSidebar } from '@/views/components/AppSidebar';
 import {
-  TrendingUp,
-  TrendingDown,
-  Target,
-  Zap,
-  Clock,
-  Award,
-  AlertTriangle,
-  CheckCircle,
-  ArrowUpRight,
   BarChart3,
+  TrendingUp,
+  Clock,
+  ArrowUpRight,
+  CheckCircle,
+  AlertTriangle,
+  Target,
+  Lightbulb,
+  Sparkles,
 } from 'lucide-react';
+import {
+  GlassCard,
+  StatCard,
+  CategoryBar,
+  TagPill,
+  SectionHeader,
+  TimeRangeSelector,
+  getRubricColor,
+} from '@/views/components/ui';
+import type { TimeRange } from '@/views/components/ui';
+import { getScoreColor } from '@/views/components/ui';
 
 /* ─── Mock Data ──────────────────────────────────────────────── */
 
-const TIME_RANGES = ['7D', '30D', '90D', 'All'] as const;
-type TimeRange = (typeof TIME_RANGES)[number];
-
 const SCORE_TREND: Record<TimeRange, { label: string; value: number }[]> = {
   '7D': [
-    { label: 'Feb 15', value: 7.1 },
-    { label: 'Feb 16', value: 7.4 },
-    { label: 'Feb 17', value: 6.9 },
-    { label: 'Feb 18', value: 7.6 },
-    { label: 'Feb 19', value: 7.8 },
-    { label: 'Feb 20', value: 8.0 },
-    { label: 'Feb 21', value: 7.8 },
+    { label: 'Feb 15', value: 62 },
+    { label: 'Feb 16', value: 71 },
+    { label: 'Feb 17', value: 56 },
+    { label: 'Feb 18', value: 79 },
+    { label: 'Feb 19', value: 84 },
+    { label: 'Feb 20', value: 68 },
+    { label: 'Feb 21', value: 78 },
   ],
   '30D': [
-    { label: 'Jan 23', value: 6.2 },
-    { label: 'Jan 26', value: 6.5 },
-    { label: 'Jan 29', value: 6.8 },
-    { label: 'Feb 1', value: 7.0 },
-    { label: 'Feb 4', value: 6.7 },
-    { label: 'Feb 7', value: 7.2 },
-    { label: 'Feb 10', value: 7.0 },
-    { label: 'Feb 13', value: 7.5 },
-    { label: 'Feb 16', value: 7.4 },
-    { label: 'Feb 18', value: 7.6 },
-    { label: 'Feb 20', value: 8.0 },
-    { label: 'Feb 21', value: 7.8 },
+    { label: 'Jan 23', value: 52 },
+    { label: 'Jan 26', value: 58 },
+    { label: 'Jan 29', value: 64 },
+    { label: 'Feb 1', value: 61 },
+    { label: 'Feb 4', value: 67 },
+    { label: 'Feb 7', value: 72 },
+    { label: 'Feb 10', value: 70 },
+    { label: 'Feb 13', value: 75 },
+    { label: 'Feb 16', value: 71 },
+    { label: 'Feb 18', value: 79 },
+    { label: 'Feb 20', value: 84 },
+    { label: 'Feb 21', value: 78 },
   ],
   '90D': [
-    { label: 'Dec', value: 5.4 },
-    { label: 'Dec', value: 5.8 },
-    { label: 'Jan', value: 6.1 },
-    { label: 'Jan', value: 6.5 },
-    { label: 'Jan', value: 6.3 },
-    { label: 'Jan', value: 6.8 },
-    { label: 'Feb', value: 7.0 },
-    { label: 'Feb', value: 7.2 },
-    { label: 'Feb', value: 7.5 },
-    { label: 'Feb', value: 7.4 },
-    { label: 'Feb', value: 8.0 },
-    { label: 'Feb', value: 7.8 },
+    { label: 'Dec', value: 42 },
+    { label: 'Dec', value: 48 },
+    { label: 'Jan', value: 55 },
+    { label: 'Jan', value: 61 },
+    { label: 'Jan', value: 58 },
+    { label: 'Jan', value: 64 },
+    { label: 'Feb', value: 70 },
+    { label: 'Feb', value: 72 },
+    { label: 'Feb', value: 75 },
+    { label: 'Feb', value: 79 },
+    { label: 'Feb', value: 84 },
+    { label: 'Feb', value: 78 },
   ],
   All: [
-    { label: 'Oct', value: 4.2 },
-    { label: 'Oct', value: 4.8 },
-    { label: 'Nov', value: 5.1 },
-    { label: 'Nov', value: 5.5 },
-    { label: 'Dec', value: 5.4 },
-    { label: 'Dec', value: 5.8 },
-    { label: 'Jan', value: 6.1 },
-    { label: 'Jan', value: 6.5 },
-    { label: 'Jan', value: 6.8 },
-    { label: 'Feb', value: 7.2 },
-    { label: 'Feb', value: 7.6 },
-    { label: 'Feb', value: 7.8 },
+    { label: 'Oct', value: 32 },
+    { label: 'Oct', value: 38 },
+    { label: 'Nov', value: 44 },
+    { label: 'Nov', value: 51 },
+    { label: 'Dec', value: 48 },
+    { label: 'Dec', value: 55 },
+    { label: 'Jan', value: 61 },
+    { label: 'Jan', value: 64 },
+    { label: 'Jan', value: 67 },
+    { label: 'Feb', value: 72 },
+    { label: 'Feb', value: 79 },
+    { label: 'Feb', value: 78 },
   ],
 };
 
-const CATEGORY_SCORES = [
-  { label: 'Clarity', score: 8.2, color: '#22c55e' },
-  { label: 'Eye Contact', score: 8.0, color: '#22c55e' },
-  { label: 'Pacing', score: 7.5, color: '#3b82f6' },
-  { label: 'Body Language', score: 7.1, color: '#3b82f6' },
-  { label: 'Conciseness', score: 6.8, color: '#eab308' },
-  { label: 'Filler Words', score: 5.9, color: '#ef4444' },
+const RUBRIC_CATEGORIES = [
+  { id: 'structure', label: 'Structure', score: 16.4, maxScore: 20 },
+  { id: 'clarity', label: 'Clarity & Concision', score: 15.8, maxScore: 20 },
+  { id: 'evidence', label: 'Evidence & Traction', score: 12.2, maxScore: 20 },
+  { id: 'market', label: 'Market & Differentiation', score: 14.6, maxScore: 20 },
+  { id: 'delivery', label: 'Delivery', score: 18.0, maxScore: 20 },
 ];
 
 const INSIGHTS = [
   {
     type: 'strength' as const,
-    icon: CheckCircle,
-    title: 'Strong opening hook',
-    body: 'Your opening statements consistently grab attention within the first 10 seconds.',
+    title: 'Exceptional delivery confidence',
+    body: 'Your vocal presence and pacing consistently score above 85th percentile across all sessions.',
   },
   {
     type: 'strength' as const,
-    icon: Award,
-    title: 'Excellent eye contact',
-    body: 'You maintain steady eye contact 82% of the time, well above the 60% benchmark.',
+    title: 'Strong narrative structure',
+    body: 'Problem \u2192 solution \u2192 traction flow is well-established. Keep the opening hook under 15 seconds.',
   },
   {
     type: 'improve' as const,
-    icon: AlertTriangle,
-    title: 'Reduce filler words',
-    body: 'Averaging 6.3 filler words per minute. Try pausing instead of saying "um" or "like".',
+    title: 'Evidence section needs hard numbers',
+    body: 'Scoring 12.2/20 on Evidence & Traction. Add specific metrics: MRR, user count, growth rate.',
   },
   {
     type: 'improve' as const,
-    icon: AlertTriangle,
-    title: 'Tighten your closing',
-    body: 'Your closing section runs 40% longer than your opening. Aim for a concise call to action.',
+    title: 'Market sizing lacks depth',
+    body: 'TAM/SAM/SOM breakdown is vague. Use bottom-up calculation with cited sources for credibility.',
   },
   {
     type: 'strength' as const,
-    icon: CheckCircle,
-    title: 'Improving pacing',
-    body: 'Your speaking pace has become more consistent, with fewer rushed segments.',
+    title: 'Clarity improving over time',
+    body: 'Filler word usage dropped 40% over the last 30 days. Average WPM now in the ideal 140\u2013160 range.',
   },
 ];
 
 const RECOMMENDATIONS = [
   {
-    icon: Target,
-    title: 'Practice the 60-second pitch',
+    title: 'Add traction proof points',
     description:
-      'Condense your full pitch into 60 seconds. This forces clarity and helps you identify the core message. Try recording 3 attempts back-to-back.',
-    tag: 'Conciseness',
+      'Record a VC Pitch run and focus on weaving 3 specific metrics into your evidence section. Target: 16/20 on Evidence.',
+    tag: 'evidence',
   },
   {
-    icon: Zap,
-    title: 'Pause replacement drill',
+    title: 'Refine your market slide',
     description:
-      'Record a 2-minute pitch and consciously replace every filler word with a 1-second pause. Silence feels longer to you than to your audience.',
-    tag: 'Filler Words',
+      'Practice a 30-second segment on TAM/SAM/SOM using bottom-up analysis. Cite your data sources explicitly.',
+    tag: 'market',
   },
   {
-    icon: Award,
-    title: 'Mirror practice for body language',
+    title: 'Maintain delivery excellence',
     description:
-      'Practice your pitch in front of a mirror or with the webcam on. Focus on open gestures and avoiding crossed arms or fidgeting.',
-    tag: 'Body Language',
+      'Your delivery scores are strong. Keep practicing with the webcam on to maintain confidence and eye contact.',
+    tag: 'delivery',
   },
 ];
 
-/* ─── Component ──────────────────────────────────────────────── */
+/* ─── Gradient map for recommendation icon backgrounds ─────── */
+
+const RECOMMENDATION_GRADIENTS: Record<string, string> = {
+  evidence: 'linear-gradient(135deg, #22c55e, #16a34a)',
+  market: 'linear-gradient(135deg, #f97316, #ea580c)',
+  delivery: 'linear-gradient(135deg, #ef4444, #dc2626)',
+  structure: 'linear-gradient(135deg, #ff5941, #e63b26)',
+  clarity: 'linear-gradient(135deg, #ffaa33, #f59e0b)',
+};
+
+const RECOMMENDATION_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+  evidence: Target,
+  market: Lightbulb,
+  delivery: Sparkles,
+};
+
+/* ─── Page Component ─────────────────────────────────────────── */
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('30D');
   const trendData = SCORE_TREND[range];
 
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar />
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
-        {/* Header */}
-        <div
-          className="flex items-center justify-between animate-fade-in-up"
-          style={{ animationDelay: '0ms' }}
-        >
-          <div className="flex items-center gap-3">
-            <BarChart3 size={24} style={{ color: 'var(--text-primary)' }} />
-            <h1
-              className="text-2xl font-bold tracking-tight"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Analytics
-            </h1>
-          </div>
-
-          {/* Time Range Selector */}
-          <div
-            className="flex rounded-xl p-1 border"
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              borderColor: 'var(--border-color)',
-            }}
+    <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
+      {/* Header */}
+      <div
+        className="flex items-center justify-between animate-fade-in-up"
+        style={{ animationDelay: '0ms', animationFillMode: 'both' }}
+      >
+        <div className="flex items-center gap-3">
+          <BarChart3 size={24} style={{ color: 'var(--text-primary)' }} />
+          <h1
+            className="text-2xl font-bold tracking-tight"
+            style={{ color: 'var(--text-primary)' }}
           >
-            {TIME_RANGES.map((r) => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200"
-                style={{
-                  backgroundColor: range === r ? 'var(--bg-surface-hover)' : 'transparent',
-                  color: range === r ? 'var(--text-primary)' : 'var(--text-muted)',
-                }}
-              >
-                {r}
-              </button>
+            Analytics
+          </h1>
+        </div>
+        <TimeRangeSelector value={range} onChange={setRange} />
+      </div>
+
+      {/* Top Stats Row */}
+      <div className="grid grid-cols-4 gap-4">
+        <StatCard
+          label="Overall Score"
+          value="78/100"
+          icon={<TrendingUp size={16} />}
+          delta="+6"
+          deltaDirection="up"
+          animationDelay="60ms"
+        />
+        <StatCard
+          label="Sessions This Period"
+          value="12"
+          icon={<BarChart3 size={16} />}
+          delta="+3"
+          deltaDirection="up"
+          animationDelay="120ms"
+        />
+        <StatCard
+          label="Avg Duration"
+          value="5:12"
+          icon={<Clock size={16} />}
+          delta="-0:18"
+          deltaDirection="down"
+          deltaIsGood
+          animationDelay="180ms"
+        />
+        <StatCard
+          label="Improvement Rate"
+          value="+14%"
+          icon={<ArrowUpRight size={16} />}
+          delta="+4%"
+          deltaDirection="up"
+          animationDelay="240ms"
+        />
+      </div>
+
+      {/* Score Trend Chart */}
+      <GlassCard animationDelay="300ms">
+        <div className="flex items-center justify-between mb-5">
+          <SectionHeader>Score Trend</SectionHeader>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            {range === '7D'
+              ? 'Last 7 days'
+              : range === '30D'
+                ? 'Last 30 days'
+                : range === '90D'
+                  ? 'Last 90 days'
+                  : 'All time'}
+          </span>
+        </div>
+        <ScoreTrendChart data={trendData} />
+      </GlassCard>
+
+      {/* Two-Column: Rubric Breakdown + Top Insights */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Rubric Breakdown */}
+        <GlassCard animationDelay="360ms">
+          <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
+          <div className="flex flex-col gap-3.5">
+            {RUBRIC_CATEGORIES.map((cat, i) => (
+              <CategoryBar
+                key={cat.id}
+                label={cat.label}
+                score={cat.score}
+                maxScore={cat.maxScore}
+                color={getRubricColor(cat.id)}
+                delay={i}
+              />
             ))}
           </div>
-        </div>
+        </GlassCard>
 
-        {/* Top Stats Row */}
-        <div
-          className="grid grid-cols-4 gap-4 animate-fade-in-up"
-          style={{ animationDelay: '60ms' }}
-        >
-          <StatCard
-            label="Overall Score"
-            value="7.8"
-            delta="+0.6"
-            deltaDirection="up"
-            icon={<TrendingUp size={16} />}
-            delay={0}
-          />
-          <StatCard
-            label="Sessions This Period"
-            value="12"
-            delta="+3"
-            deltaDirection="up"
-            icon={<BarChart3 size={16} />}
-            delay={1}
-          />
-          <StatCard
-            label="Avg Duration"
-            value="5:12"
-            delta="-0:18"
-            deltaDirection="down"
-            icon={<Clock size={16} />}
-            delay={2}
-            deltaIsGood
-          />
-          <StatCard
-            label="Improvement Rate"
-            value="+14%"
-            delta="+4%"
-            deltaDirection="up"
-            icon={<ArrowUpRight size={16} />}
-            delay={3}
-          />
-        </div>
-
-        {/* Score Trend Chart */}
-        <div
-          className="animate-fade-in-up"
-          style={{ animationDelay: '120ms' }}
-        >
-          <GlassCard>
-            <div className="flex items-center justify-between mb-5">
-              <h2
-                className="text-sm font-semibold uppercase tracking-wider"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Score Trend
-              </h2>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {range === '7D'
-                  ? 'Last 7 days'
-                  : range === '30D'
-                    ? 'Last 30 days'
-                    : range === '90D'
-                      ? 'Last 90 days'
-                      : 'All time'}
-              </span>
-            </div>
-            <ScoreTrendChart data={trendData} />
-          </GlassCard>
-        </div>
-
-        {/* Two-Column: Category Scores + Insights */}
-        <div className="grid grid-cols-2 gap-4">
-          {/* Category Scores */}
-          <div
-            className="animate-fade-in-up"
-            style={{ animationDelay: '180ms' }}
-          >
-            <GlassCard>
-              <h2
-                className="text-sm font-semibold uppercase tracking-wider mb-4"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Category Scores
-              </h2>
-              <div className="flex flex-col gap-3.5">
-                {CATEGORY_SCORES.map((cat, i) => (
-                  <CategoryBar key={cat.label} {...cat} delay={i} />
-                ))}
-              </div>
-            </GlassCard>
+        {/* Top Insights */}
+        <GlassCard animationDelay="420ms">
+          <SectionHeader className="mb-4">Top Insights</SectionHeader>
+          <div className="flex flex-col gap-3">
+            {INSIGHTS.map((insight, i) => (
+              <InsightCard key={i} {...insight} delay={i} />
+            ))}
           </div>
+        </GlassCard>
+      </div>
 
-          {/* Top Insights */}
-          <div
-            className="animate-fade-in-up"
-            style={{ animationDelay: '240ms' }}
-          >
-            <GlassCard>
-              <h2
-                className="text-sm font-semibold uppercase tracking-wider mb-4"
-                style={{ color: 'var(--text-muted)' }}
-              >
-                Top Insights
-              </h2>
-              <div className="flex flex-col gap-3">
-                {INSIGHTS.map((insight, i) => (
-                  <InsightCard key={i} {...insight} delay={i} />
-                ))}
-              </div>
-            </GlassCard>
-          </div>
+      {/* Practice Recommendations */}
+      <GlassCard animationDelay="480ms">
+        <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
+        <div className="grid grid-cols-3 gap-4">
+          {RECOMMENDATIONS.map((rec, i) => (
+            <RecommendationCard key={i} {...rec} delay={i} />
+          ))}
         </div>
+      </GlassCard>
 
-        {/* Practice Recommendations */}
-        <div
-          className="animate-fade-in-up"
-          style={{ animationDelay: '300ms' }}
-        >
-          <GlassCard>
-            <h2
-              className="text-sm font-semibold uppercase tracking-wider mb-4"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Practice Recommendations
-            </h2>
-            <div className="grid grid-cols-3 gap-4">
-              {RECOMMENDATIONS.map((rec, i) => (
-                <RecommendationCard key={i} {...rec} delay={i} />
-              ))}
-            </div>
-          </GlassCard>
-        </div>
-
-        {/* Bottom spacer */}
-        <div className="h-2 flex-shrink-0" />
-      </main>
-    </div>
+      {/* Bottom spacer */}
+      <div className="h-2 flex-shrink-0" />
+    </main>
   );
 }
 
 /* ─── Sub-components ─────────────────────────────────────────── */
 
-function GlassCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className="rounded-2xl border p-5"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        backdropFilter: `blur(var(--blur-strength))`,
-        WebkitBackdropFilter: `blur(var(--blur-strength))`,
-        borderColor: 'var(--border-color)',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  delta,
-  deltaDirection,
-  icon,
-  delay,
-  deltaIsGood,
-}: {
-  label: string;
-  value: string;
-  delta: string;
-  deltaDirection: 'up' | 'down';
-  icon: React.ReactNode;
-  delay: number;
-  deltaIsGood?: boolean;
-}) {
-  const isPositive = deltaDirection === 'up';
-  const isGood = deltaIsGood !== undefined ? deltaIsGood : isPositive;
-
-  return (
-    <div
-      className="rounded-2xl border p-4 animate-fade-in-up"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        backdropFilter: `blur(var(--blur-strength))`,
-        WebkitBackdropFilter: `blur(var(--blur-strength))`,
-        borderColor: 'var(--border-color)',
-        animationDelay: `${80 + delay * 60}ms`,
-        animationFillMode: 'both',
-      }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span
-          className="text-xs font-medium"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          {label}
-        </span>
-        <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center"
-          style={{ backgroundColor: 'var(--bg-surface-hover)', color: 'var(--text-secondary)' }}
-        >
-          {icon}
-        </div>
-      </div>
-      <div className="flex items-end gap-2">
-        <span
-          className="text-2xl font-bold tabular-nums"
-          style={{ color: 'var(--text-primary)' }}
-        >
-          {value}
-        </span>
-        <span
-          className="flex items-center gap-0.5 text-xs font-semibold mb-0.5"
-          style={{ color: isGood ? '#22c55e' : '#ef4444' }}
-        >
-          {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-          {delta}
-        </span>
-      </div>
-    </div>
-  );
-}
-
 function ScoreTrendChart({ data }: { data: { label: string; value: number }[] }) {
-  const maxVal = 10;
-  const yLabels = [10, 8, 6, 4, 2, 0];
+  const maxVal = 100;
+  const yLabels = [100, 80, 60, 40, 20, 0];
 
   return (
     <div className="flex gap-0" style={{ height: 220 }}>
       {/* Y-axis labels */}
       <div
         className="flex flex-col justify-between pr-3 py-1"
-        style={{ width: 32 }}
+        style={{ width: 36 }}
       >
         {yLabels.map((y) => (
           <span
@@ -459,6 +328,8 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
           {/* Bars */}
           {data.map((d, i) => {
             const heightPct = (d.value / maxVal) * 100;
+            const barColor = getScoreColor(d.value);
+
             return (
               <div
                 key={i}
@@ -468,12 +339,11 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
                   className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
                   style={{
                     height: `${heightPct}%`,
-                    background: `linear-gradient(to top, #7c3aed, #3b82f6)`,
+                    backgroundColor: barColor,
                     opacity: 0.85,
-                    animationDelay: `${i * 50}ms`,
                   }}
                 >
-                  {/* Shine effect */}
+                  {/* Shine effect on hover */}
                   <div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                     style={{
@@ -490,7 +360,7 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
                       border: '1px solid var(--border-color)',
                     }}
                   >
-                    {d.value.toFixed(1)}
+                    {d.value}
                   </div>
                 </div>
               </div>
@@ -516,65 +386,21 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
   );
 }
 
-function CategoryBar({
-  label,
-  score,
-  color,
-  delay,
-}: {
-  label: string;
-  score: number;
-  color: string;
-  delay: number;
-}) {
-  const pct = (score / 10) * 100;
-
-  return (
-    <div className="flex items-center gap-3">
-      <span
-        className="text-sm font-medium w-28 flex-shrink-0"
-        style={{ color: 'var(--text-secondary)' }}
-      >
-        {label}
-      </span>
-      <div
-        className="flex-1 h-2.5 rounded-full overflow-hidden relative"
-        style={{ backgroundColor: 'var(--border-color)' }}
-      >
-        <div
-          className="h-full rounded-full transition-all duration-700 ease-out"
-          style={{
-            width: `${pct}%`,
-            backgroundColor: color,
-            transitionDelay: `${delay * 80}ms`,
-          }}
-        />
-      </div>
-      <span
-        className="text-sm font-bold tabular-nums w-8 text-right"
-        style={{ color: 'var(--text-primary)' }}
-      >
-        {score.toFixed(1)}
-      </span>
-    </div>
-  );
-}
-
 function InsightCard({
   type,
-  icon: Icon,
   title,
   body,
   delay,
 }: {
   type: 'strength' | 'improve';
-  icon: React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   body: string;
   delay: number;
 }) {
-  const borderColor = type === 'strength' ? '#22c55e' : '#f59e0b';
-  const iconColor = type === 'strength' ? '#22c55e' : '#f59e0b';
+  const isStrength = type === 'strength';
+  const borderColor = isStrength ? '#22c55e' : '#f59e0b';
+  const iconColor = isStrength ? '#22c55e' : '#f59e0b';
+  const Icon = isStrength ? CheckCircle : AlertTriangle;
 
   return (
     <div
@@ -584,7 +410,7 @@ function InsightCard({
         borderColor: 'var(--border-color)',
         borderLeftWidth: 3,
         borderLeftColor: borderColor,
-        animationDelay: `${280 + delay * 60}ms`,
+        animationDelay: `${480 + delay * 60}ms`,
         animationFillMode: 'both',
       }}
     >
@@ -599,7 +425,10 @@ function InsightCard({
           >
             {title}
           </p>
-          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          <p
+            className="text-xs leading-relaxed"
+            style={{ color: 'var(--text-secondary)' }}
+          >
             {body}
           </p>
         </div>
@@ -609,34 +438,34 @@ function InsightCard({
 }
 
 function RecommendationCard({
-  icon: Icon,
   title,
   description,
   tag,
   delay,
 }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
   title: string;
   description: string;
   tag: string;
   delay: number;
 }) {
+  const Icon = RECOMMENDATION_ICONS[tag] ?? Target;
+  const gradient = RECOMMENDATION_GRADIENTS[tag] ?? 'linear-gradient(135deg, #6b7280, #4b5563)';
+  const tagColor = getRubricColor(tag);
+
   return (
     <div
       className="rounded-xl border p-4 flex flex-col gap-3 transition-all duration-200 animate-fade-in-up hover:scale-[1.01]"
       style={{
         backgroundColor: 'var(--bg-surface)',
         borderColor: 'var(--border-color)',
-        animationDelay: `${360 + delay * 60}ms`,
+        animationDelay: `${540 + delay * 60}ms`,
         animationFillMode: 'both',
       }}
     >
       <div className="flex items-center gap-2.5">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-          style={{
-            background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-          }}
+          style={{ background: gradient }}
         >
           <Icon size={16} className="text-white" />
         </div>
@@ -653,15 +482,12 @@ function RecommendationCard({
       >
         {description}
       </p>
-      <span
-        className="self-start text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md"
-        style={{
-          color: 'var(--text-muted)',
-          backgroundColor: 'var(--border-color)',
-        }}
-      >
-        {tag}
-      </span>
+      <div className="self-start">
+        <TagPill
+          label={tag.charAt(0).toUpperCase() + tag.slice(1)}
+          color={tagColor}
+        />
+      </div>
     </div>
   );
 }
