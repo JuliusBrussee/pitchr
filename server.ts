@@ -19,7 +19,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.type("html").send(`
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>STT Backend</title></head>
+<body style="font-family:system-ui;max-width:32rem;margin:2rem auto;padding:0 1rem;">
+  <h1>STT backend</h1>
+  <p>This server provides the WebSocket for transcription. Use the main app: run <code>npm run dev</code> and open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
+</body></html>`);
 });
 
 const httpServer = createServer(app);
@@ -40,8 +46,8 @@ wss.on("connection", (clientWs) => {
     include_timestamps: "true",
     commit_strategy: "vad",
     vad_threshold: "0.25",
-    vad_silence_threshold_secs: "3",
-    min_silence_duration_ms: "300",
+    vad_silence_threshold_secs: "1.5",
+    min_silence_duration_ms: "150",
   });
   const elevenLabsUrl = `${ELEVENLABS_WS_URL}?${params.toString()}`;
   const headers = { "xi-api-key": apiKey };
@@ -66,6 +72,30 @@ wss.on("connection", (clientWs) => {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }
+
+  /** Split segments so each phrase ends at a period (one segment per sentence in the JSON). */
+  function segmentsByPhrase(
+    segs: { text: string; start: number; end: number }[]
+  ): { text: string; start: number; end: number }[] {
+    const out: { text: string; start: number; end: number }[] = [];
+    for (const seg of segs) {
+      const parts = seg.text.split(/(?<=\.)\s*/).map((s) => s.trim()).filter(Boolean);
+      if (parts.length <= 1) {
+        out.push(seg);
+        continue;
+      }
+      const totalLen = parts.reduce((a, p) => a + p.length, 0);
+      const duration = seg.end - seg.start;
+      let t = seg.start;
+      for (const part of parts) {
+        const ratio = totalLen > 0 ? part.length / totalLen : 1 / parts.length;
+        const endT = t + duration * ratio;
+        out.push({ text: part, start: t, end: endT });
+        t = endT;
+      }
+    }
+    return out;
   }
 
   function flushAndSave() {
@@ -99,9 +129,10 @@ wss.on("connection", (clientWs) => {
     const ts = transcriptTimestamp();
     const txtPath = path.join(txtDir, `transcript_${ts}.txt`);
     const jsonPath = path.join(jsonDir, `transcript_${ts}.json`);
+    const jsonSegments = segmentsByPhrase(segments);
     try {
       fs.writeFileSync(txtPath, transcript, "utf8");
-      fs.writeFileSync(jsonPath, JSON.stringify({ transcript, segments }, null, 2), "utf8");
+      fs.writeFileSync(jsonPath, JSON.stringify({ transcript, segments: jsonSegments }, null, 2), "utf8");
       forwardToClient({ type: "saved", transcriptPath: txtPath, jsonPath });
       if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
     } catch (e) {
