@@ -1,0 +1,157 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Radio,
+  Clock,
+  BarChart3,
+  FolderOpen,
+  Settings,
+  Play,
+  Sun,
+  Moon,
+} from 'lucide-react';
+import { useTheme } from '@/views/components/ThemeProvider';
+import { StartSessionButton } from '@/views/components/StartSessionButton';
+
+interface AppSidebarProps {
+  onStartSession?: () => void;
+  isSessionActive?: boolean;
+}
+
+const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', mock: true },
+  { id: 'session', label: 'Live Session', icon: Radio, href: '/session', mock: false },
+  { id: 'history', label: 'History', icon: Clock, href: '/history', mock: true },
+  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics', mock: true },
+];
+
+const TOOL_ITEMS = [
+  { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck', mock: true },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings', mock: true },
+];
+
+export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
+  const { isDark, toggleTheme } = useTheme();
+  const pathname = usePathname();
+
+  return (
+    <aside
+      className="flex flex-col h-full w-60 rounded-2xl p-4 border flex-shrink-0"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        backdropFilter: `blur(var(--blur-strength))`,
+        WebkitBackdropFilter: `blur(var(--blur-strength))`,
+        borderColor: 'var(--border-color)',
+      }}
+    >
+      {/* Logo + Theme Toggle */}
+      <div className="flex items-center justify-between mb-6 px-2">
+        <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+          Pitchr
+        </span>
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 rounded-lg transition-colors hover:opacity-80"
+          style={{ color: 'var(--text-secondary)' }}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex flex-col gap-1">
+        {NAV_ITEMS.map(item => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
+              style={{
+                backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                backdropFilter: isActive ? `blur(var(--blur-strength))` : undefined,
+              }}
+            >
+              <Icon size={18} />
+              <span className="flex-1">{item.label}</span>
+              {item.mock && (
+                <span
+                  className="text-[8px] font-medium uppercase tracking-wider px-1 py-0.5 rounded"
+                  style={{
+                    color: 'var(--text-muted)',
+                    backgroundColor: 'var(--border-color)',
+                    lineHeight: 1,
+                  }}
+                >
+                  mock
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Divider */}
+      <div className="my-4 h-px" style={{ backgroundColor: 'var(--border-color)' }} />
+
+      {/* Tools */}
+      <nav className="flex flex-col gap-1">
+        <span className="px-3 text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
+          Tools
+        </span>
+        {TOOL_ITEMS.map(item => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
+              style={{
+                backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+              }}
+            >
+              <Icon size={18} />
+              <span className="flex-1">{item.label}</span>
+              {item.mock && (
+                <span
+                  className="text-[8px] font-medium uppercase tracking-wider px-1 py-0.5 rounded"
+                  style={{
+                    color: 'var(--text-muted)',
+                    backgroundColor: 'var(--border-color)',
+                    lineHeight: 1,
+                  }}
+                >
+                  mock
+                </span>
+              )}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Start Session CTA */}
+      {onStartSession ? (
+        <StartSessionButton onClick={onStartSession} isSessionActive={isSessionActive} />
+      ) : (
+        <Link
+          href="/session"
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 no-underline bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 animate-pulse-glow"
+        >
+          <Play size={16} fill="currentColor" />
+          Start Session
+        </Link>
+      )}
+    </aside>
+  );
+}

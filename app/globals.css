@@ -1,1 +1,249 @@
 @import "tailwindcss";
+
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-surface: rgba(255, 255, 255, 0.72);
+  --bg-surface-hover: rgba(255, 255, 255, 0.85);
+  --border-color: rgba(0, 0, 0, 0.08);
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --blur-strength: 20px;
+  --aura-color: rgba(107, 33, 168, 0.06);
+  --aura-secondary: rgba(37, 99, 235, 0.04);
+}
+
+.dark {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-surface: rgba(255, 255, 255, 0.06);
+  --bg-surface-hover: rgba(255, 255, 255, 0.10);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --blur-strength: 16px;
+  --aura-color: rgba(107, 33, 168, 0.10);
+  --aura-secondary: rgba(37, 99, 235, 0.06);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* ─── Start Session Button ─── */
+
+.session-start-wrap {
+  position: relative;
+  border-radius: 14px;
+  padding: 1.5px;
+  overflow: hidden;
+  background: #1c1210;
+}
+
+.session-start-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 250%;
+  aspect-ratio: 1;
+  transform-origin: center;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background: conic-gradient(
+    from 0deg,
+    #ff5941,
+    #ffaa33 25%,
+    transparent 45%,
+    transparent 80%,
+    #e63b26 92%,
+    #ff5941
+  );
+  animation: session-spin 3.5s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes session-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.session-start-btn {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 12.5px;
+  border: none;
+  background: #1c1210;
+  color: #fff0eb;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  letter-spacing: 0.01em;
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.35s ease;
+  box-shadow:
+    0 0 20px rgba(255, 89, 65, 0.12),
+    0 0 40px rgba(255, 89, 65, 0.04);
+  animation: session-breathe 3s ease-in-out infinite;
+}
+
+@keyframes session-breathe {
+  0%, 100% {
+    box-shadow:
+      0 0 20px rgba(255, 89, 65, 0.12),
+      0 0 40px rgba(255, 89, 65, 0.04);
+  }
+  50% {
+    box-shadow:
+      0 0 28px rgba(255, 89, 65, 0.25),
+      0 0 56px rgba(255, 89, 65, 0.08);
+  }
+}
+
+.session-start-btn:hover {
+  transform: scale(1.025);
+  box-shadow:
+    0 0 32px rgba(255, 89, 65, 0.35),
+    0 0 64px rgba(255, 89, 65, 0.12);
+  animation: none;
+}
+
+.session-start-btn:active {
+  transform: scale(0.96);
+  transition-duration: 0.1s;
+}
+
+/* Shine sweep on hover */
+.session-start-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  left: -120%;
+  width: 60%;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.13),
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+  transform: skewX(-18deg);
+  pointer-events: none;
+  transition: none;
+}
+
+.session-start-btn:hover::after {
+  animation: session-shine 0.65s ease-out;
+}
+
+@keyframes session-shine {
+  to { left: 160%; }
+}
+
+/* Play icon spring */
+.session-start-btn__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.session-start-btn:hover .session-start-btn__icon {
+  transform: scale(1.22) translateX(1px);
+}
+
+/* Ripple */
+.session-ripple {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(255, 170, 51, 0.25);
+  transform: translate(-50%, -50%) scale(0);
+  animation: session-ripple-out 0.7s ease-out forwards;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.session-ripple--red {
+  background: rgba(239, 68, 68, 0.18);
+}
+
+@keyframes session-ripple-out {
+  to {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+/* ─── End Session Button ─── */
+
+.session-end-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  border-radius: 14px;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.08);
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  overflow: hidden;
+  letter-spacing: 0.01em;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.session-end-btn:hover {
+  transform: scale(1.015);
+  background: rgba(239, 68, 68, 0.13);
+  border-color: rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+.session-end-btn:active {
+  transform: scale(0.97);
+  transition-duration: 0.1s;
+}
+
+.session-rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: session-rec-pulse 1.4s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes session-rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+/* ─── Deck Manager ─── */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
