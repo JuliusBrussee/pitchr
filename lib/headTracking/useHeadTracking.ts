@@ -72,9 +72,8 @@ interface RollingWindowState {
 
 const TRACKING_WINDOW_MS = 60_000;
 const CALIBRATION_DURATION_MS = 2_000;
+const CALIBRATION_TIMEOUT_MS = 4_000;
 const MIN_CALIBRATION_SAMPLES = 20;
-const CALIBRATION_STABILITY_YAW_DEG = 25;
-const CALIBRATION_STABILITY_PITCH_DEG = 20;
 
 const INFER_INTERVAL_DEFAULT_MS = 14;
 const INFER_INTERVAL_MAX_MS = 33;
@@ -95,7 +94,7 @@ const THRESH = {
   DOWN_ENTER_DEG: 16,
   DOWN_EXIT_DEG: 11,
   POSE_EMA_ALPHA: 0.45,
-  ENGAGEMENT_ALPHA: 0.3,
+  ENGAGEMENT_ALPHA: 0.45,
 };
 
 const INITIAL_METRICS: HeadTrackingMetrics = {
@@ -325,6 +324,13 @@ function classifyTargetState(yawDeg: number, pitchDeg: number, currentState: Hea
   if (pitchDeg >= THRESH.DOWN_ENTER_DEG) return "down";
   if (absYaw >= THRESH.AWAY_EXIT_DEG) return "away";
   return "facing";
+}
+
+function instantPoseScore(yawDeg: number, pitchDeg: number) {
+  const yawPenalty = clamp((Math.abs(yawDeg) - 3) / Math.max(1, THRESH.AWAY_ENTER_DEG - 3), 0, 1);
+  const pitchPenalty = clamp((pitchDeg - 2) / Math.max(1, THRESH.DOWN_ENTER_DEG - 2), 0, 1);
+  const penalty = Math.max(yawPenalty, pitchPenalty);
+  return clampScore((1 - penalty) * 100);
 }
 
 function ensureCanvasSize(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
@@ -724,10 +730,9 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
                 calibration.startTs = now;
               }
 
-              const yawStable = calibration.sampleCount === 0 || Math.abs(rawPose.yaw - calibration.yaw0) < CALIBRATION_STABILITY_YAW_DEG;
-              const pitchStable = calibration.sampleCount === 0 || Math.abs(rawPose.pitch - calibration.pitch0) < CALIBRATION_STABILITY_PITCH_DEG;
-
-              if (yawStable && pitchStable) {
+              // Accept realistic head poses during calibration; avoid overfitting to extreme outliers.
+              const reasonablePose = Math.abs(rawPose.yaw) <= 65 && Math.abs(rawPose.pitch) <= 50;
+              if (reasonablePose) {
                 calibration.sampleCount += 1;
                 calibration.sumYaw += rawPose.yaw;
                 calibration.sumPitch += rawPose.pitch;
@@ -740,6 +745,8 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
 
               const elapsed = now - calibration.startTs;
               if (elapsed >= CALIBRATION_DURATION_MS && calibration.sampleCount >= MIN_CALIBRATION_SAMPLES) {
+                calibration.isCalibrated = true;
+              } else if (elapsed >= CALIBRATION_TIMEOUT_MS && calibration.sampleCount >= 6) {
                 calibration.isCalibrated = true;
               }
             }
@@ -786,14 +793,18 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
           evictOldRollingSamples(rollingWindowRef.current, now);
           const rolling = rollingPercentages(rollingWindowRef.current);
 
-          const rawEngagement = clampScore(100 - rolling.awayPct * 0.7 - rolling.downPct);
+          const poseScore = instantPoseScore(yawOut, pitchOut);
+          const windowScore = rolling.facingPct;
+          const targetEngagement =
+            nextState === "no_face" ? engagementEmaRef.current.value : clampScore(poseScore * 0.8 + windowScore * 0.2);
+
           const engagementEma = engagementEmaRef.current;
           if (!engagementEma.hasValue) {
-            engagementEma.value = rawEngagement;
+            engagementEma.value = targetEngagement;
             engagementEma.hasValue = true;
           } else {
             engagementEma.value =
-              THRESH.ENGAGEMENT_ALPHA * rawEngagement + (1 - THRESH.ENGAGEMENT_ALPHA) * engagementEma.value;
+              THRESH.ENGAGEMENT_ALPHA * targetEngagement + (1 - THRESH.ENGAGEMENT_ALPHA) * engagementEma.value;
           }
 
           publishMetrics(now, {

@@ -41,7 +41,7 @@ export default function SessionPage() {
     } else {
       session.startSession();
     }
-  }, [session]);
+  }, [session.isSessionActive, session.startSession, session.stopSession]);
 
   // Register session controls with the shared sidebar
   useSidebarSession(handleSessionToggle, session.isSessionActive);

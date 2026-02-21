@@ -23,7 +23,15 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   const registerSession = useCallback(
     (controls: { onStartSession: () => void; isSessionActive: boolean }) => {
-      setSessionControls(controls);
+      setSessionControls((prev) => {
+        if (
+          prev.onStartSession === controls.onStartSession &&
+          prev.isSessionActive === controls.isSessionActive
+        ) {
+          return prev;
+        }
+        return controls;
+      });
     },
     [],
   );
