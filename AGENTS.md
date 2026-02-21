@@ -1,0 +1,181 @@
+# Pitchr — Agent Instructions
+
+> Read `CLAUDE.md` first for project conventions. This file defines agent roles and constraints.
+
+## Project Context
+
+Pitchr is an AI pitch coach MVP. Users record/paste a pitch, get a scored analysis with fixes and a rewrite. The frontend shell exists (dashboard, session, history pages with mock data). The backend (API routes, LLM pipeline, storage, real components) needs to be built per `PRD.md`.
+
+### Current State
+
+**Working:** Navigation sidebar, session recording UI (mock metrics), 3D SiriBubble orb, theme switching, dashboard/history/analytics pages (all mock data).
+
+**Not built:** API endpoints, localStorage persistence, LLM integration, real analysis pipeline, results page components (ScoreBreakdown, FixList, RewritePanel, DeliveryMetrics), audio recording/transcription, session flow refactor.
+
+### Source of Truth
+
+- `PRD.md` — Complete product spec, data models, API contracts, prompts, rubric
+- `CLAUDE.md` — Code conventions, stack details, project structure
+- `.planning/` — Codebase analysis documents
+
+---
+
+## Agent: Backend (Person 2 — API + Storage + Pipeline)
+
+### Owns
+
+Everything behind the API boundary.
+
+### Tasks
+
+1. **Types & Models** — Define TypeScript types in `types/pitch.ts` and `types/analysis.ts` matching PRD Section 7 schemas exactly. Implement `models/run.ts` with localStorage CRUD (`getRuns`, `getRun`, `saveRun`, `deleteRun`).
+
+2. **Rubric Config** — Implement `config/rubric.ts` with the 5 category definitions, weights (each 20, total 100), scoring criteria strings, and score bands. Implement `config/modes.ts` with pitch mode configs (elevator: 30-45s, vc_pitch: 2:00).
+
+3. **API Route Handlers** — Build all 4 endpoints in `app/api/pitch/`:
+   - `POST /api/pitch/run` — Accept `{mode, transcript, inputType, audioUrl?}`, call controller, return `{runId, status, analysis}`
+   - `GET /api/pitch/run` — List all runs from storage with stats
+   - `GET /api/pitch/run/[runId]` — Return single run
+   - `DELETE /api/pitch/run/[runId]` — Delete run from storage
+
+4. **Controller** — `controllers/pitchController.ts` orchestrates: receive input -> calculate delivery metrics -> call analysis service -> validate JSON -> assemble Run -> persist -> return.
+
+5. **Scoring Service** — `services/scoringService.ts`: calculate WPM (word count / mode time limit), detect filler words via regex (`um`, `uh`, `like`, `basically`, `actually`, `you know`, `sort of`, `kind of`), find repeated phrases via n-gram frequency, check time limit compliance.
+
+6. **Sample Fallback** — `config/sampleResult.ts`: one pre-computed `AnalysisResult` JSON returned when all LLM calls fail. Include `fallback: true` flag.
+
+7. **Audio Hook** — `hooks/useAudioRecorder.ts`: MediaRecorder API -> audio blob, Web Speech API for transcription, with text fallback. Return `{isRecording, duration, startRecording, stopRecording, error}`.
+
+### Constraints
+
+- All data types must match PRD Section 7 schemas exactly
+- API responses must match PRD Section 8 contracts exactly
+- Storage uses localStorage only — no database dependencies
+- Run IDs are UUIDs (use `crypto.randomUUID()`)
+- Timestamps are ISO 8601 strings
+- Validate all API inputs before processing
+- Return proper HTTP status codes (201 Created, 200 OK, 404 Not Found, 500 Error)
+
+---
+
+## Agent: LLM & Prompts (Person 3 — AI Quality + Integrations)
+
+### Owns
+
+AI quality, prompt engineering, and optional integrations.
+
+### Tasks
+
+1. **Claude Client** — `lib/llm/claude.ts`: Call `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-6`, temperature 0.3, max_tokens 4096. Handle rate limits, timeouts, malformed responses.
+
+2. **Prompt Templates** — Build exactly 3 prompts in `lib/prompts/`:
+   - `system.ts` — Investor pitch evaluator persona (PRD Section 11)
+   - `rubric.ts` — Rubric evaluation prompt with mode/structure/transcript injection slots
+   - `rewrite.ts` — Rewrite prompt with time limit, mode structure, original text, top fixes
+
+3. **Analysis Service** — `services/analysisService.ts`: Orchestrate the pipeline:
+   ```
+   transcript + mode -> calculateDeliveryMetrics() -> buildAnalysisPrompt()
+   -> llmRouter.analyze() -> parseAnalysisResult() -> inject delivery metrics -> return
+   ```
+
+4. **JSON Schema Enforcement** — Parse LLM response, validate against `AnalysisResult` schema. If invalid: attempt Gemini repair, then fall back to cached sample.
+
+5. **Gemini Fallback** — `lib/llm/gemini.ts` + `lib/llm/router.ts`: Try Claude first, if it fails try Gemini with same prompts. Router handles failover transparently.
+
+6. **Tier 1 (if time):**
+   - `services/ttsService.ts` — ElevenLabs TTS: 2-3 sentence summary from top fixes, return audio buffer
+   - `services/miroService.ts` — Miro REST API: create board, add sticky notes grouped by category
+
+### Constraints
+
+- LLM output must be valid JSON matching `AnalysisResult` — no markdown wrapping
+- System prompt must instruct "return valid JSON only, no explanation text"
+- Delivery metrics (WPM, filler words, repetitions) are calculated locally, not by LLM
+- LLM scores the 4 non-delivery categories; delivery score uses local metrics
+- Temperature 0.3 for deterministic scoring
+- All API keys read from env vars, never hardcoded
+
+---
+
+## Agent: Frontend (Person 1 — UI + Demo Flow)
+
+### Owns
+
+Everything the user sees and clicks.
+
+### Tasks
+
+1. **Results Page Components** — Build in `views/components/`:
+   - `ScoreDisplay.tsx` — Large /100 score with color coding by band
+   - `ScoreBreakdown.tsx` — 5 horizontal progress bars with category scores + rationale
+   - `FixList.tsx` — Ranked cards (1-5) with category tag, issue ("why"), fix ("how"), impact badge
+   - `RewritePanel.tsx` — Full rewrite text + copy-to-clipboard button
+   - `DeliveryMetrics.tsx` — WPM display, filler words table, repeated phrases list
+   - `TranscriptViewer.tsx` — Collapsible original transcript
+
+2. **Results Page Assembly** — `app/(app)/results/[runId]/page.tsx`: Compose all result components. Fetch run from API, display headline verdict, score, breakdown, fixes, rewrite, delivery, transcript. Include "Run Again" and "View History" actions.
+
+3. **Session Page Refactor** — `app/(app)/session/page.tsx`: Convert to 3-step flow:
+   - Step 1: `PitchModePicker.tsx` — Two cards (Elevator / VC Pitch) with time limit + structure hints
+   - Step 2: Input — Record audio (with waveform + timer) OR paste text (textarea with word count)
+   - Step 3: Analyzing — SiriBubble orb animation + "Analyzing your pitch..." loading state
+   - On completion: navigate to `/results/[runId]`
+
+4. **Dashboard Wiring** — `app/(app)/dashboard/page.tsx`: Replace mock data with real runs from API. Show recent 3 runs, total/avg/best stats, score trend sparkline.
+
+5. **History Wiring** — `app/(app)/history/page.tsx`: Wire to real storage. RunCard list + ScoreTrend chart. Delete with confirmation. Filter by mode.
+
+6. **ScoreTrend Chart** — `views/components/ScoreTrend.tsx`: Line chart of historical scores. Use Canvas 2D or inline SVG (no new chart library needed for MVP).
+
+### Constraints
+
+- All components use CSS variables for theming (must work in light + dark mode)
+- Accent palette: coral/orange (`#ff5941`, `#ffaa33`, `#e63b26`) — stay consistent with existing
+- Use glassmorphism pattern: `backdrop-blur` + `var(--bg-surface)` backgrounds
+- Animations: use `animate-fade-in-up` class with staggered `animationDelay` for enter transitions
+- Score color coding: red (0-39), orange (40-59), blue (60-79), green (80-100)
+- All components must be responsive (mobile-first)
+- Copy-to-clipboard: use `navigator.clipboard.writeText()` with toast feedback
+- Keep SiriBubble orb as loading indicator during analysis (existing animation states)
+
+---
+
+## Cross-Agent Rules
+
+### File Ownership Boundaries
+
+```
+Backend agent writes:    types/, models/, app/api/, controllers/, config/, hooks/useAudioRecorder.ts
+LLM agent writes:        lib/llm/, lib/prompts/, services/analysisService.ts, services/scoringService.ts
+Frontend agent writes:   views/components/, app/(app)/ pages, hooks/usePitchRun.ts, store/
+```
+
+### Integration Points
+
+| Producer | Consumer | Contract |
+|----------|----------|----------|
+| Backend: `POST /api/pitch/run` | Frontend: session page | Request: `{mode, transcript, inputType}` Response: `{runId, analysis}` |
+| Backend: `GET /api/pitch/run` | Frontend: dashboard + history | Response: `{runs: Run[], stats: {totalRuns, averageScore, bestScore, trend}}` |
+| Backend: `models/run.ts` types | All agents | `Run`, `AnalysisResult`, `RubricScore`, `Fix`, `DeliveryMetrics` |
+| LLM: `analysisService.ts` | Backend: controller | Input: `{transcript, mode}` Output: `AnalysisResult` |
+| Backend: `scoringService.ts` | LLM: analysisService | Input: `{transcript, mode}` Output: `DeliveryMetrics` |
+
+### Shared Decisions
+
+- UUIDs for run IDs: `crypto.randomUUID()`
+- Timestamps: ISO 8601 via `new Date().toISOString()`
+- localStorage key: `pitchr_runs`
+- Error responses always include `{error: string}` body
+- All async operations must handle errors — no empty catch blocks
+- When adding new components, follow the existing pattern in `views/components/SiriBubble/` for compound components (separate types.ts, constants.ts, index.ts barrel)
+
+### Demo Path (90 seconds — must work end-to-end)
+
+```
+Dashboard -> "Run a Pitch" -> Select "VC Pitch" -> Paste text ->
+"Analyze" -> Loading orb -> Score /100 + breakdown + fixes + rewrite ->
+"View History" -> Score trend chart
+```
+
+Pre-load 2-3 sample runs for demo. Test with cached fallback if LLM is down.
