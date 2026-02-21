@@ -13,6 +13,7 @@ import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import type { DeckRecord } from '@/services/deckService';
+import type { PitchMode } from '@/types/pitch';
 
 export default function SessionPage() {
   const router = useRouter();
@@ -24,6 +25,9 @@ export default function SessionPage() {
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const hasTriggeredAnalysis = useRef(false);
+  const runModeRef = useRef<PitchMode>('elevator');
+  const [selectedMode, setSelectedMode] = useState<PitchMode>('elevator');
+  const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
@@ -112,6 +116,15 @@ export default function SessionPage() {
     console.debug('[headTracking] state transition', headState);
   }, [headTrackingDebugEnabled, session.isSessionActive, media.isCameraOn, headState]);
 
+  useEffect(() => {
+    setSessionChecklist(stt.realtimeChecklist);
+  }, [setSessionChecklist, stt.realtimeChecklist]);
+
+  useEffect(() => {
+    if (session.isSessionActive) return;
+    resetSessionChecklist(selectedMode);
+  }, [selectedMode, session.isSessionActive, resetSessionChecklist]);
+
   // When STT confirms transcript saved, trigger analysis and save to Supabase
   useEffect(() => {
     if (!stt.saved || hasTriggeredAnalysis.current) return;
@@ -122,7 +135,7 @@ export default function SessionPage() {
 
     pitchRun
       .runPitchAnalysis({
-        mode: 'elevator',
+        mode: runModeRef.current,
         inputType: 'audio',
         transcript,
       })
@@ -136,9 +149,10 @@ export default function SessionPage() {
 
   const handleStartSession = useCallback(() => {
     hasTriggeredAnalysis.current = false;
-    session.startSession();
-    stt.start();
-  }, [session, stt]);
+    runModeRef.current = selectedMode;
+    session.startSession(runModeRef.current);
+    stt.start({ mode: runModeRef.current });
+  }, [selectedMode, session, stt]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
@@ -191,6 +205,11 @@ export default function SessionPage() {
         checklist={session.checklist}
         insights={session.insights}
         isSessionActive={session.isSessionActive}
+        selectedMode={selectedMode}
+        onModeChange={setSelectedMode}
+        checklistSource={stt.checklistSource}
+        checklistNextHint={stt.checklistNextHint}
+        checklistError={stt.checklistError}
         sttError={stt.error}
         sttSaved={stt.saved}
         isAnalyzing={pitchRun.isAnalyzing}

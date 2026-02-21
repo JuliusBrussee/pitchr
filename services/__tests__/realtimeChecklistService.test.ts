@@ -1,0 +1,102 @@
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { createInitialChecklistState } from '@/config/realtimeChecklist';
+import {
+  evaluateRealtimeChecklist,
+  shouldEvaluateRealtimeChecklist,
+} from '@/services/realtimeChecklistService';
+
+describe('realtimeChecklistService', () => {
+  const nowMs = 1_700_000_000_000;
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('gates evaluations using 6-10 second adaptive cadence', () => {
+    expect(
+      shouldEvaluateRealtimeChecklist({
+        transcript: 'short transcript',
+        scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+        nowMs,
+      }),
+    ).toBe(false);
+
+    const transcript =
+      'this transcript has enough words to trigger initial evaluation in the scheduler logic and should pass the minimum threshold';
+    expect(
+      shouldEvaluateRealtimeChecklist({
+        transcript,
+        scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+        nowMs,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldEvaluateRealtimeChecklist({
+        transcript: `${transcript} plus more content for an update`,
+        scheduler: { lastEvaluatedAtMs: nowMs - 1000, lastEvaluatedWordCount: 20 },
+        nowMs,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldEvaluateRealtimeChecklist({
+        transcript: `${transcript} plus some new words now`,
+        scheduler: { lastEvaluatedAtMs: nowMs - 11_000, lastEvaluatedWordCount: 15 },
+        nowMs,
+      }),
+    ).toBe(true);
+  });
+
+  it('falls back to heuristic mode and keeps monotonic statuses', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    const previous = createInitialChecklistState('vc_pitch');
+    previous[0] = {
+      ...previous[0],
+      status: 'completed',
+      confidence: 0.95,
+      evidence: 'Founder intro already covered.',
+    };
+
+    const result = await evaluateRealtimeChecklist({
+      mode: 'vc_pitch',
+      transcript:
+        'My name is Alice and we built a platform. The problem is clear and painful for teams. ' +
+        'We charge a subscription and have 30% growth with 2M run rate. ' +
+        'The market is a multi billion category and we are raising a seed round.',
+      previousItems: previous,
+      scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+      nowMs,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.source).toBe('heuristic');
+
+    const intro = result?.items.find((item) => item.id === 'intro_hook');
+    expect(intro?.status).toBe('completed');
+    expect(intro?.confidence).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it('can force evaluation despite cooldown', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
+
+    const result = await evaluateRealtimeChecklist({
+      mode: 'elevator',
+      transcript:
+        'My name is Jane. The problem is severe for teams. We built a simple solution. ' +
+        'This market is worth billions and we are raising now.',
+      previousItems: createInitialChecklistState('elevator'),
+      scheduler: { lastEvaluatedAtMs: nowMs - 1000, lastEvaluatedWordCount: 40 },
+      nowMs,
+      force: true,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.message.type).toBe('checklist_update');
+  });
+});

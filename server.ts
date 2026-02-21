@@ -9,6 +9,12 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "node:http";
 import fs from "node:fs";
 import WebSocket, { WebSocketServer } from "ws";
+import {
+  buildChecklistUpdateMessage,
+  createRealtimeChecklistSessionState,
+  evaluateRealtimeChecklist,
+} from "./services/realtimeChecklistService";
+import type { PitchMode } from "./types/pitch";
 
 dotenv.config({ path: ".env.local" });
 
@@ -26,13 +32,17 @@ app.get("/", (_req, res) => {
 <html><head><meta charset="utf-8"><title>STT Backend</title></head>
 <body style="font-family:system-ui;max-width:32rem;margin:2rem auto;padding:0 1rem;">
   <h1>STT backend</h1>
-  <p>This server provides the WebSocket for transcription. Use the main app: run <code>npm run dev</code> and open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
+  <p>This server provides the WebSocket for transcription. Use the main app: run <code>yarn dev</code> and open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
 </body></html>`);
 });
 
 const httpServer = createServer(app);
 
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
+
+function isPitchMode(value: unknown): value is PitchMode {
+  return value === "elevator" || value === "vc_pitch";
+}
 
 wss.on("connection", (clientWs) => {
   const apiKey = process.env.ELEVENLABS_API_KEY?.trim();
@@ -63,11 +73,72 @@ wss.on("connection", (clientWs) => {
   let saveDone = false;
   let saveTimeout: ReturnType<typeof setTimeout> | null = null;
   let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
+  let checklistSession = createRealtimeChecklistSessionState("elevator");
+  let checklistInFlight = false;
+  let checklistPending = false;
+  let checklistPendingForce = false;
 
   function forwardToClient(obj: object) {
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(JSON.stringify(obj));
     }
+  }
+
+  function sendChecklistSnapshot(source: "openrouter" | "heuristic"): void {
+    forwardToClient(
+      buildChecklistUpdateMessage({
+        mode: checklistSession.mode,
+        source,
+        items: checklistSession.items,
+        evaluatedAtIso: new Date().toISOString(),
+      })
+    );
+  }
+
+  function queueChecklistEvaluation(force = false): void {
+    if (checklistInFlight) {
+      checklistPending = true;
+      checklistPendingForce = checklistPendingForce || force;
+      return;
+    }
+
+    checklistInFlight = true;
+    void (async () => {
+      try {
+        const result = await evaluateRealtimeChecklist({
+          mode: checklistSession.mode,
+          transcript,
+          previousItems: checklistSession.items,
+          scheduler: checklistSession.scheduler,
+          force,
+        });
+
+        if (result) {
+          checklistSession = {
+            ...checklistSession,
+            items: result.items,
+            scheduler: result.scheduler,
+          };
+          forwardToClient(result.message);
+        }
+      } catch (error) {
+        forwardToClient({
+          type: "checklist_error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Realtime checklist evaluation failed.",
+        });
+      } finally {
+        checklistInFlight = false;
+        if (checklistPending) {
+          const nextForce = checklistPendingForce;
+          checklistPending = false;
+          checklistPendingForce = false;
+          queueChecklistEvaluation(nextForce);
+        }
+      }
+    })();
   }
 
   function transcriptTimestamp(): string {
@@ -149,6 +220,7 @@ wss.on("connection", (clientWs) => {
   elevenLabsWs.on("open", () => {
     // Start forwarding queued audio from client
     sessionStarted = true;
+    sendChecklistSnapshot("heuristic");
     while (audioQueue.length > 0) {
       const msg = audioQueue.shift();
       if (msg && elevenLabsWs?.readyState === WebSocket.OPEN) elevenLabsWs.send(msg);
@@ -183,6 +255,7 @@ wss.on("connection", (clientWs) => {
         transcript = transcript.slice(0, -lastText.length) + msg.text;
         segments.pop();
         segments.push({ text: msg.text, start, end });
+        queueChecklistEvaluation(stopRequested);
         // #region agent log
         fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:committed_transcript_with_timestamps", message: "replaced segment H6", data: { lastLen: lastText.length, newLen: msg.text.length }, timestamp: Date.now(), hypothesisId: "H6", runId: "post-fix" }) }).catch(() => {});
         // #endregion
@@ -202,6 +275,7 @@ wss.on("connection", (clientWs) => {
       // #endregion
       transcript += msg.text;
       segments.push({ text: msg.text, start, end });
+      queueChecklistEvaluation(stopRequested);
       if (stopRequested && !saveDone && !saveTimeout) {
         saveTimeout = setTimeout(async () => {
           saveTimeout = null;
@@ -223,14 +297,24 @@ wss.on("connection", (clientWs) => {
 
   clientWs.on("message", (data: Buffer | string) => {
     const raw = typeof data === "string" ? data : data.toString();
-    let msg: { type?: string; message_type?: string };
+    let msg: { type?: string; message_type?: string; mode?: string };
     try {
-      msg = JSON.parse(raw) as { type?: string; message_type?: string };
+      msg = JSON.parse(raw) as { type?: string; message_type?: string; mode?: string };
     } catch {
+      return;
+    }
+    if (msg.type === "session_config") {
+      if (!isPitchMode(msg.mode)) {
+        forwardToClient({ type: "checklist_error", error: "Invalid pitch mode." });
+        return;
+      }
+      checklistSession = createRealtimeChecklistSessionState(msg.mode);
+      sendChecklistSnapshot("heuristic");
       return;
     }
     if (msg.type === "stop") {
       stopRequested = true;
+      queueChecklistEvaluation(true);
       if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
         elevenLabsWs.send(
           JSON.stringify({

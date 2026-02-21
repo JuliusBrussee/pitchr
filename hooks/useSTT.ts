@@ -1,6 +1,13 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { createInitialChecklistState } from '@/config/realtimeChecklist';
+import type {
+  RealtimeChecklistErrorMessage,
+  RealtimeChecklistUpdateMessage,
+  RealtimeChecklistItemState,
+} from '@/types/checklist';
+import type { PitchMode } from '@/types/pitch';
 
 const TARGET_SAMPLE_RATE = 16000;
 const CHUNK_SAMPLES = 2048;
@@ -12,7 +19,7 @@ function getWsUrl(): string {
     const url = base.replace(/^http/, 'ws');
     return url.endsWith('/ws') ? url : `${url.replace(/\/$/, '')}/ws`;
   }
-  // When Next runs on :3000 and STT server on :3001 (npm run dev), connect to backend
+  // When Next runs on :3000 and STT server on :3001 (yarn dev), connect to backend
   const host = window.location.hostname;
   const port = window.location.port;
   if (host === 'localhost' && port === '3000') {
@@ -56,6 +63,34 @@ function base64FromInt16(int16Array: Int16Array): string {
 
 interface StartOptions {
   resume?: boolean;
+  mode?: PitchMode;
+}
+
+interface RealtimeSttMessage {
+  type?: string;
+  message_type?: string;
+  text?: string;
+  error?: string;
+  feedbackText?: string;
+  feedbackError?: string;
+  base64?: string;
+}
+
+function isChecklistUpdateMessage(value: unknown): value is RealtimeChecklistUpdateMessage {
+  if (!value || typeof value !== 'object') return false;
+  const msg = value as Record<string, unknown>;
+  return (
+    msg.type === 'checklist_update' &&
+    typeof msg.mode === 'string' &&
+    typeof msg.source === 'string' &&
+    Array.isArray(msg.items)
+  );
+}
+
+function isChecklistErrorMessage(value: unknown): value is RealtimeChecklistErrorMessage {
+  if (!value || typeof value !== 'object') return false;
+  const msg = value as Record<string, unknown>;
+  return msg.type === 'checklist_error' && typeof msg.error === 'string';
 }
 
 export interface UseSTTReturn {
@@ -69,6 +104,10 @@ export interface UseSTTReturn {
   error: string | null;
   feedbackText: string | null;
   feedbackError: string | null;
+  realtimeChecklist: RealtimeChecklistItemState[];
+  checklistSource: 'openrouter' | 'heuristic' | null;
+  checklistNextHint: string | null;
+  checklistError: string | null;
 }
 
 export function useSTT(): UseSTTReturn {
@@ -79,6 +118,14 @@ export function useSTT(): UseSTTReturn {
   const [error, setError] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [realtimeChecklist, setRealtimeChecklist] = useState<RealtimeChecklistItemState[]>(
+    createInitialChecklistState('elevator'),
+  );
+  const [checklistSource, setChecklistSource] = useState<'openrouter' | 'heuristic' | null>(
+    null,
+  );
+  const [checklistNextHint, setChecklistNextHint] = useState<string | null>(null);
+  const [checklistError, setChecklistError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -86,6 +133,7 @@ export function useSTT(): UseSTTReturn {
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const modeRef = useRef<PitchMode>('elevator');
 
   const sendChunk = useCallback((base64: string, commit: boolean) => {
     const ws = wsRef.current;
@@ -179,6 +227,7 @@ export function useSTT(): UseSTTReturn {
     setIsRecording(false);
     setLiveText('');
     setSaved(false);
+    setChecklistNextHint(null);
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
@@ -215,13 +264,19 @@ export function useSTT(): UseSTTReturn {
 
   const start = useCallback(async (options?: StartOptions) => {
     const resume = options?.resume === true;
+    const mode = options?.mode ?? modeRef.current;
+    modeRef.current = mode;
     setError(null);
     setSaved(false);
     setFeedbackText(null);
     setFeedbackError(null);
+    setChecklistError(null);
+    setChecklistSource(null);
     setLiveText('');
     if (!resume) {
       setTranscriptSegments([]);
+      setRealtimeChecklist(createInitialChecklistState(mode));
+      setChecklistNextHint(null);
     }
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
@@ -230,6 +285,12 @@ export function useSTT(): UseSTTReturn {
 
     const existingWs = wsRef.current;
     if (resume && existingWs && existingWs.readyState === WebSocket.OPEN) {
+      existingWs.send(
+        JSON.stringify({
+          type: 'session_config',
+          mode: modeRef.current,
+        }),
+      );
       const micReady = await startMicCapture();
       if (micReady) {
         setIsRecording(true);
@@ -261,12 +322,18 @@ export function useSTT(): UseSTTReturn {
       setLiveText('');
       if (!opened) {
         setError(
-          'Could not connect to transcript server. Run "npm run dev" (both Next and server) or start the server on port 3001.',
+          'Could not connect to transcript server. Run "yarn dev" (both Next and server) or start the server on port 3001.',
         );
       }
     };
     ws.onopen = () => {
       opened = true;
+      ws.send(
+        JSON.stringify({
+          type: 'session_config',
+          mode: modeRef.current,
+        }),
+      );
       void startMicCapture().then((micReady) => {
         if (!micReady) {
           ws.close();
@@ -277,12 +344,27 @@ export function useSTT(): UseSTTReturn {
     };
 
     ws.onmessage = (event: MessageEvent) => {
-      let msg: { type?: string; message_type?: string; text?: string; error?: string; feedbackText?: string; feedbackError?: string; base64?: string };
+      let parsed: unknown;
       try {
-        msg = JSON.parse(event.data as string);
+        parsed = JSON.parse(event.data as string);
       } catch {
         return;
       }
+
+      if (isChecklistUpdateMessage(parsed)) {
+        setRealtimeChecklist(parsed.items);
+        setChecklistSource(parsed.source);
+        setChecklistNextHint(parsed.nextHint);
+        setChecklistError(null);
+        return;
+      }
+
+      if (isChecklistErrorMessage(parsed)) {
+        setChecklistError(parsed.error ?? 'Checklist error');
+        return;
+      }
+
+      const msg = parsed as RealtimeSttMessage;
       if (msg.type === 'saved') {
         setSaved(true);
         setFeedbackText((msg as { feedbackText?: string }).feedbackText ?? null);
@@ -301,7 +383,7 @@ export function useSTT(): UseSTTReturn {
         try {
           const binary = atob((msg as { base64: string }).base64);
           const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
           const blob = new Blob([bytes], { type: 'audio/mpeg' });
           const url = URL.createObjectURL(blob);
           const audio = new Audio(url);
@@ -352,5 +434,9 @@ export function useSTT(): UseSTTReturn {
     error,
     feedbackText,
     feedbackError,
+    realtimeChecklist,
+    checklistSource,
+    checklistNextHint,
+    checklistError,
   };
 }
