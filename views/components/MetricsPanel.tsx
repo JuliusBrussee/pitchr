@@ -153,7 +153,7 @@ function InsightCard({ insight }: { insight: InsightEntry }) {
 
   return (
     <div
-      className="rounded-lg p-2.5 border text-xs transition-all duration-300"
+      className="rounded-lg p-2.5 border text-xs transition-all duration-300 animate-fade-in-up"
       style={{
         backgroundColor: 'var(--bg-surface)',
         borderColor: 'var(--border-color)',

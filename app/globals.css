@@ -27,3 +27,21 @@
   --aura-color: rgba(107, 33, 168, 0.10);
   --aura-secondary: rgba(37, 99, 235, 0.06);
 }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(107,33,168,0.3); }
+  50% { box-shadow: 0 0 30px rgba(107,33,168,0.5); }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}

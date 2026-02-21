@@ -113,12 +113,12 @@ export function AppSidebar({ activePage, onStartSession, isSessionActive }: AppS
         className={`flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-semibold text-white transition-all duration-300 ${
           isSessionActive
             ? 'bg-red-500 hover:bg-red-600'
-            : 'bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400'
+            : 'bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-500 hover:to-blue-400 animate-pulse-glow'
         }`}
         style={{
           boxShadow: isSessionActive
             ? '0 0 20px rgba(239,68,68,0.3)'
-            : '0 0 20px rgba(107,33,168,0.3)',
+            : undefined,
         }}
       >
         <Play size={16} fill="currentColor" />
