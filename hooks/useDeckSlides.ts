@@ -22,6 +22,8 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const renderTaskRef = useRef(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const activeRenderRef = useRef<any>(null);
 
   // Load PDF document
   useEffect(() => {
@@ -38,11 +40,16 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
 
     (async () => {
       try {
-        const pdfjsLib = await import('pdfjs-dist');
+        // Load from CDN to avoid bundler conflict with pdfjs-dist's internal webpack runtime
+        const PDFJS_VERSION = '5.4.624';
+        const CDN = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}`;
+        const pdfjsLib = await import(
+          /* webpackIgnore: true */
+          `${CDN}/build/pdf.min.mjs`
+        );
 
-        // Use CDN worker for reliable Next.js compatibility
         pdfjsLib.GlobalWorkerOptions.workerSrc =
-          `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+          `${CDN}/build/pdf.worker.min.mjs`;
 
         const doc = await pdfjsLib.getDocument(pdfUrl).promise;
         if (cancelled) return;
@@ -82,6 +89,12 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
     async (canvas: HTMLCanvasElement) => {
       if (!pdfDoc) return;
 
+      // Cancel any in-flight render on this canvas
+      if (activeRenderRef.current) {
+        activeRenderRef.current.cancel();
+        activeRenderRef.current = null;
+      }
+
       const taskId = ++renderTaskRef.current;
 
       try {
@@ -106,11 +119,22 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
         canvas.width = scaledViewport.width;
         canvas.height = scaledViewport.height;
 
-        await page.render({
-          canvas,
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const renderTask = page.render({
+          canvasContext: ctx,
           viewport: scaledViewport,
-        }).promise;
+        });
+        activeRenderRef.current = renderTask;
+
+        await renderTask.promise;
+        activeRenderRef.current = null;
       } catch (e) {
+        // Ignore cancellation errors
+        if (e instanceof Error && e.message.includes('cancel')) return;
         // Only log if this is still the current render task
         if (taskId === renderTaskRef.current) {
           console.error('Failed to render slide:', e);

@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
   const avgDurationStr = `${Math.floor(avgDurationSecs / 60)}:${(avgDurationSecs % 60).toString().padStart(2, '0')}`;
 
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
+    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
       {/* Header */}
       <div
         className="flex items-center justify-between animate-fade-in-up"

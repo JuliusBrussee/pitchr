@@ -7,7 +7,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const { onStartSession, isSessionActive } = useSidebar();
 
   return (
-    <div className="flex h-screen p-4 gap-4">
+    <div className="flex h-screen p-4 gap-4 overflow-hidden">
       <AppSidebar
         onStartSession={onStartSession}
         isSessionActive={isSessionActive}

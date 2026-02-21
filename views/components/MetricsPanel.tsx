@@ -10,9 +10,11 @@ interface MetricsPanelProps {
   isSessionActive: boolean;
   sttError?: string | null;
   sttSaved?: boolean;
+  isAnalyzing?: boolean;
+  analysisError?: string | null;
 }
 
-export function MetricsPanel({ metrics, checklist, insights, isSessionActive, sttError, sttSaved }: MetricsPanelProps) {
+export function MetricsPanel({ metrics, checklist, insights, isSessionActive, sttError, sttSaved, isAnalyzing, analysisError }: MetricsPanelProps) {
   return (
     <aside
       className="flex flex-col w-80 rounded-2xl border overflow-hidden min-h-0"
@@ -23,14 +25,26 @@ export function MetricsPanel({ metrics, checklist, insights, isSessionActive, st
         borderColor: 'var(--border-color)',
       }}
     >
-      {/* STT status */}
-      {(sttError || sttSaved) && (
+      {/* Session status */}
+      {(sttError || sttSaved || isAnalyzing || analysisError) && (
         <div className="p-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-          {sttError && (
+          {analysisError && (
+            <p className="text-xs" style={{ color: '#ef4444' }}>Analysis failed: {analysisError}</p>
+          )}
+          {isAnalyzing && (
+            <div className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 border-2 rounded-full animate-spin flex-shrink-0"
+                style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: '#ff5941' }}
+              />
+              <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Analyzing your pitch...</p>
+            </div>
+          )}
+          {sttError && !isAnalyzing && (
             <p className="text-xs" style={{ color: '#ef4444' }}>{sttError}</p>
           )}
-          {sttSaved && !sttError && (
-            <p className="text-xs" style={{ color: '#22c55e' }}>Transcript saved to transcript/txt and transcript/json</p>
+          {sttSaved && !sttError && !isAnalyzing && !analysisError && (
+            <p className="text-xs" style={{ color: '#22c55e' }}>Transcript saved</p>
           )}
         </div>
       )}

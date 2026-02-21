@@ -106,7 +106,7 @@ export default function ResultsPage() {
 
   if (!checkedStorage) {
     return (
-      <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+      <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex items-center justify-center">
         <p style={{ color: 'var(--text-muted)' }}>Loading result...</p>
       </main>
     );
@@ -114,7 +114,7 @@ export default function ResultsPage() {
 
   if (!run || !analysis || !scoreBand) {
     return (
-      <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+      <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex items-center justify-center">
         <div
           className="max-w-md rounded-2xl border p-6 text-center"
           style={{
@@ -155,7 +155,7 @@ export default function ResultsPage() {
   }
 
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
+    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link

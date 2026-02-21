@@ -8,7 +8,7 @@ import {
   Clock,
   BarChart3,
   FolderOpen,
-  Settings,
+
   Play,
   Sun,
   Moon,
@@ -30,7 +30,6 @@ const NAV_ITEMS = [
 
 const TOOL_ITEMS = [
   { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck', mock: true },
-  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings', mock: true },
 ];
 
 export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {

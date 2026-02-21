@@ -282,6 +282,14 @@ function SlideViewer({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  const handleDownload = () => {
+    if (!pdfUrl) return;
+    const a = document.createElement('a');
+    a.href = pdfUrl;
+    a.download = '';
+    a.click();
+  };
+
   // Render slide to canvas, re-render on slide change or container resize
   useEffect(() => {
     if (!canvasRef.current || !renderSlideToCanvas) return;
