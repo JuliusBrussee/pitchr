@@ -12,7 +12,7 @@ export interface UseDeckSlidesReturn {
   goToSlide: (n: number) => void;
   nextSlide: () => void;
   prevSlide: () => void;
-  renderSlideToCanvas: (canvas: HTMLCanvasElement) => Promise<void>;
+  renderSlideToCanvas: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
 }
 
 export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
@@ -39,10 +39,10 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
     (async () => {
       try {
         const pdfjsLib = await import('pdfjs-dist');
-        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-          'pdfjs-dist/build/pdf.worker.mjs',
-          import.meta.url,
-        ).toString();
+
+        // Use CDN worker for reliable Next.js compatibility
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
         const doc = await pdfjsLib.getDocument(pdfUrl).promise;
         if (cancelled) return;
@@ -83,26 +83,39 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
       if (!pdfDoc) return;
 
       const taskId = ++renderTaskRef.current;
-      const page = await pdfDoc.getPage(currentSlide);
 
-      // Check if this render is still current
-      if (taskId !== renderTaskRef.current) return;
+      try {
+        const page = await pdfDoc.getPage(currentSlide);
 
-      const containerWidth = canvas.parentElement?.clientWidth ?? canvas.width;
-      const containerHeight = canvas.parentElement?.clientHeight ?? canvas.height;
-      const viewport = page.getViewport({ scale: 1 });
+        // Check if this render is still current
+        if (taskId !== renderTaskRef.current) return;
 
-      // Scale to fit container while maintaining aspect ratio
-      const scale = Math.min(
-        containerWidth / viewport.width,
-        containerHeight / viewport.height,
-      );
-      const scaledViewport = page.getViewport({ scale });
+        const viewport = page.getViewport({ scale: 1 });
 
-      canvas.width = scaledViewport.width;
-      canvas.height = scaledViewport.height;
+        // Get container dimensions, falling back to reasonable defaults
+        const containerWidth = canvas.parentElement?.clientWidth || 800;
+        const containerHeight = canvas.parentElement?.clientHeight || 600;
 
-      await page.render({ canvas, viewport: scaledViewport }).promise;
+        // Scale to fit container while maintaining aspect ratio
+        const scale = Math.min(
+          containerWidth / viewport.width,
+          containerHeight / viewport.height,
+        );
+        const scaledViewport = page.getViewport({ scale });
+
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+
+        await page.render({
+          canvas,
+          viewport: scaledViewport,
+        }).promise;
+      } catch (e) {
+        // Only log if this is still the current render task
+        if (taskId === renderTaskRef.current) {
+          console.error('Failed to render slide:', e);
+        }
+      }
     },
     [pdfDoc, currentSlide],
   );
@@ -116,6 +129,6 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
     goToSlide,
     nextSlide,
     prevSlide,
-    renderSlideToCanvas,
+    renderSlideToCanvas: pdfDoc ? renderSlideToCanvas : null,
   };
 }
