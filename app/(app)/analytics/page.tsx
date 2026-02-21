@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetch('/api/pitch/run')
       .then((r) => r.json())
-      .then((data) => setAllRuns(data))
+      .then((data) => setAllRuns(Array.isArray(data) ? data : []))
       .catch(() => setAllRuns([]))
       .finally(() => setLoading(false));
   }, []);

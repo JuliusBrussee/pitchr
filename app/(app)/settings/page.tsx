@@ -168,17 +168,18 @@ export default function SettingsPage() {
     fetch('/api/settings')
       .then((r) => r.json())
       .then((data) => {
-        setFeedbackIntensity(data.feedback_intensity);
-        setRealtimeCoaching(data.realtime_coaching);
-        setPostSessionReport(data.post_session_report);
-        setSelectedFocusAreas(data.focus_areas);
-        setAutoRecord(data.auto_record);
-        const mins = Math.floor(data.timer_seconds / 60);
-        const secs = data.timer_seconds % 60;
-        setTimerMinutes(mins);
-        setTimerSeconds(secs);
-        setTheme(data.theme);
-        setCompactMode(data.compact_mode);
+        if (data.error) return;
+        if (data.feedback_intensity) setFeedbackIntensity(data.feedback_intensity);
+        if (typeof data.realtime_coaching === 'boolean') setRealtimeCoaching(data.realtime_coaching);
+        if (typeof data.post_session_report === 'boolean') setPostSessionReport(data.post_session_report);
+        if (Array.isArray(data.focus_areas)) setSelectedFocusAreas(data.focus_areas);
+        if (typeof data.auto_record === 'boolean') setAutoRecord(data.auto_record);
+        if (typeof data.timer_seconds === 'number') {
+          setTimerMinutes(Math.floor(data.timer_seconds / 60));
+          setTimerSeconds(data.timer_seconds % 60);
+        }
+        if (data.theme) setTheme(data.theme);
+        if (typeof data.compact_mode === 'boolean') setCompactMode(data.compact_mode);
       })
       .catch(() => {});
   }, []);
@@ -586,6 +587,7 @@ export default function SettingsPage() {
                   onClick={async () => {
                     if (!confirm('Delete all pitch runs? This cannot be undone.')) return;
                     const runs = await fetch('/api/pitch/run').then((r) => r.json());
+                    if (!Array.isArray(runs)) return;
                     await Promise.all(runs.map((r: { id: string }) => fetch(`/api/pitch/run/${r.id}`, { method: 'DELETE' })));
                     alert('All data deleted.');
                   }}

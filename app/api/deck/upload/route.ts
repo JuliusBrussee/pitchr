@@ -62,12 +62,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Extract text + count pages
+    console.log('[deck/upload] extracting PDF text...');
     const { slideCount, slides } = await extractPdfText(pdfBuffer);
+    console.log('[deck/upload] extracted', slideCount, 'slides');
 
     // Generate a temporary ID for storage paths (will be replaced by DB-generated UUID)
     const tempId = crypto.randomUUID();
 
     // Upload files to Supabase Storage
+    console.log('[deck/upload] uploading to storage...');
     const [originalUrl, pdfUrl] = await Promise.all([
       uploadToStorage(
         tempId,
@@ -79,11 +82,13 @@ export async function POST(request: NextRequest) {
         ? uploadToStorage(tempId, 'slides.pdf', pdfBuffer, 'application/pdf')
         : Promise.resolve(''), // PDF original IS the slides.pdf
     ]);
+    console.log('[deck/upload] storage done');
 
     // For PDF uploads, the original IS the slides PDF
     const finalPdfUrl = isPptx ? pdfUrl : originalUrl;
 
     // Insert deck record
+    console.log('[deck/upload] inserting deck record...');
     const deckName = file.name.replace(/\.(pptx|pdf)$/i, '');
     const deck = await insertDeck({
       name: deckName,
@@ -92,12 +97,16 @@ export async function POST(request: NextRequest) {
       slide_count: slideCount,
       thumbnail_url: null,
     });
+    console.log('[deck/upload] deck inserted:', deck.id);
 
     // Insert per-slide text
+    console.log('[deck/upload] inserting slides...');
     await insertSlides(deck.id, slides);
+    console.log('[deck/upload] done');
 
     return NextResponse.json(deck, { status: 201 });
   } catch (error) {
+    console.error('[deck/upload] ERROR:', error);
     const message = error instanceof Error ? error.message : 'Upload failed';
     return NextResponse.json({ error: message }, { status: 500 });
   }

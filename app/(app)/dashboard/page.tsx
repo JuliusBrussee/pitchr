@@ -186,17 +186,19 @@ export default function DashboardPage() {
       fetch('/api/pitch/run?limit=3').then((r) => r.json()),
     ])
       .then(([statsData, runsData]) => {
-        setStats(statsData);
-        setRecentRuns(
-          runsData.map((r: RunRecord) => ({
-            id: r.id,
-            mode: r.mode as PitchMode,
-            overallScore: r.overall_score,
-            one_line_verdict: r.analysis.one_line_verdict,
-            createdAt: r.created_at,
-            duration_seconds: r.analysis.delivery_metrics.duration_seconds,
-          })),
-        );
+        setStats({ totalRuns: 0, averageScore: 0, bestScore: 0, trend: [], ...statsData });
+        if (Array.isArray(runsData)) {
+          setRecentRuns(
+            runsData.map((r: RunRecord) => ({
+              id: r.id,
+              mode: r.mode as PitchMode,
+              overallScore: r.overall_score,
+              one_line_verdict: r.analysis.one_line_verdict,
+              createdAt: r.created_at,
+              duration_seconds: r.analysis.delivery_metrics.duration_seconds,
+            })),
+          );
+        }
       })
       .catch(() => {});
   }, []);

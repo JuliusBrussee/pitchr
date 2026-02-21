@@ -109,8 +109,9 @@ export default function HistoryPage() {
   useEffect(() => {
     fetch('/api/pitch/run')
       .then((res) => res.json())
-      .then((data: RunRecord[]) => {
-        const mapped = data.map((r, i) => ({
+      .then((data) => {
+        if (!Array.isArray(data)) { setLoading(false); return; }
+        const mapped = (data as RunRecord[]).map((r, i) => ({
           id: r.id,
           number: data.length - i,
           mode: r.mode as PitchMode,
