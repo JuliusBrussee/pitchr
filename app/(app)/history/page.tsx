@@ -25,7 +25,7 @@ import {
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui';
 
-/* ΓöÇΓöÇΓöÇ Types ΓöÇΓöÇΓöÇ */
+/* ——— Types ——— */
 
 interface MockRun {
   id: string;
@@ -40,20 +40,20 @@ interface MockRun {
   dateGroup: 'today' | 'yesterday' | 'thisWeek' | 'earlier';
 }
 
-/* ΓöÇΓöÇΓöÇ Mock data ΓöÇΓöÇΓöÇ */
+/* ——— Mock data ——— */
 
 const MOCK_RUNS: MockRun[] = [
   { id: '1', number: 28, mode: 'vc_pitch', inputType: 'audio', overallScore: 84, one_line_verdict: 'Strong structure but needs concrete traction numbers', createdAt: '2026-02-21T14:30:00Z', duration_seconds: 522, deck: 'Series A Deck v3', dateGroup: 'today' },
   { id: '2', number: 27, mode: 'vc_pitch', inputType: 'text', overallScore: 71, one_line_verdict: 'Good energy but closing section runs too long', createdAt: '2026-02-21T10:15:00Z', duration_seconds: 735, deck: 'Series A Deck v3', dateGroup: 'today' },
-  { id: '3', number: 26, mode: 'elevator', inputType: 'audio', overallScore: 89, one_line_verdict: 'Punchy and clear ΓÇö tighten the market claim', createdAt: '2026-02-20T16:45:00Z', duration_seconds: 38, deck: 'Elevator 60-sec', dateGroup: 'yesterday' },
+  { id: '3', number: 26, mode: 'elevator', inputType: 'audio', overallScore: 89, one_line_verdict: 'Punchy and clear — tighten the market claim', createdAt: '2026-02-20T16:45:00Z', duration_seconds: 38, deck: 'Elevator 60-sec', dateGroup: 'yesterday' },
   { id: '4', number: 25, mode: 'vc_pitch', inputType: 'audio', overallScore: 68, one_line_verdict: 'Market sizing section needs hard data', createdAt: '2026-02-20T09:00:00Z', duration_seconds: 612, deck: 'Series A Deck v2', dateGroup: 'yesterday' },
-  { id: '5', number: 24, mode: 'elevator', inputType: 'audio', overallScore: 92, one_line_verdict: 'Nailed it ΓÇö ship this version', createdAt: '2026-02-18T11:30:00Z', duration_seconds: 42, deck: 'Elevator 60-sec', dateGroup: 'thisWeek' },
+  { id: '5', number: 24, mode: 'elevator', inputType: 'audio', overallScore: 92, one_line_verdict: 'Nailed it — ship this version', createdAt: '2026-02-18T11:30:00Z', duration_seconds: 42, deck: 'Elevator 60-sec', dateGroup: 'thisWeek' },
   { id: '6', number: 23, mode: 'vc_pitch', inputType: 'text', overallScore: 56, one_line_verdict: 'Needs a clearer problem statement up front', createdAt: '2026-02-17T15:00:00Z', duration_seconds: 480, deck: 'Demo Day 2026', dateGroup: 'thisWeek' },
   { id: '7', number: 22, mode: 'vc_pitch', inputType: 'audio', overallScore: 79, one_line_verdict: 'Good narrative arc but team slide is weak', createdAt: '2026-02-16T10:00:00Z', duration_seconds: 544, deck: 'Seed Round Deck', dateGroup: 'thisWeek' },
-  { id: '8', number: 21, mode: 'elevator', inputType: 'audio', overallScore: 61, one_line_verdict: 'Too many buzzwords ΓÇö simplify the value prop', createdAt: '2026-02-15T14:00:00Z', duration_seconds: 35, deck: 'Elevator 60-sec', dateGroup: 'thisWeek' },
+  { id: '8', number: 21, mode: 'elevator', inputType: 'audio', overallScore: 61, one_line_verdict: 'Too many buzzwords — simplify the value prop', createdAt: '2026-02-15T14:00:00Z', duration_seconds: 35, deck: 'Elevator 60-sec', dateGroup: 'thisWeek' },
 ];
 
-/* ΓöÇΓöÇΓöÇ Constants ΓöÇΓöÇΓöÇ */
+/* ——— Constants ——— */
 
 const DATE_GROUP_LABELS: Record<string, string> = {
   today: 'Today',
@@ -67,7 +67,7 @@ const DATE_GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'earlier'];
 type ViewMode = 'list' | 'grid';
 type ModeFilter = 'all' | 'elevator' | 'vc_pitch';
 
-/* ΓöÇΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇ */
+/* ——— Helpers ——— */
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -79,7 +79,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-/* ΓöÇΓöÇΓöÇ Component ΓöÇΓöÇΓöÇ */
+/* ——— Component ——— */
 
 export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,7 +134,7 @@ export default function HistoryPage() {
 
   return (
     <main className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
-      {/* ΓöÇΓöÇΓöÇ Header Card ΓöÇΓöÇΓöÇ */}
+      {/* ——— Header Card ——— */}
       <GlassCard className="flex-shrink-0 flex flex-col gap-4">
         {/* Title row */}
         <div className="flex items-center justify-between">
@@ -229,7 +229,7 @@ export default function HistoryPage() {
         </div>
       </GlassCard>
 
-      {/* ΓöÇΓöÇΓöÇ Session List / Grid ΓöÇΓöÇΓöÇ */}
+      {/* ——— Session List / Grid ——— */}
       <GlassCard className="flex-1 overflow-y-auto" animate={false}>
         {Object.keys(groupedVisible).length === 0 ? (
           <EmptyState
@@ -241,7 +241,7 @@ export default function HistoryPage() {
             }
           />
         ) : viewMode === 'list' ? (
-          /* ΓöÇΓöÇΓöÇ List View ΓöÇΓöÇΓöÇ */
+          /* ——— List View ——— */
           <div className="flex flex-col gap-5">
             {DATE_GROUP_ORDER.map((group) => {
               const runs = groupedVisible[group];
@@ -360,7 +360,7 @@ export default function HistoryPage() {
             })}
           </div>
         ) : (
-          /* ΓöÇΓöÇΓöÇ Grid View ΓöÇΓöÇΓöÇ */
+          /* ——— Grid View ——— */
           <div className="flex flex-col gap-5">
             {DATE_GROUP_ORDER.map((group) => {
               const runs = groupedVisible[group];
@@ -497,7 +497,7 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* ΓöÇΓöÇΓöÇ Load More ΓöÇΓöÇΓöÇ */}
+        {/* ——— Load More ——— */}
         {hasMore && (
           <div className="flex justify-center mt-6">
             <button
@@ -522,7 +522,7 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* ΓöÇΓöÇΓöÇ Pagination summary ΓöÇΓöÇΓöÇ */}
+        {/* ——— Pagination summary ——— */}
         <div className="flex items-center justify-center mt-4 gap-1">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Showing {Math.min(visibleCount, filtered.length)} of {filtered.length} run{filtered.length !== 1 ? 's' : ''}

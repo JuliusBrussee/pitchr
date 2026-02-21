@@ -24,7 +24,7 @@ import {
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui/colors';
 
-/* ΓöÇΓöÇΓöÇ Mock Data (PRD-aligned) ΓöÇΓöÇΓöÇ */
+/* ——— Mock Data (PRD-aligned) ——— */
 
 interface MockRun {
   id: string;
@@ -59,7 +59,7 @@ const RECENT_RUNS: MockRun[] = [
     id: '3',
     mode: 'elevator',
     overallScore: 89,
-    one_line_verdict: 'Punchy and clear ΓÇö tighten the market claim',
+    one_line_verdict: 'Punchy and clear — tighten the market claim',
     createdAt: '2026-02-16T16:45:00Z',
     duration_seconds: 38,
     deck: 'Elevator 60-sec',
@@ -74,14 +74,14 @@ const STATS = {
 };
 
 const PITCH_TIPS = [
-  'Start with a bold claim or surprising stat ΓÇö investors hear hundreds of pitches; hook them in the first 10 seconds.',
+  'Start with a bold claim or surprising stat — investors hear hundreds of pitches; hook them in the first 10 seconds.',
   'Use "we" instead of "I" to emphasize the team. Investors bet on teams, not individuals.',
   'Keep your ask specific. "We\'re raising $2M at $10M pre" is stronger than "we\'re looking for funding."',
   'Pause after key points. Silence builds weight and gives your audience time to absorb.',
-  'Practice the transition between your problem slide and solution slide ΓÇö that\'s where most pitches lose momentum.',
+  'Practice the transition between your problem slide and solution slide — that\'s where most pitches lose momentum.',
 ];
 
-/* ΓöÇΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇ */
+/* ——— Helpers ——— */
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -114,7 +114,7 @@ function formatRunDate(iso: string): string {
   });
 }
 
-/* ΓöÇΓöÇΓöÇ Sparkline SVG Component ΓöÇΓöÇΓöÇ */
+/* ——— Sparkline SVG Component ——— */
 
 function Sparkline({
   data,
@@ -186,7 +186,7 @@ function Sparkline({
   );
 }
 
-/* ΓöÇΓöÇΓöÇ Page Component ΓöÇΓöÇΓöÇ */
+/* ——— Page Component ——— */
 
 export default function DashboardPage() {
   // Defer dynamic values to client to avoid hydration mismatch
@@ -211,7 +211,7 @@ export default function DashboardPage() {
       }}
     >
       <div className="max-w-5xl mx-auto">
-        {/* ΓöÇΓöÇΓöÇ Welcome Header ΓöÇΓöÇΓöÇ */}
+        {/* ——— Welcome Header ——— */}
         <div
           className="mb-6 animate-fade-in-up"
           style={{ animationDelay: '0s', animationFillMode: 'both' }}
@@ -231,7 +231,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* ΓöÇΓöÇΓöÇ Run a Pitch CTA ΓöÇΓöÇΓöÇ */}
+        {/* ——— Run a Pitch CTA ——— */}
         <div
           className="mb-8 animate-fade-in-up"
           style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
@@ -252,7 +252,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* ΓöÇΓöÇΓöÇ Stat Cards Row ΓöÇΓöÇΓöÇ */}
+        {/* ——— Stat Cards Row ——— */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <StatCard
             label="Total Runs"
@@ -280,9 +280,9 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* ΓöÇΓöÇΓöÇ Two-Column Layout ΓöÇΓöÇΓöÇ */}
+        {/* ——— Two-Column Layout ——— */}
         <div className="grid grid-cols-5 gap-6">
-          {/* Left Column ΓÇö Recent Runs (3/5) */}
+          {/* Left Column — Recent Runs (3/5) */}
           <div className="col-span-3">
             <div
               className="mb-4 animate-fade-in-up"
@@ -367,7 +367,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right Column ΓÇö Score Trend + Pitch Tip (2/5) */}
+          {/* Right Column — Score Trend + Pitch Tip (2/5) */}
           <div className="col-span-2 flex flex-col gap-4">
             {/* Score Trend Sparkline */}
             <GlassCard animationDelay="0.36s">

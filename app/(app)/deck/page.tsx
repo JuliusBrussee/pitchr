@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { SearchInput, SectionHeader, ScoreBadge, EmptyState } from '@/views/components/ui';
 
-/* ΓöÇΓöÇΓöÇ Types ΓöÇΓöÇΓöÇ */
+/* ——— Types ——— */
 
 interface MockDeck {
   id: string;
@@ -29,7 +29,7 @@ interface MockDeck {
   accentIcon: 'presentation' | 'fileText' | 'barChart' | 'image' | 'folderOpen';
 }
 
-/* ΓöÇΓöÇΓöÇ Mock Data ΓöÇΓöÇΓöÇ */
+/* ——— Mock Data ——— */
 
 const MOCK_DECKS: MockDeck[] = [
   {
@@ -102,7 +102,7 @@ const ICON_MAP = {
   folderOpen: FolderOpen,
 };
 
-/* ΓöÇΓöÇΓöÇ Helpers ΓöÇΓöÇΓöÇ */
+/* ——— Helpers ——— */
 
 const glassStyles = {
   backgroundColor: 'var(--bg-surface)',
@@ -125,7 +125,7 @@ const shimmerStyle: React.CSSProperties = {
   animation: 'deck-shimmer 2.5s ease-in-out infinite',
 };
 
-/* ΓöÇΓöÇΓöÇ Component ΓöÇΓöÇΓöÇ */
+/* ——— Component ——— */
 
 export default function DeckPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,7 +154,7 @@ export default function DeckPage() {
       className="flex-1 flex flex-col gap-5 overflow-y-auto rounded-2xl p-6 border"
       style={glassStyles}
     >
-      {/* ΓöÇΓöÇΓöÇ Header ΓöÇΓöÇΓöÇ */}
+      {/* ——— Header ——— */}
       <div className="flex items-center justify-between gap-4 flex-wrap animate-fade-in-up">
         <div className="flex items-center gap-3">
           <div
@@ -204,7 +204,7 @@ export default function DeckPage() {
         </div>
       </div>
 
-      {/* ΓöÇΓöÇΓöÇ Upload Dropzone ΓöÇΓöÇΓöÇ */}
+      {/* ——— Upload Dropzone ——— */}
       <div
         className="animate-fade-in-up"
         style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
@@ -267,7 +267,7 @@ export default function DeckPage() {
         </div>
       </div>
 
-      {/* ΓöÇΓöÇΓöÇ Section Label ΓöÇΓöÇΓöÇ */}
+      {/* ——— Section Label ——— */}
       <div
         className="animate-fade-in-up"
         style={{ animationDelay: '0.08s', animationFillMode: 'both' }}
@@ -277,7 +277,7 @@ export default function DeckPage() {
         </SectionHeader>
       </div>
 
-      {/* ΓöÇΓöÇΓöÇ Deck Grid ΓöÇΓöÇΓöÇ */}
+      {/* ——— Deck Grid ——— */}
       <div
         className="grid gap-4"
         style={{
@@ -512,7 +512,7 @@ export default function DeckPage() {
         )}
       </div>
 
-      {/* ΓöÇΓöÇΓöÇ Footer Summary ΓöÇΓöÇΓöÇ */}
+      {/* ——— Footer Summary ——— */}
       <div
         className="flex items-center justify-center animate-fade-in-up"
         style={{

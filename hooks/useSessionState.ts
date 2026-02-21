@@ -66,7 +66,7 @@ const COACH_MESSAGES = [
 ];
 
 const MOCK_INSIGHTS: InsightEntry[] = [
-  { id: '1', text: 'Strong opening ΓÇö direct and confident', timestamp: new Date(), type: 'positive' },
+  { id: '1', text: 'Strong opening — direct and confident', timestamp: new Date(), type: 'positive' },
   { id: '2', text: 'Consider adding a specific metric to support your claim', timestamp: new Date(), type: 'suggestion' },
 ];
 

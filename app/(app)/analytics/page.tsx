@@ -24,7 +24,7 @@ import {
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor } from '@/views/components/ui';
 
-/* ΓöÇΓöÇΓöÇ Mock Data ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ——— Mock Data ———————————————————————————————————————————————— */
 
 const SCORE_TREND: Record<TimeRange, { label: string; value: number }[]> = {
   '7D': [
@@ -137,7 +137,7 @@ const RECOMMENDATIONS = [
   },
 ];
 
-/* ΓöÇΓöÇΓöÇ Gradient map for recommendation icon backgrounds ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ——— Gradient map for recommendation icon backgrounds ——————— */
 
 const RECOMMENDATION_GRADIENTS: Record<string, string> = {
   evidence: 'linear-gradient(135deg, #22c55e, #16a34a)',
@@ -153,7 +153,7 @@ const RECOMMENDATION_ICONS: Record<string, React.ComponentType<{ size?: number; 
   delivery: Sparkles,
 };
 
-/* ΓöÇΓöÇΓöÇ Page Component ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ——— Page Component ——————————————————————————————————————————— */
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('30D');
@@ -278,7 +278,7 @@ export default function AnalyticsPage() {
   );
 }
 
-/* ΓöÇΓöÇΓöÇ Sub-components ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ */
+/* ——— Sub-components ——————————————————————————————————————————— */
 
 function ScoreTrendChart({ data }: { data: { label: string; value: number }[] }) {
   const maxVal = 100;

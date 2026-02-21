@@ -41,8 +41,8 @@ export function MetricsPanel({ metrics, checklist, insights, isSessionActive, st
           Live Summary
         </h3>
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard label="WPM" value={isSessionActive ? Math.round(metrics.wpm) : 'ΓÇö'} />
-          <MetricCard label="Filler Words" value={isSessionActive ? metrics.fillerWords : 'ΓÇö'} accent={metrics.fillerWords > 5 ? 'red' : undefined} />
+          <MetricCard label="WPM" value={isSessionActive ? Math.round(metrics.wpm) : '—'} />
+          <MetricCard label="Filler Words" value={isSessionActive ? metrics.fillerWords : '—'} accent={metrics.fillerWords > 5 ? 'red' : undefined} />
           <MetricGauge label="Conciseness" value={isSessionActive ? metrics.conciseness : 0} max={10} />
           <MetricGauge label="Clarity" value={isSessionActive ? metrics.clarity : 0} max={10} />
         </div>
@@ -116,7 +116,7 @@ function MetricGauge({ label, value, max }: { label: string; value: number; max:
       <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
       <div className="flex items-center gap-2">
         <div className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-          {value > 0 ? value.toFixed(1) : 'ΓÇö'}
+          {value > 0 ? value.toFixed(1) : '—'}
         </div>
         <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-color)' }}>
           <div
