@@ -8,6 +8,8 @@ import { useMediaStream } from '@/hooks/useMediaStream';
 import { useSessionState } from '@/hooks/useSessionState';
 import { useDeckSlides } from '@/hooks/useDeckSlides';
 import { useSTT } from '@/hooks/useSTT';
+import { useRecorder } from '@/hooks/useRecorder';
+import { uploadRecording } from '@/services/recordingService';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
@@ -36,6 +38,7 @@ function SessionPageContent() {
   const media = useMediaStream();
   const session = useSessionState();
   const stt = useSTT();
+  const recorder = useRecorder();
   const { runPitchAnalysis, isAnalyzing, error: runError } = usePitchRun();
   const { setOrbState } = useTheme();
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -162,12 +165,16 @@ function SessionPageContent() {
     autoSubmitLockRef.current = false;
     session.startSession();
     stt.start();
-  }, [session, stt]);
+    if (media.stream) {
+      recorder.startRecording(media.stream);
+    }
+  }, [session, stt, media.stream, recorder]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
     stt.stop();
-  }, [session, stt]);
+    recorder.stopRecording(); // fire-and-forget stop; blob captured in auto-submit
+  }, [session, stt, recorder]);
 
   const handleSessionToggle = useCallback(() => {
     if (session.isSessionActive) {
@@ -197,6 +204,18 @@ function SessionPageContent() {
 
     void (async () => {
       try {
+        // Stop recording and upload blob
+        let audioUrl: string | undefined;
+        try {
+          const blob = await recorder.stopRecording();
+          if (blob && blob.size > 0) {
+            const tempId = crypto.randomUUID();
+            audioUrl = await uploadRecording(tempId, blob);
+          }
+        } catch (uploadErr) {
+          console.warn('[session] Recording upload failed, proceeding without:', uploadErr);
+        }
+
         let deckText: string | undefined;
         if (selectedDeckId !== null) {
           try {
@@ -209,6 +228,7 @@ function SessionPageContent() {
           mode: pitchMode,
           inputType: 'audio',
           transcript,
+          audioUrl,
           deckText,
         });
         router.push(`/results/${result.runId}`);
@@ -223,6 +243,7 @@ function SessionPageContent() {
   }, [
     loadDeckText,
     pitchMode,
+    recorder,
     router,
     runPitchAnalysis,
     selectedDeckId,
