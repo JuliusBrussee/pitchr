@@ -24,7 +24,7 @@ import {
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui/colors';
 
-/* ─── Mock Data (PRD-aligned) ─── */
+/* ——— Mock Data (PRD-aligned) ——— */
 
 interface MockRun {
   id: string;
@@ -81,7 +81,7 @@ const PITCH_TIPS = [
   'Practice the transition between your problem slide and solution slide — that\'s where most pitches lose momentum.',
 ];
 
-/* ─── Helpers ─── */
+/* ——— Helpers ——— */
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -114,7 +114,7 @@ function formatRunDate(iso: string): string {
   });
 }
 
-/* ─── Sparkline SVG Component ─── */
+/* ——— Sparkline SVG Component ——— */
 
 function Sparkline({
   data,
@@ -186,7 +186,7 @@ function Sparkline({
   );
 }
 
-/* ─── Page Component ─── */
+/* ——— Page Component ——— */
 
 export default function DashboardPage() {
   // Defer dynamic values to client to avoid hydration mismatch
@@ -211,7 +211,7 @@ export default function DashboardPage() {
       }}
     >
       <div className="max-w-5xl mx-auto">
-        {/* ─── Welcome Header ─── */}
+        {/* ——— Welcome Header ——— */}
         <div
           className="mb-6 animate-fade-in-up"
           style={{ animationDelay: '0s', animationFillMode: 'both' }}
@@ -231,7 +231,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* ─── Run a Pitch CTA ─── */}
+        {/* ——— Run a Pitch CTA ——— */}
         <div
           className="mb-8 animate-fade-in-up"
           style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
@@ -252,7 +252,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* ─── Stat Cards Row ─── */}
+        {/* ——— Stat Cards Row ——— */}
         <div className="grid grid-cols-3 gap-4 mb-8">
           <StatCard
             label="Total Runs"
@@ -280,7 +280,7 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* ─── Two-Column Layout ─── */}
+        {/* ——— Two-Column Layout ——— */}
         <div className="grid grid-cols-5 gap-6">
           {/* Left Column — Recent Runs (3/5) */}
           <div className="col-span-3">

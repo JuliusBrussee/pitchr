@@ -8,9 +8,11 @@ interface MetricsPanelProps {
   checklist: ChecklistItem[];
   insights: InsightEntry[];
   isSessionActive: boolean;
+  sttError?: string | null;
+  sttSaved?: boolean;
 }
 
-export function MetricsPanel({ metrics, checklist, insights, isSessionActive }: MetricsPanelProps) {
+export function MetricsPanel({ metrics, checklist, insights, isSessionActive, sttError, sttSaved }: MetricsPanelProps) {
   return (
     <aside
       className="flex flex-col w-80 rounded-2xl border overflow-hidden min-h-0"
@@ -21,6 +23,18 @@ export function MetricsPanel({ metrics, checklist, insights, isSessionActive }: 
         borderColor: 'var(--border-color)',
       }}
     >
+      {/* STT status */}
+      {(sttError || sttSaved) && (
+        <div className="p-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
+          {sttError && (
+            <p className="text-xs" style={{ color: '#ef4444' }}>{sttError}</p>
+          )}
+          {sttSaved && !sttError && (
+            <p className="text-xs" style={{ color: '#22c55e' }}>Transcript saved to transcript/txt and transcript/json</p>
+          )}
+        </div>
+      )}
+
       {/* Live Summary */}
       <div className="p-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
         <h3 className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
@@ -147,7 +161,7 @@ function ChecklistRow({ item }: { item: ChecklistItem }) {
 function InsightCard({ insight }: { insight: InsightEntry }) {
   const colorMap = {
     positive: '#22c55e',
-    suggestion: '#ffaa33',
+    suggestion: '#3b82f6',
     neutral: 'var(--text-secondary)',
   };
 

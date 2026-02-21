@@ -37,7 +37,7 @@
   animation: fadeInUp 0.3s ease-out;
 }
 
-/* ─── Start Session Button ─── */
+/* ——— Start Session Button ——— */
 
 .session-start-wrap {
   position: relative;
@@ -189,7 +189,7 @@
   }
 }
 
-/* ─── End Session Button ─── */
+/* ——— End Session Button ——— */
 
 .session-end-btn {
   position: relative;
@@ -241,7 +241,7 @@
   50% { opacity: 0.3; transform: scale(0.8); }
 }
 
-/* ─── Deck Manager ─── */
+/* ——— Deck Manager ——— */
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }

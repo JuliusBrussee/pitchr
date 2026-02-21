@@ -1,74 +1,116 @@
 'use client';
 
 import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
 import { useSessionState } from '@/hooks/useSessionState';
+import { usePitchRun } from '@/hooks/usePitchRun';
+import { useSTT } from '@/hooks/useSTT';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
-import { isHeadTrackingDebugEnabled, useHeadTracking } from '@/lib/headTracking/useHeadTracking';
+import type { SpeechBubble } from '@/hooks/useSessionState';
+import type { PitchMode } from '@/types/pitch';
+
+const DEFAULT_MODE: PitchMode = 'vc_pitch';
 
 export default function SessionPage() {
+  const router = useRouter();
   const media = useMediaStream();
   const session = useSessionState();
+  const pitchRun = usePitchRun();
+  const stt = useSTT();
   const { setOrbState } = useTheme();
+  const analysisTriggeredRef = useRef(false);
 
-  const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
-  const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  const headTrackingDebugEnabled = useMemo(() => isHeadTrackingDebugEnabled(), []);
-
-  const isTrackingEnabled = session.isSessionActive && media.isCameraOn && !!media.stream;
-
-  const headTracking = useHeadTracking({
-    videoRef: trackingVideoRef,
-    canvasRef: headTrackingDebugEnabled ? trackingCanvasRef : undefined,
-    stream: media.stream,
-    enabled: isTrackingEnabled,
-    autoStart: true,
-    debug: headTrackingDebugEnabled,
-  });
-
-  // Sync orb state to ThemeProvider for reactive aura
   useEffect(() => {
     setOrbState(session.orbState);
   }, [session.orbState, setOrbState]);
 
-  const handleSessionToggle = useCallback(() => {
-    if (session.isSessionActive) {
-      if (session.isPaused) {
-        session.resumeSession();
-      } else {
-        session.pauseSession();
+  const speechBubbles: SpeechBubble[] = useMemo(() => {
+    if (stt.isRecording) {
+      const segments = stt.transcriptSegments.map((text, i) => ({
+        id: `stt-${i}`,
+        text,
+        expiresAt: Number.MAX_SAFE_INTEGER,
+      }));
+      if (stt.liveText.trim()) {
+        segments.push({
+          id: 'stt-live',
+          text: stt.liveText,
+          expiresAt: Number.MAX_SAFE_INTEGER,
+        });
       }
-    } else {
-      session.startSession();
+      return segments;
     }
-  }, [session.isSessionActive, session.startSession, session.stopSession]);
+    return session.speechBubbles;
+  }, [stt.isRecording, stt.transcriptSegments, stt.liveText, session.speechBubbles]);
 
-  // Register session controls with the shared sidebar
+  const handleStartSession = useCallback(() => {
+    analysisTriggeredRef.current = false;
+    session.startSession();
+    void stt.start();
+  }, [session, stt]);
+
+  const handleStopSession = useCallback(() => {
+    session.stopSession();
+    stt.stop();
+  }, [session, stt]);
+
+  const handleSessionToggle = useCallback(() => {
+    if (pitchRun.isAnalyzing) return;
+
+    if (session.isSessionActive) {
+      handleStopSession();
+    } else {
+      handleStartSession();
+    }
+  }, [pitchRun.isAnalyzing, session.isSessionActive, handleStartSession, handleStopSession]);
+
+  useEffect(() => {
+    if (!stt.saved) {
+      analysisTriggeredRef.current = false;
+    }
+  }, [stt.saved]);
+
+  useEffect(() => {
+    if (!stt.saved || analysisTriggeredRef.current || pitchRun.isAnalyzing) {
+      return;
+    }
+
+    const transcript = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
+    if (!transcript) return;
+
+    analysisTriggeredRef.current = true;
+    session.setOrbState('neutral');
+
+    void pitchRun
+      .runPitchAnalysis({
+        mode: DEFAULT_MODE,
+        transcript,
+        inputType: 'audio',
+      })
+      .then(({ runId }) => {
+        session.setOrbState('positive');
+        router.push(`/results/${runId}`);
+      })
+      .catch(() => {
+        session.setOrbState('negative');
+        analysisTriggeredRef.current = false;
+      });
+  }, [
+    stt.saved,
+    stt.transcriptSegments,
+    pitchRun,
+    router,
+    session,
+  ]);
+
   useSidebarSession(handleSessionToggle, session.isSessionActive);
 
   return (
     <>
-      {!headTrackingDebugEnabled ? (
-        <video
-          ref={trackingVideoRef}
-          autoPlay
-          playsInline
-          muted
-          style={{
-            position: 'absolute',
-            left: '-9999px',
-            top: '-9999px',
-            width: 1,
-            height: 1,
-            pointerEvents: 'none',
-          }}
-        />
-      ) : null}
-
       <SessionCanvas
         stream={media.stream}
         isCameraOn={media.isCameraOn}
@@ -77,42 +119,19 @@ export default function SessionPage() {
         toggleMic={media.toggleMic}
         orbState={session.orbState}
         orbIntensity={0.6}
-        speechBubbles={session.speechBubbles}
+        speechBubbles={speechBubbles}
         isSessionActive={session.isSessionActive}
-        isPaused={session.isPaused}
-        onStartSession={session.startSession}
-        onPauseSession={session.pauseSession}
-        onResumeSession={session.resumeSession}
-        onStopSession={session.stopSession}
-        engagementScore={headTracking.engagementScore}
-        headTrackingState={headTracking.state}
-        showEngagementBubble={isTrackingEnabled}
-        headTrackingDebug={
-          headTrackingDebugEnabled
-            ? {
-                enabled: true,
-                yaw: headTracking.yaw,
-                pitch: headTracking.pitch,
-                roll: headTracking.roll,
-                facingPct: headTracking.facingPct,
-                awayPct: headTracking.awayPct,
-                downPct: headTracking.downPct,
-                isCalibrated: headTracking.isCalibrated,
-                inferenceMs: headTracking.inferenceMs ?? 0,
-                effectiveInferIntervalMs: headTracking.effectiveInferIntervalMs ?? 0,
-                fps: headTracking.fps ?? 0,
-                videoRef: trackingVideoRef,
-                canvasRef: trackingCanvasRef,
-              }
-            : undefined
-        }
+        isAnalyzing={pitchRun.isAnalyzing}
+        onStartSession={handleStartSession}
+        onStopSession={handleStopSession}
       />
-
       <MetricsPanel
         metrics={session.metrics}
         checklist={session.checklist}
         insights={session.insights}
         isSessionActive={session.isSessionActive}
+        sttError={stt.error ?? pitchRun.error}
+        sttSaved={stt.saved}
       />
     </>
   );

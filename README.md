@@ -1,27 +1,81 @@
 # Pitchr
 
-AI-powered pitch practice platform built with Next.js, React Three Fiber, and GLSL shaders.
+Pitchr is an AI pitch coaching app. Record or transcribe a pitch, run structured analysis, and review score, fixes, rewrite, and delivery metrics.
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) v18+
-- npm (included with Node.js)
+- Yarn 4 (Corepack-managed)
 
-## Getting Started
+## Setup
 
 ```bash
-# Clone the repo
-git clone https://github.com/JuliusBrussee/pitchr.git
-cd pitchr
-
-# Install dependencies
-npm install
-
-# Start the dev server
-npm run dev
+yarn install
+copy .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Set at least these values in `.env`:
+
+- `ELEVENLABS_API_KEY` (required for realtime STT)
+- `LLM_PROVIDER=openrouter`
+- `OPENROUTER_API_KEY`
+- Optional override: `OPENROUTER_MODEL=google/gemini-3-flash-preview`
+
+## Run Locally
+
+```bash
+yarn dev
+```
+
+This starts:
+
+- Next.js app at `http://localhost:3000`
+- STT proxy server at `http://localhost:3001`
+
+## Scripts
+
+| Command | Description |
+|---|---|
+| `yarn dev` | Start Next + STT proxy together |
+| `yarn dev:next` | Start Next.js only |
+| `yarn dev:server` | Start STT proxy only |
+| `yarn dev:standalone` | Start server.ts directly |
+| `yarn stt` | Run CLI STT recorder script |
+| `yarn build` | Production build |
+| `yarn start` | Start production server |
+| `yarn check:encoding` | Validate UTF-8 encoding guardrails |
+| `yarn fix:encoding` | Normalize UTF-16/UTF-8 BOM text files to UTF-8 |
+
+## Package Manager Policy
+
+- This repo is Yarn-only (`packageManager: yarn@4.12.0` in `package.json`).
+- `yarn.lock` is the source of truth.
+- `package-lock.json` is intentionally not used and ignored.
+
+## Encoding Recovery
+
+If you see parser errors like `Unexpected token '�'` or CSS `Unknown word` at byte 1:
+
+```bash
+yarn fix:encoding
+yarn check:encoding
+```
+
+## Analysis Pipeline
+
+1. Session audio is transcribed via STT WebSocket.
+2. On transcript finalization (`saved`), the app auto-calls `POST /api/pitch/run`.
+3. Server runs prompt + scoring pipeline through the LLM router.
+4. Result is returned with `{ runId, status, analysis }`.
+5. Run is stored in browser `localStorage` (`pitchr_runs`) and displayed at `/results/[runId]`.
+
+More details: `docs/architecture/pitch-analysis-pipeline.md`.
+
+## Provider Routing
+
+- Default: OpenRouter (`LLM_PROVIDER=openrouter`)
+- Model: `google/gemini-3-flash-preview`
+- Anthropic scaffold is implemented for later switch (`LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`).
 
 ## Codex MCP
 
@@ -36,42 +90,6 @@ codex mcp get supabase
 ```
 
 - Do not use `codex mcp add` for this repo setup because it writes to user config at `~/.codex/config.toml`.
-
-## Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start development server |
-| `npm run build` | Create production build |
-| `npm start` | Serve production build |
-| `npm test` | Run tests (Vitest) |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run e2e:smoke` | Run Playwright smoke flow against local app |
-| `npm run e2e:ui` | Open Playwright UI mode |
-
-## Tech Stack
-
-- **Framework:** Next.js 16 / React 19
-- **3D:** React Three Fiber + Drei
-- **Styling:** Tailwind CSS 4
-- **Testing:** Vitest + Testing Library
-- **Language:** TypeScript
-
-## Local UI Smoke Testing
-
-Run this to validate core navigation and session controls in a real browser:
-
-```bash
-npm run e2e:smoke
-```
-
-Notes:
-- Playwright will start `npm run dev` automatically from `playwright.config.ts`.
-- On first run, install browsers if prompted:
-
-```bash
-npx playwright install chromium
-```
 
 ## Miro Integration
 
@@ -90,7 +108,6 @@ NEXT_PUBLIC_MIRO_POLL_INTERVAL_MS=30000
 If credentials are missing, the app falls back to stub mode and markdown export.
 
 See: `docs/integrations/miro.md`
-
 ## License
 
 MIT

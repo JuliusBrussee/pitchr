@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import { OrbState } from '@/views/components/SiriBubble';
 
 export interface MetricValues {
@@ -38,10 +37,7 @@ export interface SessionState {
   insights: InsightEntry[];
   speechBubbles: SpeechBubble[];
   isSessionActive: boolean;
-  isPaused: boolean;
   startSession: () => void;
-  pauseSession: () => void;
-  resumeSession: () => void;
   stopSession: () => void;
 }
 
@@ -75,7 +71,6 @@ const MOCK_INSIGHTS: InsightEntry[] = [
 ];
 
 export function useSessionState(): SessionState {
-  const router = useRouter();
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [metrics, setMetrics] = useState<MetricValues>({
     wpm: 0,
@@ -87,16 +82,12 @@ export function useSessionState(): SessionState {
   const [insights, setInsights] = useState<InsightEntry[]>(MOCK_INSIGHTS);
   const [speechBubbles, setSpeechBubbles] = useState<SpeechBubble[]>([]);
   const [isSessionActive, setIsSessionActive] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const bubbleIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Whether simulation timers should run (active AND not paused)
-  const isRunning = isSessionActive && !isPaused;
-
-  // Simulate metrics updating when session is running
+  // Simulate metrics updating when session is active
   useEffect(() => {
-    if (!isRunning) {
+    if (!isSessionActive) {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (bubbleIntervalRef.current) clearInterval(bubbleIntervalRef.current);
       return;
@@ -145,7 +136,7 @@ export function useSessionState(): SessionState {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (bubbleIntervalRef.current) clearInterval(bubbleIntervalRef.current);
     };
-  }, [isRunning]);
+  }, [isSessionActive]);
 
   // Clean up expired speech bubbles
   useEffect(() => {
@@ -158,7 +149,6 @@ export function useSessionState(): SessionState {
 
   const startSession = useCallback(() => {
     setIsSessionActive(true);
-    setIsPaused(false);
     setOrbState('active');
     setMetrics({ wpm: 120, fillerWords: 0, conciseness: 6, clarity: 7 });
     setChecklist(MOCK_CHECKLIST);
@@ -166,23 +156,10 @@ export function useSessionState(): SessionState {
     setSpeechBubbles([]);
   }, []);
 
-  const pauseSession = useCallback(() => {
-    setIsPaused(true);
-    setOrbState('idle');
-  }, []);
-
-  const resumeSession = useCallback(() => {
-    setIsPaused(false);
-    setOrbState('active');
-  }, []);
-
   const stopSession = useCallback(() => {
     setIsSessionActive(false);
-    setIsPaused(false);
     setOrbState('idle');
-    // Navigate to results page
-    router.push('/results/run_abc123');
-  }, [router]);
+  }, []);
 
   return {
     orbState,
@@ -192,10 +169,7 @@ export function useSessionState(): SessionState {
     insights,
     speechBubbles,
     isSessionActive,
-    isPaused,
     startSession,
-    pauseSession,
-    resumeSession,
     stopSession,
   };
 }

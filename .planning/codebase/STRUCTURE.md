@@ -6,229 +6,372 @@
 
 ```
 pitchr/
-├── app/                          # Next.js App Router
-│   ├── (app)/                    # Authenticated/main app routes
-│   │   ├── analytics/            # Analytics dashboard
-│   │   ├── dashboard/            # Main dashboard landing
-│   │   ├── deck/                 # Deck manager
-│   │   ├── demo/                 # Demo page (placeholder)
-│   │   ├── history/              # Session history
-│   │   ├── results/[sessionId]/  # Session results detail
-│   │   ├── session/              # Live session recording
-│   │   ├── settings/             # Settings page (placeholder)
-│   │   └── setup/                # Initial setup (placeholder)
-│   ├── (marketing)/              # Public/marketing routes
-│   ├── api/                      # API routes (not yet implemented)
-│   ├── layout.tsx                # Root layout with ThemeProvider
-│   ├── page.tsx                  # Home page
-│   └── globals.css               # Global styles, animations, CSS variables
-│
-├── views/                        # UI components and layouts
+├── app/
+│   ├── (app)/                    # Authenticated app routes (grouped with SidebarProvider)
+│   │   ├── layout.tsx            # App layout with sidebar provider
+│   │   ├── dashboard/
+│   │   │   └── page.tsx          # Home page, lists runs + stats
+│   │   ├── session/
+│   │   │   └── page.tsx          # Main pitch recording/analysis page
+│   │   ├── session/[id]/         # Dynamic session detail (if needed)
+│   │   ├── results/[runId]/
+│   │   │   └── page.tsx          # Score display, fixes, rewrite, metrics
+│   │   ├── history/
+│   │   │   └── page.tsx          # List all past runs with filters
+│   │   ├── deck/
+│   │   │   └── page.tsx          # Presentation slide upload + viewer
+│   │   ├── analytics/
+│   │   │   └── page.tsx          # Trends, stats over time
+│   │   ├── settings/
+│   │   │   └── page.tsx          # User preferences (theme, pitch mode default)
+│   │   ├── demo/
+│   │   │   └── page.tsx          # Demo with sample result
+│   │   └── setup/
+│   │       └── page.tsx          # Initial onboarding (TBD)
+│   ├── (marketing)/              # Marketing routes (no sidebar)
+│   │   └── (landing pages)
+│   ├── api/
+│   │   ├── pitch/
+│   │   │   └── run/
+│   │   │       └── route.ts      # POST /api/pitch/run — main analysis endpoint
+│   │   ├── deck/
+│   │   │   ├── route.ts          # Deck CRUD
+│   │   │   ├── upload/
+│   │   │   │   └── route.ts      # PDF upload endpoint
+│   │   │   └── [deckId]/
+│   │   │       └── route.ts      # Specific deck endpoint
+│   │   ├── sessions/
+│   │   │   ├── route.ts          # Session management
+│   │   │   └── [id]/
+│   │   │       └── route.ts      # Specific session endpoint
+│   │   ├── feedback/
+│   │   │   └── route.ts          # Feedback collection endpoint
+│   │   ├── qna/
+│   │   │   └── route.ts          # Q&A feature endpoint
+│   │   └── ws/
+│   │       ├── audio/
+│   │       │   └── route.ts      # WebSocket for live audio streaming
+│   │       └── video/
+│   │           └── route.ts      # WebSocket for live video streaming
+│   ├── layout.tsx                # Root layout, metadata, ThemeProvider
+│   └── page.tsx                  # Root redirect to /dashboard
+├── views/
 │   ├── components/               # Reusable UI components
 │   │   ├── AppSidebar.tsx        # Main navigation sidebar
-│   │   ├── MetricsPanel.tsx      # Live metrics display
-│   │   ├── SessionCanvas.tsx     # Main recording canvas with slides/camera
-│   │   ├── StartSessionButton.tsx # Session control button with ripples
-│   │   ├── ThemeProvider.tsx     # Global theme context
-│   │   ├── SiriBubble/           # 3D AI coach orb (React Three Fiber)
-│   │   │   ├── SiriBubble.tsx
-│   │   │   ├── Orb.tsx
-│   │   │   ├── types.ts
-│   │   │   ├── constants.ts
-│   │   │   ├── useSiriBubble.ts
-│   │   │   ├── index.ts
+│   │   ├── SidebarContext.tsx    # Sidebar state provider
+│   │   ├── ThemeProvider.tsx     # Dark/light mode + orb state
+│   │   ├── SessionCanvas.tsx     # Main session UI container
+│   │   ├── MetricsPanel.tsx      # Live metrics display (WPM, clarity, etc.)
+│   │   ├── SiriBubble/           # 3D orb component (Three.js)
+│   │   │   ├── index.ts          # Barrel export
+│   │   │   ├── SiriBubble.tsx    # Main component
+│   │   │   ├── Orb.tsx           # Three.js geometry
+│   │   │   ├── useSiriBubble.ts  # Hook for orb state logic
+│   │   │   ├── types.ts          # OrbState type
+│   │   │   ├── constants.ts      # Color, animation constants
+│   │   │   └── shaders/          # GLSL shader files
+│   │   │       ├── vertex.glsl
+│   │   │       └── fragment.glsl
+│   │   ├── Scorecard/            # Score breakdown display component
+│   │   ├── LiveMeters/           # Real-time metric gauges
+│   │   ├── Timer/                # Session timer component
+│   │   ├── VideoFrame/           # Video stream display
+│   │   ├── SlideViewer/          # Deck slide display
+│   │   ├── EngagementBubble.tsx  # Speech bubble for coach messages
+│   │   ├── StartSessionButton.tsx # Session start button
+│   │   ├── ui/                   # Base UI components
+│   │   │   ├── index.ts          # Barrel export
+│   │   │   ├── GlassCard.tsx     # Glassmorphism card wrapper
+│   │   │   ├── ScoreBadge.tsx    # Score display badge
+│   │   │   ├── CategoryBar.tsx   # Rubric category progress bar
+│   │   │   ├── StatCard.tsx      # Stats display card
+│   │   │   ├── TagPill.tsx       # Tag/chip component
+│   │   │   ├── EmptyState.tsx    # Empty list fallback
+│   │   │   ├── SearchInput.tsx   # Search/filter input
+│   │   │   ├── SectionHeader.tsx # Section title component
+│   │   │   ├── TimeRangeSelector.tsx # Filter by date range
+│   │   │   ├── colors.ts         # Color constants and functions
 │   │   │   └── __tests__/
-│   │   ├── LiveMeters/           # Metric visualizations (placeholder)
-│   │   ├── Scorecard/            # Score display (placeholder)
-│   │   ├── SlideViewer/          # Slide presentation (placeholder)
-│   │   ├── Timer/                # Countdown timer (placeholder)
-│   │   ├── VideoFrame/           # Video player (placeholder)
-│   │   └── ui/                   # Basic UI primitives (placeholder)
-│   ├── layouts/                  # Layout wrapper components (placeholder)
-│   ├── screens/                  # Full-page screen components (placeholder)
-│   │   ├── BattleScreen/
-│   │   ├── DeckScreen/
+│   │   └── __tests__/            # Component tests
+│   ├── layouts/                  # Layout wrappers (if complex)
+│   ├── screens/                  # Screen-level components
+│   │   ├── SessionScreen/
 │   │   ├── ResultsScreen/
-│   │   └── SessionScreen/
-│   ├── pre-components/           # Component templates (placeholder)
-│   └── pre-mock/                 # Mock implementations (placeholder)
-│
-├── hooks/                        # Custom React hooks
+│   │   ├── DeckScreen/
+│   │   ├── BattleScreen/         # Pitch battle/comparison screen
+│   │   └── SetupScreen/
+│   ├── pre-components/           # Deprecated/legacy components (remove)
+│   └── pre-mock/                 # Deprecated/legacy mock data (remove)
+├── hooks/
+│   ├── usePitchRun.ts            # Pitch analysis orchestration hook
+│   ├── useSessionState.ts        # Session state (metrics, checklist, insights)
 │   ├── useMediaStream.ts         # Camera/mic stream management
-│   └── useSessionState.ts        # Session state, metrics, checklist
-│
-├── types/                        # TypeScript type definitions
-│   └── glsl.d.ts                 # GLSL shader module declaration
-│
-├── lib/                          # Utilities and helpers
-│   ├── audio/                    # Audio processing (placeholder)
-│   ├── scoring/                  # Scoring algorithms (placeholder)
-│   └── video/                    # Video processing (placeholder)
-│
-├── models/                       # Data models (placeholder)
-│
-├── controllers/                  # Business logic controllers (placeholder)
+│   ├── useSTT.ts                 # Speech-to-text integration (ElevenLabs)
+│   └── useDeckSlides.ts          # Deck slide parsing and navigation
+├── services/
+│   ├── analysisService.ts        # Core pitch analysis orchestration
+│   ├── scoringService.ts         # Delivery metrics calculation
+│   ├── deckService.ts            # Deck upload and processing
+│   ├── claude/
+│   │   └── (Claude API client wrappers - legacy?)
+│   ├── gemini/
+│   │   └── (Gemini API client wrappers)
+│   ├── elevenlabs/
+│   │   └── (TTS service wrapper)
+│   └── miro/
+│       └── (Miro board generation wrapper)
+├── controllers/
+│   ├── pitchController.ts        # Pitch analysis endpoint orchestration
+│   ├── session/
+│   │   └── (Session management controllers)
 │   ├── deck/
+│   │   └── (Deck CRUD controllers)
 │   ├── feedback/
-│   ├── qna/
-│   └── session/
-│
-├── services/                     # External service integrations (placeholder)
-│   ├── claude/                   # Anthropic Claude API
-│   ├── elevenlabs/               # ElevenLabs TTS
-│   ├── gemini/                   # Google Gemini API
-│   └── miro/                     # Miro integration
-│
-├── store/                        # State management (placeholder)
-│
-├── config/                       # Configuration files
-│   ├── prompts/                  # AI prompt templates (placeholder)
-│   └── rubrics/                  # Evaluation rubrics (placeholder)
-│
-├── .planning/                    # GSD planning documents
-│   ├── codebase/                 # This analysis
-│   ├── phase-1/                  # Phase 1 planning
-│   └── phase-2/                  # Phase 2 planning
-│
-├── next.config.ts               # Next.js configuration (GLSL support)
+│   │   └── (Feedback controllers)
+│   └── qna/
+│       └── (Q&A controllers)
+├── models/
+│   └── run.ts                    # Run data persistence (localStorage CRUD)
+├── lib/
+│   ├── llm/
+│   │   ├── router.ts             # Provider routing based on env var
+│   │   ├── types.ts              # LlmProvider interface, LlmCompletionRequest
+│   │   └── providers/
+│   │       ├── anthropic.ts      # Claude API client
+│   │       └── openrouter.ts     # OpenRouter API client
+│   ├── prompts/
+│   │   ├── system.ts             # System prompt for pitch evaluation
+│   │   ├── rubric.ts             # Rubric scoring prompt builder
+│   │   └── rewrite.ts            # Rewrite script prompt builder
+│   ├── audio/
+│   │   └── (Audio processing utilities)
+│   ├── video/
+│   │   └── (Video processing utilities)
+│   ├── headTracking/
+│   │   └── useHeadTracking.ts    # Head position tracking hook
+│   ├── scoring/
+│   │   └── (Scoring utilities - consider consolidating with scoringService)
+│   └── supabase.ts               # Supabase client initialization (for future DB)
+├── config/
+│   ├── modes.ts                  # Pitch mode definitions (elevator, vc_pitch)
+│   ├── rubric.ts                 # Rubric category weights and definitions
+│   ├── sampleResult.ts           # Fallback demo analysis result
+│   ├── prompts/
+│   │   └── (Prompt configurations)
+│   └── rubrics/
+│       └── (Rubric configuration files)
+├── types/
+│   ├── pitch.ts                  # Run, PitchMode, InputType, API request/response types
+│   ├── analysis.ts               # AnalysisResult, RubricScore, Fix, RubricCategory
+│   └── glsl.d.ts                 # TypeScript declaration for .glsl imports
+├── store/
+│   └── (Client-side state management - if used beyond hooks)
+├── tests/
+│   └── e2e/                      # E2E tests (if using Playwright, Cypress)
+├── migrations/
+│   └── (Database schema migrations - for future Supabase)
+├── supabase/
+│   └── migrations/               # Supabase-specific migrations
+├── public/
+│   └── (Static assets, favicon, etc.)
+├── docs/
+│   ├── architecture/
+│   ├── plans/                    # Planning documents
+│   └── prd/                      # Product requirements
+├── scripts/
+│   └── (Build/utility scripts - check encoding, etc.)
+├── .planning/
+│   ├── codebase/                 # Architecture documentation (STACK.md, etc.)
+│   ├── phase-1/
+│   ├── phase-2/
+│   └── (Other planning docs)
+├── next.config.ts               # GLSL loader config for shaders
 ├── tsconfig.json                # TypeScript configuration
-├── postcss.config.mjs           # PostCSS configuration
-├── vitest.config.ts             # Vitest configuration
-├── vitest.setup.ts              # Test setup file
-├── package.json                 # Dependencies
-└── next-env.d.ts                # Next.js type definitions
+├── tailwind.config.ts           # Tailwind CSS theme config
+├── package.json                 # Dependencies, scripts
+├── .env.example                 # Environment variable template
+└── CLAUDE.md                    # This repo's instructions for Claude Code
 ```
 
 ## Directory Purposes
 
-**app/(app)/ — Authenticated App Pages:**
-- Purpose: Main application routes after login
-- Contains: Page components (.tsx files) organized by feature
-- Key files: `session/page.tsx` (core recording feature), `dashboard/page.tsx` (landing)
+**app/:**
+- Purpose: Next.js App Router route definitions
+- Contains: Pages (.tsx files), API route handlers, layouts, middleware
+- Key files: `layout.tsx` (root), `(app)/layout.tsx` (sidebar provider)
 
-**app/api/ — API Routes:**
-- Purpose: Backend endpoints (not yet implemented)
-- Planned routes: `/api/sessions/*`, `/api/deck/*`, `/api/feedback/*`, `/api/qna/*`, `/api/ws/*`
-- Status: Placeholder structure only
+**app/(app)/:**
+- Purpose: Authenticated app routes grouped by feature
+- Contains: Feature pages (session, results, history, deck, etc.)
+- Key files: `page.tsx` files for each route
 
-**views/components/ — Reusable Components:**
-- Purpose: Feature-specific and generic UI components
-- Key components:
-  - `AppSidebar.tsx`: Navigation, theme toggle, session CTA
-  - `SessionCanvas.tsx`: Main recording interface (slides, camera, controls)
-  - `MetricsPanel.tsx`: Live feedback display (WPM, checklist, insights)
-  - `SiriBubble/`: 3D orb coach visualization
-  - `StartSessionButton.tsx`: Session control with ripple animations
-  - `ThemeProvider.tsx`: Global theme state and context
+**app/api/:**
+- Purpose: API endpoints serving client requests
+- Contains: Route handlers that call controllers and services
+- Key files: `pitch/run/route.ts` (main analysis endpoint)
 
-**hooks/ — Custom Hooks:**
-- Purpose: Encapsulate stateful logic, media access, session management
-- Key hooks:
-  - `useMediaStream.ts`: Browser getUserMedia, stream state, camera/mic toggles
-  - `useSessionState.ts`: Simulated metrics, checklist, insights, coach messages
+**views/components/:**
+- Purpose: Reusable React UI components
+- Contains: Component .tsx files, tests in `__tests__/` subdirs
+- Key files: `SiriBubble/` (3D orb), `ui/` (base components), `SessionCanvas.tsx` (main session UI)
 
-**lib/ — Utility Modules:**
-- Purpose: Reusable algorithms, helper functions (not yet populated)
-- Planned: Audio/video processing, scoring algorithms
+**hooks/:**
+- Purpose: Custom React hooks for state and API orchestration
+- Contains: Hook .ts files using 'use client' and React hooks
+- Key files: `usePitchRun.ts` (analysis), `useSessionState.ts` (metrics), `useSTT.ts` (speech-to-text)
 
-**types/ — Type Definitions:**
-- Purpose: Shared TypeScript types
-- `glsl.d.ts`: Declares `.glsl` module for shader imports
+**services/:**
+- Purpose: Business logic and external service integration
+- Contains: Service .ts files (not client-side, callable from controllers/hooks)
+- Key files: `analysisService.ts` (LLM pipeline), `scoringService.ts` (metrics), `deckService.ts` (PDF processing)
 
-**models/, controllers/, services/ — Backend Structure:**
-- Purpose: Placeholder directories for future backend implementation
-- Status: Mostly empty (.gitkeep files)
-- Planned: Data models, business logic, external API integrations (Claude, ElevenLabs, Gemini, Miro)
+**controllers/:**
+- Purpose: HTTP request orchestration and validation
+- Contains: Controller .ts files that call services
+- Key files: `pitchController.ts` (validates pitch requests)
+
+**models/:**
+- Purpose: Data persistence and validation
+- Contains: Model .ts files with CRUD operations
+- Key files: `run.ts` (localStorage operations for Run objects)
+
+**lib/**:
+- Purpose: Utility libraries and integrations
+- Contains: LLM clients, prompts, helper functions
+- Key files: `llm/router.ts` (provider routing), `prompts/` (system/rubric/rewrite)
+
+**config/:**
+- Purpose: Centralized domain constants
+- Contains: Mode definitions, rubric weights, sample data
+- Key files: `modes.ts` (pitch mode config), `sampleResult.ts` (fallback demo)
+
+**types/:**
+- Purpose: Shared TypeScript type definitions
+- Contains: Type .ts files (no logic, only interfaces/types)
+- Key files: `pitch.ts` (Run, PitchMode), `analysis.ts` (AnalysisResult, Fix)
 
 ## Key File Locations
 
 **Entry Points:**
-- `app/layout.tsx`: Root layout; wraps with ThemeProvider
-- `app/page.tsx`: Home page (/ route)
-- `app/(app)/session/page.tsx`: Session recording page (/session)
-- `app/(app)/dashboard/page.tsx`: Dashboard (/dashboard)
+
+- Root page: `app/page.tsx` (redirects to /dashboard)
+- Root layout: `app/layout.tsx` (metadata, ThemeProvider)
+- App layout: `app/(app)/layout.tsx` (SidebarProvider wrapper)
+- Main session: `app/(app)/session/page.tsx` (recording/analysis)
+- Results display: `app/(app)/results/[runId]/page.tsx`
 
 **Configuration:**
-- `next.config.ts`: GLSL shader loader configuration
-- `tsconfig.json`: TypeScript settings (strict mode, path alias @/*)
-- `globals.css`: Global styles, CSS variables, animation keyframes
-- `package.json`: Dependencies (React, Next.js, Three.js, Tailwind, etc.)
+
+- Environment: `.env.example` (template for ANTHROPIC_API_KEY, etc.)
+- Build: `next.config.ts` (GLSL loader), `tsconfig.json` (strict mode), `tailwind.config.ts`
+- Pitch modes: `config/modes.ts`
+- Rubric: `config/rubric.ts`
 
 **Core Logic:**
-- `hooks/useSessionState.ts`: Session metrics simulation, state management
-- `hooks/useMediaStream.ts`: Media stream initialization, device access
-- `views/components/ThemeProvider.tsx`: Global theme context provider
-- `views/components/SiriBubble/useSiriBubble.ts`: Orb animation logic
+
+- Analysis: `services/analysisService.ts` (LLM pipeline), `services/scoringService.ts` (delivery metrics)
+- LLM routing: `lib/llm/router.ts` (env-based provider selection)
+- Prompts: `lib/prompts/system.ts`, `lib/prompts/rubric.ts`, `lib/prompts/rewrite.ts`
+- Models: `models/run.ts` (localStorage CRUD)
 
 **Testing:**
-- `views/components/SiriBubble/__tests__/`: Test files for SiriBubble component
+
+- Vitest config: Not found in root (check next.config for test setup)
+- Test files: Co-located with source in `__tests__/` subdirs
+- Examples: `views/components/SiriBubble/__tests__/SiriBubble.test.tsx`
 
 ## Naming Conventions
 
 **Files:**
-- Page components: `page.tsx` (Next.js convention)
-- Component files: PascalCase, e.g., `AppSidebar.tsx`, `SessionCanvas.tsx`
-- Hook files: camelCase prefixed with `use`, e.g., `useMediaStream.ts`
-- Type definitions: Either inline or in `glsl.d.ts`
-- Test files: `.test.ts` or `.test.tsx` in `__tests__/` directory
+
+- Components: PascalCase + .tsx (e.g., `ScoreBadge.tsx`, `SessionCanvas.tsx`)
+- Hooks: camelCase with 'use' prefix + .ts (e.g., `usePitchRun.ts`, `useSessionState.ts`)
+- Services: camelCase + 'Service' suffix + .ts (e.g., `analysisService.ts`, `scoringService.ts`)
+- Models: camelCase + .ts (e.g., `run.ts`)
+- Controllers: camelCase + 'Controller' suffix + .ts (e.g., `pitchController.ts`)
+- Types: camelCase + .ts (e.g., `pitch.ts`, `analysis.ts`)
+- API routes: `route.ts` (Next.js convention)
+- Layouts: PascalCase + Layout suffix (e.g., `AppLayout.tsx`)
 
 **Directories:**
-- Feature folders: kebab-case or grouped by feature, e.g., `session/`, `deck/`, `SiriBubble/`
-- Utility folders: lowercase, e.g., `hooks/`, `lib/`, `views/`, `types/`
 
-**Components & Functions:**
-- React components: PascalCase, e.g., `SessionCanvas`, `AppSidebar`, `MetricsPanel`
-- Custom hooks: camelCase with `use` prefix, e.g., `useSessionState`, `useMediaStream`
-- Helper functions: camelCase, e.g., `resolveSize`, `scoreColor`, `getGreeting`
-- Types/Interfaces: PascalCase, e.g., `SessionState`, `MetricValues`, `OrbState`
+- Feature directories: kebab-case (e.g., `session/`, `results/`, `live-meters/`)
+- Internal directories: lowercase (e.g., `components/`, `hooks/`, `services/`, `lib/`)
+- Grouped routes: parentheses convention `(app)/`, `(marketing)` per Next.js App Router
+- Test directories: `__tests__/` co-located with source
+
+**Code Conventions (from CLAUDE.md):**
+
+- Variables: camelCase
+- Constants: UPPER_SNAKE_CASE (e.g., `COACH_MESSAGES`, `MOCK_CHECKLIST`)
+- State booleans: `is` prefix (e.g., `isRecording`, `isCameraOn`)
+- Refs: camelCase + `Ref` suffix (e.g., `videoRef`, `intervalRef`)
+- Event handlers: `on` prefix (e.g., `onStartSession`, `onStopSession`)
+- Types/Interfaces: PascalCase (e.g., `AnalysisResult`, `RubricScore`)
 
 ## Where to Add New Code
 
-**New Feature (e.g., new page):**
-- Route page: `app/(app)/[feature-name]/page.tsx`
-- Feature components: `views/components/[FeatureName]/`
-- Feature hook: `hooks/use[FeatureName].ts`
-- Tests: `views/components/[FeatureName]/__tests__/`
+**New Feature (e.g., new pitch analysis mode):**
+
+1. **Type definitions:** Add to `types/pitch.ts` or `types/analysis.ts`
+2. **Configuration:** Add mode config to `config/modes.ts`
+3. **Service logic:** Extend `services/analysisService.ts` or create new service file
+4. **API endpoint:** Create `app/api/[feature]/route.ts`
+5. **Controller:** Create `controllers/[feature]Controller.ts`
+6. **Hook (if client state):** Create `hooks/use[Feature].ts`
+7. **Page:** Create `app/(app)/[feature]/page.tsx`
+8. **Tests:** Add `__tests__/` subdirectory in each module
 
 **New Component:**
-- Implementation: `views/components/[ComponentName].tsx` (simple) or `views/components/[ComponentName]/index.ts` (compound)
-- Test: `views/components/[ComponentName]/__tests__/[ComponentName].test.tsx`
 
-**Utilities & Helpers:**
-- Shared utilities: `lib/[category]/[utility].ts`
-- Custom hooks: `hooks/use[Name].ts`
-- Types: Either inline in component/hook or `types/[domain].d.ts`
+- Reusable: Place in `views/components/[ComponentName]/`
+- Single file (<300 lines): `views/components/[ComponentName].tsx`
+- Compound component: `views/components/[ComponentName]/index.ts` (barrel export) + sub-components
+- UI primitive: Place in `views/components/ui/[ComponentName].tsx`
+- Screen-specific: Place in `views/screens/[ScreenName]/[ComponentName].tsx`
+- Co-locate tests: `views/components/[ComponentName]/__tests__/[name].test.tsx`
 
-**Business Logic:**
-- Hook-based: `hooks/use[Domain].ts` (preferred for client-side)
-- Controller-based: `controllers/[domain]/[controller].ts` (future backend)
-- Service-based: `services/[service-name]/[module].ts` (API integrations)
+**New Service:**
 
-**Configuration:**
-- Environment-specific: See `.env` (not to be committed; use `next.config.ts` for public config)
-- Feature flags: Add to `next.config.ts` or `tsconfig.json` paths as needed
+- Location: `services/[name]Service.ts` or `services/[name]/index.ts`
+- Pattern: Named exports only
+- Signature: Pure functions taking typed input, returning Promise<TypedOutput> for async
+- Usage: Import via `@/services/[name]` from controllers and hooks
+
+**New Hook:**
+
+- Location: `hooks/use[Name].ts`
+- Pattern: 'use' prefix, export named function
+- Pattern: 'use client' directive if it uses React hooks
+- Usage: Import via `@/hooks/use[Name]` from components and pages
+
+**New Utility/Helper:**
+
+- Location: `lib/[domain]/[utility].ts`
+- Pattern: Named exports only
+- Usage: Import via `@/lib/[domain]/[utility]`
 
 ## Special Directories
 
-**views/components/SiriBubble/ — Special Component:**
-- Purpose: 3D AI coach visualization using React Three Fiber
-- Generated: Canvas element and Three.js meshes are generated at runtime
-- Committed: Yes (source .tsx files)
-- Includes: Suspense boundary, CSS fallback, type definitions, tests
+**views/pre-components/ and views/pre-mock/:**
+- Purpose: Deprecated/legacy code (marked for removal)
+- Generated: No
+- Committed: Yes (but should be cleaned up)
 
-**.planning/ — Planning Documents:**
-- Purpose: GSD analysis and phase planning documents
-- Generated: Yes (written by GSD mappers and planners)
-- Committed: Yes (git-tracked for history)
+**migrations/ and supabase/migrations/:**
+- Purpose: Database schema migrations (for future Supabase integration)
+- Generated: No
+- Committed: Yes
 
-**app/api/, lib/, models/, controllers/, services/ — Placeholder Directories:**
-- Purpose: Structure for future backend implementation
-- Committed: .gitkeep files hold empty directories
-- Status: Not yet implemented; awaiting backend phases
+**docs/ and .planning/:**
+- Purpose: Documentation and planning
+- Generated: No (human-written)
+- Committed: Yes
 
-**app/(marketing)/ — Marketing Routes:**
-- Purpose: Public-facing pages (landing, pricing, etc.)
-- Status: Placeholder; currently minimal content
+**node_modules/, .next/, .yarn/:**
+- Purpose: Build artifacts and dependencies
+- Generated: Yes
+- Committed: No (in .gitignore)
 
 ---
 

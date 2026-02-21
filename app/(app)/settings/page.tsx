@@ -17,7 +17,7 @@ import {
   Minus,
 } from 'lucide-react';
 
-/* ─── Types ─── */
+/* ——— Types ——— */
 type FeedbackIntensity = 'gentle' | 'balanced' | 'aggressive';
 type ThemeChoice = 'system' | 'light' | 'dark';
 
@@ -35,7 +35,7 @@ const FOCUS_AREAS: FocusArea[] = [
   { id: 'structure', label: 'Structure' },
 ];
 
-/* ─── Reusable: Toggle Switch ─── */
+/* ——— Reusable: Toggle Switch ——— */
 function ToggleSwitch({
   enabled,
   onToggle,
@@ -66,7 +66,7 @@ function ToggleSwitch({
   );
 }
 
-/* ─── Reusable: Section Card ─── */
+/* ——— Reusable: Section Card ——— */
 function SectionCard({
   icon: Icon,
   title,
@@ -109,7 +109,7 @@ function SectionCard({
   );
 }
 
-/* ─── Reusable: Setting Row ─── */
+/* ——— Reusable: Setting Row ——— */
 function SettingRow({
   label,
   description,
@@ -142,7 +142,7 @@ function SettingRow({
   );
 }
 
-/* ─── Page ─── */
+/* ——— Page ——— */
 export default function SettingsPage() {
   // AI Feedback
   const [feedbackIntensity, setFeedbackIntensity] =
@@ -214,7 +214,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="flex flex-col gap-5">
-            {/* ─── Profile ─── */}
+            {/* ——— Profile ——— */}
             <SectionCard icon={User} title="Profile" delay={60}>
               <div className="flex items-center gap-4">
                 {/* Avatar */}
@@ -259,7 +259,7 @@ export default function SettingsPage() {
               </div>
             </SectionCard>
 
-            {/* ─── AI Feedback Preferences ─── */}
+            {/* ——— AI Feedback Preferences ——— */}
             <SectionCard icon={Brain} title="AI Feedback Preferences" delay={120}>
               {/* Feedback Intensity */}
               <SettingRow
@@ -371,7 +371,7 @@ export default function SettingsPage() {
               </div>
             </SectionCard>
 
-            {/* ─── Session Defaults ─── */}
+            {/* ——— Session Defaults ——— */}
             <SectionCard icon={Sliders} title="Session Defaults" delay={180}>
               {/* Default Camera */}
               <SettingRow label="Default Camera">
@@ -469,7 +469,7 @@ export default function SettingsPage() {
               </SettingRow>
             </SectionCard>
 
-            {/* ─── Appearance ─── */}
+            {/* ——— Appearance ——— */}
             <SectionCard icon={Palette} title="Appearance" delay={240}>
               {/* Theme */}
               <SettingRow label="Theme" description="Choose your preferred color mode">
@@ -517,7 +517,7 @@ export default function SettingsPage() {
               </SettingRow>
             </SectionCard>
 
-            {/* ─── Danger Zone ─── */}
+            {/* ——— Danger Zone ——— */}
             <div
               className="rounded-2xl border p-6 animate-fade-in-up"
               style={{

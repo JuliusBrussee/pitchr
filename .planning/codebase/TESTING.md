@@ -6,42 +6,68 @@
 
 **Runner:**
 - Vitest 3.2.4
-- Config: `vitest.config.ts`
+- Config: `vitest.config.ts` at root
+- Environment: jsdom (for DOM simulation in Node.js)
+
+**Setup:**
+```typescript
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
+    globals: true,
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, '.'),
+    },
+  },
+  assetsInclude: ['**/*.glsl'],
+});
+```
+
+**Setup Files:**
+- `vitest.setup.ts` imports `@testing-library/jest-dom/vitest` for extended matchers
 
 **Assertion Library:**
-- Vitest's built-in `expect()` (based on Chai)
-
-**Testing Library:**
-- `@testing-library/react` 16.3.2 (for component testing)
-- `@testing-library/jest-dom` 6.9.1 (for DOM matchers)
+- Vitest built-in expect() API (compatible with Jest syntax)
+- Extended with Testing Library matchers from `@testing-library/jest-dom`
 
 **Run Commands:**
 ```bash
-npm test                # Run all tests once
-npm run test:watch     # Watch mode for development
+npm test                    # Run all tests once
+npm run test:watch        # Watch mode for development
+# (vitest --watch is the underlying command)
 ```
 
 ## Test File Organization
 
 **Location:**
-- Co-located in `__tests__` subdirectory relative to source file
-- Example: `views/components/SiriBubble/SiriBubble.tsx` has tests in `views/components/SiriBubble/__tests__/SiriBubble.test.tsx`
+- Co-located with source code in `__tests__/` subdirectory
+- Not separate `tests/` directory for unit tests
+- Example: `views/components/SiriBubble/__tests__/SiriBubble.test.tsx`
 
 **Naming:**
-- Pattern: `[name].test.ts` or `[name].test.tsx`
-- Examples:
-  - `useSiriBubble.test.ts` (hook test)
-  - `SiriBubble.test.tsx` (component test)
-  - `constants.test.ts` (constant validation)
+- Format: `[name].test.ts` for unit tests (TypeScript)
+- Format: `[name].test.tsx` for component tests (JSX/TSX)
+- E2E tests stored in root `tests/e2e/` directory with `.spec.ts` extension
 
-**Structure:**
+**File Structure by Type:**
+
+Unit test directory:
 ```
 views/components/SiriBubble/
 ├── SiriBubble.tsx
 ├── Orb.tsx
-├── useSiriBubble.ts
 ├── types.ts
 ├── constants.ts
+├── useSiriBubble.ts
 ├── index.ts
 └── __tests__/
     ├── SiriBubble.test.tsx
@@ -49,17 +75,11 @@ views/components/SiriBubble/
     └── constants.test.ts
 ```
 
-## Test Setup
-
-**Configuration:**
-- `vitest.config.ts` defines test environment as `jsdom`
-- Setup file: `vitest.setup.ts` imports testing utilities
-- Globals enabled: `globals: true` allows `describe`, `it`, `expect` without imports
-
-**Setup File Contents:**
-```typescript
-// vitest.setup.ts
-import '@testing-library/jest-dom/vitest';
+E2E tests:
+```
+tests/e2e/
+├── smoke.spec.ts
+└── head-tracking.spec.ts
 ```
 
 ## Test Structure
@@ -67,142 +87,324 @@ import '@testing-library/jest-dom/vitest';
 **Suite Organization:**
 ```typescript
 import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { SiriBubble } from '../SiriBubble';
 
-describe('ComponentName', () => {
-  it('returns expected value', () => {
-    const result = operation();
-    expect(result).toBe(expected);
+describe('SiriBubble component', () => {
+  it('renders without crashing', () => {
+    const { container } = render(<SiriBubble state="idle" />);
+    expect(container.firstChild).toBeTruthy();
   });
 
-  it('handles edge case', () => {
-    expect(() => operation()).not.toThrow();
+  it('renders the R3F Canvas', () => {
+    render(<SiriBubble state="idle" />);
+    expect(screen.getByTestId('r3f-canvas')).toBeTruthy();
   });
 });
 ```
 
-**Patterns:**
+**Test Naming:**
+- Describe blocks: Noun phrase describing the unit. Example: `'SiriBubble component'`, `'COLOR_MAP'`
+- Test cases: Start with `it('...')`, describe expected behavior in plain English
+- Example good names:
+  - `it('renders without crashing')`
+  - `it('resolves preset string sizes to pixels')`
+  - `it('idle is the slowest state')`
+  - `it('returns idle state and default intensity by default')`
 
-1. **Setup Pattern:**
-   - Hooks tested with `renderHook()` from testing library
-   - Components tested with `render()` from testing library
-   - No before/after setup detected; tests are isolated
-
-2. **Assertion Pattern:**
-   - Use Chai-style assertions: `.toBe()`, `.toEqual()`, `.toBeDefined()`, `.toMatch()`
-   - Check element existence: `.getTruthy()`, `.getByTestId()`
-   - Use `data-testid` attributes for specific element selection
-
-3. **Hook Testing:**
-   ```typescript
-   const { result } = renderHook(() => useSiriBubble());
-   expect(result.current.props.state).toBe('idle');
-   ```
-
-4. **Component Testing:**
-   ```typescript
-   const { container } = render(<SiriBubble state="idle" />);
-   expect(container.firstChild).toBeTruthy();
-   expect(screen.getByTestId('r3f-canvas')).toBeTruthy();
-   ```
-
-5. **Async Testing:**
-   Use `act()` wrapper for state updates:
-   ```typescript
-   act(() => result.current.setState('negative'));
-   expect(result.current.props.state).toBe('negative');
-   ```
+**Setup/Teardown:**
+- Use `beforeEach()` for per-test setup
+- Use `afterEach()` for per-test cleanup
+- Use global `beforeAll()` / `afterAll()` for expensive setup (mocking, DB init)
+- Example: `vi.resetAllMocks()` in `beforeEach()` if mocks persist
 
 ## Mocking
 
-**Framework:** Vitest's built-in `vi` module for mocking
+**Framework:**
+- Vitest built-in `vi` object (compatible with Jest `jest` object)
+- `vi.mock()` for module mocking
+- `vi.spyOn()` for function spying
 
-**Patterns:**
-
-1. **Module Mocking:**
-   ```typescript
-   vi.mock('@react-three/fiber', () => ({
-     Canvas: ({ children }: { children: React.ReactNode }) => (
-       <div data-testid="r3f-canvas">{children}</div>
-     ),
-     useFrame: vi.fn(),
-   }));
-   ```
-
-2. **Component Mocking:**
-   ```typescript
-   vi.mock('../Orb', () => ({
-     Orb: () => <div data-testid="orb-mesh" />,
-   }));
-   ```
-
-**What to Mock:**
-- External libraries requiring browser APIs (WebGL, Canvas) that jsdom doesn't support
-- Complex components that are tested separately
-- Heavy dependencies (e.g., `@react-three/fiber`)
-
-**What NOT to Mock:**
-- Pure utility functions
-- Type definitions
-- Application components being tested (render real behavior)
-
-## Fixtures and Factories
-
-**Test Data:**
-- Mock data defined as constants at module level:
+**WebGL/Canvas Mocking:**
+- React Three Fiber requires WebGL — not available in jsdom
+- Mock with simple div fallback:
   ```typescript
-  const ALL_STATES: OrbState[] = ['idle', 'active', 'positive', 'negative', 'neutral'];
-  const MOCK_CHECKLIST: ChecklistItem[] = [
-    { id: '1', label: 'Introduction & hook', status: 'completed' },
-    // ...
-  ];
+  vi.mock('@react-three/fiber', () => ({
+    Canvas: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="r3f-canvas">{children}</div>
+    ),
+    useFrame: vi.fn(),
+  }));
+  ```
+- Mock dependent components:
+  ```typescript
+  vi.mock('../Orb', () => ({
+    Orb: () => <div data-testid="orb-mesh" />,
+  }));
   ```
 
+**Function Mocking:**
+- Use `vi.fn()` to create mock functions
+- Track calls: `expect(mockFn).toHaveBeenCalledWith(...)`
+- Reset: `vi.clearAllMocks()` or `vi.resetAllMocks()`
+
+**Module Mocking:**
+- `vi.mock(modulePath)` auto-hoists, runs before imports
+- Must use `vi.mock()` before importing module to mock
+- Default export mocks require `default:` key
+
+**What to Mock:**
+- External APIs (fetch, HTTP clients)
+- Heavy dependencies (Canvas, WebGL)
+- Non-deterministic functions (Date, random)
+- Browser APIs with side effects
+
+**What NOT to Mock:**
+- Utility functions (unless they're expensive)
+- Small helper functions (easier to test real)
+- Pure functions with no side effects
+- Logic you're testing (defeats the purpose)
+
+## Component Testing
+
+**Imports:**
+```typescript
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+```
+
+**Rendering:**
+```typescript
+// Basic render
+const { container } = render(<MyComponent prop="value" />);
+
+// Query elements
+const element = screen.getByTestId('my-element');
+const text = screen.getByText(/pattern/);
+const button = screen.getByRole('button', { name: /click/i });
+```
+
+**Assertions:**
+```typescript
+expect(element).toBeTruthy();
+expect(element).toHaveClass('my-class');
+expect(element.style.width).toBe('100px');
+expect(element).toHaveAttribute('data-testid', 'my-element');
+```
+
+**User Interactions:**
+```typescript
+await userEvent.click(button);
+await userEvent.type(input, 'text');
+```
+
+**Test IDs:**
+- Use `data-testid` for testing selectors when role/text insufficient
+- Example from SiriBubble.test.tsx: `<div data-testid="r3f-canvas">`
+- Good practice: selectors describe what they are, not what they do
+
+## Hook Testing
+
+**Imports:**
+```typescript
+import { renderHook, act } from '@testing-library/react';
+```
+
+**Pattern:**
+```typescript
+import { renderHook, act } from '@testing-library/react';
+import { useSiriBubble } from '../useSiriBubble';
+
+describe('useSiriBubble', () => {
+  it('returns idle state and default intensity by default', () => {
+    const { result } = renderHook(() => useSiriBubble());
+    expect(result.current.props.state).toBe('idle');
+    expect(result.current.props.intensity).toBe(0.5);
+  });
+
+  it('setState updates the orb state', () => {
+    const { result } = renderHook(() => useSiriBubble());
+
+    act(() => result.current.setState('negative'));
+    expect(result.current.props.state).toBe('negative');
+  });
+});
+```
+
+**Key Rules:**
+- Wrap state updates in `act()` to flush effects
+- Access hook state via `result.current`
+- Test return value shape, not implementation
+- Simulate user interactions with `act()`
+
+## Async Testing
+
+**Promise Handling:**
+```typescript
+it('loads data asynchronously', async () => {
+  const { result } = renderHook(() => useData());
+
+  // Wait for async operation
+  await expect(result.current).resolves.toBe(data);
+});
+```
+
+**act() with async:**
+```typescript
+await act(async () => {
+  // Async state updates
+  await userEvent.type(input, 'text');
+});
+```
+
+**Timeout Handling:**
+```typescript
+it('times out after 5 seconds', async () => {
+  const promise = slowOperation();
+  await expect(promise).rejects.toThrow('Timeout');
+}, { timeout: 10000 }); // Extend test timeout
+```
+
+## Fixtures and Test Data
+
 **Location:**
-- Defined inline in test file or in constants file (`constants.ts` that is imported and tested)
-- No separate fixtures directory
+- Define in test file if used by single test
+- Create `__fixtures__/` subdirectory in test folder for shared data
+- Example location: `views/components/SiriBubble/__tests__/__fixtures__/mockOrb.ts`
+
+**Patterns:**
+```typescript
+// Constant test data
+const ALL_STATES: OrbState[] = ['idle', 'active', 'positive', 'negative', 'neutral'];
+
+// Factory function for creating test objects
+function createMockRun(overrides?: Partial<Run>): Run {
+  return {
+    id: 'test-id',
+    createdAt: new Date().toISOString(),
+    mode: 'vc_pitch',
+    ...overrides,
+  };
+}
+
+// Reusable mock responses
+const MOCK_RESPONSE = {
+  analysis: { overall_score: 75, ... },
+  fallback: false,
+};
+```
+
+**Example from constants.test.ts:**
+```typescript
+const ALL_STATES: OrbState[] = ['idle', 'active', 'positive', 'negative', 'neutral'];
+
+describe('COLOR_MAP', () => {
+  it('has entries for all orb states', () => {
+    ALL_STATES.forEach((state) => {
+      expect(COLOR_MAP[state]).toBeDefined();
+    });
+  });
+});
+```
+
+## Error Testing
+
+**Testing for Thrown Errors:**
+```typescript
+it('throws on invalid input', () => {
+  expect(() => parseInvalidJson('{bad')).toThrow('Invalid JSON');
+});
+
+it('throws specific error type', () => {
+  expect(() => unsafeOp()).toThrow(ValidationError);
+});
+```
+
+**Testing Error Recovery:**
+```typescript
+it('falls back gracefully on API error', async () => {
+  vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error'));
+
+  const result = await analyzer.run(data);
+  expect(result.fallback).toBe(true);
+});
+```
 
 ## Coverage
 
-**Requirements:** Not enforced (no coverage config in vitest.config.ts)
+**Requirements:**
+- Not enforced in config (no `coverage.statements` etc.)
+- Manual monitoring only via CLI command
 
-**Current Status:**
-- Only 3 test suites currently (SiriBubble component, useSiriBubble hook, constants)
-- Large portions of codebase untested (SessionCanvas, MetricsPanel, useMediaStream, useSessionState, page components)
+**View Coverage:**
+```bash
+vitest --coverage
+# Generates coverage report (if @vitest/coverage configured)
+```
+
+**Current Coverage Strategy:**
+- Test critical paths: API handlers, type guards, business logic
+- Test edge cases: null/empty inputs, boundary values
+- Less critical: CSS styling, layout, visual states (covered by E2E if needed)
 
 ## Test Types
 
 **Unit Tests:**
-- **Constants validation:** Test data structure and values (e.g., `constants.test.ts`)
-  - Validates all states have entries in maps
-  - Checks color format with regex: `/^#[0-9A-Fa-f]{6}$/`
-  - Verifies numeric constraints (speeds > 0, sizes ascending)
-
-- **Hook tests:** Test state management in isolation
-  - Example: `useSiriBubble.test.ts` tests state updates, intensity clamping, props memoization
-  - Use `renderHook()` and `act()` for state changes
-  - Check return value shape matches interface
-
-- **Function tests:** Test pure functions
-  - Example: `resolveSize()` function tested with different size presets
-  - Test edge cases: undefined values, custom numbers, fluid mode
+- Scope: Single function, hook, or component
+- Location: `__tests__/` next to source
+- Example: `useSiriBubble.test.ts` tests hook behavior in isolation
+- Approach: Mock dependencies, test inputs/outputs
 
 **Integration Tests:**
-- **Component rendering:** Test components render without crashing
-  - Mocks dependencies (Canvas, heavy components)
-  - Verifies correct child elements render
-  - Checks props are applied correctly
-  - Example: `SiriBubble.test.tsx` tests Canvas renders, Orb renders, className applied
-
-- **Interaction tests:** Test click handlers and state changes
-  - Not currently implemented in existing tests
-  - Pattern would use `userEvent` or `fireEvent` from testing library
+- Scope: Multiple components or modules interacting
+- Not heavily used in codebase yet
+- Example: Testing full pitch analysis flow (hook → API → service → storage)
+- Approach: Use real implementations where possible, mock only external APIs
 
 **E2E Tests:**
-- Not used in this codebase
+- Framework: Playwright (config: `playwright.config.ts`)
+- Location: `tests/e2e/` directory
+- Example: `smoke.spec.ts`, `head-tracking.spec.ts`
+- Scope: Full user workflows in browser (no mocking)
 
-## Common Testing Patterns
+**Current E2E Tests:**
+- `tests/e2e/smoke.spec.ts` — Basic app initialization
+- `tests/e2e/head-tracking.spec.ts` — Head tracking integration (if camera present)
 
-**Testing Numeric Constraints:**
+## Common Patterns
+
+**Testing Component Props:**
+```typescript
+it('applies className prop', () => {
+  const { container } = render(<SiriBubble state="idle" className="my-custom-class" />);
+  expect(container.firstChild).toHaveClass('my-custom-class');
+});
+
+it('applies correct size dimensions', () => {
+  const { container } = render(<SiriBubble state="idle" size="lg" />);
+  const wrapper = container.firstChild as HTMLElement;
+  expect(wrapper.style.width).toBe('256px');
+});
+```
+
+**Testing Object Assertions:**
+```typescript
+it('returns object with expected shape', () => {
+  const result = resolveSize('md', false);
+  expect(result).toEqual({ width: '128px', height: '128px' });
+});
+```
+
+**Testing Array Membership:**
+```typescript
+it('sizes are in ascending order', () => {
+  expect(SIZE_MAP.sm).toBeLessThan(SIZE_MAP.md);
+  expect(SIZE_MAP.md).toBeLessThan(SIZE_MAP.lg);
+  expect(SIZE_MAP.lg).toBeLessThan(SIZE_MAP.xl);
+});
+```
+
+**Testing Numeric Bounds:**
 ```typescript
 it('intensity is between 0 and 1', () => {
   expect(DEFAULTS.intensity).toBeGreaterThanOrEqual(0);
@@ -210,55 +412,51 @@ it('intensity is between 0 and 1', () => {
 });
 ```
 
-**Testing Collections:**
+**Testing Type Guards:**
 ```typescript
-it('has entries for all orb states', () => {
-  ALL_STATES.forEach((state) => {
-    expect(COLOR_MAP[state]).toBeDefined();
-  });
-});
+// From analysisService.ts
+function isRubricScore(value: unknown): value is RubricScore {
+  if (!value || typeof value !== 'object') return false;
+  const item = value as Record<string, unknown>;
+  return (
+    isRubricCategory(item.category) &&
+    typeof item.score === 'number' &&
+    typeof item.max_score === 'number' &&
+    typeof item.rationale === 'string'
+  );
+}
 
-// Test distinctness
-it('has distinct colors per state', () => {
-  const primaries = ALL_STATES.map((s) => COLOR_MAP[s].primary);
-  expect(new Set(primaries).size).toBe(ALL_STATES.length);
+// In test:
+it('validates rubric scores', () => {
+  expect(isRubricScore({ category: 'structure', score: 15, max_score: 20, rationale: 'good' })).toBe(true);
+  expect(isRubricScore({ category: 'invalid' })).toBe(false);
+  expect(isRubricScore(null)).toBe(false);
 });
 ```
 
-**Testing Async State Updates:**
-```typescript
-it('setState updates the orb state', () => {
-  const { result } = renderHook(() => useSiriBubble());
+## Debugging
 
-  act(() => result.current.setState('negative'));
-  expect(result.current.props.state).toBe('negative');
-});
+**Running Single Test:**
+```bash
+npx vitest runs/path/to/test.test.ts
+npx vitest -t "test name pattern"
 ```
 
-**Testing Size Resolution:**
-```typescript
-it('resolves preset string sizes to pixels', () => {
-  expect(resolveSize('sm', false)).toEqual({ width: '64px', height: '64px' });
-  expect(resolveSize('md', false)).toEqual({ width: '128px', height: '128px' });
-});
+**Watch Mode:**
+```bash
+npm run test:watch
+# Press 'p' to filter by filename
+# Press 't' to filter by test name
 ```
 
-**Testing With Regex Validation:**
-```typescript
-it('color values are valid hex', () => {
-  ALL_STATES.forEach((state) => {
-    expect(COLOR_MAP[state].primary).toMatch(/^#[0-9A-Fa-f]{6}$/);
-    expect(COLOR_MAP[state].secondary).toMatch(/^#[0-9A-Fa-f]{6}$/);
-  });
-});
-```
+**Console Output:**
+- Use `console.log()` in test — output appears in test output
+- View with `npm run test:watch` and pause at breakpoint
 
-## Known Issues
-
-- Tests fail with missing `@testing-library/dom` dependency
-- Only 3 test suites exist; most UI components and hooks untested
-- No integration tests covering real user workflows
-- No E2E tests
+**Debugging in IDE:**
+- Add breakpoint in VS Code
+- Run: `node --inspect-brk ./node_modules/vitest/vitest.mjs run [test file]`
+- Open `chrome://inspect` in Chrome DevTools
 
 ---
 

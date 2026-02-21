@@ -25,7 +25,7 @@ import {
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui';
 
-/* ─── Types ─── */
+/* ——— Types ——— */
 
 interface MockRun {
   id: string;
@@ -40,7 +40,7 @@ interface MockRun {
   dateGroup: 'today' | 'yesterday' | 'thisWeek' | 'earlier';
 }
 
-/* ─── Mock data ─── */
+/* ——— Mock data ——— */
 
 const MOCK_RUNS: MockRun[] = [
   { id: '1', number: 28, mode: 'vc_pitch', inputType: 'audio', overallScore: 84, one_line_verdict: 'Strong structure but needs concrete traction numbers', createdAt: '2026-02-21T14:30:00Z', duration_seconds: 522, deck: 'Series A Deck v3', dateGroup: 'today' },
@@ -53,7 +53,7 @@ const MOCK_RUNS: MockRun[] = [
   { id: '8', number: 21, mode: 'elevator', inputType: 'audio', overallScore: 61, one_line_verdict: 'Too many buzzwords — simplify the value prop', createdAt: '2026-02-15T14:00:00Z', duration_seconds: 35, deck: 'Elevator 60-sec', dateGroup: 'thisWeek' },
 ];
 
-/* ─── Constants ─── */
+/* ——— Constants ——— */
 
 const DATE_GROUP_LABELS: Record<string, string> = {
   today: 'Today',
@@ -67,7 +67,7 @@ const DATE_GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'earlier'];
 type ViewMode = 'list' | 'grid';
 type ModeFilter = 'all' | 'elevator' | 'vc_pitch';
 
-/* ─── Helpers ─── */
+/* ——— Helpers ——— */
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -79,7 +79,7 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-/* ─── Component ─── */
+/* ——— Component ——— */
 
 export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -134,7 +134,7 @@ export default function HistoryPage() {
 
   return (
     <main className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
-      {/* ─── Header Card ─── */}
+      {/* ——— Header Card ——— */}
       <GlassCard className="flex-shrink-0 flex flex-col gap-4">
         {/* Title row */}
         <div className="flex items-center justify-between">
@@ -229,7 +229,7 @@ export default function HistoryPage() {
         </div>
       </GlassCard>
 
-      {/* ─── Session List / Grid ─── */}
+      {/* ——— Session List / Grid ——— */}
       <GlassCard className="flex-1 overflow-y-auto" animate={false}>
         {Object.keys(groupedVisible).length === 0 ? (
           <EmptyState
@@ -241,7 +241,7 @@ export default function HistoryPage() {
             }
           />
         ) : viewMode === 'list' ? (
-          /* ─── List View ─── */
+          /* ——— List View ——— */
           <div className="flex flex-col gap-5">
             {DATE_GROUP_ORDER.map((group) => {
               const runs = groupedVisible[group];
@@ -360,7 +360,7 @@ export default function HistoryPage() {
             })}
           </div>
         ) : (
-          /* ─── Grid View ─── */
+          /* ——— Grid View ——— */
           <div className="flex flex-col gap-5">
             {DATE_GROUP_ORDER.map((group) => {
               const runs = groupedVisible[group];
@@ -497,7 +497,7 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* ─── Load More ─── */}
+        {/* ——— Load More ——— */}
         {hasMore && (
           <div className="flex justify-center mt-6">
             <button
@@ -522,7 +522,7 @@ export default function HistoryPage() {
           </div>
         )}
 
-        {/* ─── Pagination summary ─── */}
+        {/* ——— Pagination summary ——— */}
         <div className="flex items-center justify-center mt-4 gap-1">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Showing {Math.min(visibleCount, filtered.length)} of {filtered.length} run{filtered.length !== 1 ? 's' : ''}
