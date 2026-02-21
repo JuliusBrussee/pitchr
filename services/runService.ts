@@ -147,6 +147,7 @@ export async function updateRun(
       | 'analysis'
       | 'meta'
       | 'is_fallback'
+      | 'audio_url'
     >
   >,
 ): Promise<RunRecord> {
