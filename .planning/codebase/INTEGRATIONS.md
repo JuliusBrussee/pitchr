@@ -4,158 +4,147 @@
 
 ## APIs & External Services
 
-**Currently Not Integrated:**
-- No third-party APIs integrated at this stage
-- Application is client-side focused with no backend service dependencies detected
-- Planned API endpoints exist as directory structure but are not yet implemented:
-  - `app/api/feedback/` - Feedback submission (not implemented)
-  - `app/api/sessions/` - Session management (not implemented)
-  - `app/api/qna/` - Q&A functionality (not implemented)
-  - `app/api/deck/` - Deck/slide management (not implemented)
-  - `app/api/ws/video/` - WebSocket video streaming (not implemented)
-  - `app/api/ws/audio/` - WebSocket audio streaming (not implemented)
+**LLM Providers (Routing):**
+- **OpenRouter** - Default LLM provider for pitch analysis
+  - SDK/Client: Direct fetch via `lib/llm/providers/openrouter.ts`
+  - Auth: `OPENROUTER_API_KEY` (required)
+  - Endpoint: `https://openrouter.ai/api/v1/chat/completions`
+  - Default Model: `google/gemini-3-flash-preview`
+  - Temperature: 0.3, Max Tokens: 4096
+
+- **Anthropic (Claude)** - Alternative LLM provider
+  - SDK/Client: Direct fetch via `lib/llm/providers/anthropic.ts`
+  - Auth: `ANTHROPIC_API_KEY` (optional, not yet integrated)
+  - Endpoint: `https://api.anthropic.com/v1/messages`
+  - Default Model: `claude-sonnet-4-6`
+  - Router: `lib/llm/router.ts` dispatches based on `LLM_PROVIDER` env var
+
+- **ElevenLabs Realtime STT** - Speech-to-text transcription
+  - SDK/Client: WebSocket connection via `server.ts` and `stt.ts`
+  - Auth: `ELEVENLABS_API_KEY_STT` (required for server-side relay)
+  - Endpoint: `wss://api.elevenlabs.io/v1/speech-to-text/realtime`
+  - Model: `scribe_v2_realtime`
+  - Audio Format: PCM 16-bit, 16kHz sample rate
+  - Configuration: VAD threshold 0.25, silence 1.5s, min silence 150ms
+  - Flow: Browser → Express WebSocket proxy → ElevenLabs (API key stays server-side)
 
 ## Data Storage
 
 **Databases:**
-- Not detected - No database client libraries (Prisma, Supabase, Firebase, etc.) in dependencies
-- State management is entirely client-side via React hooks
-- Persisting data: Not implemented
+- **Supabase (PostgreSQL)**
+  - Connection: `lib/supabase.ts` via `@supabase/supabase-js@2.97.0`
+  - Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - Client: Supabase JS SDK (REST API over HTTPS)
+  - Tables:
+    - `decks` - Deck records (id, name, original_url, pdf_url, slide_count, thumbnail_url, created_at)
+    - `slides` - Slide text extraction (id, deck_id, slide_num, text)
+  - Operations: `deckService.ts` handles CRUD and storage cleanup on delete
 
 **File Storage:**
-- Not detected - Application currently placeholder for slide uploads
-  - `SessionCanvas.tsx` shows "Upload or generate your deck" button but no upload handler
-  - No cloud storage integration (S3, Google Cloud Storage, etc.)
+- **Supabase Storage** - Cloud object storage
+  - Bucket: `decks`
+  - File paths: `{deckId}/{fileName}`
+  - Supported formats: PPTX (converted to PDF), PDF (extracted to text)
+  - Operations: `uploadToStorage()` in `deckService.ts` uploads and returns public URL
+
+**Local Storage:**
+- **Browser localStorage** - Client-side persistence
+  - Key: `pitchr_runs` (defined in `models/run.ts`)
+  - Data: Serialized array of Run objects (pitch analysis results)
+  - Scope: MVP implementation before Supabase migration
+  - Note: No cross-device sync; single-device only
 
 **Caching:**
-- Not detected - No Redis, Memcached, or other caching services
-- In-memory state via React hooks only
-
-**Session State:**
-- Client-side only via `useSessionState()` hook (`hooks/useSessionState.ts`)
-  - Metrics: wpm, fillerWords, conciseness, clarity
-  - Checklist items tracking pitch content coverage
-  - Insights/feedback entries
-  - Speech bubbles from coach
-  - Expires on page refresh
+- None - Direct API calls without Redis or similar
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- Not detected - No authentication system currently implemented
-- Application accessible without login
-- Layout structure suggests future auth requirements:
-  - `app/(app)/` routes intended for authenticated pages
-  - `app/(marketing)/` routes for public pages
-  - No auth guards currently enforced
-
-**Authorization:**
-- Not implemented
-
-## Media Capture & Processing
-
-**Video/Audio Capture:**
-- Browser native APIs via `useMediaStream()` hook (`hooks/useMediaStream.ts`)
-  - `navigator.mediaDevices.getUserMedia()` for camera and microphone access
-  - `MediaStream` API for stream management
-  - Video playback via native `<video>` element with `srcObject` binding
-  - No cloud encoding/processing
-
-**Audio Processing:**
-- Directory structure: `lib/audio/` (placeholder - not implemented)
-- Current implementation: No audio processing
-- Future: Speech recognition, audio analysis, filler word detection likely planned
-
-**Video Processing:**
-- Directory structure: `lib/video/` (placeholder - not implemented)
-- Current implementation: Webcam display only, no processing
-- Future: Gesture recognition, posture analysis, eye contact detection likely planned
-
-## Scoring & Analysis
-
-**Scoring Engine:**
-- Directory structure: `lib/scoring/` (placeholder - not implemented)
-- Current implementation: Mock metrics in `useSessionState.ts`
-  - Metrics simulated with `setInterval` randomization
-  - No real analysis pipeline
-
-**AI/ML Integration:**
-- Not detected - No ML service client libraries (OpenAI, Anthropic, Google Vertex AI, etc.)
-- Coach feedback is hardcoded messages: `COACH_MESSAGES` in `hooks/useSessionState.ts`
-- Future integration likely for:
-  - Speech-to-text transcription
-  - Real-time feedback generation
-  - Pitch deck understanding
-  - Delivery quality scoring
+- None (custom or implicit)
+- Implementation: No auth/login system in MVP scope (per CLAUDE.md)
+- Access: Public API endpoints; Supabase anon key allows client-side DB access
+- Supabase RLS: Not documented but likely permissive for MVP
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Not detected - No Sentry, Rollbar, or similar service
+- None configured
+- Errors: Application-level error handling in API routes and services; no third-party error reporting
 
-**Logging:**
-- Not detected - Only browser console errors caught in `useMediaStream()` hook
-  - Error states captured: MediaStream access failures
-  - No centralized logging service
-
-**Analytics:**
-- Not detected - No Google Analytics, Mixpanel, Amplitude, etc.
+**Logs:**
+- Console-based only
+- Approach: `console.log/error` in Node.js and browser; no centralized logging
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Not specified - Supports any Node.js-compatible platform
-- Vercel optimized (Next.js native support)
-- Potential targets: Vercel, Netlify, Heroku, AWS, Google Cloud, etc.
+- Deployment target: Not specified (Next.js production build compatible with Vercel, self-hosted Node.js)
+- Server runtime: Node.js 18+
+- Dual-port architecture: Next.js `:3000`, Express STT `:3001` (dev)
 
 **CI Pipeline:**
-- Not detected - No GitHub Actions, GitLab CI, or other CI service files
+- None detected
+- Build command: `npm run build` (Next.js + TypeScript compilation)
+- Test command: `npm run test` (Vitest + jsdom)
+- Scripts: `npm run dev` runs both Next.js and Express concurrently
 
 ## Environment Configuration
 
 **Required env vars:**
-- None currently configured
-- `.env` and `.env*.local` listed in `.gitignore` but not utilized
-- Application runs with defaults
+- `ELEVENLABS_API_KEY_STT` - ElevenLabs STT (server-side)
+- `LLM_PROVIDER` - Router switch: `openrouter` or `anthropic`
+- `OPENROUTER_API_KEY` - If LLM_PROVIDER=openrouter
+- `OPENROUTER_MODEL` - OpenRouter model selection
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon key
+- `NEXT_PUBLIC_WS_URL` - WebSocket proxy URL (dev: `http://localhost:3001`)
+
+**Optional env vars:**
+- `ANTHROPIC_API_KEY` - For future Anthropic integration
+- `ANTHROPIC_MODEL` - Anthropic model selection
+- `PORT` - Express server port (default: 3001 for dev, 3000 for production)
 
 **Secrets location:**
-- Not applicable - No external service integrations with secrets
+- `.env.local` (Git-ignored) - Development secrets
+- `.env.example` - Template with placeholders (Git-tracked)
+- Vercel/hosting platform env vars - Production secrets
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- Not implemented
-- Planned endpoints: `app/api/feedback/`, `app/api/qna/`, `app/api/deck/`
+- None
 
 **Outgoing:**
-- Not implemented
-- Planned WebSocket endpoints: `app/api/ws/video/`, `app/api/ws/audio/`
+- None currently; Miro board generation (`services/miro/`) and ElevenLabs TTS (`services/elevenlabs/`) directories exist as `.gitkeep` (future Tier 1 features)
 
-## Browser APIs Used
+## Data Flow Summary
 
-**Core:**
-- `navigator.mediaDevices.getUserMedia()` - Camera/microphone access (`useMediaStream.ts`)
-- `MediaStream` API - Stream track management
-- `HTMLVideoElement` - Video playback
-- WebGL (via Three.js) - 3D graphics rendering
-- Web Audio API - Planned for audio analysis
+**Pitch Analysis Pipeline:**
+1. Browser records audio or pastes text via React component
+2. Browser POSTs to `/api/pitch/run` (Next.js route handler)
+3. Route handler calls `runPitchAnalysisController` in `controllers/pitchController.ts`
+4. Controller routes to `analysisService.ts` which calls LLM via `lib/llm/router.ts`
+5. LLM provider (OpenRouter or Anthropic) returns JSON analysis
+6. Analysis stored in localStorage (client-side) and/or API response
+7. Frontend renders results with score, fixes, rewrite script, delivery metrics
 
-**Storage:**
-- localStorage/sessionStorage - Not currently used but available for future state persistence
+**STT (Speech-to-Text) Pipeline:**
+1. Browser captures microphone via MediaStream API
+2. Browser WebSocket connects to Express server at `NEXT_PUBLIC_WS_URL`
+3. Express relays audio stream to ElevenLabs WebSocket with API key
+4. ElevenLabs streams back transcription segments with timestamps
+5. Express buffers segments and forwards to browser
+6. Browser displays live transcript and updates form field
+7. On stop: final transcript sent to pitch analysis pipeline
 
-## Configuration Patterns
-
-**API Placeholder Structure:**
-- Empty directories with `.gitkeep` files indicate planned but unimplemented features:
-  - Feedback API endpoint
-  - Sessions CRUD endpoints
-  - Q&A system
-  - Deck management
-  - Real-time video/audio WebSocket streams
-
-**Service Integration Pattern:**
-- No established pattern yet (no services integrated)
-- Future pattern likely to follow Next.js API route conventions in `app/api/`
+**Deck Upload Pipeline:**
+1. Browser uploads PPTX file to `/api/deck/upload`
+2. Route handler saves temporary PPTX file
+3. `deckService.ts` converts PPTX → PDF using LibreOffice (`soffice` CLI)
+4. Extracts PDF text using `pdf-parse` library
+5. Uploads PDF and thumbnail to Supabase Storage
+6. Inserts deck and slide records to Supabase PostgreSQL
+7. Returns deck ID and metadata for future reference
 
 ---
 

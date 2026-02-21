@@ -149,7 +149,7 @@ Score bands: 0-39 Needs Work, 40-59 Getting There, 60-79 Solid, 80-100 Investor-
 ```env
 ANTHROPIC_API_KEY=     # Claude API (required for LLM scoring)
 GOOGLE_AI_API_KEY=     # Gemini fallback (optional)
-ELEVENLABS_API_KEY=    # TTS coach voice (Tier 1, optional)
+ELEVENLABS_API_KEY_STT=    # STT realtime (required for speech-to-text)
 MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
 ```
 

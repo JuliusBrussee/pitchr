@@ -3,6 +3,7 @@
  * Records from mic, streams PCM to ElevenLabs over WebSockets, saves transcript.
  * Stop: ENTER or Ctrl+C. Requires SoX on PATH (for node-record-lpcm16).
  */
+import dotenv from "dotenv";
 import { createRequire } from "node:module";
 import * as fs from "node:fs";
 import * as readline from "node:readline";
@@ -15,7 +16,7 @@ const record = require("node-record-lpcm16") as {
   record: (opts?: { sampleRate?: number; channels?: number }) => { stream: () => NodeJS.ReadableStream; stop: () => void };
 };
 
-import "dotenv/config";
+dotenv.config({ path: ".env.local" });
 
 const SAMPLE_RATE = 16000;
 const CHUNK_SIZE = 2048;
@@ -105,9 +106,9 @@ function shutdown(): void {
 
 // --- Main
 function main(): void {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const apiKey = process.env.ELEVENLABS_API_KEY_STT;
   if (!apiKey?.trim()) {
-    console.error("Missing ELEVENLABS_API_KEY. Set it in the environment or .env.");
+    console.error("Missing ELEVENLABS_API_KEY_STT. Set it in .env.local.");
     process.exit(1);
   }
 

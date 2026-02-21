@@ -5,108 +5,104 @@
 ## Languages
 
 **Primary:**
-- TypeScript 5.9.3 - Full codebase (all `.ts` and `.tsx` files)
-- JSX/TSX - React component templates throughout application
+- TypeScript 5.7.2 - Strict mode, all application code
+- JavaScript (ES2017 target) - Configuration files, some utilities
 
 **Secondary:**
-- GLSL (OpenGL Shading Language) - WebGL shader programs for 3D orb visualization
-  - Fragment shader: `views/components/SiriBubble/shaders/fragment.glsl`
-  - Vertex shader: `views/components/SiriBubble/shaders/vertex.glsl`
-- CSS/PostCSS - Styling via Tailwind CSS 4
+- GLSL - Shader code for Three.js 3D rendering (loaded via raw-loader)
+- JSON - Configuration and data files
 
 ## Runtime
 
 **Environment:**
-- Node.js 18+ (required per README)
+- Node.js >=18 (specified in `package.json` engines)
 
 **Package Manager:**
-- npm (included with Node.js)
-- Lockfile: `yarn.lock` present (yarn used for dependency management)
+- Yarn 4.12.0 (specified via `packageManager` field)
+- Config: `.yarnrc` uses `nodeLinker: node-modules`
+- Lockfile: `yarn.lock` (Git-tracked)
 
 ## Frameworks
 
 **Core:**
-- Next.js 16.1.6 - Full-stack React framework with App Router
-  - Entry point: `app/` directory with App Router pattern
-  - Pages: `app/(app)/` for authenticated routes, `app/(marketing)/` for public routes
-  - API routes structure: `app/api/` (currently with `.gitkeep` placeholders)
+- Next.js 15.0.3 - Full-stack framework with App Router
+- React 19.0.0 - UI component library
+- Express 4.21.0 - Backend WebSocket server for STT relay (runs on port 3001)
 
-**UI & Rendering:**
-- React 19.2.4 - Core UI library with latest features (use client directives throughout)
-- React DOM 19.2.4 - DOM rendering
-- Three.js 0.183.1 - 3D graphics library
+**3D & Graphics:**
+- Three.js 0.169.0 - 3D graphics library
 - React Three Fiber 9.5.0 - React renderer for Three.js
-  - Used for: `SiriBubble` component (`views/components/SiriBubble/`)
-  - Canvas-based 3D orb visualization with state animations
-- React Three Drei 10.7.7 - Utility helpers for Three.js in React
+- @react-three/drei 10.7.7 - Utilities for React Three Fiber
 
-**Styling:**
-- Tailwind CSS 4.2.0 - Utility-first CSS framework
-- PostCSS 8.5.6 - CSS transformation tool
-- @tailwindcss/postcss 4.2.0 - PostCSS plugin for Tailwind
+**UI & Styling:**
+- Tailwind CSS 4.0.0 - Utility-first CSS framework
+- lucide-react 0.575.0 - Icon library
+- @tailwindcss/postcss 4.0.0 - PostCSS plugin for Tailwind
 
-**Icon Library:**
-- lucide-react 0.575.0 - React icon components
-  - Used in: `SessionCanvas`, `AppSidebar`, `MetricsPanel`, and button controls
-  - Icons: Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, etc.
+**Testing:**
+- Vitest 3.2.4 - Unit/integration test framework (ESM-native)
+- @vitejs/plugin-react - React support for Vitest
+- jsdom - DOM implementation for browser tests
+- Testing Library - Component and hook testing utilities
+
+**CLI & Recording:**
+- node-record-lpcm16 1.0.1 - Microphone recording to PCM stream
+- pdf-parse 2.4.5 - PDF text extraction
+
+**Real-time Communication:**
+- ws 8.18.0 - WebSocket client/server library
+
+**Utilities:**
+- dotenv 16.4.5 - Environment variable loading
+- concurrently 9.1.0 - Run multiple npm scripts in parallel
+- cross-env 7.0.3 - Cross-platform environment variable setting
+- tsx 4.19.2 - TypeScript execution for Node.js
 
 ## Key Dependencies
 
 **Critical:**
-- Next.js 16.1.6 - Server/client framework, routing, deployment
-- React 19.2.4 - Component library, hooks system
-- React Three Fiber 9.5.0 - 3D rendering (core to `SiriBubble` AI coach visualization)
-- Three.js 0.183.1 - WebGL abstraction for 3D graphics
-- Tailwind CSS 4.2.0 - Styling system across all components
+- @supabase/supabase-js 2.97.0 - Why it matters: Database and file storage backend for pitch decks, slides, and PDFs. Required for deck upload feature.
+- @anthropic/sdk - Dependency reference for future Anthropic integration (env var ANTHROPIC_API_KEY available but not yet in package.json)
 
-**Development/Build:**
-- TypeScript 5.9.3 - Type checking and compilation
-- raw-loader 4.0.2 - Webpack loader for GLSL shader files (configured in `next.config.ts`)
-- @vitejs/plugin-react 5.1.4 - React plugin for Vitest
-- Vitest 3.2.4 - Unit test runner (configured in `vitest.config.ts`)
+**Infrastructure:**
+- express 4.21.0 - WebSocket relay server for ElevenLabs STT API (shields API key from browser)
+- pdf-parse 2.4.5 - Extract text from uploaded PPTX-converted PDFs for pitch deck analysis
 
 ## Configuration
 
 **Environment:**
-- No external API keys or secrets required currently
-- `.env` file pattern recognized but not used (listed in `.gitignore`)
-- `.env*.local` files ignored (`.gitignore`)
+- Location: Project root (`.env.example` provided)
+- Key configs required:
+  - `ELEVENLABS_API_KEY_STT` - ElevenLabs Realtime STT API key (required for speech-to-text)
+  - `LLM_PROVIDER` - Either `openrouter` or `anthropic` (defaults to `openrouter`)
+  - `OPENROUTER_API_KEY` - OpenRouter API key (required if LLM_PROVIDER=openrouter)
+  - `OPENROUTER_MODEL` - Model ID for OpenRouter (default: `google/gemini-3-flash-preview`)
+  - `ANTHROPIC_API_KEY` - Anthropic API key (optional, for future use)
+  - `ANTHROPIC_MODEL` - Model ID for Anthropic (default: `claude-sonnet-4-6`)
+  - `NEXT_PUBLIC_WS_URL` - WebSocket URL for STT backend (default: `http://localhost:3001`)
+  - `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (required for deck storage)
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anonymous key (required for deck storage)
 
-**Build Configuration:**
-- `next.config.ts` - Next.js configuration
-  - Turbopack rules for GLSL shader files
-  - Webpack fallback rules for GLSL as asset/source
-- `tsconfig.json` - TypeScript configuration
-  - Target: ES2017
-  - Module resolution: bundler
-  - Path alias: `@/*` maps to project root
-  - Strict mode enabled
-- `postcss.config.mjs` - PostCSS configuration for Tailwind
-- `vitest.config.ts` - Vitest test runner configuration
-  - Environment: jsdom
-  - Setup file: `vitest.setup.ts`
-  - Global test utilities enabled
-- `vitest.setup.ts` - Test setup importing Testing Library jest-dom matchers
-
-**Assets & Shaders:**
-- GLSL shader files loaded as raw strings via webpack configuration
-- Types: `types/glsl.d.ts` declares module for `.glsl` imports
+**Build:**
+- `next.config.ts` - Webpack/Turbopack GLSL loader configuration
+- `tsconfig.json` - TypeScript strict mode, path aliases (`@/*` → root)
+- `postcss.config.mjs` - PostCSS Tailwind plugin
+- `vitest.config.ts` - Test runner configuration with jsdom environment
+- `.editorconfig` - Cross-editor formatting consistency
 
 ## Platform Requirements
 
 **Development:**
-- Node.js 18+
-- npm or yarn package manager
-- Browser with WebGL support (for Three.js 3D rendering)
-- Webcam/microphone access (for MediaStream API usage)
+- Node.js >=18
+- Yarn 4.12.0
+- SoX (System Sounds Exchange) - Required on PATH for `node-record-lpcm16` microphone recording
+- LibreOffice (`soffice` command) - Required for PPTX→PDF conversion in `deckService.ts`
 
 **Production:**
-- Deployment target: Next.js deployable to Vercel, Node.js servers, or edge runtimes
-- Browser: Modern browsers with:
-  - ES2017+ JavaScript support
-  - WebGL support (Three.js requirement)
-  - MediaStream API support (camera/microphone access)
-  - Web Audio API support (audio processing)
+- Node.js >=18
+- Supabase project with configured storage bucket (`decks`) and database tables (`decks`, `slides`)
+- ElevenLabs API key for STT functionality
+- OpenRouter or Anthropic API key for LLM pitch analysis
 
 ---
 
