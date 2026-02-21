@@ -17,6 +17,7 @@ const record = require("node-record-lpcm16") as {
 };
 
 dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 const SAMPLE_RATE = 16000;
 const CHUNK_SIZE = 2048;
@@ -106,9 +107,9 @@ function shutdown(): void {
 
 // --- Main
 function main(): void {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const apiKey = getElevenLabsSttApiKey();
   if (!apiKey?.trim()) {
-    console.error("Missing ELEVENLABS_API_KEY. Set it in .env.local.");
+    console.error("Missing ELEVENLABS_API_KEY (or ELEVENLABS_API_KEY_STT). Set it in .env.local/.env.");
     process.exit(1);
   }
 
@@ -228,3 +229,10 @@ function main(): void {
 }
 
 main();
+function getElevenLabsSttApiKey(): string {
+  const direct = process.env.ELEVENLABS_API_KEY?.trim();
+  if (direct) return direct;
+  const stt = process.env.ELEVENLABS_API_KEY_STT?.trim();
+  if (stt) return stt;
+  return "";
+}

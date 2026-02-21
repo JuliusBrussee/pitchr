@@ -16,12 +16,22 @@ import {
 } from "./services/realtimeChecklistService";
 import type { PitchMode } from "./types/pitch";
 
+// Load local overrides first, then fallback to shared env.
 dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 const ELEVENLABS_WS_URL = "wss://api.elevenlabs.io/v1/speech-to-text/realtime";
+
+function getElevenLabsSttApiKey(): string {
+  const direct = process.env.ELEVENLABS_API_KEY?.trim();
+  if (direct) return direct;
+  const stt = process.env.ELEVENLABS_API_KEY_STT?.trim();
+  if (stt) return stt;
+  return "";
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -45,9 +55,14 @@ function isPitchMode(value: unknown): value is PitchMode {
 }
 
 wss.on("connection", (clientWs) => {
-  const apiKey = process.env.ELEVENLABS_API_KEY?.trim();
+  const apiKey = getElevenLabsSttApiKey();
   if (!apiKey) {
-    clientWs.send(JSON.stringify({ type: "error", error: "Server configuration error." }));
+    clientWs.send(
+      JSON.stringify({
+        type: "error",
+        error: "Server configuration error: missing ELEVENLABS_API_KEY (or ELEVENLABS_API_KEY_STT).",
+      })
+    );
     clientWs.close();
     return;
   }
