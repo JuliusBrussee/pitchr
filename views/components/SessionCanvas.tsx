@@ -1,10 +1,27 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type RefObject } from 'react';
 import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack } from 'lucide-react';
-import { SiriBubble } from '@/views/components/SiriBubble';
-import { OrbState } from '@/views/components/SiriBubble';
+import { SiriBubble, type OrbState } from '@/views/components/SiriBubble';
 import { SpeechBubble } from '@/hooks/useSessionState';
+import { EngagementBubble } from '@/views/components/EngagementBubble';
+import type { HeadTrackingState } from '@/lib/headTracking/useHeadTracking';
+
+interface HeadTrackingDebugData {
+  enabled: boolean;
+  yaw: number;
+  pitch: number;
+  roll: number;
+  facingPct: number;
+  awayPct: number;
+  downPct: number;
+  isCalibrated: boolean;
+  inferenceMs: number;
+  effectiveInferIntervalMs: number;
+  fps: number;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
+}
 
 interface SessionCanvasProps {
   stream: MediaStream | null;
@@ -21,6 +38,10 @@ interface SessionCanvasProps {
   onPauseSession: () => void;
   onResumeSession: () => void;
   onStopSession: () => void;
+  engagementScore: number;
+  headTrackingState: HeadTrackingState;
+  showEngagementBubble: boolean;
+  headTrackingDebug?: HeadTrackingDebugData;
 }
 
 export function SessionCanvas({
@@ -38,6 +59,10 @@ export function SessionCanvas({
   onPauseSession,
   onResumeSession,
   onStopSession,
+  engagementScore,
+  headTrackingState,
+  showEngagementBubble,
+  headTrackingDebug,
 }: SessionCanvasProps) {
   const [focusMode, setFocusMode] = useState<'slides' | 'camera'>('slides');
 
@@ -46,7 +71,6 @@ export function SessionCanvas({
 
   return (
     <div className="flex flex-col gap-3 flex-1 min-w-0 min-h-0">
-      {/* Main Canvas Area */}
       <div
         className="relative flex-1 rounded-2xl overflow-hidden border min-h-0"
         style={{
@@ -56,14 +80,8 @@ export function SessionCanvas({
           borderColor: 'var(--border-color)',
         }}
       >
-        {/* Primary View */}
-        {effectiveFocus === 'slides' ? (
-          <SlideViewer />
-        ) : (
-          <CameraView stream={stream} isFocused />
-        )}
+        {effectiveFocus === 'slides' ? <SlideViewer /> : <CameraView stream={stream} isFocused />}
 
-        {/* Webcam Overlay (bottom-right) — only when camera is on and slides are focused */}
         {isCameraOn && effectiveFocus === 'slides' && (
           <button
             onClick={() => setFocusMode('camera')}
@@ -74,7 +92,6 @@ export function SessionCanvas({
           </button>
         )}
 
-        {/* Slide overlay (bottom-right) — when camera is focused */}
         {isCameraOn && effectiveFocus === 'camera' && (
           <button
             onClick={() => setFocusMode('slides')}
@@ -85,22 +102,79 @@ export function SessionCanvas({
           </button>
         )}
 
-        {/* SiriBubble (top-right) */}
-        {isSessionActive && (
-          <div className="absolute top-4 right-4 z-10">
-            <SiriBubble state={orbState} intensity={orbIntensity} size="sm" />
-          </div>
-        )}
+        <div className="absolute top-4 right-4 z-10 flex max-w-xs flex-col items-end gap-2">
+          {isSessionActive ? (
+            <div className="flex items-center gap-2">
+              <SiriBubble state={orbState} intensity={orbIntensity} size="sm" />
+              <EngagementBubble
+                score={engagementScore}
+                state={headTrackingState}
+                visible={showEngagementBubble}
+              />
+            </div>
+          ) : null}
 
-        {/* Speech Bubbles */}
-        <div className="absolute top-4 right-20 z-10 flex flex-col gap-2 max-w-xs">
-          {speechBubbles.map(bubble => (
-            <SpeechBubbleChip key={bubble.id} text={bubble.text} />
-          ))}
+          {speechBubbles.length > 0 ? (
+            <div className="flex flex-col items-end gap-2">
+              {speechBubbles.map((bubble) => (
+                <SpeechBubbleChip key={bubble.id} text={bubble.text} />
+              ))}
+            </div>
+          ) : null}
         </div>
+
+        {headTrackingDebug?.enabled ? (
+          <div
+            className="absolute left-4 top-4 z-10 w-56 rounded-xl border p-2"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-color)',
+              backdropFilter: `blur(var(--blur-strength))`,
+              WebkitBackdropFilter: `blur(var(--blur-strength))`,
+            }}
+          >
+            <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+              Head Tracking Debug
+            </div>
+            <div className="relative w-full aspect-video rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border-color)' }}>
+              <video
+                ref={headTrackingDebug.videoRef}
+                autoPlay
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <canvas
+                ref={headTrackingDebug.canvasRef}
+                className="absolute inset-0 w-full h-full pointer-events-none"
+              />
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+              <span>calibrated:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.isCalibrated ? 'yes' : 'no'}</span>
+              <span>yaw:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.yaw.toFixed(3)}</span>
+              <span>pitch:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.pitch.toFixed(3)}</span>
+              <span>roll:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.roll.toFixed(3)}</span>
+              <span>facing:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.facingPct}%</span>
+              <span>away:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.awayPct}%</span>
+              <span>down:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.downPct}%</span>
+              <span>infer ms:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.inferenceMs.toFixed(1)}</span>
+              <span>interval:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.effectiveInferIntervalMs.toFixed(1)}ms</span>
+              <span>fps:</span>
+              <span className="tabular-nums text-right">{headTrackingDebug.fps.toFixed(1)}</span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
-      {/* Playback & Media Controls Bar */}
       <div
         className="flex items-center justify-between px-4 py-2.5 rounded-xl border flex-shrink-0"
         style={{
@@ -110,7 +184,6 @@ export function SessionCanvas({
           borderColor: 'var(--border-color)',
         }}
       >
-        {/* Left: Media toggles */}
         <div className="flex items-center gap-2">
           <MediaToggle
             icon={isCameraOn ? Video : VideoOff}
@@ -126,7 +199,6 @@ export function SessionCanvas({
           />
         </div>
 
-        {/* Center: Playback controls */}
         <div className="flex items-center gap-1">
           <ControlButton icon={SkipBack} onClick={() => {}} label="Previous slide" size={16} />
           {isSessionActive ? (
@@ -144,14 +216,11 @@ export function SessionCanvas({
           <ControlButton icon={SkipForward} onClick={() => {}} label="Next slide" size={16} />
         </div>
 
-        {/* Right: spacer for symmetry */}
         <div className="w-20" />
       </div>
     </div>
   );
 }
-
-/* --- Sub-components --- */
 
 function MediaToggle({
   icon: Icon,
@@ -206,13 +275,13 @@ function ControlButton({
         backgroundColor: primary
           ? 'var(--text-primary)'
           : danger
-          ? 'rgba(239,68,68,0.15)'
-          : 'transparent',
+            ? 'rgba(239,68,68,0.15)'
+            : 'transparent',
         color: primary
           ? 'var(--bg-primary)'
           : danger
-          ? '#ef4444'
-          : 'var(--text-secondary)',
+            ? '#ef4444'
+            : 'var(--text-secondary)',
       }}
       aria-label={label}
     >
@@ -285,7 +354,7 @@ function CameraView({
     if (!video || !stream) return;
     video.srcObject = stream;
     video.play().catch(() => {
-      // Browser blocked autoplay — will retry on user interaction
+      // Browser blocked autoplay; will retry on interaction.
     });
   }, [stream]);
 

@@ -10,9 +10,13 @@
     "build": "next build",
     "start": "next start",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "e2e:smoke": "npx playwright test -c playwright.config.ts tests/e2e/smoke.spec.ts",
+    "e2e:head": "npx playwright test -c playwright.config.ts tests/e2e/head-tracking.spec.ts",
+    "e2e:ui": "npx playwright test -c playwright.config.ts --ui"
   },
   "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.32",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
     "lucide-react": "^0.575.0",
@@ -22,6 +26,7 @@
     "three": "^0.183.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4.2.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

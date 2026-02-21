@@ -46,6 +46,8 @@ codex mcp get supabase
 | `npm start` | Serve production build |
 | `npm test` | Run tests (Vitest) |
 | `npm run test:watch` | Run tests in watch mode |
+| `npm run e2e:smoke` | Run Playwright smoke flow against local app |
+| `npm run e2e:ui` | Open Playwright UI mode |
 
 ## Tech Stack
 
@@ -54,6 +56,22 @@ codex mcp get supabase
 - **Styling:** Tailwind CSS 4
 - **Testing:** Vitest + Testing Library
 - **Language:** TypeScript
+
+## Local UI Smoke Testing
+
+Run this to validate core navigation and session controls in a real browser:
+
+```bash
+npm run e2e:smoke
+```
+
+Notes:
+- Playwright will start `npm run dev` automatically from `playwright.config.ts`.
+- On first run, install browsers if prompted:
+
+```bash
+npx playwright install chromium
+```
 
 ## License
 
