@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Play, Square } from 'lucide-react';
+import { Play, Pause } from 'lucide-react';
 
 interface StartSessionButtonProps {
   onClick: () => void;
@@ -33,8 +33,8 @@ export function StartSessionButton({ onClick, isSessionActive }: StartSessionBut
           />
         ))}
         <span className="session-rec-dot" />
-        <Square size={13} fill="currentColor" />
-        <span>End Session</span>
+        <Pause size={13} fill="currentColor" />
+        <span>Pause Session</span>
       </button>
     );
   }

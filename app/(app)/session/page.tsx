@@ -20,7 +20,11 @@ export default function SessionPage() {
 
   const handleSessionToggle = useCallback(() => {
     if (session.isSessionActive) {
-      session.stopSession();
+      if (session.isPaused) {
+        session.resumeSession();
+      } else {
+        session.pauseSession();
+      }
     } else {
       session.startSession();
     }
@@ -41,7 +45,10 @@ export default function SessionPage() {
         orbIntensity={0.6}
         speechBubbles={session.speechBubbles}
         isSessionActive={session.isSessionActive}
+        isPaused={session.isPaused}
         onStartSession={session.startSession}
+        onPauseSession={session.pauseSession}
+        onResumeSession={session.resumeSession}
         onStopSession={session.stopSession}
       />
       <MetricsPanel
