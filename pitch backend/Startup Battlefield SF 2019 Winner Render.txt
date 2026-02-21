@@ -1,0 +1,370 @@
+00:00 [Music]
+00:12 
+
+00:12 thank you all very much we'll see you
+00:13 
+
+00:14 again next year large public clouds like
+00:25 
+
+00:25 AWS are worth over five hundred billion
+00:30 
+
+00:30 dollars but using them is like pulling
+00:35 
+
+00:35 teeth businesses are forced to spend
+00:39 
+
+00:39 billions of dollars in engineering
+00:42 
+
+00:42 salaries just to manage servers on AWS I
+00:45 
+
+00:45 saw this firsthand at stripe where as
+00:49 
+
+00:49 employee number eight and I helped
+00:50 
+
+00:50 launch the company and grow it to a five
+00:53 
+
+00:53 billion dollar valuation but not without
+00:56 
+
+00:56 a massive DevOps team after stripe I
+01:02 
+
+01:02 built a lot of my own apps to figure out
+01:04 
+
+01:04 what I wanted to do next building these
+01:07 
+
+01:07 apps was easy but hosting them was
+01:10 
+
+01:10 agonizing I had to spin up VMs install
+01:14 
+
+01:14 dependencies set up networking as a cell
+01:17 
+
+01:17 load balancers just a ton of things for
+01:20 
+
+01:20 every single app it was tedious it was
+01:24 
+
+01:24 error-prone and it needed to stop this
+01:28 
+
+01:28 is how render was born render is a
+01:32 
+
+01:32 completely automated cloud provider you
+01:36 
+
+01:36 can use it to host anything from a
+01:39 
+
+01:39 simple static website to complex
+01:41 
+
+01:41 application clusters and you can do it
+01:43 
+
+01:43 faster than on any other cloud and
+01:46 
+
+01:46 without managing servers at all render
+01:50 
+
+01:51 fits into your existing workflow simply
+01:54 
+
+01:54 push your code to get we automate
+01:56 
+
+01:56 everything from there this includes
+01:58 
+
+01:59 building and deploying your code
+02:01 
+
+02:01 securing and updating the underlying
+02:03 
+
+02:03 software scaling your apps and
+02:05 
+
+02:05 automatically load balancing between
+02:07 
+
+02:07 them and finally alerting you to
+02:09 
+
+02:09 potential problems I realize I'm making
+02:13 
+
+02:13 a bold claim so let's see this in action
+02:16 
+
+02:16 you may have heard of matter most
+02:19 
+
+02:19 it's like slack but for companies who
+02:21 
+
+02:21 want to host chat themselves typically
+02:24 
+
+02:24 matter
+02:25 
+
+02:25 most requires a whole team of DevOps
+02:27 
+
+02:27 engineers to set up and manage but
+02:30 
+
+02:30 render makes this effortless all I need
+02:34 
+
+02:34 to do is to click the deploy to render
+02:37 
+
+02:37 button in this github repo it brings me
+02:41 
+
+02:41 to my render dashboard listing all the
+02:44 
+
+02:44 services it's going to deploy I click
+02:46 
+
+02:46 approve and that's it
+02:49 
+
+02:49 render is now deploying my matter most
+02:52 
+
+02:52 cluster which includes a database object
+02:56 
+
+02:56 storage a search engine and multiple web
+02:59 
+
+02:59 servers renders also provisioning load
+03:02 
+
+03:02 balancers and SSL behind the scenes and
+03:05 
+
+03:05 I don't have to lift a finger for any of
+03:07 
+
+03:07 it
+03:08 
+
+03:08 now these services can take a few
+03:11 
+
+03:11 minutes to spin up so we're going to
+03:13 
+
+03:13 switch to an existing matter most
+03:15 
+
+03:15 instance running on render it's up at
+03:18 
+
+03:18 render most calm and you can all go
+03:22 
+
+03:22 there right now and sign up it's ready
+03:24 
+
+03:24 to scale the thousands of users let's
+03:28 
+
+03:28 talk about what we just saw
+03:30 
+
+03:30 installing matter motion on render
+03:32 
+
+03:32 requires just minutes but it takes days
+03:35 
+
+03:35 of setup and constant ongoing
+03:38 
+
+03:38 maintenance on AWS and it isn't even
+03:41 
+
+03:41 possible to do this on something like
+03:43 
+
+03:43 Heroku but render makes it instant
+03:45 
+
+03:45 through three major innovations one
+03:49 
+
+03:49 every render service gets built in
+03:52 
+
+03:52 private networking service discovery and
+03:55 
+
+03:55 load balancing to render is the first
+03:58 
+
+03:58 fully managed cloud to offer SSDs with
+04:02 
+
+04:02 automatic backups and one-click restores
+04:04 
+
+04:04 and three render lets you define all
+04:08 
+
+04:08 your services in just one file you can
+04:12 
+
+04:12 update your infrastructure by simply
+04:14 
+
+04:14 pushing this file to get how cool is
+04:17 
+
+04:17 that now let's look at the competition
+04:20 
+
+04:20 clouds like AWS claim to be developer
+04:23 
+
+04:23 friendly but any developer will tell you
+04:26 
+
+04:26 just how frustrating they can be on the
+04:29 
+
+04:29 other end manage clouds like Heroku have
+04:32 
+
+04:32 stagnated under Salesforce and are
+04:34 
+
+04:34 missing essential features like SSDs and
+04:36 
+
+04:36 private networking
+04:38 
+
+04:38 they're also much more expensive just
+04:41 
+
+04:41 two gigabytes of RAM costs 250 dollars a
+04:45 
+
+04:45 month on Heroku versus $25 a month on
+04:48 
+
+04:48 render we truly give you the best of
+04:50 
+
+04:50 both worlds incredible ease of use
+04:53 
+
+04:53 combined with tremendous flexibility and
+04:56 
+
+04:56 we're doing it in a market that is
+04:58 
+
+04:58 massive and growing quickly right now
+05:02 
+
+05:02 we're focused on the platform as a
+05:04 
+
+05:04 service market worth 20 billion dollars
+05:07 
+
+05:07 longer-term were looking at the entire
+05:11 
+
+05:11 cloud infrastructure as a service market
+05:13 
+
+05:13 estimated at 100 billion dollars just
+05:15 
+
+05:15 three years from now but let's talk real
+05:18 
+
+05:18 numbers renders revenue has grown by
+05:22 
+
+05:22 over 50 percent month-over-month for the
+05:25 
+
+05:25 last six months straight and this growth
+05:28 
+
+05:28 has been entirely organic our platform
+05:31 
+
+05:31 is now serving over 100 million HTTP
+05:35 
+
+05:35 requests every week leading open-source
+05:39 
+
+05:39 projects like react view and Gatsby have
+05:42 
+
+05:42 all selected render as an official
+05:44 
+
+05:44 hosting out front and we're also one of
+05:47 
+
+05:47 just four official cloud partners for
+05:49 
+
+05:49 gitlab we have thousands of amazing
+05:53 
+
+05:53 users including a leading presidential
+05:56 
+
+05:56 campaign that moved all their
+05:58 
+
+05:58 infrastructure over from GCP to render
+06:01 
+
+06:01 recently so if you're a developer or
+06:04 
+
+06:04 founder who's frustrated with AWS or
+06:07 
+
+06:07 Heroku and you're looking to save big on
+06:11 
+
+06:11 time and engineering costs automate your
+06:14 
+
+06:14 cloud hosting today by signing up on
+06:17 
+
+06:17 render comm thank you
+06:20 
+
+06:20 [Applause]
