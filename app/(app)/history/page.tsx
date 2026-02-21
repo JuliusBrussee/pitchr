@@ -25,6 +25,7 @@ import {
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui';
 import { RecordingPlayer } from '@/views/components/RecordingPlayer';
+import { RunDetailModal } from '@/views/components/RunDetailModal';
 
 /* ——— Types ——— */
 
@@ -108,6 +109,7 @@ export default function HistoryPage() {
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
   const [visibleCount, setVisibleCount] = useState(8);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/pitch/run')
@@ -321,6 +323,7 @@ export default function HistoryPage() {
                           animationDelay: `${idx * 50}ms`,
                           animationFillMode: 'both',
                         }}
+                        onClick={() => setSelectedRunId(run.id)}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
                         }}
@@ -448,6 +451,7 @@ export default function HistoryPage() {
                             animationDelay: `${idx * 60}ms`,
                             animationFillMode: 'both',
                           }}
+                          onClick={() => setSelectedRunId(run.id)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
                           }}
@@ -590,6 +594,11 @@ export default function HistoryPage() {
           </span>
         </div>
       </GlassCard>
+
+      <RunDetailModal
+        runId={selectedRunId}
+        onClose={() => setSelectedRunId(null)}
+      />
     </main>
   );
 }
