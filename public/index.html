@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice memo – ElevenLabs Realtime STT</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    .controls { display: flex; gap: 0.5rem; margin: 1rem 0; }
+    button { padding: 0.5rem 1rem; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    #live { color: #666; min-height: 1.5em; margin: 0.5rem 0; }
+    #transcript { white-space: pre-wrap; margin-top: 1rem; }
+    .error { color: #c00; margin: 0.5rem 0; }
+    .final-line { margin: 0.25em 0; }
+  </style>
+</head>
+<body>
+  <h1>Voice memo</h1>
+  <p>Start recording to transcribe with ElevenLabs Realtime STT. Stop to finish.</p>
+  <div class="controls">
+    <button id="startBtn" type="button">Start recording</button>
+    <button id="stopBtn" type="button" disabled>Stop</button>
+  </div>
+  <div id="error" class="error" aria-live="polite"></div>
+  <div id="live" aria-live="polite"></div>
+  <div id="transcript"></div>
+  <script src="app.js"></script>
+</body>
+</html>
