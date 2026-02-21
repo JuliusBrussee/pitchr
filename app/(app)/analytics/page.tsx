@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { AppSidebar } from '@/views/components/AppSidebar';
 import {
   TrendingUp,
   TrendingDown,
@@ -147,10 +146,6 @@ export default function AnalyticsPage() {
   const trendData = SCORE_TREND[range];
 
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar />
-
-      {/* Main Content */}
       <main className="flex-1 overflow-y-auto min-h-0 flex flex-col gap-5 pr-1">
         {/* Header */}
         <div
@@ -324,7 +319,6 @@ export default function AnalyticsPage() {
         {/* Bottom spacer */}
         <div className="h-2 flex-shrink-0" />
       </main>
-    </div>
   );
 }
 

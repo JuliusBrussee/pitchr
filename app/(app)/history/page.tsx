@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { AppSidebar } from '@/views/components/AppSidebar';
 import {
   Search,
   Filter,
@@ -204,10 +203,6 @@ export default function HistoryPage() {
   let animIndex = 0;
 
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar />
-
-      {/* ─── Main Content ─── */}
       <main className="flex-1 flex flex-col gap-4 min-w-0 overflow-hidden">
         {/* ─── Header Card ─── */}
         <div
@@ -592,6 +587,5 @@ export default function HistoryPage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }

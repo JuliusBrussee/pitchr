@@ -1,5 +1,5 @@
-import HeadCoachSandbox from "../views/components/HeadCoachSandbox.jsx";
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return <HeadCoachSandbox />;
+  redirect('/dashboard');
 }

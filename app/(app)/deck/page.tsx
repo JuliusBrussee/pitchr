@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { AppSidebar } from '@/views/components/AppSidebar';
 import {
   Upload,
   FileText,
@@ -109,10 +108,6 @@ export default function DeckPage() {
   );
 
   return (
-    <div className="flex h-screen p-4 gap-4">
-      <AppSidebar />
-
-      {/* Main Content */}
       <main
         className="flex-1 flex flex-col gap-5 overflow-y-auto rounded-2xl p-6 border"
         style={{
@@ -416,7 +411,5 @@ export default function DeckPage() {
           })}
         </div>
       </main>
-
-    </div>
   );
 }
