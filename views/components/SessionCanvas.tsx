@@ -252,9 +252,12 @@ function CameraView({
   const localRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    if (localRef.current && stream) {
-      localRef.current.srcObject = stream;
-    }
+    const video = localRef.current;
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    video.play().catch(() => {
+      // Browser blocked autoplay — will retry on user interaction
+    });
   }, [stream]);
 
   return (

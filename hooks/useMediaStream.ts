@@ -39,6 +39,7 @@ export function useMediaStream(): UseMediaStreamReturn {
         setError(null);
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
+          videoRef.current.play().catch(() => {});
         }
       } catch (err) {
         if (active) {
@@ -57,9 +58,10 @@ export function useMediaStream(): UseMediaStreamReturn {
 
   // Sync video element when stream changes
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
+    const video = videoRef.current;
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    video.play().catch(() => {});
   }, [stream]);
 
   const toggleCamera = useCallback(() => {
