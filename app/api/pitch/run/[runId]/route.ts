@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteRun, getRun, RunNotFoundError } from '@/services/runService';
+import { deleteRecordingByUrl } from '@/services/recordingService';
 import type { Run } from '@/types/pitch';
 
 function toRunResponse(run: Awaited<ReturnType<typeof getRun>>): Run {
@@ -50,6 +51,15 @@ export async function DELETE(
 ): Promise<NextResponse> {
   try {
     const { runId } = await params;
+    // Clean up recording file (best-effort, don't fail the delete if this errors)
+    try {
+      const run = await getRun(runId);
+      if (run.audio_url) {
+        await deleteRecordingByUrl(run.audio_url);
+      }
+    } catch {
+      // Recording may not exist or run fetch may fail — proceed with deletion
+    }
     await deleteRun(runId);
     return NextResponse.json({ deleted: true }, { status: 200 });
   } catch (error) {
