@@ -62,6 +62,8 @@ export interface UseSTTReturn {
   transcriptSegments: string[];
   saved: boolean;
   error: string | null;
+  feedbackText: string | null;
+  feedbackError: string | null;
 }
 
 export function useSTT(): UseSTTReturn {
