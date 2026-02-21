@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, Download } from 'lucide-react';
 import { SiriBubble } from '@/views/components/SiriBubble';
 import type { OrbState } from '@/views/components/SiriBubble';
 import type { SpeechBubble } from '@/hooks/useSessionState';
@@ -310,18 +310,50 @@ function SlideViewer({
     );
   }
 
+  const handleDownload = async () => {
+    if (!pdfUrl) return;
+    try {
+      const res = await fetch(pdfUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const deckName = decks?.find((d) => d.id === selectedDeckId)?.name ?? 'slides';
+      a.download = `${deckName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // Download failed silently — user can retry
+    }
+  };
+
   return (
     <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
       <canvas ref={canvasRef} className="max-w-full max-h-full" />
       {slideCount > 0 && (
-        <div
-          className="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-medium"
-          style={{
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            color: 'rgba(255,255,255,0.8)',
-          }}
-        >
-          {currentSlide} / {slideCount}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <div
+            className="px-3 py-1 rounded-full text-xs font-medium"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              color: 'rgba(255,255,255,0.8)',
+            }}
+          >
+            {currentSlide} / {slideCount}
+          </div>
+          <button
+            onClick={handleDownload}
+            className="p-1.5 rounded-full transition-all duration-200 hover:bg-white/20"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              color: 'rgba(255,255,255,0.8)',
+            }}
+            aria-label="Download deck"
+          >
+            <Download size={14} />
+          </button>
         </div>
       )}
     </div>
