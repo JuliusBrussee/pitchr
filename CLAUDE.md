@@ -7,11 +7,13 @@ AI pitch coach: record/paste a pitch, get investor-grade score (/100), ranked fi
 ## Commands
 
 ```bash
-npm run dev          # Start dev server (localhost:3000)
-npm run build        # Production build
-npm test             # Run all tests (vitest)
-npm run test:watch   # Watch mode
+yarn dev             # Start dev server (localhost:3000)
+yarn build           # Production build
+yarn test            # Run all tests (vitest)
+yarn test:watch      # Watch mode
 ```
+
+**Always use `yarn` — never `npm`.** The project uses `yarn.lock` for dependency resolution.
 
 ## Tech Stack
 
@@ -163,6 +165,7 @@ MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
 
 ## Known Issues
 
+- **UTF-8 corruption (resolved):** The codebase previously had mojibake (garbled characters like `â€"` instead of `—`) caused by UTF-16 encoded content being misread as UTF-8. This was fixed in commit `b8733df3`. When editing files, always ensure UTF-8 encoding. Watch for corrupted em dashes, curly quotes, and other non-ASCII characters — replace them with their correct UTF-8 equivalents.
 - MediaStream not fully released on unmount (memory leak on nav away)
 - Speech bubbles grow indefinitely in long sessions
 - Orb state duplicated between useSessionState hook and ThemeProvider context
@@ -179,3 +182,4 @@ MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
 - Skip `'use client'` on interactive components
 - Break the `@/*` path alias convention
 - Add dependencies without checking if the task can be done with existing stack
+- Use `npm` — always use `yarn` for installs, scripts, and dependency management

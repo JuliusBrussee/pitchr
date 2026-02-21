@@ -161,6 +161,14 @@ Frontend agent writes:   views/components/, app/(app)/ pages, hooks/usePitchRun.
 | LLM: `analysisService.ts` | Backend: controller | Input: `{transcript, mode}` Output: `AnalysisResult` |
 | Backend: `scoringService.ts` | LLM: analysisService | Input: `{transcript, mode}` Output: `DeliveryMetrics` |
 
+### Package Manager
+
+**Always use `yarn` — never `npm`.** The project uses `yarn.lock` for dependency resolution. All scripts should be run via `yarn dev`, `yarn build`, `yarn test`, etc.
+
+### UTF-8 Encoding
+
+The codebase previously suffered from UTF-8 corruption (mojibake) caused by UTF-16 encoded content being misread as UTF-8 — e.g., `â€"` instead of `—`. This was fixed in commit `b8733df3`. When writing or editing files, always ensure UTF-8 encoding and watch for corrupted non-ASCII characters (em dashes, curly quotes, etc.).
+
 ### Shared Decisions
 
 - UUIDs for run IDs: `crypto.randomUUID()`
