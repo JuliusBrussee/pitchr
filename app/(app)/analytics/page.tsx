@@ -21,23 +21,242 @@ import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components
 
 /* ——— Types ——— */
 
+interface RubricBreakdownItem {
+  category: string;
+  score: number;
+  max_score: number;
+}
+
+interface DeliveryMetrics {
+  wpm: number;
+  duration_seconds: number;
+  filler_words: { word: string; count: number }[];
+  repeated_phrases: string[];
+  within_time_limit: boolean;
+}
+
 interface RunRecord {
   id: string;
   overallScore: number;
   createdAt: string;
   analysis: {
-    rubric_breakdown: { category: string; score: number; max_score: number }[];
-    delivery_metrics: {
-      wpm: number;
-      duration_seconds: number;
-      filler_words: { word: string; count: number }[];
-      repeated_phrases: string[];
-      within_time_limit: boolean;
-    };
+    rubric_breakdown: RubricBreakdownItem[];
+    delivery_metrics: DeliveryMetrics;
   };
 }
 
 /* ——— Helpers ——— */
+
+const DEFAULT_DELIVERY_METRICS: DeliveryMetrics = {
+  wpm: 0,
+  duration_seconds: 0,
+  filler_words: [],
+  repeated_phrases: [],
+  within_time_limit: false,
+};
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+  const parsed =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string'
+        ? Number.parseFloat(value)
+        : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function toIsoDate(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : value;
+}
+
+function toDayKey(dateIso: string): string {
+  return new Date(dateIso).toISOString().slice(0, 10);
+}
+
+function formatDayLabel(dayKey: string): string {
+  return new Date(`${dayKey}T00:00:00.000Z`).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function mean(values: number[]): number {
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function normalizeCategory(rawCategory: string): string {
+  const normalized = rawCategory.toLowerCase().trim().replace(/[\s-]+/g, '_');
+  if (normalized.includes('structure') || normalized.includes('narrative')) return 'structure';
+  if (normalized.includes('clarity') || normalized.includes('concision')) return 'clarity';
+  if (
+    normalized.includes('evidence') ||
+    normalized.includes('traction') ||
+    normalized.includes('proof')
+  ) {
+    return 'evidence';
+  }
+  if (
+    normalized.includes('market') ||
+    normalized.includes('competition') ||
+    normalized.includes('moat') ||
+    normalized.includes('ask')
+  ) {
+    return 'market';
+  }
+  if (
+    normalized.includes('delivery') ||
+    normalized.includes('pace') ||
+    normalized.includes('design') ||
+    normalized.includes('speaking')
+  ) {
+    return 'delivery';
+  }
+  return normalized;
+}
+
+function getObjectField(
+  source: Record<string, unknown>,
+  keys: string[],
+): unknown {
+  for (const key of keys) {
+    if (source[key] !== undefined) {
+      return source[key];
+    }
+  }
+  return undefined;
+}
+
+function normalizeRubricBreakdown(value: unknown): RubricBreakdownItem[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!isObject(item)) return null;
+      const categoryRaw = item.category;
+      const category = typeof categoryRaw === 'string' ? normalizeCategory(categoryRaw) : null;
+      if (typeof category !== 'string' || category.trim().length === 0) return null;
+      const rawScore = toFiniteNumber(item.score, 0);
+      const rawMax = toFiniteNumber(item.max_score ?? item.maxScore, 20);
+      const scaledScore = rawScore > 0 && rawScore <= 1.2 ? rawScore * 20 : rawScore;
+      const scaledMax = rawMax > 0 && rawMax <= 1.2 ? rawMax * 20 : rawMax;
+      return {
+        category,
+        score: scaledScore,
+        max_score: scaledMax,
+      };
+    })
+    .filter((item): item is RubricBreakdownItem => item !== null);
+}
+
+function normalizeFillerWords(value: unknown): { word: string; count: number }[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (!isObject(item) || typeof item.word !== 'string') return null;
+      return { word: item.word, count: toFiniteNumber(item.count, 0) };
+    })
+    .filter((item): item is { word: string; count: number } => item !== null);
+}
+
+function normalizeRepeatedPhrases(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (isObject(item) && typeof item.phrase === 'string') return item.phrase;
+      return null;
+    })
+    .filter((item): item is string => item !== null && item.trim().length > 0);
+}
+
+function normalizeDeliveryMetrics(value: unknown): DeliveryMetrics {
+  if (!isObject(value)) return DEFAULT_DELIVERY_METRICS;
+  const rawWpm = toFiniteNumber(value.wpm, 0);
+  return {
+    wpm: rawWpm > 0 && rawWpm <= 2 ? rawWpm * 140 : rawWpm,
+    duration_seconds: toFiniteNumber(value.duration_seconds ?? value.durationSeconds, 0),
+    filler_words: normalizeFillerWords(value.filler_words ?? value.fillerWords),
+    repeated_phrases: normalizeRepeatedPhrases(value.repeated_phrases ?? value.repeatedPhrases),
+    within_time_limit: Boolean(value.within_time_limit),
+  };
+}
+
+function extractFeedback(rawRun: Record<string, unknown>): Record<string, unknown> | null {
+  const analysis = isObject(rawRun.analysis) ? rawRun.analysis : null;
+  const outputs = isObject(rawRun.outputs) ? rawRun.outputs : null;
+
+  if (analysis && Array.isArray(analysis.rubric_breakdown)) {
+    return analysis;
+  }
+  if (outputs && isObject(outputs.feedback)) {
+    return outputs.feedback;
+  }
+  if (analysis && isObject(analysis.outputs) && isObject(analysis.outputs.feedback)) {
+    return analysis.outputs.feedback;
+  }
+  if (analysis && isObject(analysis.analysis) && Array.isArray(analysis.analysis.rubric_breakdown)) {
+    return analysis.analysis;
+  }
+  return null;
+}
+
+function normalizeRunRecord(raw: unknown): RunRecord | null {
+  if (!isObject(raw)) return null;
+
+  const id = typeof raw.id === 'string' ? raw.id : null;
+  const createdAt = toIsoDate(raw.createdAt ?? raw.created_at);
+  const feedback = extractFeedback(raw);
+  if (!id || !createdAt || !feedback) return null;
+
+  const rubric_breakdown = normalizeRubricBreakdown(
+    getObjectField(feedback, ['rubric_breakdown', 'rubricBreakdown']),
+  );
+  const delivery_metrics = normalizeDeliveryMetrics(
+    getObjectField(feedback, ['delivery_metrics', 'deliveryMetrics']),
+  );
+
+  const rawOverall = toFiniteNumber(raw.overallScore ?? raw.overall_score, Number.NaN);
+  const feedbackOverall = toFiniteNumber(
+    getObjectField(feedback, ['overall_score', 'overallScore']),
+    Number.NaN,
+  );
+  const selectedOverall = Number.isFinite(rawOverall) && rawOverall > 0
+    ? rawOverall
+    : Number.isFinite(feedbackOverall)
+      ? feedbackOverall
+      : 0;
+  const overallScore =
+    selectedOverall > 0 && selectedOverall <= 1.2 ? selectedOverall * 100 : selectedOverall;
+
+  return {
+    id,
+    createdAt,
+    overallScore,
+    analysis: {
+      rubric_breakdown,
+      delivery_metrics,
+    },
+  };
+}
+
+function normalizeRuns(rawRuns: unknown): RunRecord[] {
+  if (!Array.isArray(rawRuns)) return [];
+  return rawRuns
+    .map((run) => normalizeRunRecord(run))
+    .filter((run): run is RunRecord => run !== null);
+}
+
+function sortChronological(runs: RunRecord[]): RunRecord[] {
+  return runs
+    .slice()
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+}
 
 function getDaysAgo(days: number): Date {
   const d = new Date();
@@ -54,13 +273,18 @@ function filterByRange(runs: RunRecord[], range: TimeRange): RunRecord[] {
 }
 
 function computeTrend(runs: RunRecord[]): { label: string; value: number }[] {
-  return runs
-    .slice()
-    .reverse()
-      .map((r) => ({
-      label: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      value: r.overallScore,
-    }));
+  const byDay = new Map<string, number[]>();
+  for (const run of sortChronological(runs)) {
+    const score = toFiniteNumber(run.overallScore, 0);
+    const dayKey = toDayKey(run.createdAt);
+    const existing = byDay.get(dayKey) ?? [];
+    existing.push(score);
+    byDay.set(dayKey, existing);
+  }
+  return Array.from(byDay.entries()).map(([dayKey, scores]) => ({
+    label: formatDayLabel(dayKey),
+    value: Math.round(mean(scores)),
+  }));
 }
 
 function formatSessionLabel(dateStr: string): string {
@@ -70,7 +294,11 @@ function formatSessionLabel(dateStr: string): string {
 /* ——— Compute functions ——— */
 
 function computeStatDeltas(runs: RunRecord[]) {
-  if (runs.length < 2) {
+  const newestFirst = runs
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (newestFirst.length < 2) {
     return {
       scoreDelta: undefined as string | undefined,
       scoreDir: undefined as 'up' | 'down' | undefined,
@@ -81,10 +309,9 @@ function computeStatDeltas(runs: RunRecord[]) {
     };
   }
 
-  const mid = Math.floor(runs.length / 2);
-  // runs are sorted newest-first from the API
-  const newerHalf = runs.slice(0, mid);
-  const olderHalf = runs.slice(mid);
+  const mid = Math.floor(newestFirst.length / 2);
+  const newerHalf = newestFirst.slice(0, mid);
+  const olderHalf = newestFirst.slice(mid);
 
   const avgNewer = newerHalf.reduce((s, r) => s + r.overallScore, 0) / newerHalf.length;
   const avgOlder = olderHalf.reduce((s, r) => s + r.overallScore, 0) / olderHalf.length;
@@ -119,23 +346,33 @@ function computeStatDeltas(runs: RunRecord[]) {
 }
 
 function computeRubricTrend(runs: RunRecord[]): { label: string; scores: { category: string; score: number }[] }[] {
-  return runs
-    .slice()
-    .reverse()
-    .map((r) => ({
-      label: formatSessionLabel(r.createdAt),
-      scores: (r.analysis.rubric_breakdown ?? []).map((rb) => ({
-        category: rb.category,
-        score: rb.score,
-      })),
-    }));
+  const byDay = new Map<string, Map<string, number[]>>();
+  for (const run of sortChronological(runs)) {
+    const dayKey = toDayKey(run.createdAt);
+    const dayBucket = byDay.get(dayKey) ?? new Map<string, number[]>();
+    for (const rb of run.analysis.rubric_breakdown ?? []) {
+      const category = normalizeCategory(rb.category);
+      if (!(category in RUBRIC_COLORS)) continue;
+      const score = toFiniteNumber(rb.score, 0);
+      const normalizedScore = score > 0 && score <= 1.2 ? score * 20 : score;
+      const existing = dayBucket.get(category) ?? [];
+      existing.push(normalizedScore);
+      dayBucket.set(category, existing);
+    }
+    byDay.set(dayKey, dayBucket);
+  }
+  return Array.from(byDay.entries()).map(([dayKey, scoresByCategory]) => ({
+    label: formatDayLabel(dayKey),
+    scores: Object.keys(RUBRIC_COLORS).map((category) => ({
+      category,
+      score: Math.round(mean(scoresByCategory.get(category) ?? [])),
+    })),
+  }));
 }
 
 function computeWpmTrend(runs: RunRecord[]): { label: string; wpm: number }[] {
-  return runs
-    .slice()
-    .reverse()
-    .filter((r) => r.analysis.delivery_metrics?.wpm != null)
+  return sortChronological(runs)
+    .filter((r) => Number.isFinite(r.analysis.delivery_metrics?.wpm))
     .map((r) => ({
       label: formatSessionLabel(r.createdAt),
       wpm: r.analysis.delivery_metrics.wpm,
@@ -146,7 +383,7 @@ function computeFillerData(runs: RunRecord[]): {
   trend: { label: string; total: number }[];
   aggregate: { word: string; total: number }[];
 } {
-  const chronological = runs.slice().reverse();
+  const chronological = sortChronological(runs);
   const trend = chronological.map((r) => {
     const fillers = r.analysis.delivery_metrics?.filler_words ?? [];
     const total = fillers.reduce((s, f) => s + (f.count ?? 0), 0);
@@ -173,16 +410,12 @@ function computeFillerData(runs: RunRecord[]): {
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('30D');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/pitch/run')
       .then((r) => r.json())
-      .then((payload: { runs?: RunRecord[] }) =>
-        setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
-      )
-      .catch(() => setAllRuns([]))
-      .finally(() => setLoading(false));
+      .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
+      .catch(() => setAllRuns([]));
   }, []);
 
   const filteredRuns = useMemo(() => filterByRange(allRuns, range), [allRuns, range]);
@@ -268,7 +501,7 @@ export default function AnalyticsPage() {
                   : 'All time'}
           </span>
         </div>
-        {filteredRuns.length === 0 ? (
+        {trendData.length === 0 ? (
           <EmptyState message="No sessions in this time range" />
         ) : (
           <ScoreTrendChart data={trendData} />
@@ -281,7 +514,7 @@ export default function AnalyticsPage() {
           <SectionHeader>Rubric Category Trend</SectionHeader>
           <Activity size={16} style={{ color: 'var(--text-muted)' }} />
         </div>
-        {filteredRuns.length === 0 ? (
+        {rubricTrend.length === 0 ? (
           <EmptyState message="No sessions to show rubric trends" />
         ) : (
           <RubricTrendChart data={rubricTrend} />
@@ -353,7 +586,7 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
       <div className="flex-1 flex flex-col">
         {/* Bars container */}
         <div
-          className="flex-1 flex items-end gap-1 relative"
+          className="flex-1 flex items-stretch gap-1 relative"
           style={{
             borderBottom: '1px solid var(--border-color)',
             borderLeft: '1px solid var(--border-color)',
@@ -376,16 +609,17 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
           {data.map((d, i) => {
             const heightPct = (d.value / maxVal) * 100;
             const barColor = getScoreColor(d.value);
+            const clampedHeightPct = d.value > 0 ? Math.max(1.5, heightPct) : 0;
 
             return (
               <div
                 key={i}
-                className="flex-1 flex flex-col items-center justify-end relative z-10"
+                className="flex-1 h-full flex flex-col items-center justify-end relative z-10"
               >
                 <div
                   className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
                   style={{
-                    height: `${heightPct}%`,
+                    height: `${clampedHeightPct}%`,
                     backgroundColor: barColor,
                     opacity: 0.85,
                   }}
@@ -468,7 +702,7 @@ function RubricTrendChart({ data }: { data: { label: string; scores: { category:
         {/* Chart area */}
         <div className="flex-1 flex flex-col">
           <div
-            className="flex-1 flex items-end gap-2 relative"
+            className="flex-1 flex items-stretch gap-2 relative"
             style={{
               borderBottom: '1px solid var(--border-color)',
               borderLeft: '1px solid var(--border-color)',
@@ -491,11 +725,12 @@ function RubricTrendChart({ data }: { data: { label: string; scores: { category:
             {data.map((session, i) => (
               <div
                 key={i}
-                className="flex-1 flex items-end justify-center gap-[2px] relative z-10 group cursor-default"
+                className="flex-1 h-full flex items-end justify-center gap-[2px] relative z-10 group cursor-default"
               >
                 {categories.map((cat) => {
                   const score = session.scores.find((s) => s.category === cat)?.score ?? 0;
                   const heightPct = (score / maxVal) * 100;
+                  const clampedHeightPct = score > 0 ? Math.max(2.5, heightPct) : 0;
                   return (
                     <div
                       key={cat}
@@ -504,7 +739,7 @@ function RubricTrendChart({ data }: { data: { label: string; scores: { category:
                         width: '16%',
                         minWidth: 3,
                         maxWidth: 8,
-                        height: `${heightPct}%`,
+                        height: `${clampedHeightPct}%`,
                         backgroundColor: getRubricColor(cat),
                         opacity: 0.85,
                       }}
@@ -618,7 +853,7 @@ function WpmTrendChart({ data }: { data: { label: string; wpm: number }[] }) {
       {/* Chart area */}
       <div className="flex-1 flex flex-col">
         <div
-          className="flex-1 flex items-end gap-1 relative"
+          className="flex-1 flex items-stretch gap-1 relative"
           style={{
             borderBottom: '1px solid var(--border-color)',
             borderLeft: '1px solid var(--border-color)',
@@ -644,7 +879,7 @@ function WpmTrendChart({ data }: { data: { label: string; wpm: number }[] }) {
             return (
               <div
                 key={i}
-                className="flex-1 flex flex-col items-center justify-end relative z-10"
+                className="flex-1 h-full flex flex-col items-center justify-end relative z-10"
               >
                 <div
                   className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
@@ -729,7 +964,7 @@ function FillerTrendChart({ data }: { data: { label: string; total: number }[] }
         {/* Chart area */}
         <div className="flex-1 flex flex-col">
           <div
-            className="flex-1 flex items-end gap-1 relative"
+            className="flex-1 flex items-stretch gap-1 relative"
             style={{
               borderBottom: '1px solid var(--border-color)',
               borderLeft: '1px solid var(--border-color)',
@@ -737,15 +972,16 @@ function FillerTrendChart({ data }: { data: { label: string; total: number }[] }
           >
             {data.map((d, i) => {
               const heightPct = yMax > 0 ? (d.total / yMax) * 100 : 0;
+              const clampedHeightPct = d.total > 0 ? Math.max(2, heightPct) : 0;
               return (
                 <div
                   key={i}
-                  className="flex-1 flex flex-col items-center justify-end relative z-10"
+                  className="flex-1 h-full flex flex-col items-center justify-end relative z-10"
                 >
                   <div
                     className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
                     style={{
-                      height: `${heightPct}%`,
+                      height: `${clampedHeightPct}%`,
                       backgroundColor: '#f59e0b',
                       opacity: 0.85,
                     }}
