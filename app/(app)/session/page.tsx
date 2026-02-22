@@ -12,9 +12,8 @@ import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
-import type { DeckRecord } from '@/services/deckService';
+import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
-import type { SlideRecord } from '@/services/deckService';
 
 export default function SessionPage() {
   return (
@@ -43,6 +42,8 @@ function SessionPageContent() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
+  const [selectedMode, setSelectedMode] = useState<PitchMode>('elevator');
+  const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
@@ -157,12 +158,22 @@ function SessionPageContent() {
     console.debug('[headTracking] state transition', headState);
   }, [headTrackingDebugEnabled, session.isSessionActive, media.isCameraOn, headState]);
 
+  // Sync realtime checklist from STT to session state
+  useEffect(() => {
+    setSessionChecklist(stt.realtimeChecklist);
+  }, [setSessionChecklist, stt.realtimeChecklist]);
+
+  useEffect(() => {
+    if (session.isSessionActive) return;
+    resetSessionChecklist(selectedMode);
+  }, [selectedMode, session.isSessionActive, resetSessionChecklist]);
+
   const handleStartSession = useCallback(() => {
     setAnalysisError(null);
     autoSubmitLockRef.current = false;
-    session.startSession();
-    stt.start();
-  }, [session, stt]);
+    session.startSession(selectedMode);
+    stt.start({ mode: selectedMode });
+  }, [selectedMode, session, stt]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
@@ -266,8 +277,15 @@ function SessionPageContent() {
         checklist={session.checklist}
         insights={session.insights}
         isSessionActive={session.isSessionActive}
+        selectedMode={selectedMode}
+        onModeChange={setSelectedMode}
+        checklistSource={stt.checklistSource}
+        checklistNextHint={stt.checklistNextHint}
+        checklistError={stt.checklistError}
         sttError={analysisError ?? runError ?? stt.error}
         sttSaved={stt.saved && !isAnalyzing}
+        isAnalyzing={isAnalyzing}
+        analysisError={analysisError ?? runError}
       />
       <video
         ref={trackingVideoRef}

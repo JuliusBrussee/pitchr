@@ -13,8 +13,16 @@ import WebSocket, { WebSocketServer } from "ws";
 import { generateFeedbackQuestion, getCoachFeedback } from "./lib/llm/feedbackQA";
 import { getPitchFromEnv } from "./lib/llm/pitchCoach";
 import { synthesizeMp3 } from "./lib/elevenlabs/tts";
+import {
+  buildChecklistUpdateMessage,
+  createRealtimeChecklistSessionState,
+  evaluateRealtimeChecklist,
+} from "./services/realtimeChecklistService";
+import type { PitchMode } from "./types/pitch";
 
+// Load local overrides first, then fallback to shared env.
 dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env" });
 
 const hasTtsKey = !!(process.env.ELEVENLABS_API_KEY_TTS?.trim());
 const hasVoiceId = !!(process.env.ELEVENLABS_VOICE_ID?.trim());
@@ -30,6 +38,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 const ELEVENLABS_WS_URL = "wss://api.elevenlabs.io/v1/speech-to-text/realtime";
+
+function getElevenLabsSttApiKey(): string {
+  const direct = process.env.ELEVENLABS_API_KEY?.trim();
+  if (direct) return direct;
+  const stt = process.env.ELEVENLABS_API_KEY_STT?.trim();
+  if (stt) return stt;
+  return "";
+}
 
 app.use((_req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -50,7 +66,7 @@ app.get("/", (_req, res) => {
 <html><head><meta charset="utf-8"><title>STT Backend</title></head>
 <body style="font-family:system-ui;max-width:32rem;margin:2rem auto;padding:0 1rem;">
   <h1>STT backend</h1>
-  <p>This server provides the WebSocket for transcription. Use the main app: run <code>npm run dev</code> and open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
+  <p>This server provides the WebSocket for transcription. Use the main app: run <code>yarn dev</code> and open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
 </body></html>`);
 });
 
@@ -88,10 +104,19 @@ const httpServer = createServer(app);
 
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
+function isPitchMode(value: unknown): value is PitchMode {
+  return value === "elevator" || value === "vc_pitch";
+}
+
 wss.on("connection", (clientWs) => {
-  const apiKey = process.env.ELEVENLABS_API_KEY_STT?.trim() || process.env.ELEVENLABS_API_KEY?.trim();
+  const apiKey = getElevenLabsSttApiKey();
   if (!apiKey) {
-    clientWs.send(JSON.stringify({ type: "error", error: "Server configuration error." }));
+    clientWs.send(
+      JSON.stringify({
+        type: "error",
+        error: "Server configuration error: missing ELEVENLABS_API_KEY (or ELEVENLABS_API_KEY_STT).",
+      })
+    );
     clientWs.close();
     return;
   }
@@ -112,17 +137,89 @@ wss.on("connection", (clientWs) => {
   let sessionStarted = false;
   const audioQueue: string[] = [];
   let transcript = "";
+  let livePartialTranscript = "";
   const segments: { text: string; start: number; end: number }[] = [];
   let stopRequested = false;
   let saveDone = false;
   let saveTimeout: ReturnType<typeof setTimeout> | null = null;
   let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
   let answerMode = false;
+  let checklistSession = createRealtimeChecklistSessionState("elevator");
+  let checklistInFlight = false;
+  let checklistPending = false;
+  let checklistPendingForce = false;
 
   function forwardToClient(obj: object) {
     if (clientWs.readyState === WebSocket.OPEN) {
       clientWs.send(JSON.stringify(obj));
     }
+  }
+
+  function sendChecklistSnapshot(source: "openrouter" | "heuristic"): void {
+    forwardToClient(
+      buildChecklistUpdateMessage({
+        mode: checklistSession.mode,
+        source,
+        items: checklistSession.items,
+        evaluatedAtIso: new Date().toISOString(),
+      })
+    );
+  }
+
+  function getChecklistTranscript(): string {
+    const committed = transcript.trim();
+    const partial = livePartialTranscript.trim();
+    if (!partial) return committed;
+    if (!committed) return partial;
+    if (committed.endsWith(partial)) return committed;
+    return `${committed} ${partial}`.trim();
+  }
+
+  function queueChecklistEvaluation(force = false): void {
+    if (checklistInFlight) {
+      checklistPending = true;
+      checklistPendingForce = checklistPendingForce || force;
+      return;
+    }
+
+    checklistInFlight = true;
+    void (async () => {
+      try {
+        const result = await evaluateRealtimeChecklist({
+          mode: checklistSession.mode,
+          transcript: getChecklistTranscript(),
+          previousItems: checklistSession.items,
+          scheduler: checklistSession.scheduler,
+          sessionStartedAtMs: checklistSession.startedAtMs,
+          force,
+        });
+
+        if (result) {
+          checklistSession = {
+            ...checklistSession,
+            items: result.items,
+            scheduler: result.scheduler,
+          };
+          forwardToClient(result.message);
+        }
+      } catch (error) {
+        forwardToClient({
+          type: "checklist_error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Realtime checklist evaluation failed.",
+        });
+      } finally {
+        checklistInFlight = false;
+        if (checklistPending) {
+          const nextForce = checklistPendingForce;
+          checklistPending = false;
+          checklistPendingForce = false;
+          queueChecklistEvaluation(nextForce);
+        }
+      }
+    })();
   }
 
   function transcriptTimestamp(): string {
@@ -167,10 +264,11 @@ wss.on("connection", (clientWs) => {
       fallbackTimeout = null;
     }
     // #region agent log
-    const half = Math.floor(transcript.length / 2);
-    const firstHalf = transcript.slice(0, half);
-    const secondHalf = transcript.slice(half);
-    fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:flushAndSave", message: "before write", data: { transcriptLen: transcript.length, segmentsCount: segments.length, segmentTexts: segments.map((s) => s.text.length), firstHalfEqSecond: firstHalf === secondHalf, transcriptStart: transcript.slice(0, 100) }, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
+    const finalTranscript = getChecklistTranscript();
+    const half = Math.floor(finalTranscript.length / 2);
+    const firstHalf = finalTranscript.slice(0, half);
+    const secondHalf = finalTranscript.slice(half);
+    fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:flushAndSave", message: "before write", data: { transcriptLen: finalTranscript.length, segmentsCount: segments.length, segmentTexts: segments.map((s) => s.text.length), firstHalfEqSecond: firstHalf === secondHalf, transcriptStart: finalTranscript.slice(0, 100) }, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
     // #endregion
     const baseDir = path.join(process.cwd(), "transcript");
     const txtDir = path.join(baseDir, "txt");
@@ -188,8 +286,8 @@ wss.on("connection", (clientWs) => {
     const jsonPath = path.join(jsonDir, `transcript_${ts}.json`);
     const jsonSegments = segmentsByPhrase(segments);
     try {
-      fs.writeFileSync(txtPath, transcript, "utf8");
-      fs.writeFileSync(jsonPath, JSON.stringify({ transcript, segments: jsonSegments }, null, 2), "utf8");
+      fs.writeFileSync(txtPath, finalTranscript, "utf8");
+      fs.writeFileSync(jsonPath, JSON.stringify({ transcript: finalTranscript, segments: jsonSegments }, null, 2), "utf8");
     } catch (e) {
       console.error("Write failed:", e);
       forwardToClient({ type: "error", error: "Failed to save transcript." });
@@ -230,6 +328,7 @@ wss.on("connection", (clientWs) => {
   elevenLabsWs.on("open", () => {
     // Start forwarding queued audio from client
     sessionStarted = true;
+    sendChecklistSnapshot("heuristic");
     while (audioQueue.length > 0) {
       const msg = audioQueue.shift();
       if (msg && elevenLabsWs?.readyState === WebSocket.OPEN) elevenLabsWs.send(msg);
@@ -245,11 +344,21 @@ wss.on("connection", (clientWs) => {
       return;
     }
     forwardToClient(msg);
+    if (msg.message_type === "partial_transcript") {
+      const nextPartial = msg.text?.trim() ?? "";
+      if (nextPartial !== livePartialTranscript) {
+        livePartialTranscript = nextPartial;
+        queueChecklistEvaluation(false);
+      }
+      return;
+    }
+
     const isCommitted =
       msg.message_type === "committed_transcript_with_timestamps" ||
       msg.message_type === "committed_transcript";
 
     if (isCommitted && msg.text) {
+      livePartialTranscript = "";
       const lastText = segments.length > 0 ? segments[segments.length - 1].text : null;
       const words = msg.words ?? [];
       const lastEnd = segments.length > 0 ? segments[segments.length - 1].end : 0;
@@ -264,6 +373,7 @@ wss.on("connection", (clientWs) => {
         transcript = transcript.slice(0, -lastText.length) + msg.text;
         segments.pop();
         segments.push({ text: msg.text, start, end });
+        queueChecklistEvaluation(stopRequested);
         // #region agent log
         fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:committed_transcript_with_timestamps", message: "replaced segment H6", data: { lastLen: lastText.length, newLen: msg.text.length }, timestamp: Date.now(), hypothesisId: "H6", runId: "post-fix" }) }).catch(() => {});
         // #endregion
@@ -287,6 +397,7 @@ wss.on("connection", (clientWs) => {
       // #endregion
       transcript += msg.text;
       segments.push({ text: msg.text, start, end });
+      queueChecklistEvaluation(stopRequested);
       if (!answerMode && stopRequested && !saveDone && !saveTimeout) {
         if (fallbackTimeout) {
           clearTimeout(fallbackTimeout);
@@ -312,9 +423,9 @@ wss.on("connection", (clientWs) => {
 
   clientWs.on("message", (data: Buffer | string) => {
     const raw = typeof data === "string" ? data : data.toString();
-    let msg: { type?: string; message_type?: string; question?: string };
+    let msg: { type?: string; message_type?: string; question?: string; mode?: string };
     try {
-      msg = JSON.parse(raw) as { type?: string; message_type?: string; question?: string };
+      msg = JSON.parse(raw) as { type?: string; message_type?: string; question?: string; mode?: string };
     } catch {
       return;
     }
@@ -322,8 +433,19 @@ wss.on("connection", (clientWs) => {
       answerMode = true;
       return;
     }
+    if (msg.type === "session_config") {
+      if (!isPitchMode(msg.mode)) {
+        forwardToClient({ type: "checklist_error", error: "Invalid pitch mode." });
+        return;
+      }
+      checklistSession = createRealtimeChecklistSessionState(msg.mode, Date.now());
+      livePartialTranscript = "";
+      sendChecklistSnapshot("heuristic");
+      return;
+    }
     if (msg.type === "stop") {
       stopRequested = true;
+      queueChecklistEvaluation(true);
       if (answerMode) {
         console.log("[answer] Stop received, sending answer_transcript in 1.5s, transcript length:", transcript.length);
         if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
