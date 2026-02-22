@@ -8,6 +8,8 @@ import {
 describe('realtimeChecklistService', () => {
   const nowMs = 1_700_000_000_000;
   const originalAnthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  const originalOpenRouterApiKey = process.env.OPENROUTER_API_KEY;
+  const originalLlmProvider = process.env.LLM_PROVIDER;
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -18,6 +20,16 @@ describe('realtimeChecklistService', () => {
       delete process.env.ANTHROPIC_API_KEY;
     } else {
       process.env.ANTHROPIC_API_KEY = originalAnthropicApiKey;
+    }
+    if (originalOpenRouterApiKey === undefined) {
+      delete process.env.OPENROUTER_API_KEY;
+    } else {
+      process.env.OPENROUTER_API_KEY = originalOpenRouterApiKey;
+    }
+    if (originalLlmProvider === undefined) {
+      delete process.env.LLM_PROVIDER;
+    } else {
+      process.env.LLM_PROVIDER = originalLlmProvider;
     }
     vi.unstubAllGlobals();
   });
@@ -90,6 +102,7 @@ describe('realtimeChecklistService', () => {
   });
 
   it('uses llm source when semantic evaluation succeeds', async () => {
+    process.env.LLM_PROVIDER = 'anthropic';
     process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
     vi.stubGlobal(
       'fetch',
@@ -134,6 +147,57 @@ describe('realtimeChecklistService', () => {
     expect(result).not.toBeNull();
     expect(result?.source).toBe('llm');
     expect(result?.message.nextHint).toBe('Add one traction metric next.');
+  });
+
+  it('falls back to anthropic when configured provider keys are routed away from openrouter', async () => {
+    process.env.LLM_PROVIDER = 'openrouter';
+    delete process.env.OPENROUTER_API_KEY;
+    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  items: [
+                    {
+                      id: 'intro_hook',
+                      status: 'completed',
+                      confidence: 0.79,
+                      evidence: 'My name is Bob and I founded Acme.',
+                    },
+                  ],
+                  next_hint: 'Add market sizing next.',
+                }),
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    );
+
+    const result = await evaluateRealtimeChecklist({
+      mode: 'vc_pitch',
+      transcript: 'My name is Bob and I founded Acme to solve sales ops pain.',
+      previousItems: createInitialChecklistState('vc_pitch'),
+      scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+      sessionStartedAtMs: nowMs - 5_000,
+      nowMs,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.source).toBe('llm');
+    expect(result?.items.find((item) => item.id === 'intro_hook')?.status).toBe(
+      'completed',
+    );
   });
 
   it('can force evaluation despite cooldown', async () => {

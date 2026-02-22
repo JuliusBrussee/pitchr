@@ -1,6 +1,9 @@
 import { createInitialChecklistState, getChecklistDefinitions } from '../config/realtimeChecklist';
+import { AnthropicProvider } from '../lib/llm/providers/anthropic';
+import { OpenRouterProvider } from '../lib/llm/providers/openrouter';
 import { completeWithLlmRouter } from '../lib/llm/router';
 import { buildRealtimeChecklistPrompt } from '../lib/prompts/realtimeChecklist';
+import type { LlmCompletionRequest, LlmProviderName } from '../lib/llm/types';
 import type {
   ChecklistDefinition,
   ChecklistItemId,
@@ -256,15 +259,70 @@ function evaluateHeuristicChecklist(
   return map;
 }
 
+function hasAnthropicApiKey(): boolean {
+  return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
+}
+
+function hasOpenRouterApiKey(): boolean {
+  return Boolean(process.env.OPENROUTER_API_KEY?.trim());
+}
+
+function hasProviderApiKey(providerName: LlmProviderName): boolean {
+  return providerName === 'anthropic' ? hasAnthropicApiKey() : hasOpenRouterApiKey();
+}
+
+function getAlternateProviderName(providerName: LlmProviderName): LlmProviderName {
+  return providerName === 'anthropic' ? 'openrouter' : 'anthropic';
+}
+
+function isLikelyProviderKeyRoutingIssue(error: unknown): boolean {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    message.includes('missing anthropic_api_key') ||
+    message.includes('missing openrouter_api_key') ||
+    message.includes('status 401') ||
+    message.includes('status 403') ||
+    message.includes('unauthorized')
+  );
+}
+
+async function completeWithDirectProvider(
+  providerName: LlmProviderName,
+  request: LlmCompletionRequest,
+): Promise<string> {
+  if (providerName === 'anthropic') {
+    return new AnthropicProvider().complete(request);
+  }
+  return new OpenRouterProvider().complete(request);
+}
+
 async function completeWithChecklistLlm(userPrompt: string): Promise<string> {
-  return completeWithLlmRouter({
+  const request: LlmCompletionRequest = {
     systemPrompt: CHECKLIST_LLM_SYSTEM_PROMPT,
     userPrompt,
     responseFormat: 'json',
     temperature: 0.3,
     maxTokens: 1200,
     timeoutMs: CHECKLIST_LLM_TIMEOUT_MS,
-  });
+  };
+
+  try {
+    return await completeWithLlmRouter(request);
+  } catch (primaryError) {
+    const primaryProvider =
+      process.env.LLM_PROVIDER?.toLowerCase() === 'openrouter'
+        ? 'openrouter'
+        : 'anthropic';
+    const alternateProvider = getAlternateProviderName(primaryProvider);
+    if (
+      !isLikelyProviderKeyRoutingIssue(primaryError) ||
+      !hasProviderApiKey(alternateProvider)
+    ) {
+      throw primaryError;
+    }
+
+    return completeWithDirectProvider(alternateProvider, request);
+  }
 }
 
 function getHigherNonCompletedStatus(
