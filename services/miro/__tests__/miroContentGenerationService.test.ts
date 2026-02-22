@@ -31,6 +31,8 @@ const sampleInput: MiroFixBoardRequest = {
 
 function makeValidJson() {
   return JSON.stringify({
+    layoutStyle: "mindmap_hybrid",
+    kanbanSize: "small",
     overviewCardHtml:
       "<strong>Verdict</strong>: Tighten proof<br/><strong>Mode</strong>: VC Pitch",
     rewriteCardText: "Condensed rewrite.",
@@ -68,6 +70,26 @@ function makeValidJson() {
         blocker: "",
       },
     ],
+    mindMap: {
+      centerTitle: "Pitch Fix Strategy",
+      centerBullets: ["Tighten proof", "Prioritize traction and ask"],
+      nodes: [
+        {
+          id: "fix-1",
+          title: "#1 Evidence Gap",
+          bullets: ["Add MRR", "Add growth rate"],
+          rank: 1,
+          tool: "bubble",
+        },
+        {
+          id: "fix-2",
+          title: "#2 Ask Clarity",
+          bullets: ["State raise", "Map milestones"],
+          rank: 2,
+          tool: "shape",
+        },
+      ],
+    },
   });
 }
 
@@ -85,6 +107,9 @@ describe("generateMiroBoardCopy", () => {
 
     expect(result.providerUsed).toBe("openrouter");
     expect(result.fallbackUsed).toBe(false);
+    expect(result.generated.layoutStyle).toBe("mindmap_hybrid");
+    expect(result.generated.kanbanSize).toBe("small");
+    expect(result.generated.mindMap.nodes[0]?.tool).toBe("bubble");
     expect(result.generated.fixCards[0]?.status).toBe("doing");
     expect(anthropicComplete).not.toHaveBeenCalled();
   });
@@ -140,6 +165,8 @@ describe("generateMiroBoardCopy", () => {
 
   it("uses template fallback when LLM returns invalid fix ranks", async () => {
     const invalidRanks = JSON.stringify({
+      layoutStyle: "compact_kanban",
+      kanbanSize: "full",
       overviewCardHtml: "Overview",
       rewriteCardText: "Rewrite",
       columnGuides: {
@@ -163,6 +190,11 @@ describe("generateMiroBoardCopy", () => {
           blocker: "",
         },
       ],
+      mindMap: {
+        centerTitle: "Fallback",
+        centerBullets: ["bad rank"],
+        nodes: [],
+      },
     });
 
     const result = await generateMiroBoardCopy(sampleInput, {
@@ -178,4 +210,3 @@ describe("generateMiroBoardCopy", () => {
     expect(result.generated.fixCards.map((fix) => fix.rank)).toEqual([1, 2]);
   });
 });
-

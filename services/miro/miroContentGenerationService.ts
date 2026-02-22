@@ -7,10 +7,13 @@ import {
 } from "@/lib/prompts/miroFixBoard";
 import type {
   MiroBoardContentProvider,
+  MiroBoardLayoutStyle,
   MiroFixBoardRequest,
   MiroFixStatus,
   MiroGeneratedBoardCopy,
   MiroGeneratedFixCard,
+  MiroGeneratedMindMapNode,
+  MiroVisualTool,
 } from "@/services/miro/miroTypes";
 
 const STATUS_ORDER: MiroFixStatus[] = ["todo", "doing", "blocked", "done"];
@@ -24,6 +27,11 @@ const MAX_OWNER_CHARS = 120;
 const MAX_NOTES_CHARS = 600;
 const MAX_FIELD_CHARS = 220;
 const MAX_TRANSCRIPT_CHARS = 80_000;
+const MAX_MINDMAP_NODE_TITLE_CHARS = 110;
+const MAX_MINDMAP_NODE_BULLETS = 4;
+const MAX_MINDMAP_NODE_BULLET_CHARS = 120;
+const MAX_MINDMAP_CENTER_BULLETS = 5;
+const MAX_MINDMAP_NODES = 10;
 
 export interface MiroBoardCopyGenerationResult {
   generated: MiroGeneratedBoardCopy;
@@ -70,6 +78,14 @@ function isFixStatus(value: string): value is MiroFixStatus {
   return value === "todo" || value === "doing" || value === "blocked" || value === "done";
 }
 
+function isLayoutStyle(value: string): value is MiroBoardLayoutStyle {
+  return value === "mindmap_hybrid" || value === "compact_kanban";
+}
+
+function isVisualTool(value: string): value is MiroVisualTool {
+  return value === "bubble" || value === "shape" || value === "sticky";
+}
+
 function getInitialStatusForIndex(index: number): MiroFixStatus {
   return INITIAL_STATUS_BY_INDEX[index] ?? "todo";
 }
@@ -103,6 +119,33 @@ function baseColumnGuides(): Record<MiroFixStatus, string> {
   };
 }
 
+function toBullets(input: unknown, maxItems: number, maxChars: number): string[] {
+  if (Array.isArray(input)) {
+    return input
+      .map((item) => sanitizeText(item, maxChars))
+      .filter(Boolean)
+      .slice(0, maxItems);
+  }
+  if (typeof input !== "string") return [];
+  const source = input.trim();
+  if (!source) return [];
+  return source
+    .split(/\n|;|•|-/)
+    .map((part) => sanitizeText(part, maxChars))
+    .filter(Boolean)
+    .slice(0, maxItems);
+}
+
+function toMindMapFallbackNodes(fixCards: MiroGeneratedFixCard[]): MiroGeneratedMindMapNode[] {
+  return fixCards.slice(0, 6).map((fix) => ({
+    id: `fix-${fix.rank}`,
+    title: `#${fix.rank} ${toTitleCase(fix.category)}`,
+    bullets: [fix.issue, fix.action].map((item) => sanitizeText(item, MAX_MINDMAP_NODE_BULLET_CHARS)),
+    rank: fix.rank,
+    tool: "bubble",
+  }));
+}
+
 export function buildTemplateMiroBoardCopy(input: MiroFixBoardRequest): MiroGeneratedBoardCopy {
   const datePart = new Date().toISOString().slice(0, 10);
   const topFixes = [...input.topFixes]
@@ -125,6 +168,8 @@ export function buildTemplateMiroBoardCopy(input: MiroFixBoardRequest): MiroGene
   }));
 
   return {
+    layoutStyle: "mindmap_hybrid",
+    kanbanSize: "small",
     overviewCardHtml: [
       `<strong>Verdict</strong>: ${sanitizeText(input.oneLineVerdict, 280)}`,
       `<strong>Mode</strong>: ${toTitleCase(sanitizeText(input.mode, 40))}`,
@@ -134,6 +179,14 @@ export function buildTemplateMiroBoardCopy(input: MiroFixBoardRequest): MiroGene
     rewriteCardText: sanitizeMultiline(input.rewriteScript, MAX_REWRITE_CARD_CHARS),
     columnGuides: baseColumnGuides(),
     fixCards,
+    mindMap: {
+      centerTitle: "Pitch Fix Strategy",
+      centerBullets: [
+        sanitizeText(input.oneLineVerdict, MAX_MINDMAP_NODE_BULLET_CHARS),
+        `Mode: ${toTitleCase(input.mode)}`,
+      ].filter(Boolean),
+      nodes: toMindMapFallbackNodes(fixCards),
+    },
   };
 }
 
@@ -227,7 +280,63 @@ function normalizeGeneratedCopy(
     if (next) columnGuides[status] = next;
   }
 
+  const layoutStyleRaw = sanitizeText(value.layoutStyle, 32).toLowerCase();
+  const layoutStyle: MiroBoardLayoutStyle = isLayoutStyle(layoutStyleRaw)
+    ? layoutStyleRaw
+    : fallback.layoutStyle;
+
+  const kanbanSizeRaw = sanitizeText(value.kanbanSize, 16).toLowerCase();
+  const kanbanSize: "small" | "full" =
+    kanbanSizeRaw === "small" || kanbanSizeRaw === "full" ? kanbanSizeRaw : fallback.kanbanSize;
+
+  const rawMindMap =
+    value.mindMap && typeof value.mindMap === "object"
+      ? (value.mindMap as Record<string, unknown>)
+      : {};
+  const rawNodes = Array.isArray(rawMindMap.nodes) ? rawMindMap.nodes : [];
+  const parsedNodes: MiroGeneratedMindMapNode[] = [];
+
+  for (const rawNode of rawNodes.slice(0, MAX_MINDMAP_NODES)) {
+    if (!rawNode || typeof rawNode !== "object") continue;
+    const node = rawNode as Record<string, unknown>;
+    const title = sanitizeText(node.title, MAX_MINDMAP_NODE_TITLE_CHARS);
+    if (!title) continue;
+    const nodeId = sanitizeText(node.id, 40) || `node-${parsedNodes.length + 1}`;
+    const toolRaw = sanitizeText(node.tool, 16).toLowerCase();
+    const rankRaw =
+      typeof node.rank === "number"
+        ? node.rank
+        : typeof node.rank === "string"
+          ? Number.parseInt(node.rank, 10)
+          : NaN;
+    const rank = Number.isInteger(rankRaw) && rankRaw >= 1 && rankRaw <= 5 ? rankRaw : undefined;
+    const bullets = toBullets(
+      node.bullets,
+      MAX_MINDMAP_NODE_BULLETS,
+      MAX_MINDMAP_NODE_BULLET_CHARS,
+    );
+
+    parsedNodes.push({
+      id: nodeId,
+      title,
+      bullets: bullets.length > 0 ? bullets : ["Execution item"],
+      rank,
+      tool: isVisualTool(toolRaw) ? toolRaw : "bubble",
+    });
+  }
+
+  const fallbackNodes = toMindMapFallbackNodes(normalizedFixes);
+  const centerTitle =
+    sanitizeText(rawMindMap.centerTitle, 140) || sanitizeText(fallback.mindMap.centerTitle, 140);
+  const centerBullets = toBullets(
+    rawMindMap.centerBullets,
+    MAX_MINDMAP_CENTER_BULLETS,
+    MAX_MINDMAP_NODE_BULLET_CHARS,
+  );
+
   return {
+    layoutStyle,
+    kanbanSize,
     overviewCardHtml:
       sanitizeMultiline(value.overviewCardHtml, MAX_OVERVIEW_HTML_CHARS) ||
       fallback.overviewCardHtml,
@@ -235,6 +344,12 @@ function normalizeGeneratedCopy(
       sanitizeMultiline(value.rewriteCardText, MAX_REWRITE_CARD_CHARS) || fallback.rewriteCardText,
     columnGuides,
     fixCards: normalizedFixes.sort((a, b) => a.rank - b.rank),
+    mindMap: {
+      centerTitle,
+      centerBullets:
+        centerBullets.length > 0 ? centerBullets : fallback.mindMap.centerBullets.slice(0, 3),
+      nodes: parsedNodes.length > 0 ? parsedNodes : fallbackNodes,
+    },
   };
 }
 
@@ -346,4 +461,3 @@ export async function generateMiroBoardCopy(
     message: `Miro content template fallback applied.${reason}`.trim(),
   };
 }
-

@@ -1,6 +1,8 @@
 export type MiroFixStatus = "todo" | "doing" | "done" | "blocked";
 export type MiroFixSource = "app" | "miro" | "system";
 export type MiroBoardContentProvider = "openrouter" | "anthropic" | "template";
+export type MiroBoardLayoutStyle = "mindmap_hybrid" | "compact_kanban";
+export type MiroVisualTool = "bubble" | "shape" | "sticky";
 
 export interface MiroTopFixInput {
   rank: number;
@@ -35,11 +37,26 @@ export interface MiroGeneratedFixCard {
   blocker: string;
 }
 
+export interface MiroGeneratedMindMapNode {
+  id: string;
+  title: string;
+  bullets: string[];
+  rank?: number;
+  tool: MiroVisualTool;
+}
+
 export interface MiroGeneratedBoardCopy {
+  layoutStyle: MiroBoardLayoutStyle;
+  kanbanSize: "small" | "full";
   overviewCardHtml: string;
   rewriteCardText: string;
   columnGuides: Record<MiroFixStatus, string>;
   fixCards: MiroGeneratedFixCard[];
+  mindMap: {
+    centerTitle: string;
+    centerBullets: string[];
+    nodes: MiroGeneratedMindMapNode[];
+  };
 }
 
 export interface MiroGeneratedBoardMeta {
