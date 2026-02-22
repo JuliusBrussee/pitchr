@@ -1,13 +1,6 @@
-﻿'use client';
+'use client';
 
-import {
-  ArrowLeft,
-  Check,
-  Clock,
-  Copy,
-  MessageSquare,
-  Timer,
-} from 'lucide-react';
+import { ArrowLeft, Check, Copy, MessageCircleQuestion } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -16,10 +9,15 @@ import type { Run } from '@/types/pitch';
 import {
   DeliveryEventsTimeline,
   GoodBadSummary,
+  InvestorDrill,
   PreviousRunsLinks,
   ReasoningPanel,
   RewriteDiffPanel,
+  RubricBreakdown,
+  ScoreHero,
   SectionAccordion,
+  TopFixes,
+  VocabDiagnostics,
 } from '@/views/components/results';
 import {
   RecordingPlayer,
@@ -27,12 +25,7 @@ import {
 } from '@/views/components/RecordingPlayer';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 
-function scoreBand(score: number): { label: string; color: string; bg: string } {
-  if (score >= 80) return { label: 'Investor-Ready', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
-  if (score >= 60) return { label: 'Solid', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' };
-  if (score >= 40) return { label: 'Getting There', color: '#ffaa33', bg: 'rgba(255,170,51,0.12)' };
-  return { label: 'Needs Work', color: '#ef4444', bg: 'rgba(239,68,68,0.12)' };
-}
+/* ── Helpers ─────────────────────────────────────────────────── */
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
@@ -44,10 +37,17 @@ function formatDate(iso: string): string {
   });
 }
 
-function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remaining = seconds % 60;
-  return `${minutes}:${remaining.toString().padStart(2, '0')}`;
+function formatCurrency(value: number): string {
+  return value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: value < 1 ? 4 : 2,
+    maximumFractionDigits: value < 1 ? 6 : 2,
+  });
+}
+
+function formatMinutes(value: number): string {
+  return `${value.toFixed(1)} min`;
 }
 
 function synthesizeQaFromFeedback(feedback: FeedbackOutput): OneMinuteQAPack {
@@ -94,19 +94,6 @@ function synthesizeQaFromFeedback(feedback: FeedbackOutput): OneMinuteQAPack {
   };
 }
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: value < 1 ? 4 : 2,
-    maximumFractionDigits: value < 1 ? 6 : 2,
-  });
-}
-
-function formatMinutes(value: number): string {
-  return `${value.toFixed(1)} min`;
-}
-
 function paidSyncBadge(sync?: PaidSyncMeta): { label: string; color: string; bg: string } {
   if (!sync || sync.status === 'skipped') {
     return { label: 'Dry Run', color: '#ffaa33', bg: 'rgba(255,170,51,0.14)' };
@@ -117,52 +104,90 @@ function paidSyncBadge(sync?: PaidSyncMeta): { label: string; color: string; bg:
   return { label: 'Sync Failed', color: '#ef4444', bg: 'rgba(239,68,68,0.14)' };
 }
 
-function StatPill({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: 'var(--border-color)' }}>
-      <div className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--text-muted)' }}>
-        {icon}
-        {label}
-      </div>
-      <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-        {value}
-      </p>
-    </div>
-  );
-}
+/* ── Section wrapper ─────────────────────────────────────────── */
 
-function Card({
+function Section({
   title,
   children,
   actions,
 }: {
-  title: string;
+  title?: string;
   children: ReactNode;
   actions?: ReactNode;
 }) {
   return (
     <section
-      className="rounded-2xl border p-4 animate-fade-in-up"
-      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+      className="rounded-2xl border p-5 results-card-enter"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        borderColor: 'var(--border-color)',
+        '--card-delay': '0ms',
+      } as React.CSSProperties}
     >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-          {title}
-        </h3>
-        {actions}
-      </div>
+      {title ? (
+        <div className="flex items-center justify-between mb-4">
+          <h3
+            className="text-xs font-semibold uppercase tracking-wider"
+            style={{ color: 'var(--text-muted)' }}
+          >
+            {title}
+          </h3>
+          {actions}
+        </div>
+      ) : null}
       {children}
     </section>
   );
 }
+
+/* ── Value Proof (compact) ───────────────────────────────────── */
+
+function ValueProof({ economics }: { economics: RunEconomics }) {
+  const badge = paidSyncBadge(economics.paid_sync);
+
+  return (
+    <Section
+      title="Value Proof"
+      actions={
+        <span
+          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+          style={{ color: badge.color, backgroundColor: badge.bg }}
+        >
+          {badge.label}
+        </span>
+      }
+    >
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Est. Cost', value: formatCurrency(economics.estimated_cost_usd) },
+          { label: 'Saved vs Coach', value: formatCurrency(economics.money_saved_vs_coach_usd) },
+          { label: 'Net Savings', value: formatCurrency(economics.gross_margin_usd) },
+          { label: 'Time Saved', value: formatMinutes(economics.time_saved_minutes) },
+        ].map((stat) => (
+          <div key={stat.label}>
+            <p
+              className="text-[10px] uppercase tracking-wider mb-0.5"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {stat.label}
+            </p>
+            <p
+              className="text-sm font-semibold tabular-nums"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              {stat.value}
+            </p>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] mt-3" style={{ color: 'var(--text-muted)' }}>
+        Based on coach rate of {formatCurrency(economics.coach_hourly_rate_usd)}/hr
+      </p>
+    </Section>
+  );
+}
+
+/* ── Page ─────────────────────────────────────────────────────── */
 
 export default function ResultsPage() {
   const params = useParams<{ runId: string | string[] }>();
@@ -173,7 +198,9 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false);
   const [seekToSec, setSeekToSec] = useState<number | null>(null);
   const recordingRef = useRef<RecordingPlayerHandle | null>(null);
-  const liveQaEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_QA === 'true';
+  const liveQaEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_QA !== 'false';
+
+  /* ── Data fetching + polling ─────────────────────────────── */
 
   useEffect(() => {
     if (!runId) {
@@ -232,6 +259,8 @@ export default function ResultsPage() {
     };
   }, [runId]);
 
+  /* ── Derived data ────────────────────────────────────────── */
+
   const feedback = useMemo<FeedbackOutput | null>(
     () => run?.outputs?.feedback ?? run?.analysis ?? null,
     [run],
@@ -249,12 +278,6 @@ export default function ResultsPage() {
     () => run?.meta?.economics ?? null,
     [run],
   );
-  const band = feedback ? scoreBand(feedback.overall_score) : null;
-
-  const totalFillers = feedback?.delivery_metrics.filler_words.reduce(
-    (sum, item) => sum + item.count,
-    0,
-  ) ?? 0;
 
   const onCopy = () => {
     if (!feedback) return;
@@ -268,9 +291,13 @@ export default function ResultsPage() {
     recordingRef.current?.seekTo(seconds);
   };
 
+  /* ── Loading state ───────────────────────────────────────── */
+
   if (loading) {
     return <AnalyzingOverlay isVisible />;
   }
+
+  /* ── Failed state ────────────────────────────────────────── */
 
   if (run?.status === 'failed') {
     return (
@@ -302,7 +329,9 @@ export default function ResultsPage() {
     );
   }
 
-  if (!run || !feedback || !band) {
+  /* ── Not found state ─────────────────────────────────────── */
+
+  if (!run || !feedback) {
     return (
       <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex items-center justify-center">
         <div
@@ -332,13 +361,16 @@ export default function ResultsPage() {
     );
   }
 
+  /* ── Main results layout ─────────────────────────────────── */
+
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
+    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-4 pr-1">
+      {/* ─── Header ─────────────────────────────────────────── */}
       <header className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">
           <Link
             href="/history"
-            className="p-2 rounded-xl border no-underline flex items-center justify-center"
+            className="p-2 rounded-xl border no-underline flex items-center justify-center transition-colors duration-150 hover:bg-[var(--bg-surface-hover)]"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-color)',
@@ -348,11 +380,14 @@ export default function ResultsPage() {
             <ArrowLeft size={18} />
           </Link>
           <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              Post Analysis
+            <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+              Pitch Analysis
             </h1>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {formatDate(run.createdAt)} | {run.mode === 'elevator' ? 'Elevator' : 'VC Pitch'} |{' '}
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              {formatDate(run.createdAt)}
+              <span className="mx-1.5 opacity-40">&middot;</span>
+              {run.mode === 'elevator' ? 'Elevator' : 'VC Pitch'}
+              <span className="mx-1.5 opacity-40">&middot;</span>
               {run.coverage ?? run.status}
             </p>
           </div>
@@ -360,226 +395,91 @@ export default function ResultsPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/session"
-            className="px-3 py-1.5 rounded-lg border text-sm no-underline"
+            className="px-3 py-1.5 rounded-lg border text-sm no-underline transition-colors duration-150 hover:bg-[var(--bg-surface-hover)]"
             style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
           >
             Run Again
           </Link>
           <Link
             href="/history"
-            className="px-3 py-1.5 rounded-lg text-sm no-underline"
+            className="px-3 py-1.5 rounded-lg border text-sm no-underline transition-colors duration-150 hover:bg-[var(--bg-surface-hover)]"
+            style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
+          >
+            History
+          </Link>
+          <Link
+            href={`/qa/${run.id}`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium no-underline transition-opacity duration-150 hover:opacity-90"
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
-            View History
+            <MessageCircleQuestion size={14} />
+            VC Q&amp;A
           </Link>
-          {liveQaEnabled ? (
-            <Link
-              href={`/qa/${run.id}`}
-              className="px-3 py-1.5 rounded-lg text-sm no-underline"
-              style={{ color: 'white', backgroundColor: '#e63b26' }}
-            >
-              Start Live VC Q&A (60s)
-            </Link>
-          ) : null}
         </div>
       </header>
 
+      {/* ─── Recording ──────────────────────────────────────── */}
       <RecordingPlayer ref={recordingRef} recordingUrl={run.audioUrl} seekToSec={seekToSec} />
 
-      <section
-        className="rounded-2xl border p-5 animate-fade-in-up"
-        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-          <div>
-            <div
-              className="w-28 h-28 rounded-full border flex flex-col items-center justify-center"
-              style={{ borderColor: band.color, backgroundColor: band.bg }}
-            >
-              <span className="text-3xl font-bold" style={{ color: band.color }}>
-                {feedback.overall_score}
-              </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                /100
-              </span>
-            </div>
-            <p
-              className="inline-flex text-xs font-semibold px-2 py-1 rounded-full mt-3"
-              style={{ color: band.color, backgroundColor: band.bg }}
-            >
-              {band.label}
-            </p>
-          </div>
-          <div className="md:col-span-2">
-            <h2 className="text-sm uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-              Verdict
-            </h2>
-            <p className="text-base leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-              {feedback.one_line_verdict}
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
-              <StatPill icon={<Timer size={12} />} label="WPM" value={String(feedback.delivery_metrics.wpm)} />
-              <StatPill
-                icon={<Clock size={12} />}
-                label="Duration"
-                value={formatDuration(feedback.delivery_metrics.duration_seconds)}
-              />
-              <StatPill icon={<MessageSquare size={12} />} label="Fillers" value={String(totalFillers)} />
-              <StatPill icon={<MessageSquare size={12} />} label="Penalty" value={String(feedback.penalty)} />
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ━━━ TIER 1: The Verdict ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <ScoreHero feedback={feedback} />
 
-      <section
-        className="rounded-2xl border p-5"
-        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-            Value Proof
-          </h2>
-          {economics ? (
-            <span
-              className="text-xs font-semibold px-2 py-1 rounded-full"
-              style={{
-                color: paidSyncBadge(economics.paid_sync).color,
-                backgroundColor: paidSyncBadge(economics.paid_sync).bg,
-              }}
-            >
-              {paidSyncBadge(economics.paid_sync).label}
-            </span>
-          ) : null}
-        </div>
-
-        {economics ? (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <StatPill
-                icon={<Timer size={12} />}
-                label="Estimated Cost"
-                value={formatCurrency(economics.estimated_cost_usd)}
-              />
-              <StatPill
-                icon={<MessageSquare size={12} />}
-                label="Money Saved vs Coach"
-                value={formatCurrency(economics.money_saved_vs_coach_usd)}
-              />
-              <StatPill
-                icon={<Clock size={12} />}
-                label="Net Savings (Est.)"
-                value={formatCurrency(economics.gross_margin_usd)}
-              />
-              <StatPill
-                icon={<Timer size={12} />}
-                label="Time Saved"
-                value={formatMinutes(economics.time_saved_minutes)}
-              />
-            </div>
-
-            <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
-              Based on an equivalent pitch-coach rate of {formatCurrency(economics.coach_hourly_rate_usd)}/hour.
-            </p>
-          </>
-        ) : (
-          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-            Value proof is unavailable for this run.
-          </p>
-        )}
-      </section>
+      {/* ━━━ TIER 2: Actionable Insights ━━━━━━━━━━━━━━━━━━━━━ */}
+      <div className="results-tier-divider my-1" />
 
       <GoodBadSummary good={feedback.summary_good} bad={feedback.summary_bad} />
 
-      <DeliveryEventsTimeline events={feedback.delivery_metrics.events} onSeek={onSeek} />
-
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Card title="Score Breakdown">
-          <div className="flex flex-col gap-3">
-            {feedback.rubric_breakdown.map((item) => {
-              const pct = Math.max(0, Math.min(100, (item.score / item.max_score) * 100));
-              return (
-                <div key={item.category}>
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span style={{ color: 'var(--text-primary)' }}>{item.category}</span>
-                    <span style={{ color: 'var(--text-secondary)' }}>
-                      {item.score}/{item.max_score}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full" style={{ backgroundColor: 'var(--border-color)' }}>
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${pct}%`, backgroundColor: '#ff5941' }}
-                    />
-                  </div>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                    {item.rationale}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
+        <Section title="Score Breakdown">
+          <RubricBreakdown breakdown={feedback.rubric_breakdown.filter((item) => !item.category.startsWith('deck_'))} />
+        </Section>
 
-        <Card title="Top Fixes">
-          <div className="flex flex-col gap-3">
-            {feedback.top_fixes.map((fix) => (
-              <div key={fix.rank} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-color)' }}>
-                <p className="text-xs font-semibold mb-1" style={{ color: 'var(--text-secondary)' }}>
-                  #{fix.rank} | {fix.category} | {fix.impact}
-                </p>
-                <p className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
-                  <strong>Issue:</strong> {fix.issue}
-                </p>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <strong>Fix:</strong> {fix.fix}
-                </p>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <Section title="Priority Fixes">
+          <TopFixes fixes={feedback.top_fixes.filter((fix) => !fix.category.startsWith('deck_'))} />
+        </Section>
       </section>
+
+      {/* ━━━ TIER 3: Deep Dives ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <div className="results-tier-divider my-1" />
+
+      <DeliveryEventsTimeline events={feedback.delivery_metrics.events} onSeek={onSeek} />
 
       <SectionAccordion sections={feedback.section_feedback} />
 
       <RewriteDiffPanel diff={feedback.rewrite_diff} />
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Card
+        <Section
           title="Rewrite Script"
           actions={
             <button
               type="button"
               onClick={onCopy}
-              className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border"
+              className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg border cursor-pointer transition-colors duration-150 hover:bg-[var(--bg-surface-hover)]"
               style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
             >
-              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? <Check size={11} /> : <Copy size={11} />}
               {copied ? 'Copied' : 'Copy'}
             </button>
           }
         >
-          <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
+          <p
+            className="text-sm leading-relaxed whitespace-pre-wrap"
+            style={{ color: 'var(--text-primary)' }}
+          >
             {feedback.rewrite_script}
           </p>
-        </Card>
+        </Section>
 
-        <Card title="Vocabulary + Delivery Diagnostics">
-          <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-            <li>Word count: {feedback.delivery_metrics.word_count}</li>
-            <li>Filler count: {feedback.delivery_metrics.filler_count}</li>
-            <li>Stutter rate: {feedback.delivery_metrics.stutter_rate}</li>
-            <li>Repeat rate: {feedback.delivery_metrics.repeat_rate}</li>
-            <li>Within time limit: {feedback.delivery_metrics.within_time_limit ? 'Yes' : 'No'}</li>
-            {feedback.vocabulary_metrics ? (
-              <>
-                <li>Lexical diversity: {feedback.vocabulary_metrics.lexical_diversity}</li>
-                <li>Hedge density: {feedback.vocabulary_metrics.hedge_density}</li>
-                <li>Jargon density: {feedback.vocabulary_metrics.jargon_density}</li>
-              </>
-            ) : null}
-          </ul>
-        </Card>
+        <Section title="Delivery Diagnostics">
+          <VocabDiagnostics
+            delivery={feedback.delivery_metrics}
+            vocabulary={feedback.vocabulary_metrics}
+          />
+        </Section>
       </section>
+
+      {economics ? <ValueProof economics={economics} /> : null}
 
       <ReasoningPanel
         reasoning={feedback.advanced_reasoning}
@@ -588,69 +488,62 @@ export default function ResultsPage() {
 
       <PreviousRunsLinks links={feedback.historical_links} />
 
-      <Card title="1-Minute Investor Drill">
-        {qaPack ? (
-          <div className="flex flex-col gap-4">
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Target: {qaPack.total_target_seconds}s | Timing: {qaPack.timing_plan_seconds.join(' / ')}
-            </p>
-            {qaPack.suggested_answers.map((entry, index) => (
-              <div
-                key={`${entry.question}-${index}`}
-                className="rounded-xl border p-3"
-                style={{ borderColor: 'var(--border-color)' }}
-              >
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  Q{index + 1}: {entry.question}
-                </p>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  {entry.answer}
-                </p>
-                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-                  Target {entry.target_seconds}s
-                </p>
-              </div>
-            ))}
-            {liveQaEnabled ? (
-              <Link
-                href={`/qa/${run.id}`}
-                className="inline-flex items-center justify-center px-4 py-2 rounded-lg no-underline text-sm font-medium"
-                style={{ color: 'white', backgroundColor: '#e63b26' }}
-              >
-                Start Live VC Q&A (60s)
-              </Link>
-            ) : null}
-          </div>
-        ) : (
-          <p style={{ color: 'var(--text-muted)' }}>No Q&A pack available.</p>
-        )}
-      </Card>
+      {qaPack ? (
+        <Section title="1-Minute Investor Drill">
+          <InvestorDrill
+            qaPack={qaPack}
+            runId={run.id}
+            liveQaEnabled={liveQaEnabled}
+          />
+        </Section>
+      ) : null}
 
+      {/* ─── Context Pane (expandable) ──────────────────────── */}
       <details
-        className="rounded-2xl border p-4"
+        className="rounded-2xl border p-5"
         style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
       >
-        <summary className="cursor-pointer text-sm uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+        <summary
+          className="cursor-pointer text-xs font-semibold uppercase tracking-wider select-none"
+          style={{ color: 'var(--text-muted)' }}
+        >
           Expand Context Pane
         </summary>
-        <div className="mt-3 grid grid-cols-1 xl:grid-cols-2 gap-3">
+        <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+              style={{ color: 'var(--text-muted)' }}
+            >
               Transcript
             </p>
-            <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
+            <p
+              className="text-sm leading-relaxed whitespace-pre-wrap"
+              style={{ color: 'var(--text-secondary)' }}
+            >
               {run.transcript}
             </p>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wider mb-2"
+              style={{ color: 'var(--text-muted)' }}
+            >
               QA Sessions
             </p>
             {(run.qaSessionsSummary ?? []).length > 0 ? (
-              <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
+              <ul className="space-y-1.5">
                 {(run.qaSessionsSummary ?? []).map((item) => (
-                  <li key={item.qaSessionId}>
-                    {item.status} | {item.durationSeconds ?? 0}s | {new Date(item.startedAt).toLocaleString()}
+                  <li
+                    key={item.qaSessionId}
+                    className="text-sm"
+                    style={{ color: 'var(--text-secondary)' }}
+                  >
+                    {item.status}
+                    <span className="mx-1.5 opacity-40">&middot;</span>
+                    {item.durationSeconds ?? 0}s
+                    <span className="mx-1.5 opacity-40">&middot;</span>
+                    {new Date(item.startedAt).toLocaleString()}
                   </li>
                 ))}
               </ul>

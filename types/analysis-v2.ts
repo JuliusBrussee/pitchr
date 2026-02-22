@@ -113,11 +113,16 @@ export interface SectionFeedback {
   beat: SectionBeat;
   start_sec: number;
   end_sec: number;
+  quotes: string[];
+  score: number;
+  score_reason: string;
   good: string;
   bad: string;
   evidence: string;
   top_issues: string[];
   top_fixes: string[];
+  rewrite?: string;
+  rewrite_diff?: RewriteDiff;
   slide_links?: DeckSlideLink[];
   confidence?: number;
 }

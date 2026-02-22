@@ -1,19 +1,32 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { SectionFeedback } from '@/types/analysis-v2';
 
 interface SectionAccordionProps {
   sections?: SectionFeedback[];
 }
 
-function formatTime(value: number): string {
-  const total = Math.max(0, Math.round(value));
-  const minutes = Math.floor(total / 60);
-  const seconds = total % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
+const BEAT_LABELS: Record<string, string> = {
+  intro: 'Introduction',
+  problem: 'Problem',
+  solution: 'Solution',
+  market: 'Market',
+  model: 'Business Model',
+  traction: 'Traction',
+  team: 'Team',
+  ask: 'The Ask',
+};
+
+const SCORE_COLORS: Record<number, string> = {
+  0: '#ef4444',
+  1: '#ef4444',
+  2: '#f97316',
+  3: '#ffaa33',
+  4: '#3b82f6',
+  5: '#22c55e',
+};
 
 export function SectionAccordion({ sections }: SectionAccordionProps) {
   const [openBeat, setOpenBeat] = useState<string | null>(null);
@@ -23,113 +36,107 @@ export function SectionAccordion({ sections }: SectionAccordionProps) {
 
   return (
     <section
-      className="rounded-2xl border p-4 animate-fade-in-up"
-      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+      className="rounded-2xl border p-5 results-card-enter"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        borderColor: 'var(--border-color)',
+        '--card-delay': '0ms',
+      } as React.CSSProperties}
     >
-      <h3 className="text-sm uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
-        Pitch Beat Feedback
+      <h3
+        className="text-xs font-semibold uppercase tracking-wider mb-3"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        Pitch Beats
       </h3>
-      <div className="space-y-2">
+      <div className="space-y-1">
         {entries.map((section, index) => {
           const isOpen = openBeat === section.beat;
+          const scoreColor = SCORE_COLORS[Math.min(5, Math.max(0, section.score))] ?? '#ffaa33';
+
           return (
             <article
               key={`${section.beat}-${index}`}
-              className="rounded-xl border"
-              style={{ borderColor: 'var(--border-color)' }}
+              className="rounded-lg overflow-hidden transition-colors duration-150"
+              style={{
+                backgroundColor: isOpen ? 'var(--bg-surface-hover)' : 'transparent',
+              }}
             >
               <button
                 type="button"
                 onClick={() => setOpenBeat((prev) => (prev === section.beat ? null : section.beat))}
-                className="w-full px-3 py-2 flex items-center justify-between text-left"
+                className="w-full px-3 py-2.5 flex items-center gap-3 text-left"
                 style={{ color: 'var(--text-primary)' }}
               >
-                <span className="font-medium">
-                  {section.beat}
-                  <span className="ml-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {formatTime(section.start_sec)} - {formatTime(section.end_sec)}
-                  </span>
-                </span>
-                <ChevronDown
-                  size={14}
+                <ChevronRight
+                  size={12}
                   style={{
                     color: 'var(--text-muted)',
-                    transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 180ms ease',
+                    transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                    transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                    flexShrink: 0,
                   }}
                 />
+                <span className="font-medium text-sm flex-1">
+                  {BEAT_LABELS[section.beat] ?? section.beat}
+                </span>
+                {/* Score bar inline */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div
+                    className="w-16 h-1.5 rounded-full overflow-hidden"
+                    style={{ backgroundColor: `${scoreColor}1a` }}
+                  >
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${(section.score / 5) * 100}%`,
+                        backgroundColor: scoreColor,
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="text-[11px] font-semibold tabular-nums w-6 text-right"
+                    style={{ color: scoreColor }}
+                  >
+                    {section.score}/5
+                  </span>
+                </div>
               </button>
 
-              {isOpen ? (
-                <div className="px-3 pb-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  <div className="rounded-lg border p-2" style={{ borderColor: 'rgba(34,197,94,0.35)' }}>
-                    <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#22c55e' }}>
-                      Good
-                    </p>
-                    <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {section.good}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border p-2" style={{ borderColor: 'rgba(239,68,68,0.35)' }}>
-                    <p className="text-xs uppercase tracking-wide mb-1" style={{ color: '#ef4444' }}>
-                      Bad
-                    </p>
-                    <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {section.bad}
-                    </p>
-                  </div>
-                  <div className="lg:col-span-2">
-                    <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                      Evidence
-                    </p>
-                    <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                      {section.evidence}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                      Top Issues
-                    </p>
-                    <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                      {section.top_issues.map((issue) => (
-                        <li key={issue}>- {issue}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                      Top Fixes
-                    </p>
-                    <ul className="text-sm space-y-1" style={{ color: 'var(--text-secondary)' }}>
-                      {section.top_fixes.map((fix) => (
-                        <li key={fix}>- {fix}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  {(section.slide_links ?? []).length > 0 ? (
-                    <div className="lg:col-span-2">
-                      <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                        Linked Slides
+              <div className="results-accordion-content" data-open={isOpen}>
+                <div className="results-accordion-inner">
+                  <div className="px-3 pb-3 pt-0.5 space-y-2">
+                    {/* Score reason as a brief summary */}
+                    {section.score_reason ? (
+                      <p
+                        className="text-xs leading-relaxed"
+                        style={{ color: 'var(--text-secondary)' }}
+                      >
+                        {section.score_reason}
                       </p>
-                      <div className="flex flex-wrap gap-2">
-                        {(section.slide_links ?? []).map((slide) => (
-                          <span
-                            key={`${section.beat}-slide-${slide.slide_num}`}
-                            className="text-xs px-2 py-1 rounded-full border"
-                            style={{
-                              color: 'var(--text-secondary)',
-                              borderColor: 'rgba(255,170,51,0.4)',
-                              backgroundColor: 'rgba(255,170,51,0.08)',
-                            }}
-                          >
-                            Slide {slide.slide_num} ({Math.round(slide.confidence * 100)}%)
-                          </span>
-                        ))}
+                    ) : null}
+
+                    {/* Good / Bad as compact inline chips */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <div className="flex-1 flex items-start gap-1.5 text-xs leading-relaxed">
+                        <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+                        <span style={{ color: 'var(--text-primary)' }}>{section.good}</span>
+                      </div>
+                      <div className="flex-1 flex items-start gap-1.5 text-xs leading-relaxed">
+                        <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#ef4444' }} />
+                        <span style={{ color: 'var(--text-primary)' }}>{section.bad}</span>
                       </div>
                     </div>
-                  ) : null}
+
+                    {/* Top fix if available - just the most actionable one */}
+                    {section.top_fixes.length > 0 ? (
+                      <p className="text-xs leading-relaxed pl-3 border-l-2" style={{ color: 'var(--text-secondary)', borderColor: '#22c55e' }}>
+                        {section.top_fixes[0]}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
-              ) : null}
+              </div>
             </article>
           );
         })}

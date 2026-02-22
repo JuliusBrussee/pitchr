@@ -1,5 +1,6 @@
 import { completeWithLlmRouterWithTelemetry } from '@/lib/llm/router';
 import {
+  buildJudgeRepairPrompt,
   buildJudgeUserPrompt,
   JUDGE_RESPONSE_SCHEMA_TEXT,
   JUDGE_SYSTEM_PROMPT,
@@ -220,7 +221,7 @@ export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentR
       }),
       responseFormat: 'json',
       temperature: 0.2,
-      maxTokens: 2000,
+      maxTokens: 4096,
       timeoutMs: 45_000,
       maxAttempts: 1,
     });
@@ -228,7 +229,6 @@ export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentR
     const telemetry =
       (error as { telemetry?: AnalysisMeta & { failedAttempts?: unknown } })?.telemetry ??
       undefined;
-    // Structured logs for timeout/retry diagnosis.
     console.error('[judge-agent] provider failure', {
       message: error instanceof Error ? error.message : String(error),
       telemetry,
@@ -236,18 +236,66 @@ export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentR
     throw error;
   }
 
-  const payload = validatePayload(parseJson(response.text), input.context.coverage);
-  return {
-    payload,
-    meta: {
-      provider_used: response.telemetry.providerUsed,
-      fallback_used: response.telemetry.fallbackUsed,
-      cache_hit: false,
-      llm_calls_used: response.telemetry.llmCallsUsed,
-      latency_ms: response.telemetry.latencyMs,
-      attempt_count: response.telemetry.attemptCount,
-      error_details: undefined,
-    },
-    raw: response.text,
-  };
+  let parsed: unknown;
+  try {
+    parsed = parseJson(response.text);
+  } catch {
+    throw new Error('Judge response is not valid JSON.');
+  }
+
+  let totalLlmCalls = response.telemetry.llmCallsUsed;
+  let totalLatency = response.telemetry.latencyMs;
+
+  try {
+    const payload = validatePayload(parsed, input.context.coverage);
+    return {
+      payload,
+      meta: {
+        provider_used: response.telemetry.providerUsed,
+        fallback_used: response.telemetry.fallbackUsed,
+        cache_hit: false,
+        llm_calls_used: totalLlmCalls,
+        latency_ms: totalLatency,
+        attempt_count: response.telemetry.attemptCount,
+        error_details: undefined,
+      },
+      raw: response.text,
+    };
+  } catch (validationError) {
+    console.warn('[judge-agent] validation failed, attempting repair', {
+      message: validationError instanceof Error ? validationError.message : String(validationError),
+    });
+
+    const repairResponse = await completeWithLlmRouterWithTelemetry({
+      systemPrompt: JUDGE_SYSTEM_PROMPT,
+      userPrompt: buildJudgeRepairPrompt(response.text),
+      responseFormat: 'json',
+      temperature: 0.1,
+      maxTokens: 4096,
+      timeoutMs: 30_000,
+      maxAttempts: 1,
+    });
+
+    totalLlmCalls += repairResponse.telemetry.llmCallsUsed;
+    totalLatency += repairResponse.telemetry.latencyMs;
+
+    const repairedPayload = validatePayload(
+      parseJson(repairResponse.text),
+      input.context.coverage,
+    );
+
+    return {
+      payload: repairedPayload,
+      meta: {
+        provider_used: response.telemetry.providerUsed,
+        fallback_used: true,
+        cache_hit: false,
+        llm_calls_used: totalLlmCalls,
+        latency_ms: totalLatency,
+        attempt_count: response.telemetry.attemptCount + 1,
+        error_details: undefined,
+      },
+      raw: repairResponse.text,
+    };
+  }
 }

@@ -111,6 +111,15 @@ function buildHunkSummary(tokens: RewriteDiffToken[]): string | undefined {
   return `Edits: +${addCount} / -${removeCount}`;
 }
 
+export function buildSectionRewriteDiff(
+  originalQuotes: string[],
+  rewrite: string | undefined,
+): RewriteDiff | undefined {
+  if (!rewrite || originalQuotes.length === 0) return undefined;
+  const originalText = originalQuotes.join(' ');
+  return buildRewriteDiff(originalText, rewrite);
+}
+
 export function buildRewriteDiff(originalText: string, rewriteText: string): RewriteDiff {
   const leftSentences = splitSentences(originalText);
   const rightSentences = splitSentences(rewriteText);

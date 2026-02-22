@@ -221,6 +221,20 @@ function buildPrompt(params: {
   ].join('\n');
 }
 
+export function buildJudgeRepairPrompt(invalidOutput: string): string {
+  return [
+    'The previous response failed schema validation.',
+    'Fix the JSON below so it matches the required schema exactly.',
+    'Return valid JSON only. No markdown fences. No explanations.',
+    '',
+    'Required schema:',
+    JUDGE_RESPONSE_SCHEMA_TEXT,
+    '',
+    'Invalid output to fix:',
+    invalidOutput,
+  ].join('\n');
+}
+
 export function buildJudgeUserPrompt({
   mode,
   transcript,
@@ -321,4 +335,70 @@ export function buildJudgeUserPrompt({
   }
 
   return prompt;
+}
+
+export const SECTION_ANALYSIS_SYSTEM_PROMPT = [
+  'You are Pitchr Section Analyst.',
+  'You break a startup pitch transcript into distinct sections (beats) and provide per-section analysis.',
+  'Return valid JSON only.',
+  'Do not include markdown fences.',
+  'Do not include explanations before or after JSON.',
+  'Quote the transcript exactly when extracting quotes.',
+  'Be concise and specific in your feedback.',
+].join('\n');
+
+export const SECTION_RESPONSE_SCHEMA_TEXT = `{
+  "sections": [
+    {
+      "beat": "intro|problem|solution|market|model|traction|team|ask",
+      "quotes": ["exact quote from transcript"],
+      "score": 0-5,
+      "score_reason": "string (why this score, under 20 words)",
+      "good": "string (what works well in this section, under 20 words)",
+      "bad": "string (what needs improvement, under 20 words)",
+      "top_issues": ["issue 1", "issue 2"],
+      "top_fixes": ["fix 1", "fix 2"],
+      "rewrite": "rewritten version of this section only"
+    }
+  ]
+}`;
+
+export function buildSectionAnalysisPrompt({
+  transcript,
+  beats,
+  globalVerdict,
+  topFixes,
+}: {
+  transcript: string;
+  beats: string[];
+  globalVerdict: string;
+  topFixes: string[];
+}): string {
+  return [
+    'Task: break this pitch transcript into sections by beat, and provide per-section analysis.',
+    '',
+    `Expected beats: ${beats.join(', ')}`,
+    '',
+    'Global feedback summary:',
+    `Verdict: ${globalVerdict}`,
+    `Top fixes: ${topFixes.join('; ')}`,
+    '',
+    'Original transcript:',
+    transcript || '[empty transcript]',
+    '',
+    'Rules:',
+    '- Assign every sentence of the transcript to exactly one beat.',
+    '- Use exact quotes from the transcript in the quotes array.',
+    '- Score each section 0-5 (0=missing, 1=very weak, 2=weak, 3=adequate, 4=good, 5=excellent).',
+    '- Keep score_reason under 20 words.',
+    '- Keep good and bad under 20 words each.',
+    '- Provide 1-2 specific issues and 1-2 actionable fixes per section.',
+    '- Provide a rewrite for each section that addresses the issues.',
+    '- Keep each rewrite concise and natural-sounding.',
+    '- If a beat is missing from the transcript, include it with score 0 and empty quotes.',
+    '- Return JSON only matching the schema.',
+    '',
+    'Response schema:',
+    SECTION_RESPONSE_SCHEMA_TEXT,
+  ].join('\n');
 }
