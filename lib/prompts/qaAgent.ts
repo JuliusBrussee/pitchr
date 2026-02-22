@@ -1,7 +1,25 @@
+import type { OneMinuteQAPack } from '@/types/analysis-v2';
+
 export interface QaAgentPromptInput {
   starterContext: string;
   weakestCategories: string[];
   timeLimitSeconds?: number;
+  drillPack?: OneMinuteQAPack;
+}
+
+function buildDrillGuidance(drillPack: OneMinuteQAPack): string {
+  const lines: string[] = [
+    'Pre-generated investor drill questions (use these verbatim or adapt slightly):',
+    `Focus tags: ${drillPack.focus_tags.join(', ')}`,
+    `Red flags to avoid: ${drillPack.red_flags_to_avoid.join(', ')}`,
+  ];
+
+  drillPack.suggested_answers.forEach((entry, index) => {
+    lines.push(`Q${index + 1} (~${entry.target_seconds}s): "${entry.question}"`);
+    lines.push(`  Model answer: "${entry.answer}"`);
+  });
+
+  return lines.join('\n');
 }
 
 export function buildQaAgentSystemPrompt(input: QaAgentPromptInput): string {
@@ -11,6 +29,10 @@ export function buildQaAgentSystemPrompt(input: QaAgentPromptInput): string {
       ? Math.round(input.timeLimitSeconds)
       : 60;
 
+  const drillSection = input.drillPack
+    ? buildDrillGuidance(input.drillPack)
+    : '';
+
   return [
     'You are a venture investor running a rapid-fire follow-up round.',
     `Session hard limit: ${timeLimitSeconds} seconds.`,
@@ -19,7 +41,10 @@ export function buildQaAgentSystemPrompt(input: QaAgentPromptInput): string {
     'Do not ask more than one question at a time.',
     'If founder is vague, immediately ask for metric, timeframe, and denominator.',
     `Weak categories to pressure-test: ${weakAreas}.`,
+    '',
+    drillSection,
+    '',
     'Ground your questions in this context:',
     input.starterContext,
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }

@@ -61,6 +61,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       starterContext: context.starterContext,
       weakestCategories: context.weakestCategories,
       timeLimitSeconds: QA_DURATION_LIMIT_SECONDS,
+      drillPack: context.drillPack,
     });
     const signed = await getSignedUrl(agentId, true);
     const qaSession = await createQASession({

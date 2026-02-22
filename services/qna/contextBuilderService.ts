@@ -3,12 +3,13 @@ import {
   lookupLocalKnowledge,
   queueKnowledgeGapIfNeeded,
 } from '@/services/qna/knowledgeService';
-import type { Citation } from '@/types/analysis-v2';
+import type { Citation, OneMinuteQAPack } from '@/types/analysis-v2';
 
 export interface QaStarterContext {
   runId: string;
   starterContext: string;
   weakestCategories: string[];
+  drillPack?: OneMinuteQAPack;
   knowledgeConfidence: number;
   citations: Citation[];
   queuedKnowledgeGap: boolean;
@@ -71,10 +72,13 @@ export async function buildQaStarterContext(runId: string): Promise<QaStarterCon
     knowledge.summary ? `Knowledge snippets: ${clip(knowledge.summary, 600)}` : 'Knowledge snippets: n/a',
   ];
 
+  const drillPack = run.analysis.outputs.qa_1min;
+
   return {
     runId,
     starterContext: contextLines.join('\n'),
     weakestCategories,
+    drillPack,
     knowledgeConfidence: knowledge.confidence,
     citations: knowledge.citations,
     queuedKnowledgeGap,
