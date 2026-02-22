@@ -25,7 +25,7 @@ export interface SessionState {
   orbState: OrbState;
   setOrbState: (state: OrbState) => void;
   metrics: MetricValues;
-  updateTranscript: (fullText: string) => void;
+  updateTranscript: (fullText: string, committedText?: string) => void;
   checklist: RealtimeChecklistItemState[];
   setChecklist: (items: RealtimeChecklistItemState[]) => void;
   resetChecklist: (mode: PitchMode) => void;
@@ -42,28 +42,66 @@ const FILLER_WORDS = new Set([
 
 const FILLER_PHRASES = ['you know', 'i mean', 'kind of', 'sort of'];
 
+const WPM_TREND_WINDOW_MS = 20_000;
+const WPM_SMOOTHING_ALPHA = 0.2;
+const WPM_MAX_STEP = 8;
+const FILLER_RATE_SMOOTHING_ALPHA = 0.25;
+const FILLER_RATE_MAX_STEP = 0.9;
+
+interface WpmSample {
+  timestamp: number;
+  wordCount: number;
+}
+
+function normalizeTranscriptText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function extractTokens(text: string): string[] {
+  return text.match(/[a-z0-9]+(?:['’][a-z0-9]+)*/gi) ?? [];
+}
+
 function countFillerWords(text: string): number {
-  if (!text.trim()) return 0;
-  const lower = text.toLowerCase();
+  const normalized = normalizeTranscriptText(text);
+  if (!normalized) return 0;
   let count = 0;
 
   for (const phrase of FILLER_PHRASES) {
-    const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
-    const matches = lower.match(regex);
+    const regex = new RegExp(`\\b${phrase}\\b`, 'g');
+    const matches = normalized.match(regex);
     if (matches) count += matches.length;
   }
 
-  const words = lower.split(/\s+/).filter(Boolean);
+  const words = extractTokens(normalized);
   for (const word of words) {
-    const clean = word.replace(/[.,!?;:'"]/g, '');
-    if (FILLER_WORDS.has(clean)) count++;
+    if (FILLER_WORDS.has(word)) count++;
   }
 
   return count;
 }
 
 function countWords(text: string): number {
-  return text.split(/\s+/).filter(Boolean).length;
+  return extractTokens(normalizeTranscriptText(text)).length;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function smoothWithFriction(
+  previous: number,
+  target: number,
+  alpha: number,
+  maxStep: number,
+): number {
+  if (previous <= 0) return target;
+  const eased = previous + (target - previous) * alpha;
+  return clamp(eased, previous - maxStep, previous + maxStep);
+}
+
+function roundToNearest(value: number, step: number): number {
+  if (step <= 0) return Math.round(value);
+  return Math.round(value / step) * step;
 }
 
 export function useSessionState(): SessionState {
@@ -83,8 +121,87 @@ export function useSessionState(): SessionState {
   const sessionStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastTranscriptRef = useRef<string>('');
+  const lastCommittedTranscriptRef = useRef<string>('');
+  const wordCountRef = useRef(0);
+  const fillerWordsRef = useRef(0);
+  const wpmSamplesRef = useRef<WpmSample[]>([]);
+  const smoothedWpmRef = useRef(0);
+  const smoothedFillerRateRef = useRef(0);
 
-  // Duration timer — updates every second while session is active
+  const getTargetWpm = useCallback((nowMs: number, totalWords: number): number => {
+    const startedAt = sessionStartRef.current;
+    if (!startedAt || totalWords <= 0) return 0;
+
+    const elapsedSecs = Math.max((nowMs - startedAt) / 1000, 1);
+    const samples = wpmSamplesRef.current;
+    const lastSample = samples[samples.length - 1];
+    if (
+      !lastSample ||
+      lastSample.timestamp !== nowMs ||
+      lastSample.wordCount !== totalWords
+    ) {
+      samples.push({ timestamp: nowMs, wordCount: totalWords });
+    }
+
+    const cutoff = nowMs - WPM_TREND_WINDOW_MS;
+    while (samples.length > 1 && samples[0].timestamp < cutoff) {
+      samples.shift();
+    }
+
+    const oldest = samples[0];
+    const deltaWords = Math.max(totalWords - oldest.wordCount, 0);
+    const deltaSecs = Math.max((nowMs - oldest.timestamp) / 1000, 1);
+    const windowWpm = (deltaWords / deltaSecs) * 60;
+    const cumulativeWpm = (totalWords / elapsedSecs) * 60;
+    const blend = Math.min(1, elapsedSecs / (WPM_TREND_WINDOW_MS / 1000));
+    return cumulativeWpm * (1 - blend) + windowWpm * blend;
+  }, []);
+
+  const refreshMetrics = useCallback(
+    (nextWordCount: number, nextFillerWords: number) => {
+      const nowMs = Date.now();
+      const elapsed = sessionStartRef.current
+        ? Math.floor((nowMs - sessionStartRef.current) / 1000)
+        : 0;
+
+      setMetrics((prev) => {
+        const wordCount = isSessionActive
+          ? Math.max(prev.wordCount, nextWordCount)
+          : nextWordCount;
+        const fillerWords = isSessionActive
+          ? Math.max(prev.fillerWords, nextFillerWords)
+          : nextFillerWords;
+
+        const targetWpm = getTargetWpm(nowMs, wordCount);
+        smoothedWpmRef.current = smoothWithFriction(
+          smoothedWpmRef.current,
+          targetWpm,
+          WPM_SMOOTHING_ALPHA,
+          WPM_MAX_STEP,
+        );
+
+        const targetFillerRate = wordCount > 0 ? (fillerWords / wordCount) * 100 : 0;
+        smoothedFillerRateRef.current = smoothWithFriction(
+          smoothedFillerRateRef.current,
+          targetFillerRate,
+          FILLER_RATE_SMOOTHING_ALPHA,
+          FILLER_RATE_MAX_STEP,
+        );
+
+        return {
+          wpm: wordCount > 0 ? roundToNearest(Math.max(0, smoothedWpmRef.current), 5) : 0,
+          fillerWords,
+          wordCount,
+          durationSecs: elapsed,
+          fillerRate:
+            wordCount > 0 ? Math.round(Math.max(0, smoothedFillerRateRef.current) * 10) / 10 : 0,
+        };
+      });
+    },
+    [getTargetWpm, isSessionActive],
+  );
+
+  // Duration timer updates every second while session is active.
   useEffect(() => {
     if (!isSessionActive) {
       if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
@@ -92,39 +209,42 @@ export function useSessionState(): SessionState {
     }
 
     durationIntervalRef.current = setInterval(() => {
-      if (!sessionStartRef.current) return;
-      const elapsed = Math.floor((Date.now() - sessionStartRef.current) / 1000);
-      setMetrics((prev) => {
-        const wpm = elapsed > 0 ? Math.round((prev.wordCount / elapsed) * 60) : 0;
-        return { ...prev, durationSecs: elapsed, wpm };
-      });
+      refreshMetrics(wordCountRef.current, fillerWordsRef.current);
     }, 1000);
 
     return () => {
       if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     };
-  }, [isSessionActive]);
+  }, [isSessionActive, refreshMetrics]);
 
-  const updateTranscript = useCallback((fullText: string) => {
-    if (fullText === lastTranscriptRef.current) return;
-    lastTranscriptRef.current = fullText;
+  const updateTranscript = useCallback(
+    (fullText: string, committedText = '') => {
+      const normalizedFullText = normalizeTranscriptText(fullText);
+      const normalizedCommittedText = normalizeTranscriptText(committedText);
 
-    const wordCount = countWords(fullText);
-    const fillerWords = countFillerWords(fullText);
-    const fillerRate = wordCount > 0 ? Math.round((fillerWords / wordCount) * 1000) / 10 : 0;
-    const elapsed = sessionStartRef.current
-      ? Math.floor((Date.now() - sessionStartRef.current) / 1000)
-      : 0;
-    const wpm = elapsed > 0 ? Math.round((wordCount / elapsed) * 60) : 0;
+      if (
+        normalizedFullText === lastTranscriptRef.current &&
+        normalizedCommittedText === lastCommittedTranscriptRef.current
+      ) {
+        return;
+      }
+      lastTranscriptRef.current = normalizedFullText;
+      lastCommittedTranscriptRef.current = normalizedCommittedText;
 
-    setMetrics({
-      wpm,
-      fillerWords,
-      wordCount,
-      durationSecs: elapsed,
-      fillerRate,
-    });
-  }, []);
+      const liveWordCount = countWords(normalizedFullText);
+      const committedWordCount = countWords(normalizedCommittedText);
+      const nextWordCount = Math.max(liveWordCount, committedWordCount);
+
+      const liveFillerCount = countFillerWords(normalizedFullText);
+      const committedFillerCount = countFillerWords(normalizedCommittedText);
+      const nextFillerWords = Math.max(liveFillerCount, committedFillerCount);
+
+      wordCountRef.current = nextWordCount;
+      fillerWordsRef.current = nextFillerWords;
+      refreshMetrics(nextWordCount, nextFillerWords);
+    },
+    [refreshMetrics],
+  );
 
   const resetChecklist = useCallback((mode: PitchMode) => {
     setChecklist(createInitialChecklistState(mode));
@@ -135,6 +255,12 @@ export function useSessionState(): SessionState {
     setOrbState('active');
     sessionStartRef.current = Date.now();
     lastTranscriptRef.current = '';
+    lastCommittedTranscriptRef.current = '';
+    wordCountRef.current = 0;
+    fillerWordsRef.current = 0;
+    wpmSamplesRef.current = [];
+    smoothedWpmRef.current = 0;
+    smoothedFillerRateRef.current = 0;
     setMetrics({ wpm: 0, fillerWords: 0, wordCount: 0, durationSecs: 0, fillerRate: 0 });
     setChecklist(createInitialChecklistState(mode));
   }, []);

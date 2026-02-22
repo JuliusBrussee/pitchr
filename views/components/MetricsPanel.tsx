@@ -39,6 +39,38 @@ const ENGAGEMENT_COLORS: Record<HeadTrackingEngagementBand, string> = {
   no_face: 'var(--text-muted)',
 };
 
+function withAlpha(color: string, alpha: number): string {
+  const clampedAlpha = Math.max(0, Math.min(1, alpha));
+  const shortHexMatch = color.match(/^#([0-9a-f]{3})$/i);
+  if (shortHexMatch) {
+    const [r, g, b] = shortHexMatch[1].split('').map((part) => parseInt(part + part, 16));
+    return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
+  }
+
+  const longHexMatch = color.match(/^#([0-9a-f]{6})$/i);
+  if (longHexMatch) {
+    const hex = longHexMatch[1];
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
+  }
+
+  const rgbMatch = color.match(/^rgb\(\s*([^)]+)\s*\)$/i);
+  if (rgbMatch) {
+    return `rgba(${rgbMatch[1]}, ${clampedAlpha})`;
+  }
+
+  const rgbaMatch = color.match(
+    /^rgba\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*[0-9.]+\s*\)$/i,
+  );
+  if (rgbaMatch) {
+    return `rgba(${rgbaMatch[1]}, ${rgbaMatch[2]}, ${rgbaMatch[3]}, ${clampedAlpha})`;
+  }
+
+  return color;
+}
+
 function formatDuration(secs: number): string {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
@@ -108,7 +140,10 @@ const RollingChar = memo(function RollingChar({ char }: { char: string }) {
 /** Renders a string with per-digit rolling animation. */
 function AnimatedValue({ value }: { value: string }) {
   return (
-    <span className="inline-flex" style={{ fontVariantNumeric: 'tabular-nums' }}>
+    <span
+      className="inline-flex whitespace-nowrap"
+      style={{ fontVariantNumeric: 'tabular-nums' }}
+    >
       {value.split('').map((char, i) => (
         <RollingChar key={i} char={char} />
       ))}
@@ -350,6 +385,9 @@ function MetricCard({
   const isInactive = displayStr === '-';
   const pulseKey = typeof value === 'number' ? Math.round(value) : value;
   const pulsing = useChangePulse(pulseKey);
+  const accentBase = accent ?? '#ff5941';
+  const borderPulseColor = withAlpha(accentBase, 0.42);
+  const glowColor = withAlpha(accentBase, 0.12);
 
   return (
     <div
@@ -357,7 +395,7 @@ function MetricCard({
       style={{
         backgroundColor: 'var(--bg-surface)',
         borderColor: pulsing
-          ? (accent ?? 'rgba(255, 89, 65, 0.35)')
+          ? borderPulseColor
           : 'var(--border-color)',
         transition: 'border-color 0.4s ease',
       }}
@@ -370,6 +408,7 @@ function MetricCard({
         style={{
           color: accent ?? 'var(--text-primary)',
           transition: 'color 0.3s ease',
+          whiteSpace: 'nowrap',
         }}
       >
         {isInactive ? (
@@ -382,9 +421,9 @@ function MetricCard({
       <div
         className="absolute inset-0 pointer-events-none rounded-xl"
         style={{
-          background: `radial-gradient(ellipse at 30% 80%, ${accent ?? 'rgba(255, 89, 65, 0.06)'} 0%, transparent 70%)`,
-          opacity: pulsing ? 1 : 0,
-          transition: 'opacity 0.6s ease-out',
+          background: `radial-gradient(ellipse at 30% 80%, ${glowColor} 0%, transparent 72%)`,
+          opacity: pulsing ? 0.55 : 0.22,
+          transition: 'opacity 0.6s ease-out, background 0.4s ease',
         }}
       />
     </div>

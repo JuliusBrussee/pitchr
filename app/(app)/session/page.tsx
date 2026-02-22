@@ -170,11 +170,12 @@ function SessionPageContent() {
 
   // Sync transcript data to session metrics (WPM, filler words, etc.)
   useEffect(() => {
+    const committedText = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
     const fullText = [...stt.transcriptSegments, stt.liveText]
       .filter(Boolean)
       .join(' ')
       .trim();
-    session.updateTranscript(fullText);
+    session.updateTranscript(fullText, committedText);
   }, [stt.transcriptSegments, stt.liveText, session.updateTranscript]);
 
   useEffect(() => {
