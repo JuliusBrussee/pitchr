@@ -331,6 +331,8 @@ export class MiroService {
             notes: patched.notes,
             updatedAt: patched.updatedAt,
             source: "app",
+            x: typeof patched.x === "number" ? patched.x : existing.x,
+            y: typeof patched.y === "number" ? patched.y : existing.y,
           };
         }
       } catch (error) {
@@ -567,6 +569,8 @@ export class MiroService {
         notes: patched.notes,
         updatedAt: patched.updatedAt,
         source: "app",
+        x: typeof patched.x === "number" ? patched.x : state.fixes[rankKey].x,
+        y: typeof patched.y === "number" ? patched.y : state.fixes[rankKey].y,
       };
       await this.saveBoardRecord({
         runId: board.run_id,
