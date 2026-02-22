@@ -1,5 +1,6 @@
 export type MiroFixStatus = "todo" | "doing" | "done" | "blocked";
 export type MiroFixSource = "app" | "miro" | "system";
+export type MiroBoardContentProvider = "openrouter" | "anthropic" | "template";
 
 export interface MiroTopFixInput {
   rank: number;
@@ -15,8 +16,41 @@ export interface MiroFixBoardRequest {
   oneLineVerdict: string;
   topFixes: MiroTopFixInput[];
   rewriteScript: string;
+  transcript?: string;
   boardNamePrefix?: string;
   recreate?: boolean;
+}
+
+export interface MiroGeneratedFixCard {
+  rank: number;
+  category: string;
+  impact: string;
+  issue: string;
+  action: string;
+  status: MiroFixStatus;
+  owner: string;
+  notes: string;
+  nextStep: string;
+  successMetric: string;
+  blocker: string;
+}
+
+export interface MiroGeneratedBoardCopy {
+  overviewCardHtml: string;
+  rewriteCardText: string;
+  columnGuides: Record<MiroFixStatus, string>;
+  fixCards: MiroGeneratedFixCard[];
+}
+
+export interface MiroGeneratedBoardMeta {
+  providerUsed: MiroBoardContentProvider;
+  fallbackUsed: boolean;
+  message: string;
+}
+
+export interface MiroProviderCreateInput extends MiroFixBoardRequest {
+  generated: MiroGeneratedBoardCopy;
+  generatedMeta?: MiroGeneratedBoardMeta;
 }
 
 export interface MiroFixPatch {

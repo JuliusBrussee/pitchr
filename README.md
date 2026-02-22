@@ -120,9 +120,14 @@ Decks:
 
 Miro:
 
-- `POST /api/miro/fix-board`
+- `POST /api/miro/fix-board` (supports optional `transcript`; LLM copy generation)
 - `GET /api/miro/fix-board/sync`
 - `POST /api/miro/fix-board/markdown`
+
+Miro content generation behavior:
+- On create/recreate only, board copy is generated via OpenRouter first.
+- If OpenRouter fails, Anthropic is attempted automatically.
+- If both fail (or JSON is invalid), deterministic template copy is used and board creation continues.
 
 ## Analysis Flow
 

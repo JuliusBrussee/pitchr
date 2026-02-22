@@ -45,6 +45,9 @@ describe("parsePitchrStickyContent", () => {
       status: "doing",
       owner: "coach@pitchr.ai",
       notes: "Practice twice before next run.",
+      nextStep: "Record one clean take",
+      successMetric: "WPM stays below 160",
+      blocker: "Need revised market slide",
     });
 
     const parsed = parsePitchrStickyContent(content);
@@ -53,6 +56,9 @@ describe("parsePitchrStickyContent", () => {
     expect(parsed.parsed?.status).toBe("doing");
     expect(parsed.parsed?.owner).toBe("coach@pitchr.ai");
     expect(parsed.parsed?.notes).toBe("Practice twice before next run.");
+    expect(parsed.parsed?.nextStep).toBe("Record one clean take");
+    expect(parsed.parsed?.successMetric).toBe("WPM stays below 160");
+    expect(parsed.parsed?.blocker).toBe("Need revised market slide");
   });
 
   it("returns warning for malformed sticky", () => {

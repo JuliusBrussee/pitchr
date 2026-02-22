@@ -11,6 +11,8 @@ import type {
   MiroTopFixInput,
 } from "@/services/miro/miroTypes";
 
+const MAX_TRANSCRIPT_CHARS = 120_000;
+
 function isMiroFixStatus(value: unknown): value is MiroFixStatus {
   return value === "todo" || value === "doing" || value === "done" || value === "blocked";
 }
@@ -54,6 +56,10 @@ function isValidCreatePayload(body: unknown): body is MiroFixBoardRequest {
   }
   if (typeof value.recreate !== "undefined" && typeof value.recreate !== "boolean") {
     return false;
+  }
+  if (typeof value.transcript !== "undefined") {
+    if (typeof value.transcript !== "string") return false;
+    if (value.transcript.length > MAX_TRANSCRIPT_CHARS) return false;
   }
   if (value.topFixes.length === 0 || value.topFixes.length > 5) return false;
   const seenRanks = new Set<number>();

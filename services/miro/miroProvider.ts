@@ -1,6 +1,6 @@
 import type {
   MiroFixPatch,
-  MiroFixBoardRequest,
+  MiroProviderCreateInput,
   MiroProviderCreateResult,
   MiroProviderPatchResult,
   MiroProviderSyncResult,
@@ -8,7 +8,7 @@ import type {
 } from "@/services/miro/miroTypes";
 
 export interface MiroProvider {
-  createFixBoard(input: MiroFixBoardRequest): Promise<MiroProviderCreateResult>;
+  createFixBoard(input: MiroProviderCreateInput): Promise<MiroProviderCreateResult>;
   syncFixBoard(input: {
     runId: string;
     boardId: string;

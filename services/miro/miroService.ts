@@ -1,5 +1,9 @@
 import { randomUUID } from "crypto";
 import type { MiroProvider } from "@/services/miro/miroProvider";
+import {
+  generateMiroBoardCopy,
+  type MiroBoardCopyGenerationResult,
+} from "@/services/miro/miroContentGenerationService";
 import { MiroRestProvider, isRetryableMiroError } from "@/services/miro/providers/miroRestProvider";
 import { MiroStubProvider } from "@/services/miro/providers/miroStubProvider";
 import {
@@ -15,6 +19,7 @@ import type {
   MiroFixPatchRequest,
   MiroFixPatchResponse,
   MiroGetFixBoardResponse,
+  MiroProviderCreateInput,
   MiroProviderSyncedFix,
   MiroSyncSnapshot,
   MiroTopFixInput,
@@ -25,8 +30,51 @@ import type {
 
 const RETRY_DELAYS_MS = [2000, 4000, 8000, 16000, 32000, 60000] as const;
 const MAX_PENDING_OP_ATTEMPTS = 8;
+const MAX_TRANSCRIPT_CHARS = 80_000;
 
 export class MiroSyncUnavailableError extends Error {}
+
+function compactMessage(...parts: Array<string | undefined>) {
+  const normalized = parts
+    .map((part) => (typeof part === "string" ? part.trim() : ""))
+    .filter(Boolean);
+  if (normalized.length === 0) return undefined;
+  return normalized.join(" ");
+}
+
+function normalizeTopFixes(topFixes: MiroTopFixInput[]): MiroTopFixInput[] {
+  return topFixes
+    .slice(0, 5)
+    .map((fix) => ({
+      rank: fix.rank,
+      category: String(fix.category || "").trim(),
+      impact: String(fix.impact || "").trim(),
+      issue: String(fix.issue || "").trim(),
+      fix: String(fix.fix || "").trim(),
+    }))
+    .filter((fix) => Number.isFinite(fix.rank));
+}
+
+function sanitizeCreateInput(input: MiroFixBoardRequest): MiroFixBoardRequest {
+  const transcriptRaw = typeof input.transcript === "string" ? input.transcript : undefined;
+  const transcript =
+    transcriptRaw && transcriptRaw.length > MAX_TRANSCRIPT_CHARS
+      ? transcriptRaw.slice(0, MAX_TRANSCRIPT_CHARS)
+      : transcriptRaw;
+  const boardNamePrefix =
+    typeof input.boardNamePrefix === "string" ? input.boardNamePrefix.trim() : undefined;
+
+  return {
+    runId: String(input.runId || "").trim(),
+    mode: String(input.mode || "").trim(),
+    oneLineVerdict: String(input.oneLineVerdict || "").trim(),
+    topFixes: normalizeTopFixes(input.topFixes || []),
+    rewriteScript: String(input.rewriteScript || "").trim(),
+    transcript,
+    boardNamePrefix: boardNamePrefix || undefined,
+    recreate: Boolean(input.recreate),
+  };
+}
 
 function toMarkdown(input: {
   runId: string;
@@ -188,9 +236,16 @@ function makePendingOp(input: {
 export class MiroService {
   private readonly liveProvider: MiroProvider | null;
   private readonly stubProvider: MiroProvider;
+  private readonly generateBoardCopy: (
+    input: MiroFixBoardRequest,
+  ) => Promise<MiroBoardCopyGenerationResult>;
 
-  constructor(opts?: { provider?: MiroProvider }) {
+  constructor(opts?: {
+    provider?: MiroProvider;
+    generateBoardCopy?: (input: MiroFixBoardRequest) => Promise<MiroBoardCopyGenerationResult>;
+  }) {
     this.stubProvider = new MiroStubProvider();
+    this.generateBoardCopy = opts?.generateBoardCopy ?? generateMiroBoardCopy;
     if (opts?.provider) {
       this.liveProvider = opts.provider;
       return;
@@ -381,8 +436,9 @@ export class MiroService {
   }
 
   async createFixBoard(input: MiroFixBoardRequest): Promise<MiroFixBoardResponse> {
-    const existing = await getRunMiroBoard(input.runId);
-    if (existing && !input.recreate) {
+    const sanitizedInput = sanitizeCreateInput(input);
+    const existing = await getRunMiroBoard(sanitizedInput.runId);
+    if (existing && !sanitizedInput.recreate) {
       const snapshot = await this.syncInternal(existing);
       return {
         boardId: existing.board_id,
@@ -394,11 +450,22 @@ export class MiroService {
       };
     }
 
+    const generatedResult = await this.generateBoardCopy(sanitizedInput);
+    const providerInput: MiroProviderCreateInput = {
+      ...sanitizedInput,
+      generated: generatedResult.generated,
+      generatedMeta: {
+        providerUsed: generatedResult.providerUsed,
+        fallbackUsed: generatedResult.fallbackUsed,
+        message: generatedResult.message,
+      },
+    };
+
     const provider = this.liveProvider || this.stubProvider;
     try {
-      const created = await provider.createFixBoard(input);
+      const created = await provider.createFixBoard(providerInput);
       await this.saveBoardRecord({
-        runId: input.runId,
+        runId: sanitizedInput.runId,
         boardId: created.boardId,
         boardUrl: created.boardUrl,
         isFallback: created.fallback,
@@ -411,12 +478,12 @@ export class MiroService {
         reused: false,
         snapshot: created.snapshot,
         fallback: created.fallback,
-        message: created.message,
+        message: compactMessage(generatedResult.message, created.message),
       };
     } catch (error) {
-      const fallback = await this.stubProvider.createFixBoard(input);
+      const fallback = await this.stubProvider.createFixBoard(providerInput);
       await this.saveBoardRecord({
-        runId: input.runId,
+        runId: sanitizedInput.runId,
         boardId: fallback.boardId,
         boardUrl: fallback.boardUrl,
         isFallback: true,
@@ -429,9 +496,13 @@ export class MiroService {
         reused: false,
         snapshot: fallback.snapshot,
         fallback: true,
-        message: `Miro create failed; fallback activated. ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        message: compactMessage(
+          generatedResult.message,
+          `Miro create failed; fallback activated. ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          fallback.message,
+        ),
       };
     }
   }

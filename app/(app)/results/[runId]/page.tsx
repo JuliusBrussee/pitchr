@@ -103,6 +103,7 @@ interface MiroCreateFixBoardPayload {
   oneLineVerdict: string;
   topFixes: MiroTopFixInput[];
   rewriteScript: string;
+  transcript?: string;
   recreate?: boolean;
 }
 
@@ -366,6 +367,7 @@ export default function ResultsPage() {
         fix: fix.fix,
       })),
       rewriteScript: feedback.rewrite_script,
+      transcript: run.transcript,
       recreate,
     };
 
@@ -452,13 +454,13 @@ export default function ResultsPage() {
     }
   }
 
-  const effectiveMiroSnapshot = useMemo(() => {
+  const effectiveMiroSnapshot = (() => {
     if (!miroSnapshot) return miroLocalSnapshot;
     if (!miroLocalSnapshot) return miroSnapshot;
     const hookTs = Date.parse(miroSnapshot.syncedAt || '');
     const localTs = Date.parse(miroLocalSnapshot.syncedAt || '');
     return hookTs >= localTs ? miroSnapshot : miroLocalSnapshot;
-  }, [miroSnapshot, miroLocalSnapshot]);
+  })();
   const miroFixes = effectiveMiroSnapshot?.fixes ?? [];
   const miroWarnings = effectiveMiroSnapshot?.warnings ?? [];
   const combinedMiroError = miroCreateError || miroSyncError;

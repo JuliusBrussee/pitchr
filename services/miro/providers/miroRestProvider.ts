@@ -1,8 +1,9 @@
 import type { MiroProvider } from "@/services/miro/miroProvider";
 import type {
-  MiroFixBoardRequest,
   MiroFixPatch,
   MiroFixStatus,
+  MiroGeneratedFixCard,
+  MiroProviderCreateInput,
   MiroProviderCreateResult,
   MiroProviderPatchResult,
   MiroProviderSyncedFix,
@@ -16,6 +17,27 @@ const HEADER_MARKER = "[PITCHR_FIX]";
 const MIRO_BOARD_NAME_MAX = 60;
 const MAX_REWRITE_PREVIEW_CHARS = 1200;
 
+type MiroStickyFillColor =
+  | "gray"
+  | "light_yellow"
+  | "yellow"
+  | "orange"
+  | "light_green"
+  | "green"
+  | "dark_green"
+  | "cyan"
+  | "light_pink"
+  | "pink"
+  | "violet"
+  | "red"
+  | "light_blue"
+  | "blue"
+  | "dark_blue"
+  | "black";
+
+type MiroFrameFillColor = `#${string}`;
+type MiroStickyShape = "square" | "rectangle";
+
 const KANBAN_COLUMN_ORDER: MiroFixStatus[] = ["todo", "doing", "blocked", "done"];
 const COLUMN_OFFSETS_X: Record<MiroFixStatus, number> = {
   todo: -930,
@@ -24,12 +46,33 @@ const COLUMN_OFFSETS_X: Record<MiroFixStatus, number> = {
   done: 930,
 };
 
-const COLUMN_TINT: Record<MiroFixStatus, string> = {
-  todo: "#FCD34D",
-  doing: "#60A5FA",
-  blocked: "#F87171",
-  done: "#4ADE80",
+const COLUMN_TINT_FRAME: Record<MiroFixStatus, MiroFrameFillColor> = {
+  todo: "#fcd34d",
+  doing: "#93c5fd",
+  blocked: "#fca5a5",
+  done: "#86efac",
 };
+
+const COLUMN_TINT_STICKY: Record<MiroFixStatus, MiroStickyFillColor> = {
+  todo: "light_yellow",
+  doing: "light_blue",
+  blocked: "light_pink",
+  done: "light_green",
+};
+
+const INITIAL_STATUS_BY_INDEX: MiroFixStatus[] = ["doing", "todo", "blocked", "done", "todo"];
+const FIX_CARD_SHAPE: MiroStickyShape = "rectangle";
+const GUIDE_CARD_SHAPE: MiroStickyShape = "rectangle";
+const FIX_CARD_START_Y = -80;
+const FIX_CARD_ROW_GAP = 270;
+
+function getInitialStatusForIndex(index: number): MiroFixStatus {
+  return INITIAL_STATUS_BY_INDEX[index] ?? "todo";
+}
+
+function getGeneratedFixStatus(fix: MiroGeneratedFixCard, index: number): MiroFixStatus {
+  return isValidFixStatus(fix.status) ? fix.status : getInitialStatusForIndex(index);
+}
 
 interface MiroBoardCreateResponse {
   id: string;
@@ -144,6 +187,42 @@ function toTitleCase(value: string) {
     .join(" ");
 }
 
+function buildColumnGuideContent(status: MiroFixStatus) {
+  if (status === "todo") {
+    return [
+      "<strong>Backlog Prompt</strong>",
+      "Owner:",
+      "Next Step:",
+      "Success Metric:",
+    ].join("<br/>");
+  }
+
+  if (status === "doing") {
+    return [
+      "<strong>In Progress Prompt</strong>",
+      "Latest update:",
+      "Risk:",
+      "Next checkpoint:",
+    ].join("<br/>");
+  }
+
+  if (status === "blocked") {
+    return [
+      "<strong>Blocked Prompt</strong>",
+      "Blocker:",
+      "Needed decision:",
+      "Escalate to:",
+    ].join("<br/>");
+  }
+
+  return [
+    "<strong>Done Prompt</strong>",
+    "Outcome:",
+    "Evidence link:",
+    "What changed:",
+  ].join("<br/>");
+}
+
 export function buildPitchrBoardName(input: {
   runId: string;
   datePart: string;
@@ -170,6 +249,9 @@ interface ParsedPitchrSticky {
   status: MiroFixStatus;
   owner: string;
   notes: string;
+  nextStep: string;
+  successMetric: string;
+  blocker: string;
   category: string;
   impact: string;
   issue: string;
@@ -191,12 +273,18 @@ export function buildPitchrStickyContent(input: {
   status?: MiroFixStatus;
   owner?: string;
   notes?: string;
+  nextStep?: string;
+  successMetric?: string;
+  blocker?: string;
   issue?: string;
   action?: string;
 }) {
   const status = input.status ?? "todo";
   const owner = (input.owner ?? "").trim();
   const notes = (input.notes ?? "").trim();
+  const nextStep = (input.nextStep || "[define next step]").trim();
+  const successMetric = (input.successMetric || "[define success metric]").trim();
+  const blocker = (input.blocker || "[none]").trim();
   const issue = (input.issue ?? input.fix.issue).trim();
   const action = (input.action ?? input.fix.fix).trim();
 
@@ -205,9 +293,14 @@ export function buildPitchrStickyContent(input: {
     `Rank: ${input.fix.rank}`,
     `Category: ${input.fix.category}`,
     `Impact: ${input.fix.impact}`,
+    "",
+    "Execution:",
     `Status: ${status}`,
     `Owner: ${owner}`,
     `Notes: ${notes}`,
+    `Next Step: ${nextStep}`,
+    `Success Metric: ${successMetric}`,
+    `Blocker: ${blocker}`,
     "",
     `Issue: ${issue}`,
     `Action: ${action}`,
@@ -243,6 +336,9 @@ export function parsePitchrStickyContent(
       status,
       owner: map.get("owner") ?? "",
       notes: map.get("notes") ?? "",
+      nextStep: map.get("next step") ?? "",
+      successMetric: map.get("success metric") ?? "",
+      blocker: map.get("blocker") ?? "",
       category,
       impact,
       issue: getIssueLine(text),
@@ -392,7 +488,7 @@ export class MiroRestProvider implements MiroProvider {
     width: number;
     height: number;
     parentId?: string;
-    fillColor?: string;
+    fillColor?: MiroFrameFillColor;
   }): Promise<MiroFrameResponse> {
     const payload = {
       data: {
@@ -440,12 +536,13 @@ export class MiroRestProvider implements MiroProvider {
     x: number;
     y: number;
     parentId?: string;
-    fillColor?: string;
+    fillColor?: MiroStickyFillColor;
+    shape?: MiroStickyShape;
   }): Promise<MiroStickyResponse> {
     const payload = {
       data: {
         content: input.content,
-        shape: "square",
+        shape: input.shape ?? "square",
       },
       position: {
         x: input.x,
@@ -459,23 +556,36 @@ export class MiroRestProvider implements MiroProvider {
       parent: input.parentId ? { id: input.parentId } : undefined,
     };
 
+    const postSticky = (body: typeof payload) =>
+      this.fetchMiro<MiroStickyResponse>(
+        `/boards/${encodeURIComponent(input.boardId)}/sticky_notes`,
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        },
+      );
+
     try {
-      return await this.fetchMiro<MiroStickyResponse>(
-        `/boards/${encodeURIComponent(input.boardId)}/sticky_notes`,
-        {
-          method: "POST",
-          body: JSON.stringify(payload),
-        },
-      );
+      return await postSticky(payload);
     } catch (error) {
+      let safePayload = payload;
+      if (input.shape && input.shape !== "square") {
+        safePayload = {
+          ...payload,
+          data: {
+            ...payload.data,
+            shape: "square",
+          },
+        };
+        try {
+          return await postSticky(safePayload);
+        } catch {
+          // Keep falling back.
+        }
+      }
+
       if (!input.parentId) throw error;
-      return this.fetchMiro<MiroStickyResponse>(
-        `/boards/${encodeURIComponent(input.boardId)}/sticky_notes`,
-        {
-          method: "POST",
-          body: JSON.stringify({ ...payload, parent: undefined }),
-        },
-      );
+      return postSticky({ ...safePayload, parent: undefined });
     }
   }
 
@@ -528,7 +638,7 @@ export class MiroRestProvider implements MiroProvider {
     return baseX + COLUMN_OFFSETS_X[status];
   }
 
-  async createFixBoard(input: MiroFixBoardRequest): Promise<MiroProviderCreateResult> {
+  async createFixBoard(input: MiroProviderCreateInput): Promise<MiroProviderCreateResult> {
     const nowIso = new Date().toISOString();
     const datePart = nowIso.slice(0, 10);
     const boardName = buildPitchrBoardName({
@@ -553,8 +663,8 @@ export class MiroRestProvider implements MiroProvider {
       title: "Fix Execution Kanban",
       x: 0,
       y: 50,
-      width: 3000,
-      height: 1600,
+      width: 3200,
+      height: 1750,
     });
 
     const rewriteFrame = await this.createFrame({
@@ -585,67 +695,102 @@ export class MiroRestProvider implements MiroProvider {
         title: toTitleCase(status),
         x: columnX[status],
         y: 100,
-        width: 560,
-        height: 1300,
+        width: 620,
+        height: 1450,
         parentId: kanbanFrame.id,
-        fillColor: COLUMN_TINT[status],
+        fillColor: COLUMN_TINT_FRAME[status],
       });
       columnIds[status] = frame.id;
     }
 
+    for (const status of KANBAN_COLUMN_ORDER) {
+      const parentId = columnIds[status];
+      if (!parentId) continue;
+      await this.createSticky({
+        boardId: board.id,
+        content: input.generated.columnGuides[status] || buildColumnGuideContent(status),
+        x: columnX[status],
+        y: -380,
+        parentId,
+        fillColor: COLUMN_TINT_STICKY[status],
+        shape: GUIDE_CARD_SHAPE,
+      });
+    }
+
     await this.createSticky({
       boardId: board.id,
-      content: [
-        `<strong>Verdict</strong>: ${input.oneLineVerdict}`,
-        `<strong>Mode</strong>: ${toTitleCase(input.mode)}`,
-        `<strong>Run</strong>: ${input.runId.slice(-12)}`,
-        `<strong>Generated</strong>: ${datePart}`,
-      ].join("<br/>"),
+      content: input.generated.overviewCardHtml,
       x: 0,
       y: -1350,
       parentId: overviewFrame.id,
-      fillColor: "#FDE68A",
+      fillColor: "light_yellow",
+      shape: "rectangle",
     });
 
     await this.createSticky({
       boardId: board.id,
-      content: capRewriteScript(input.rewriteScript),
+      content: capRewriteScript(input.generated.rewriteCardText || input.rewriteScript),
       x: 0,
       y: 1500,
       parentId: rewriteFrame.id,
-      fillColor: "#BFDBFE",
+      fillColor: "light_blue",
+      shape: "rectangle",
     });
 
-    const sortedFixes = [...input.topFixes]
+    const sortedFixes = [...input.generated.fixCards]
       .filter((fix) => Number.isFinite(fix.rank))
       .sort((a, b) => a.rank - b.rank)
       .slice(0, 5);
 
     const fixes: PersistedMiroBoardState["fixes"] = {};
-    for (const fix of sortedFixes) {
+    const columnRowIndex: Record<MiroFixStatus, number> = {
+      todo: 0,
+      doing: 0,
+      blocked: 0,
+      done: 0,
+    };
+
+    for (const [index, fix] of sortedFixes.entries()) {
+      const initialStatus = getGeneratedFixStatus(fix, index);
+      const row = columnRowIndex[initialStatus];
+      columnRowIndex[initialStatus] = row + 1;
+      const stickyY = FIX_CARD_START_Y + row * FIX_CARD_ROW_GAP;
+
       const sticky = await this.createSticky({
         boardId: board.id,
         content: buildPitchrStickyContent({
-          fix,
-          status: "todo",
-          owner: "",
-          notes: "",
+          fix: {
+            rank: fix.rank,
+            category: fix.category,
+            impact: fix.impact,
+            issue: fix.issue,
+            fix: fix.action,
+          },
+          status: initialStatus,
+          owner: fix.owner,
+          notes: fix.notes,
+          nextStep: fix.nextStep,
+          successMetric: fix.successMetric,
+          blocker: fix.blocker,
+          issue: fix.issue,
+          action: fix.action,
         }),
-        x: columnX.todo,
-        y: 200 + (fix.rank - 1) * 240,
-        parentId: columnIds.todo,
-        fillColor: "#FCD34D",
+        x: columnX[initialStatus],
+        y: stickyY,
+        parentId: columnIds[initialStatus],
+        fillColor: COLUMN_TINT_STICKY[initialStatus],
+        shape: FIX_CARD_SHAPE,
       });
 
       fixes[String(fix.rank)] = {
         itemId: sticky.id,
-        status: "todo",
-        owner: "",
-        notes: "",
+        status: initialStatus,
+        owner: fix.owner,
+        notes: fix.notes,
         updatedAt: sticky.modifiedAt || nowIso,
         source: "system",
-        x: columnX.todo,
-        y: 200 + (fix.rank - 1) * 240,
+        x: columnX[initialStatus],
+        y: stickyY,
       };
     }
 
@@ -786,6 +931,9 @@ export class MiroRestProvider implements MiroProvider {
       status: nextStatus,
       owner: nextOwner,
       notes: nextNotes,
+      nextStep: parsed.parsed.nextStep,
+      successMetric: parsed.parsed.successMetric,
+      blocker: parsed.parsed.blocker,
       issue: parsed.parsed.issue,
       action: parsed.parsed.action,
     });

@@ -1,8 +1,8 @@
 import type { MiroProvider } from "@/services/miro/miroProvider";
 import type {
-  MiroFixBoardRequest,
   MiroFixPatch,
   MiroFixStatus,
+  MiroProviderCreateInput,
   MiroProviderCreateResult,
   MiroProviderPatchResult,
   MiroProviderSyncResult,
@@ -44,7 +44,7 @@ function emptyState(nowIso: string): PersistedMiroBoardState {
 }
 
 export class MiroStubProvider implements MiroProvider {
-  async createFixBoard(input: MiroFixBoardRequest): Promise<MiroProviderCreateResult> {
+  async createFixBoard(input: MiroProviderCreateInput): Promise<MiroProviderCreateResult> {
     const nowIso = new Date().toISOString();
     const seed = hash(input.runId);
     const boardId = `stub-board-${seed}`;
