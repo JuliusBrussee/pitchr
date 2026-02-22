@@ -22,6 +22,7 @@ import {
   saveStoredMiroBoard,
   type StoredMiroBoard,
 } from '@/store/miroBoardStore';
+import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 
 type ResultTab = 'feedback' | 'qa';
 
@@ -209,18 +210,7 @@ export default function ResultsPage() {
   const band = feedback ? scoreBand(feedback.overall_score) : null;
 
   if (loading) {
-    return (
-      <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex items-center justify-center">
-        <div className="text-center">
-          <p style={{ color: 'var(--text-muted)' }}>
-            {run?.status === 'running' ? 'Analyzing your pitch...' : 'Queued for analysis...'}
-          </p>
-          <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-            This page refreshes automatically when scoring is complete.
-          </p>
-        </div>
-      </main>
-    );
+    return <AnalyzingOverlay isVisible />;
   }
 
   if (run?.status === 'failed') {
