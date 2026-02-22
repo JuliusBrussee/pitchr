@@ -15,6 +15,14 @@ import {
 } from 'lucide-react';
 import type { Run } from '@/types/pitch';
 import type { FixImpact, RubricCategory } from '@/types/analysis';
+import type { MiroFixBoardResponse, MiroTopFixInput } from '@/services/miro/miroTypes';
+import { useMiroSync } from '@/hooks/useMiroSync';
+import { MiroSyncPanel } from '@/views/components/MiroSyncPanel';
+import {
+  getStoredMiroBoard,
+  saveStoredMiroBoard,
+  type StoredMiroBoard,
+} from '@/store/miroBoardStore';
 
 function getScoreBand(score: number): { label: string; color: string; bg: string } {
   if (score >= 80) return { label: 'Investor-Ready', color: '#22c55e', bg: 'rgba(34,197,94,0.12)' };
@@ -62,6 +70,22 @@ function formatDate(iso: string): string {
   });
 }
 
+function getMiroPollIntervalMs(): number {
+  const value = process.env.NEXT_PUBLIC_MIRO_POLL_INTERVAL_MS;
+  if (!value) return 30_000;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 30_000;
+  return parsed;
+}
+
+interface MiroCreateFixBoardPayload {
+  runId: string;
+  mode: string;
+  oneLineVerdict: string;
+  topFixes: MiroTopFixInput[];
+  rewriteScript: string;
+}
+
 export default function ResultsPage() {
   const params = useParams<{ runId: string | string[] }>();
   const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
@@ -69,6 +93,34 @@ export default function ResultsPage() {
   const [run, setRun] = useState<Run | null>(null);
   const [checkedStorage, setCheckedStorage] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [miroBoard, setMiroBoard] = useState<StoredMiroBoard | null>(null);
+  const [isCreatingMiroBoard, setIsCreatingMiroBoard] = useState(false);
+  const [miroCreateError, setMiroCreateError] = useState<string | null>(null);
+  const [miroCreateMessage, setMiroCreateMessage] = useState<string | null>(null);
+  const miroPollIntervalMs = useMemo(() => getMiroPollIntervalMs(), []);
+
+  const {
+    snapshot: miroSnapshot,
+    isSyncing: isMiroSyncing,
+    error: miroSyncError,
+    syncNow: syncMiroNow,
+  } = useMiroSync({
+    runId: runId ?? '',
+    boardId: miroBoard?.boardId,
+    enabled: Boolean(runId && miroBoard?.boardId),
+    pollIntervalMs: miroPollIntervalMs,
+  });
+
+  useEffect(() => {
+    if (!runId) {
+      setMiroBoard(null);
+      return;
+    }
+
+    setMiroBoard(getStoredMiroBoard(runId));
+    setMiroCreateError(null);
+    setMiroCreateMessage(null);
+  }, [runId]);
 
   useEffect(() => {
     if (!runId) {
@@ -153,6 +205,77 @@ export default function ResultsPage() {
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
+
+  async function createFixBoardInMiro() {
+    if (!runId || !run || !analysis) return;
+
+    setIsCreatingMiroBoard(true);
+    setMiroCreateError(null);
+    setMiroCreateMessage(null);
+
+    const payload: MiroCreateFixBoardPayload = {
+      runId: run.id,
+      mode: run.mode,
+      oneLineVerdict: analysis.one_line_verdict,
+      topFixes: analysis.top_fixes.map((fix) => ({
+        rank: fix.rank,
+        category: fix.category,
+        impact: fix.impact,
+        issue: fix.issue,
+        fix: fix.fix,
+      })),
+      rewriteScript: analysis.rewrite_script,
+    };
+
+    try {
+      const response = await fetch('/api/miro/fix-board', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = (await response.json()) as Partial<MiroFixBoardResponse> & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create Miro fix board.');
+      }
+
+      if (!data.boardId || !data.boardUrl) {
+        throw new Error('Miro API returned an incomplete board response.');
+      }
+
+      const storedBoard: StoredMiroBoard = {
+        boardId: data.boardId,
+        boardUrl: data.boardUrl,
+        createdAt: data.createdAt || new Date().toISOString(),
+        fallback: data.fallback,
+        message: data.message,
+      };
+
+      saveStoredMiroBoard(run.id, storedBoard);
+      setMiroBoard(storedBoard);
+      setMiroCreateMessage(
+        storedBoard.message ||
+          (storedBoard.fallback
+            ? 'Miro fallback mode active. Stub board created locally.'
+            : 'Fix board created successfully.'),
+      );
+    } catch (error) {
+      setMiroCreateError(
+        error instanceof Error ? error.message : 'Failed to create Miro fix board.',
+      );
+    } finally {
+      setIsCreatingMiroBoard(false);
+    }
+  }
+
+  const miroFixes = miroSnapshot?.fixes ?? [];
+  const miroWarnings = miroSnapshot?.warnings ?? [];
+  const combinedMiroError = miroCreateError || miroSyncError;
 
   return (
     <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
@@ -260,7 +383,27 @@ export default function ResultsPage() {
           </div>
         </Card>
 
-        <Card title="Top Fixes">
+        <Card
+          title="Top Fixes"
+          actions={
+            <button
+              onClick={createFixBoardInMiro}
+              disabled={isCreatingMiroBoard}
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border"
+              style={{
+                color: 'var(--text-secondary)',
+                borderColor: 'var(--border-color)',
+                opacity: isCreatingMiroBoard ? 0.7 : 1,
+              }}
+            >
+              {isCreatingMiroBoard
+                ? 'Creating...'
+                : miroBoard
+                  ? 'Recreate Fix Board'
+                  : 'Create Fix Board'}
+            </button>
+          }
+        >
           <div className="flex flex-col gap-3">
             {analysis.top_fixes.map((fix) => {
               const impactStyle = getImpactStyle(fix.impact);
@@ -286,9 +429,39 @@ export default function ResultsPage() {
                 </div>
               );
             })}
+            {miroCreateMessage ? (
+              <div className="text-xs px-2 py-1 rounded-lg" style={{ color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.10)' }}>
+                {miroCreateMessage}
+              </div>
+            ) : null}
+            {combinedMiroError ? (
+              <div className="text-xs px-2 py-1 rounded-lg" style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}>
+                {combinedMiroError}
+              </div>
+            ) : null}
+            {miroWarnings.length > 0 ? (
+              <div className="text-xs px-2 py-1 rounded-lg" style={{ color: '#ffaa33', backgroundColor: 'rgba(255,170,51,0.10)' }}>
+                {miroWarnings[0]}
+              </div>
+            ) : null}
           </div>
         </Card>
       </section>
+
+      {miroBoard ? (
+        <section>
+          <MiroSyncPanel
+            fixes={miroFixes}
+            isSyncing={isMiroSyncing}
+            lastSyncedAt={miroSnapshot?.syncedAt}
+            error={combinedMiroError}
+            boardUrl={miroBoard.fallback ? undefined : miroBoard.boardUrl}
+            onSyncNow={() => {
+              void syncMiroNow();
+            }}
+          />
+        </section>
+      ) : null}
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card

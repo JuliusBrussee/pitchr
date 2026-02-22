@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { MiroService } from "@/services/miro/miroService";
-import { parsePitchrStickyContent } from "@/services/miro/providers/miroRestProvider";
+import {
+  buildPitchrBoardName,
+  parsePitchrStickyContent,
+} from "@/services/miro/providers/miroRestProvider";
 import type { MiroProvider } from "@/services/miro/miroProvider";
 
 const sampleRequest = {
@@ -76,3 +79,27 @@ describe("parsePitchrStickyContent", () => {
   });
 });
 
+describe("buildPitchrBoardName", () => {
+  it("keeps name at or below Miro's 60-char limit for UUID run IDs", () => {
+    const boardName = buildPitchrBoardName({
+      runId: "9ce95f14-0e7e-44f3-aa23-8fca51ed06c2",
+      datePart: "2026-02-22",
+      boardNamePrefix: "Pitchr",
+    });
+
+    expect(boardName.length).toBeLessThanOrEqual(60);
+    expect(boardName).toContain("2026-02-22");
+  });
+
+  it("trims very long prefixes to stay within limit", () => {
+    const boardName = buildPitchrBoardName({
+      runId: "9ce95f14-0e7e-44f3-aa23-8fca51ed06c2",
+      datePart: "2026-02-22",
+      boardNamePrefix:
+        "Pitchr Enterprise Accelerator Program Workspace Board Name Prefix",
+    });
+
+    expect(boardName.length).toBeLessThanOrEqual(60);
+    expect(boardName).toContain("2026-02-22");
+  });
+});

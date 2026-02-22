@@ -10,6 +10,7 @@ import type {
 
 const MIRO_BASE_URL = "https://api.miro.com/v2";
 const HEADER_MARKER = "[PITCHR_FIX]";
+const MIRO_BOARD_NAME_MAX = 60;
 
 interface MiroBoardCreateResponse {
   id: string;
@@ -93,6 +94,31 @@ function buildMiroBoardUrl(board: MiroBoardCreateResponse) {
   }
 
   return `https://miro.com/app/board/${trimWrappedQuotes(board.id)}`;
+}
+
+function normalizeSpaces(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+export function buildPitchrBoardName(input: {
+  runId: string;
+  datePart: string;
+  boardNamePrefix?: string;
+}) {
+  const prefixRaw = normalizeSpaces(input.boardNamePrefix?.trim() || "Pitchr");
+  const prefix = prefixRaw || "Pitchr";
+  const runToken = input.runId.replace(/[^a-zA-Z0-9-]/g, "");
+  const runSuffix = (runToken || "run").slice(-12);
+  const suffix = ` - Run ${runSuffix} - ${input.datePart}`;
+  const maxPrefixLength = Math.max(1, MIRO_BOARD_NAME_MAX - suffix.length);
+
+  const compactPrefix =
+    prefix.length > maxPrefixLength
+      ? normalizeSpaces(prefix.slice(0, maxPrefixLength))
+      : prefix;
+  const safePrefix = compactPrefix || prefix.slice(0, maxPrefixLength) || "P";
+
+  return `${safePrefix}${suffix}`.slice(0, MIRO_BOARD_NAME_MAX);
 }
 
 export function buildPitchrStickyContent(runId: string, fix: MiroTopFixInput) {
@@ -200,8 +226,11 @@ export class MiroRestProvider implements MiroProvider {
 
   async createFixBoard(input: MiroFixBoardRequest): Promise<MiroFixBoardResponse> {
     const datePart = new Date().toISOString().slice(0, 10);
-    const prefix = input.boardNamePrefix?.trim() || "Pitchr";
-    const boardName = `${prefix} - Run ${input.runId} - ${datePart}`;
+    const boardName = buildPitchrBoardName({
+      runId: input.runId,
+      datePart,
+      boardNamePrefix: input.boardNamePrefix,
+    });
     const board = await this.createBoard(boardName);
 
     for (const fix of input.topFixes) {
