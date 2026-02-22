@@ -28,10 +28,11 @@ interface SessionBootstrap {
 }
 
 function formatSeconds(seconds: number): string {
-  const total = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(total / 60);
-  const rest = total % 60;
-  return `${minutes}:${rest.toString().padStart(2, '0')}`;
+  const abs = Math.abs(Math.round(seconds));
+  const minutes = Math.floor(abs / 60);
+  const rest = abs % 60;
+  const sign = seconds < 0 ? '+' : '';
+  return `${sign}${minutes}:${rest.toString().padStart(2, '0')}`;
 }
 
 function transcriptFromTurns(turns: QATurn[]): string {
@@ -52,15 +53,31 @@ function CountdownRing({
 }) {
   const radius = 90;
   const circumference = 2 * Math.PI * radius;
+  const remaining = total - elapsed;
+  const isOvertime = remaining < 0 && isActive;
   const progress = Math.min(elapsed / total, 1);
   const offset = circumference * (1 - progress);
-  const remaining = Math.max(0, total - elapsed);
-  const isUrgent = remaining <= 10 && isActive;
+  const isUrgent = remaining <= 10 && remaining > 0 && isActive;
+
+  // In overtime, pulse the ring fully filled
+  const overtimeOffset = 0;
+
+  const ringClass = [
+    'qa-ring-wrap',
+    isActive ? 'qa-ring-active' : '',
+    isUrgent ? 'qa-ring-urgent' : '',
+    isOvertime ? 'qa-ring-overtime' : '',
+  ].filter(Boolean).join(' ');
 
   return (
-    <div className={`qa-ring-wrap ${isActive ? 'qa-ring-active' : ''} ${isUrgent ? 'qa-ring-urgent' : ''}`}>
+    <div className={ringClass}>
       {/* Ambient glow */}
       <div className="qa-ring-glow" />
+
+      {/* Overtime badge */}
+      {isOvertime ? (
+        <div className="qa-overtime-badge">OVERTIME</div>
+      ) : null}
 
       <svg
         viewBox="0 0 200 200"
@@ -82,14 +99,14 @@ function CountdownRing({
           cy="100"
           r={radius}
           fill="none"
-          stroke="url(#qa-ring-gradient)"
-          strokeWidth="5"
+          stroke={isOvertime ? 'url(#qa-ring-overtime-gradient)' : 'url(#qa-ring-gradient)'}
+          strokeWidth={isOvertime ? 6 : 5}
           strokeLinecap="round"
           strokeDasharray={circumference}
-          strokeDashoffset={offset}
+          strokeDashoffset={isOvertime ? overtimeOffset : offset}
           transform="rotate(-90 100 100)"
-          className="qa-ring-progress"
-          style={{ '--ring-offset': `${offset}` } as React.CSSProperties}
+          className={`qa-ring-progress ${isOvertime ? 'qa-ring-progress-overtime' : ''}`}
+          style={{ '--ring-offset': `${isOvertime ? overtimeOffset : offset}` } as React.CSSProperties}
         />
         {/* Tick marks */}
         {Array.from({ length: 60 }, (_, i) => {
@@ -104,9 +121,9 @@ function CountdownRing({
               y1={100 + innerR * Math.sin(angle)}
               x2={100 + outerR * Math.cos(angle)}
               y2={100 + outerR * Math.sin(angle)}
-              stroke="var(--text-muted)"
+              stroke={isOvertime ? '#ef4444' : 'var(--text-muted)'}
               strokeWidth={isMajor ? 1.5 : 0.5}
-              opacity={isMajor ? 0.4 : 0.15}
+              opacity={isOvertime ? (isMajor ? 0.6 : 0.25) : (isMajor ? 0.4 : 0.15)}
             />
           );
         })}
@@ -116,16 +133,21 @@ function CountdownRing({
             <stop offset="50%" stopColor="#ffaa33" />
             <stop offset="100%" stopColor="#e63b26" />
           </linearGradient>
+          <linearGradient id="qa-ring-overtime-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ef4444" />
+            <stop offset="50%" stopColor="#dc2626" />
+            <stop offset="100%" stopColor="#b91c1c" />
+          </linearGradient>
         </defs>
       </svg>
 
       {/* Center content */}
       <div className="qa-ring-center">
-        <span className="qa-ring-time">
-          {formatSeconds(remaining)}
+        <span className={`qa-ring-time ${isOvertime ? 'qa-ring-time-overtime' : ''}`}>
+          {isOvertime ? formatSeconds(remaining) : formatSeconds(Math.max(0, remaining))}
         </span>
-        <span className="qa-ring-label">
-          {status === 'idle' ? 'READY' : status === 'connecting' ? 'CONNECTING' : status === 'active' ? 'REMAINING' : status === 'completed' ? 'COMPLETE' : status === 'expired' ? 'EXPIRED' : 'ERROR'}
+        <span className={`qa-ring-label ${isOvertime ? 'qa-ring-label-overtime' : ''}`}>
+          {isOvertime ? 'OVERTIME' : status === 'idle' ? 'READY' : status === 'connecting' ? 'CONNECTING' : status === 'active' ? 'REMAINING' : status === 'completed' ? 'COMPLETE' : status === 'expired' ? 'EXPIRED' : 'ERROR'}
         </span>
       </div>
     </div>
@@ -166,13 +188,13 @@ function LatencyBadge({ label, value }: { label: string; value: number }) {
 }
 
 /* ——— Status Pill ——— */
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ status, isOvertime }: { status: string; isOvertime: boolean }) {
   const isLive = status === 'active';
-  const label = status === 'idle' ? 'Standby' : status === 'connecting' ? 'Connecting...' : status === 'active' ? 'LIVE' : status === 'completed' ? 'Session Complete' : status === 'expired' ? 'Time Expired' : 'Error';
+  const label = isOvertime ? 'OVERTIME' : status === 'idle' ? 'Standby' : status === 'connecting' ? 'Connecting...' : status === 'active' ? 'LIVE' : status === 'completed' ? 'Session Complete' : status === 'expired' ? 'Time Expired' : 'Error';
 
   return (
-    <div className={`qa-status-pill ${isLive ? 'qa-status-live' : ''}`}>
-      {isLive ? <span className="qa-live-dot" /> : null}
+    <div className={`qa-status-pill ${isLive ? 'qa-status-live' : ''} ${isOvertime ? 'qa-status-overtime' : ''}`}>
+      {isLive ? <span className={`qa-live-dot ${isOvertime ? 'qa-live-dot-overtime' : ''}`} /> : null}
       {status === 'connecting' ? <RefreshCw size={10} className="qa-spin" /> : null}
       <span>{label}</span>
     </div>
@@ -419,7 +441,7 @@ export default function LiveQaPage() {
             <span>Results</span>
           </Link>
           <div className="qa-topbar-divider" />
-          <StatusPill status={liveQa.status} />
+          <StatusPill status={liveQa.status} isOvertime={liveQa.remainingSeconds < 0 && liveQa.isActive} />
         </div>
 
         <div className="qa-topbar-right">
@@ -455,15 +477,19 @@ export default function LiveQaPage() {
             <WaveformVisualizer isActive={liveQa.isActive} />
 
             {/* Session time readout */}
-            <div className="qa-time-readout">
+            <div className={`qa-time-readout ${liveQa.remainingSeconds < 0 && liveQa.isActive ? 'qa-time-readout-overtime' : ''}`}>
               <div className="qa-time-col">
                 <span className="qa-time-value">{formatSeconds(liveQa.elapsedSeconds)}</span>
                 <span className="qa-time-label">Elapsed</span>
               </div>
               <div className="qa-time-divider" />
               <div className="qa-time-col">
-                <span className="qa-time-value">{formatSeconds(liveQa.remainingSeconds)}</span>
-                <span className="qa-time-label">Remaining</span>
+                <span className={`qa-time-value ${liveQa.remainingSeconds < 0 ? 'qa-time-value-overtime' : ''}`}>
+                  {formatSeconds(liveQa.remainingSeconds)}
+                </span>
+                <span className="qa-time-label">
+                  {liveQa.remainingSeconds < 0 ? 'Overtime' : 'Remaining'}
+                </span>
               </div>
             </div>
 

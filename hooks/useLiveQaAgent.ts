@@ -382,9 +382,6 @@ export function useLiveQaAgent({
 
         const elapsed = (Date.now() - startedAt) / 1000;
         setElapsedSeconds(elapsed);
-        if (elapsed >= durationLimitSeconds) {
-          stopSession('expired');
-        }
       }, 200);
 
       const initPayload = {
@@ -605,7 +602,7 @@ export function useLiveQaAgent({
     };
   }, [latencySamples]);
 
-  const remainingSeconds = Math.max(0, Math.round(durationLimitSeconds - elapsedSeconds));
+  const remainingSeconds = Math.round(durationLimitSeconds - elapsedSeconds);
 
   return {
     status,
