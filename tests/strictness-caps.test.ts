@@ -41,6 +41,23 @@ function baseContext(labels: string[]): ScoringContext {
       filler_words: [],
       repeated_phrases: [],
     },
+    knowledge_digest: {
+      do_rules: ['Open with a clear one-liner.'],
+      dont_rules: ['Do not hide the ask.'],
+      category_guidance: {
+        structure: ['Use problem -> solution -> proof -> ask.'],
+        clarity: ['Use plain language.'],
+        evidence: ['Use metrics and timeframe.'],
+        market: ['Define your beachhead customer.'],
+        delivery: ['Pause before proof statements.'],
+      },
+      anti_pattern_playbook: {
+        no_proof: 'Add one metric with timeframe and denominator.',
+      },
+      digest_version: 'v1.2.0-digest.1',
+    },
+    knowledge_digest_chars: 420,
+    knowledge_digest_rules_count: 8,
     retrieved_patterns: [],
     stage_expectations: [],
     knowledge_version: 'v1.1.0',

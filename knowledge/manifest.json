@@ -1,6 +1,6 @@
 {
   "knowledge_version": "v1.0.0",
-  "generated_at": "2026-02-21T22:47:13.463Z",
+  "generated_at": "2026-02-22T03:52:08.113Z",
   "notes": "Curated and versioned evidence pack for deterministic scoring.",
   "sources": [
     {
@@ -87,11 +87,11 @@
   "artifacts": [
     {
       "path": "knowledge/patterns.v1.json",
-      "hash_sha256": "6750e5c4377ae029f32a795cf0a78495c9b1a66d84f1664250ba24536c410c95"
+      "hash_sha256": "977a99763809b72c57bc9adf099bfbd6b700747e20364ae3acc2a985de9be665"
     },
     {
       "path": "knowledge/curated/deck_commonality_notes.md",
-      "hash_sha256": "661052d066a221ddd9cf2057204765baf07b772f50c6a5cb08c8ed22bb776e38"
+      "hash_sha256": "6a33e059f73f3287e9d15e36e9cf654d76428e3774192efb876f44b9a28e1910"
     }
   ]
 }

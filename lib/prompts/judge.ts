@@ -1,16 +1,27 @@
 import { DECK_RUBRIC_CATEGORIES, RUBRIC_CATEGORIES } from '@/config/rubric';
-import type { ScoringContext } from '@/types/analysis-v2';
+import type { KnowledgeDigest, ScoringContext } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
 
 const MAX_PROMPT_CHARS = 9000;
-const MAX_PATTERN_TEXT_CHARS = 240;
+const PROMPT_WARN_THRESHOLD = 8600;
+const MIN_KNOWLEDGE_DIGEST_CHARS = 320;
+const MAX_PATTERN_TEXT_CHARS = 220;
 const MAX_BEAT_TEXT_CHARS = 180;
 const MAX_ANTI_EVIDENCE_CHARS = 180;
+
+export interface JudgePromptBuildResult {
+  userPrompt: string;
+  clipStage: number;
+  knowledgeIncluded: boolean;
+  knowledgeChars: number;
+  benchmarksIncluded: boolean;
+  patternTextIncluded: boolean;
+}
 
 function clip(text: string, maxChars: number): string {
   const normalized = text.replace(/\s+/gu, ' ').trim();
   if (normalized.length <= maxChars) return normalized;
-  return `${normalized.slice(0, maxChars - 1).trimEnd()}…`;
+  return `${normalized.slice(0, maxChars - 3).trimEnd()}...`;
 }
 
 export const JUDGE_SYSTEM_PROMPT = [
@@ -19,10 +30,13 @@ export const JUDGE_SYSTEM_PROMPT = [
   'Return valid JSON only.',
   'Do not include markdown fences.',
   'Do not include explanations before or after JSON.',
+  'Follow this internal two-stage process in one call:',
+  'Stage 1 (internal only): produce provisional scoring from transcript and deck text only.',
+  'Stage 2 (internal only): calibrate those scores and fixes with knowledge_digest and YC strictness.',
+  'Return only the final calibrated JSON output.',
   'Score harshly: 80+ should be rare and reserved for clear proof, clear ask, and clear differentiation.',
   'Penalize generic and vague language aggressively.',
-  'Prioritize YC-aligned principles and then curated support sources.',
-  'Be concise. Use compact sentences and avoid long explanations.',
+  'Use support knowledge silently. Never mention source names, URLs, or phrases like "YC says".',
   'Non-delivery categories are your responsibility.',
   'Delivery metrics will be overwritten by deterministic local scoring.',
 ].join('\n');
@@ -94,6 +108,29 @@ function rubricText(): string {
   return ['Spoken rubric:', ...spoken, '', 'Deck rubric:', ...deck].join('\n');
 }
 
+function toPromptKnowledgeDigest(digest: KnowledgeDigest): KnowledgeDigest {
+  const doRules = digest.do_rules.slice(0, 12).map((rule) => clip(rule, 120));
+  const dontRules = digest.dont_rules.slice(0, 12).map((rule) => clip(rule, 120));
+
+  return {
+    do_rules: doRules,
+    dont_rules: dontRules,
+    category_guidance: {
+      structure: digest.category_guidance.structure.slice(0, 4).map((rule) => clip(rule, 120)),
+      clarity: digest.category_guidance.clarity.slice(0, 4).map((rule) => clip(rule, 120)),
+      evidence: digest.category_guidance.evidence.slice(0, 4).map((rule) => clip(rule, 120)),
+      market: digest.category_guidance.market.slice(0, 4).map((rule) => clip(rule, 120)),
+      delivery: digest.category_guidance.delivery.slice(0, 4).map((rule) => clip(rule, 120)),
+    },
+    anti_pattern_playbook: Object.fromEntries(
+      Object.entries(digest.anti_pattern_playbook)
+        .slice(0, 10)
+        .map(([key, value]) => [key, clip(value, 140)]),
+    ),
+    digest_version: clip(digest.digest_version, 80),
+  };
+}
+
 function toCompactContext(
   context: ScoringContext,
   options?: {
@@ -135,6 +172,7 @@ function toCompactContext(
       stage: entry.stage,
       expectations: entry.expectations.slice(0, 4).map((item) => clip(item, 120)),
     })),
+    knowledge_digest: toPromptKnowledgeDigest(context.knowledge_digest),
     benchmark_profiles: includeBenchmarks
       ? {
           yc_top_decile:
@@ -185,10 +223,19 @@ function buildPrompt(params: {
     '',
     rubricText(),
     '',
+    'Internal judging protocol (do not reveal these steps):',
+    '1. Stage 1 baseline: score from transcript + deck text only.',
+    '2. Stage 2 calibration: adjust with knowledge_digest and YC strictness.',
+    '3. Output final calibrated JSON only.',
+    '',
+    'Silent source usage rule:',
+    '- Apply guidance from knowledge_digest internally.',
+    '- Do not reference source names, source URLs, YC, or citation provenance in user-facing text.',
+    '',
     'Benchmark policy:',
     '- Grade against YC top-decile fundraising quality.',
     '- 80+ is rare and requires strong proof + clear differentiation + explicit ask.',
-    '- Prioritize YC-weighted evidence over secondary sources.',
+    '- Penalize generic language and unsupported claims.',
     '',
     'Compact scoring context (deterministic local features):',
     JSON.stringify(compactContext, null, 2),
@@ -208,7 +255,7 @@ function buildPrompt(params: {
     '- Keep top_fixes ranked with concrete issue and fix.',
     '- Keep each fix issue and fix under 16 words each.',
     '- Keep rewrite_script under 120 words.',
-    '- Keep citations to maximum 2 entries.',
+    '- Citations are optional and may be empty; if present keep max 2.',
     '- Keep citation excerpt under 80 characters.',
     '- Keep do_next_checklist to maximum 5 short bullets.',
     '- Q&A must have exactly 3 questions and 3 timed answers.',
@@ -235,6 +282,136 @@ export function buildJudgeRepairPrompt(invalidOutput: string): string {
   ].join('\n');
 }
 
+export function buildJudgeUserPromptWithTelemetry({
+  mode,
+  transcript,
+  deckText,
+  context,
+}: {
+  mode: PitchMode;
+  transcript: string;
+  deckText?: string;
+  context: ScoringContext;
+}): JudgePromptBuildResult {
+  let workingTranscript = transcript.trim();
+  let workingDeckText = deckText?.trim() ?? '';
+  let includePatternText = true;
+  let maxPatterns = 6;
+  let includeBenchmarks = true;
+  let clipStage = 0;
+
+  const rebuild = (): string =>
+    buildPrompt({
+      mode,
+      context,
+      transcript: workingTranscript,
+      deckText: workingDeckText,
+      includePatternText,
+      maxPatterns,
+      includeBenchmarks,
+    });
+
+  let prompt = rebuild();
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    includeBenchmarks = false;
+    clipStage = 1;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    includePatternText = false;
+    maxPatterns = 4;
+    clipStage = 2;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    workingDeckText = clip(workingDeckText, 1600);
+    clipStage = 3;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    workingDeckText = clip(workingDeckText, 900);
+    clipStage = 4;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    workingDeckText = clip(workingDeckText, 500);
+    clipStage = 5;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    workingTranscript = clip(workingTranscript, 2600);
+    clipStage = 6;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    workingTranscript = clip(workingTranscript, 1800);
+    clipStage = 7;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    workingTranscript = clip(workingTranscript, 1200);
+    clipStage = 8;
+    prompt = rebuild();
+  }
+
+  if (prompt.length > MAX_PROMPT_CHARS) {
+    workingTranscript = clip(workingTranscript, 900);
+    clipStage = 9;
+    prompt = rebuild();
+  }
+
+  while (prompt.length > MAX_PROMPT_CHARS && workingTranscript.length > 300) {
+    workingTranscript = clip(workingTranscript, Math.max(300, workingTranscript.length - 140));
+    clipStage = 10;
+    prompt = rebuild();
+  }
+
+  while (prompt.length > MAX_PROMPT_CHARS && workingDeckText.length > 150) {
+    workingDeckText = clip(workingDeckText, Math.max(150, workingDeckText.length - 90));
+    clipStage = 11;
+    prompt = rebuild();
+  }
+
+  const promptDigest = toPromptKnowledgeDigest(context.knowledge_digest);
+  const knowledgeChars = JSON.stringify(promptDigest).length;
+  const knowledgeIncluded = knowledgeChars > 0;
+
+  if (knowledgeChars < MIN_KNOWLEDGE_DIGEST_CHARS) {
+    console.warn('[judge-prompt] knowledge digest below minimum prompt target', {
+      knowledgeChars,
+      minChars: MIN_KNOWLEDGE_DIGEST_CHARS,
+      clipStage,
+    });
+  }
+
+  if (prompt.length > PROMPT_WARN_THRESHOLD) {
+    console.warn('[judge-prompt] prompt near cap', {
+      length: prompt.length,
+      max: MAX_PROMPT_CHARS,
+      clipStage,
+      includeBenchmarks,
+      includePatternText,
+    });
+  }
+
+  return {
+    userPrompt: prompt,
+    clipStage,
+    knowledgeIncluded,
+    knowledgeChars,
+    benchmarksIncluded: includeBenchmarks,
+    patternTextIncluded: includePatternText,
+  };
+}
+
 export function buildJudgeUserPrompt({
   mode,
   transcript,
@@ -246,95 +423,12 @@ export function buildJudgeUserPrompt({
   deckText?: string;
   context: ScoringContext;
 }): string {
-  let workingTranscript = transcript.trim();
-  let workingDeckText = deckText?.trim() ?? '';
-  let includePatternText = true;
-  let maxPatterns = 6;
-  let includeBenchmarks = true;
-
-  let prompt = buildPrompt({
+  return buildJudgeUserPromptWithTelemetry({
     mode,
+    transcript,
+    deckText,
     context,
-    transcript: workingTranscript,
-    deckText: workingDeckText,
-    includePatternText,
-    maxPatterns,
-    includeBenchmarks,
-  });
-
-  if (prompt.length > MAX_PROMPT_CHARS) {
-    workingTranscript = clip(workingTranscript, 2800);
-    workingDeckText = clip(workingDeckText, 1800);
-    prompt = buildPrompt({
-      mode,
-      context,
-      transcript: workingTranscript,
-      deckText: workingDeckText,
-      includePatternText,
-      maxPatterns,
-      includeBenchmarks,
-    });
-  }
-
-  if (prompt.length > MAX_PROMPT_CHARS) {
-    includePatternText = false;
-    maxPatterns = 4;
-    prompt = buildPrompt({
-      mode,
-      context,
-      transcript: workingTranscript,
-      deckText: workingDeckText,
-      includePatternText,
-      maxPatterns,
-      includeBenchmarks,
-    });
-  }
-
-  if (prompt.length > MAX_PROMPT_CHARS) {
-    workingTranscript = clip(workingTranscript, 1800);
-    workingDeckText = clip(workingDeckText, 1000);
-    prompt = buildPrompt({
-      mode,
-      context,
-      transcript: workingTranscript,
-      deckText: workingDeckText,
-      includePatternText,
-      maxPatterns,
-      includeBenchmarks,
-    });
-  }
-
-  if (prompt.length > MAX_PROMPT_CHARS) {
-    includeBenchmarks = false;
-    maxPatterns = 3;
-    workingTranscript = clip(workingTranscript, 1400);
-    workingDeckText = clip(workingDeckText, 700);
-    prompt = buildPrompt({
-      mode,
-      context,
-      transcript: workingTranscript,
-      deckText: workingDeckText,
-      includePatternText,
-      maxPatterns,
-      includeBenchmarks,
-    });
-  }
-
-  if (prompt.length > MAX_PROMPT_CHARS) {
-    workingTranscript = clip(workingTranscript, 900);
-    workingDeckText = clip(workingDeckText, 400);
-    prompt = buildPrompt({
-      mode,
-      context,
-      transcript: workingTranscript,
-      deckText: workingDeckText,
-      includePatternText,
-      maxPatterns,
-      includeBenchmarks,
-    });
-  }
-
-  return prompt;
+  }).userPrompt;
 }
 
 export const SECTION_ANALYSIS_SYSTEM_PROMPT = [
