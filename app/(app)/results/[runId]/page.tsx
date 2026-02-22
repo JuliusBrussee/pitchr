@@ -481,32 +481,34 @@ export default function ResultsPage() {
         </div>
 
         {economics ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <StatPill
-              icon={<Timer size={12} />}
-              label="Estimated Cost"
-              value={formatCurrency(economics.estimated_cost_usd)}
-            />
-            <StatPill
-              icon={<MessageSquare size={12} />}
-              label="Money Saved vs Coach"
-              value={formatCurrency(economics.money_saved_vs_coach_usd)}
-            />
-            <StatPill
-              icon={<Clock size={12} />}
-              label="Net Savings (Est.)"
-              value={formatCurrency(economics.gross_margin_usd)}
-            />
-            <StatPill
-              icon={<Timer size={12} />}
-              label="Time Saved"
-              value={formatMinutes(economics.time_saved_minutes)}
-            />
-          </div>
-          
-          <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
-            Based on an equivalent pitch-coach rate of {formatCurrency(economics.coach_hourly_rate_usd)}/hour.
-          </p>
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <StatPill
+                icon={<Timer size={12} />}
+                label="Estimated Cost"
+                value={formatCurrency(economics.estimated_cost_usd)}
+              />
+              <StatPill
+                icon={<MessageSquare size={12} />}
+                label="Money Saved vs Coach"
+                value={formatCurrency(economics.money_saved_vs_coach_usd)}
+              />
+              <StatPill
+                icon={<Clock size={12} />}
+                label="Net Savings (Est.)"
+                value={formatCurrency(economics.gross_margin_usd)}
+              />
+              <StatPill
+                icon={<Timer size={12} />}
+                label="Time Saved"
+                value={formatMinutes(economics.time_saved_minutes)}
+              />
+            </div>
+
+            <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+              Based on an equivalent pitch-coach rate of {formatCurrency(economics.coach_hourly_rate_usd)}/hour.
+            </p>
+          </>
         ) : (
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Value proof is unavailable for this run.
