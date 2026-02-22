@@ -1,6 +1,7 @@
-import type { MiroTopFixInput } from "@/services/miro/miroTypes";
+import type { MiroGeneratedBoardCopy, MiroTopFixInput } from "@/services/miro/miroTypes";
 
 const MAX_TRANSCRIPT_PROMPT_CHARS = 40_000;
+const MAX_BASE_COPY_PROMPT_CHARS = 24_000;
 
 function normalizeWhitespace(value: string) {
   return value.replace(/\r\n/g, "\n").trim();
@@ -11,6 +12,12 @@ function capTranscript(transcript?: string) {
   const normalized = normalizeWhitespace(transcript);
   if (normalized.length <= MAX_TRANSCRIPT_PROMPT_CHARS) return normalized;
   return normalized.slice(0, MAX_TRANSCRIPT_PROMPT_CHARS);
+}
+
+function capBaseCopy(baseCopy: MiroGeneratedBoardCopy) {
+  const serialized = JSON.stringify(baseCopy);
+  if (serialized.length <= MAX_BASE_COPY_PROMPT_CHARS) return serialized;
+  return serialized.slice(0, MAX_BASE_COPY_PROMPT_CHARS);
 }
 
 function formatFixes(fixes: MiroTopFixInput[]) {
@@ -88,6 +95,62 @@ Rules:
 - Mind-map nodes should emphasize clarity over quantity.
 `.trim();
 
+export const MIRO_FIX_BOARD_HYBRID_SYSTEM_PROMPT = `
+You are an expert Miro board composition agent.
+Refine an existing execution board into a stronger visual layout while preserving intent.
+Return valid JSON only. No markdown, no extra commentary.
+
+Required JSON shape:
+{
+  "layoutStyle": "mindmap_hybrid|compact_kanban",
+  "kanbanSize": "small|full",
+  "overviewCardHtml": "string",
+  "rewriteCardText": "string",
+  "columnGuides": {
+    "todo": "string",
+    "doing": "string",
+    "blocked": "string",
+    "done": "string"
+  },
+  "fixCards": [
+    {
+      "rank": 1,
+      "category": "string",
+      "impact": "high|medium|low",
+      "issue": "string",
+      "action": "string",
+      "status": "todo|doing|blocked|done",
+      "owner": "string",
+      "notes": "string",
+      "nextStep": "string",
+      "successMetric": "string",
+      "blocker": "string"
+    }
+  ],
+  "mindMap": {
+    "centerTitle": "string",
+    "centerBullets": ["string"],
+    "nodes": [
+      {
+        "id": "string",
+        "title": "string",
+        "bullets": ["string"],
+        "rank": 1,
+        "tool": "bubble|shape|sticky"
+      }
+    ]
+  }
+}
+
+Rules:
+- Keep exactly the same fix ranks. Never add/remove fix ranks.
+- Keep meaning of issue/action intact; tighten language for readability.
+- Make content scan-friendly with concise bullets and short phrases.
+- Choose layout + visual tools that improve clarity in Miro.
+- Prefer mind-map centric layouts when relationships matter.
+- Keep owner/notes fields usable for execution tracking.
+`.trim();
+
 export function buildMiroFixBoardUserPrompt(input: {
   mode: string;
   oneLineVerdict: string;
@@ -111,6 +174,42 @@ ${formatFixes(input.topFixes)}
 
 Rewrite script:
 ${normalizeWhitespace(input.rewriteScript)}
+
+Transcript (optional context):
+${transcript || "[Not provided]"}
+
+Return only JSON matching the required shape.
+`.trim();
+}
+
+export function buildMiroFixBoardHybridUserPrompt(input: {
+  mode: string;
+  oneLineVerdict: string;
+  topFixes: MiroTopFixInput[];
+  rewriteScript: string;
+  transcript?: string;
+  baseCopy: MiroGeneratedBoardCopy;
+}) {
+  const transcript = capTranscript(input.transcript);
+  const serializedBaseCopy = capBaseCopy(input.baseCopy);
+
+  return `
+Refine the existing Miro board copy to improve visual composition and readability.
+
+Mode:
+${input.mode}
+
+One-line verdict:
+${input.oneLineVerdict}
+
+Top fixes:
+${formatFixes(input.topFixes)}
+
+Rewrite script:
+${normalizeWhitespace(input.rewriteScript)}
+
+Current generated board copy (JSON):
+${serializedBaseCopy}
 
 Transcript (optional context):
 ${transcript || "[Not provided]"}

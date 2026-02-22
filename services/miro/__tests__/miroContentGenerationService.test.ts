@@ -93,6 +93,20 @@ function makeValidJson() {
   });
 }
 
+function makeHybridVisualJson() {
+  const parsed = JSON.parse(makeValidJson()) as Record<string, unknown>;
+  const mindMap = parsed.mindMap as { nodes?: Array<Record<string, unknown>> } | undefined;
+  const firstNode = mindMap?.nodes?.[0];
+  if (firstNode) {
+    firstNode.tool = "shape";
+    firstNode.title = "#1 Evidence Architecture";
+    firstNode.bullets = ["Lead with metric", "Support with source"];
+  }
+  parsed.layoutStyle = "mindmap_hybrid";
+  parsed.kanbanSize = "small";
+  return JSON.stringify(parsed);
+}
+
 describe("generateMiroBoardCopy", () => {
   it("uses OpenRouter output when OpenRouter succeeds", async () => {
     const openrouterComplete = vi.fn(async () => makeValidJson());
@@ -103,6 +117,7 @@ describe("generateMiroBoardCopy", () => {
       anthropicComplete,
       hasOpenRouterApiKey: () => true,
       hasAnthropicApiKey: () => true,
+      shouldRunHybridVisualPass: () => false,
     });
 
     expect(result.providerUsed).toBe("openrouter");
@@ -125,11 +140,35 @@ describe("generateMiroBoardCopy", () => {
       anthropicComplete,
       hasOpenRouterApiKey: () => true,
       hasAnthropicApiKey: () => true,
+      shouldRunHybridVisualPass: () => false,
     });
 
     expect(result.providerUsed).toBe("anthropic");
     expect(result.fallbackUsed).toBe(true);
     expect(anthropicComplete).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies hybrid visual pass when enabled", async () => {
+    const openrouterComplete = vi
+      .fn(async () => makeValidJson())
+      .mockResolvedValueOnce(makeValidJson())
+      .mockResolvedValueOnce(makeHybridVisualJson());
+    const anthropicComplete = vi.fn(async () => makeValidJson());
+
+    const result = await generateMiroBoardCopy(sampleInput, {
+      openrouterComplete,
+      anthropicComplete,
+      hasOpenRouterApiKey: () => true,
+      hasAnthropicApiKey: () => true,
+      shouldRunHybridVisualPass: () => true,
+    });
+
+    expect(result.providerUsed).toBe("openrouter");
+    expect(result.fallbackUsed).toBe(false);
+    expect(result.generated.mindMap.nodes[0]?.tool).toBe("shape");
+    expect(result.message).toContain("Hybrid visual pass applied");
+    expect(openrouterComplete).toHaveBeenCalledTimes(2);
+    expect(anthropicComplete).not.toHaveBeenCalled();
   });
 
   it("falls back to template when both providers fail", async () => {
@@ -142,6 +181,7 @@ describe("generateMiroBoardCopy", () => {
       },
       hasOpenRouterApiKey: () => true,
       hasAnthropicApiKey: () => true,
+      shouldRunHybridVisualPass: () => false,
     });
 
     expect(result.providerUsed).toBe("template");
@@ -157,6 +197,7 @@ describe("generateMiroBoardCopy", () => {
       },
       hasOpenRouterApiKey: () => true,
       hasAnthropicApiKey: () => true,
+      shouldRunHybridVisualPass: () => false,
     });
 
     expect(result.providerUsed).toBe("template");
@@ -204,6 +245,7 @@ describe("generateMiroBoardCopy", () => {
       },
       hasOpenRouterApiKey: () => true,
       hasAnthropicApiKey: () => true,
+      shouldRunHybridVisualPass: () => false,
     });
 
     expect(result.providerUsed).toBe("template");

@@ -2,7 +2,9 @@ import { AnthropicProvider } from "@/lib/llm/providers/anthropic";
 import { OpenRouterProvider } from "@/lib/llm/providers/openrouter";
 import type { LlmCompletionRequest } from "@/lib/llm/types";
 import {
+  buildMiroFixBoardHybridUserPrompt,
   buildMiroFixBoardUserPrompt,
+  MIRO_FIX_BOARD_HYBRID_SYSTEM_PROMPT,
   MIRO_FIX_BOARD_SYSTEM_PROMPT,
 } from "@/lib/prompts/miroFixBoard";
 import type {
@@ -45,6 +47,7 @@ interface MiroContentGenerationDeps {
   anthropicComplete?: (request: LlmCompletionRequest) => Promise<string>;
   hasOpenRouterApiKey?: () => boolean;
   hasAnthropicApiKey?: () => boolean;
+  shouldRunHybridVisualPass?: () => boolean;
 }
 
 function normalizeSpace(value: string) {
@@ -130,7 +133,7 @@ function toBullets(input: unknown, maxItems: number, maxChars: number): string[]
   const source = input.trim();
   if (!source) return [];
   return source
-    .split(/\n|;|•|-/)
+    .split(/\n|;|\u2022|-/)
     .map((part) => sanitizeText(part, maxChars))
     .filter(Boolean)
     .slice(0, maxItems);
@@ -361,7 +364,14 @@ function hasAnthropicApiKey() {
   return Boolean(process.env.ANTHROPIC_API_KEY?.trim());
 }
 
-function buildRequest(input: MiroFixBoardRequest): LlmCompletionRequest {
+function shouldRunHybridVisualPass() {
+  const raw = process.env.MIRO_HYBRID_VISUAL_MODE;
+  if (!raw) return true;
+  const normalized = raw.trim().toLowerCase();
+  return normalized !== "false" && normalized !== "0" && normalized !== "off";
+}
+
+function buildBaseRequest(input: MiroFixBoardRequest): LlmCompletionRequest {
   return {
     systemPrompt: MIRO_FIX_BOARD_SYSTEM_PROMPT,
     userPrompt: buildMiroFixBoardUserPrompt({
@@ -378,17 +388,41 @@ function buildRequest(input: MiroFixBoardRequest): LlmCompletionRequest {
   };
 }
 
+function buildHybridVisualRequest(input: {
+  source: MiroFixBoardRequest;
+  baseCopy: MiroGeneratedBoardCopy;
+}): LlmCompletionRequest {
+  return {
+    systemPrompt: MIRO_FIX_BOARD_HYBRID_SYSTEM_PROMPT,
+    userPrompt: buildMiroFixBoardHybridUserPrompt({
+      mode: input.source.mode,
+      oneLineVerdict: input.source.oneLineVerdict,
+      topFixes: input.source.topFixes,
+      rewriteScript: input.source.rewriteScript,
+      transcript: capTranscript(input.source.transcript),
+      baseCopy: input.baseCopy,
+    }),
+    responseFormat: "json",
+    temperature: 0.45,
+    maxTokens: 1800,
+    timeoutMs: 20_000,
+  };
+}
+
 function defaultDeps(): Required<MiroContentGenerationDeps> {
   return {
     openrouterComplete: (request) => new OpenRouterProvider().complete(request),
     anthropicComplete: (request) => new AnthropicProvider().complete(request),
     hasOpenRouterApiKey,
     hasAnthropicApiKey,
+    shouldRunHybridVisualPass,
   };
 }
 
+type ProviderName = "openrouter" | "anthropic";
+
 async function runProviderAttempt(input: {
-  name: "openrouter" | "anthropic";
+  name: ProviderName;
   complete: (request: LlmCompletionRequest) => Promise<string>;
   request: LlmCompletionRequest;
   source: MiroFixBoardRequest;
@@ -402,62 +436,124 @@ async function runProviderAttempt(input: {
   return normalized;
 }
 
+interface ProviderAttemptResult {
+  provider: ProviderName;
+  generated: MiroGeneratedBoardCopy;
+}
+
+async function runProviderChain(input: {
+  request: LlmCompletionRequest;
+  source: MiroFixBoardRequest;
+  deps: Required<MiroContentGenerationDeps>;
+  failures: string[];
+}): Promise<ProviderAttemptResult | null> {
+  if (input.deps.hasOpenRouterApiKey()) {
+    try {
+      const generated = await runProviderAttempt({
+        name: "openrouter",
+        complete: input.deps.openrouterComplete,
+        request: input.request,
+        source: input.source,
+      });
+      return { provider: "openrouter", generated };
+    } catch (error) {
+      input.failures.push(`OpenRouter: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  } else {
+    input.failures.push("OpenRouter: missing OPENROUTER_API_KEY");
+  }
+
+  if (input.deps.hasAnthropicApiKey()) {
+    try {
+      const generated = await runProviderAttempt({
+        name: "anthropic",
+        complete: input.deps.anthropicComplete,
+        request: input.request,
+        source: input.source,
+      });
+      return { provider: "anthropic", generated };
+    } catch (error) {
+      input.failures.push(`Anthropic: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  } else {
+    input.failures.push("Anthropic: missing ANTHROPIC_API_KEY");
+  }
+
+  return null;
+}
+
 export async function generateMiroBoardCopy(
   input: MiroFixBoardRequest,
   deps?: MiroContentGenerationDeps,
 ): Promise<MiroBoardCopyGenerationResult> {
   const resolvedDeps = { ...defaultDeps(), ...(deps ?? {}) };
   const template = buildTemplateMiroBoardCopy(input);
-  const request = buildRequest(input);
+  const baseRequest = buildBaseRequest(input);
+  const baseFailures: string[] = [];
+  const baseAttempt = await runProviderChain({
+    request: baseRequest,
+    source: input,
+    deps: resolvedDeps,
+    failures: baseFailures,
+  });
 
-  const failed: string[] = [];
-  if (resolvedDeps.hasOpenRouterApiKey()) {
-    try {
-      const generated = await runProviderAttempt({
-        name: "openrouter",
-        complete: resolvedDeps.openrouterComplete,
-        request,
-        source: input,
-      });
-      return {
-        generated,
-        providerUsed: "openrouter",
-        fallbackUsed: false,
-        message: "Miro content generated via OpenRouter.",
-      };
-    } catch (error) {
-      failed.push(`OpenRouter: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  } else {
-    failed.push("OpenRouter: missing OPENROUTER_API_KEY");
+  if (!baseAttempt) {
+    const reason = baseFailures.length ? ` ${baseFailures[0]}` : "";
+    return {
+      generated: template,
+      providerUsed: "template",
+      fallbackUsed: true,
+      message: `Miro content template fallback applied.${reason}`.trim(),
+    };
   }
 
-  if (resolvedDeps.hasAnthropicApiKey()) {
-    try {
-      const generated = await runProviderAttempt({
-        name: "anthropic",
-        complete: resolvedDeps.anthropicComplete,
-        request,
-        source: input,
-      });
-      return {
-        generated,
-        providerUsed: "anthropic",
-        fallbackUsed: true,
-        message: "Miro content generated via Anthropic fallback.",
-      };
-    } catch (error) {
-      failed.push(`Anthropic: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  } else {
-    failed.push("Anthropic: missing ANTHROPIC_API_KEY");
+  const baseMessage =
+    baseAttempt.provider === "openrouter"
+      ? "Miro content generated via OpenRouter."
+      : "Miro content generated via Anthropic fallback.";
+
+  if (!resolvedDeps.shouldRunHybridVisualPass()) {
+    return {
+      generated: baseAttempt.generated,
+      providerUsed: baseAttempt.provider,
+      fallbackUsed: baseAttempt.provider !== "openrouter",
+      message: baseMessage,
+    };
   }
 
-  const reason = failed.length ? ` ${failed[0]}` : "";
+  const hybridRequest = buildHybridVisualRequest({
+    source: input,
+    baseCopy: baseAttempt.generated,
+  });
+  const hybridFailures: string[] = [];
+  const hybridAttempt = await runProviderChain({
+    request: hybridRequest,
+    source: input,
+    deps: resolvedDeps,
+    failures: hybridFailures,
+  });
+
+  if (!hybridAttempt) {
+    const reason = hybridFailures.length ? ` ${hybridFailures[0]}` : "";
+    return {
+      generated: baseAttempt.generated,
+      providerUsed: baseAttempt.provider,
+      fallbackUsed: baseAttempt.provider !== "openrouter",
+      message: `${baseMessage} Hybrid visual pass retained base layout.${reason}`.trim(),
+    };
+  }
+
+  const hybridMessage =
+    hybridAttempt.provider === "openrouter"
+      ? "Hybrid visual pass applied via OpenRouter."
+      : "Hybrid visual pass applied via Anthropic fallback.";
+
   return {
-    generated: template,
-    providerUsed: "template",
-    fallbackUsed: true,
-    message: `Miro content template fallback applied.${reason}`.trim(),
+    generated: hybridAttempt.generated,
+    providerUsed: baseAttempt.provider,
+    fallbackUsed:
+      baseAttempt.provider !== "openrouter" || hybridAttempt.provider !== "openrouter",
+    message: `${baseMessage} ${hybridMessage}`.trim(),
   };
 }
+
