@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { Check, Circle, Minus, Sparkles, X } from 'lucide-react';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
-import type { PitchMode } from '@/types/pitch';
 import type { InsightEntry, MetricValues } from '@/hooks/useSessionState';
 import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
 
@@ -12,8 +11,6 @@ interface MetricsPanelProps {
   checklist: RealtimeChecklistItemState[];
   insights: InsightEntry[];
   isSessionActive: boolean;
-  selectedMode: PitchMode;
-  onModeChange: (mode: PitchMode) => void;
   engagementBand?: HeadTrackingEngagementBand;
   isCameraOn?: boolean;
   checklistSource?: 'llm' | 'heuristic' | null;
@@ -181,8 +178,6 @@ export function MetricsPanel({
   checklist,
   insights,
   isSessionActive,
-  selectedMode,
-  onModeChange,
   engagementBand = 'no_face',
   isCameraOn = false,
   checklistSource,
@@ -205,26 +200,6 @@ export function MetricsPanel({
         borderColor: 'var(--border-color)',
       }}
     >
-      <div className="p-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
-        <h3 className="text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          Pitch Mode
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          <ModeButton
-            active={selectedMode === 'elevator'}
-            label="Elevator"
-            disabled={isSessionActive}
-            onClick={() => onModeChange('elevator')}
-          />
-          <ModeButton
-            active={selectedMode === 'vc_pitch'}
-            label="VC Pitch"
-            disabled={isSessionActive}
-            onClick={() => onModeChange('vc_pitch')}
-          />
-        </div>
-      </div>
-
       {(sttError || sttSaved || isAnalyzing || analysisError || checklistError) && (
         <div className="p-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border-color)' }}>
           {analysisError && (
@@ -341,36 +316,6 @@ export function MetricsPanel({
 /* ------------------------------------------------------------------ */
 /*  Sub-components                                                     */
 /* ------------------------------------------------------------------ */
-
-function ModeButton({
-  active,
-  label,
-  disabled,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className="text-xs font-medium rounded-lg border px-2.5 py-2 transition-colors"
-      style={{
-        borderColor: active ? '#ff5941' : 'var(--border-color)',
-        color: active ? '#ff5941' : 'var(--text-secondary)',
-        backgroundColor: active ? 'rgba(255, 89, 65, 0.12)' : 'var(--bg-surface)',
-        opacity: disabled ? 0.6 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-      }}
-    >
-      {label}
-    </button>
-  );
-}
 
 function MetricCard({
   label,

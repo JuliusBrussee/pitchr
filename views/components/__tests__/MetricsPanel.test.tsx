@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
 
@@ -23,8 +23,6 @@ describe('MetricsPanel', () => {
         checklist={checklist}
         insights={[]}
         isSessionActive
-        selectedMode="elevator"
-        onModeChange={vi.fn()}
       />,
     );
 
@@ -32,21 +30,18 @@ describe('MetricsPanel', () => {
     expect(screen.getByText(/My name is Alice and we solve/)).toBeTruthy();
   });
 
-  it('calls onModeChange when mode button is clicked', () => {
-    const onModeChange = vi.fn();
+  it('renders without mode selector controls', () => {
     render(
       <MetricsPanel
         metrics={{ wpm: 120, fillerWords: 0, wordCount: 50, durationSecs: 25, fillerRate: 0 }}
         checklist={checklist}
         insights={[]}
         isSessionActive={false}
-        selectedMode="elevator"
-        onModeChange={onModeChange}
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'VC Pitch' }));
-    expect(onModeChange).toHaveBeenCalledWith('vc_pitch');
+    expect(screen.queryByRole('button', { name: 'VC Pitch' })).toBeNull();
+    expect(screen.queryByText('Pitch Mode')).toBeNull();
   });
 
   it('renders failed status label for failed checklist rows', () => {
@@ -64,8 +59,6 @@ describe('MetricsPanel', () => {
         checklist={failedChecklist}
         insights={[]}
         isSessionActive
-        selectedMode="elevator"
-        onModeChange={vi.fn()}
       />,
     );
 

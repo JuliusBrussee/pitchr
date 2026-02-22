@@ -47,7 +47,6 @@ function SessionPageContent() {
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
-  const [selectedMode, setSelectedMode] = useState<PitchMode>('elevator');
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
   // Deck state
@@ -180,19 +179,19 @@ function SessionPageContent() {
 
   useEffect(() => {
     if (session.isSessionActive) return;
-    resetSessionChecklist(selectedMode);
-  }, [selectedMode, session.isSessionActive, resetSessionChecklist]);
+    resetSessionChecklist(pitchMode);
+  }, [pitchMode, session.isSessionActive, resetSessionChecklist]);
 
   const handleStartSession = useCallback(() => {
     setAnalysisError(null);
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
-    session.startSession(selectedMode);
-    stt.start({ mode: selectedMode });
+    session.startSession(pitchMode);
+    stt.start({ mode: pitchMode });
     if (media.stream) {
       recorder.startRecording(media.stream);
     }
-  }, [selectedMode, session, stt, media.stream, recorder]);
+  }, [pitchMode, session, stt, media.stream, recorder]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
@@ -310,8 +309,6 @@ function SessionPageContent() {
         checklist={session.checklist}
         insights={session.insights}
         isSessionActive={session.isSessionActive}
-        selectedMode={selectedMode}
-        onModeChange={setSelectedMode}
         engagementBand={engagementBand}
         isCameraOn={media.isCameraOn}
         checklistSource={stt.checklistSource}
