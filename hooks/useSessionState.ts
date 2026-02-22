@@ -9,8 +9,9 @@ import { OrbState } from '@/views/components/SiriBubble';
 export interface MetricValues {
   wpm: number;
   fillerWords: number;
-  conciseness: number; // 0-10
-  clarity: number; // 0-10
+  wordCount: number;
+  durationSecs: number;
+  fillerRate: number; // 0-100
 }
 
 export interface InsightEntry {
@@ -20,119 +21,249 @@ export interface InsightEntry {
   type: 'positive' | 'suggestion' | 'neutral';
 }
 
-export interface SpeechBubble {
-  id: string;
-  text: string;
-  expiresAt: number;
-}
-
 export interface SessionState {
   orbState: OrbState;
   setOrbState: (state: OrbState) => void;
   metrics: MetricValues;
+  updateTranscript: (fullText: string, committedText?: string) => void;
   checklist: RealtimeChecklistItemState[];
   setChecklist: (items: RealtimeChecklistItemState[]) => void;
   resetChecklist: (mode: PitchMode) => void;
   insights: InsightEntry[];
-  speechBubbles: SpeechBubble[];
   isSessionActive: boolean;
   startSession: (mode: PitchMode) => void;
   stopSession: () => void;
 }
 
-const COACH_MESSAGES = [
-  'Great eye contact! Keep it up.',
-  'Try to slow down a bit.',
-  'Take a deep breath.',
-  'Look at the camera.',
-  'Sit up straight!',
-  "You're doing great!",
-  'Try to vary your tone.',
-  'Good pace!',
-  'Remember to smile.',
-  'Strong delivery!',
-];
+const FILLER_WORDS = new Set([
+  'um', 'uh', 'er', 'ah', 'like', 'basically', 'actually', 'literally',
+  'right', 'honestly', 'obviously', 'essentially',
+]);
 
-const MOCK_INSIGHTS: InsightEntry[] = [
-  {
-    id: '1',
-    text: 'Strong opening - direct and confident',
-    timestamp: new Date(),
-    type: 'positive',
-  },
-  {
-    id: '2',
-    text: 'Consider adding a specific metric to support your claim',
-    timestamp: new Date(),
-    type: 'suggestion',
-  },
-];
+const FILLER_PHRASES = ['you know', 'i mean', 'kind of', 'sort of'];
+
+const METRICS_REFRESH_MS = 2_000;
+const WPM_TREND_WINDOW_MS = 30_000;
+const WPM_SMOOTHING_ALPHA = 0.12;
+const WPM_MAX_STEP = 4;
+const FILLER_RATE_SMOOTHING_ALPHA = 0.15;
+const FILLER_RATE_MAX_STEP = 0.4;
+
+interface WpmSample {
+  timestamp: number;
+  wordCount: number;
+}
+
+function normalizeTranscriptText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function extractTokens(text: string): string[] {
+  return text.match(/[a-z0-9]+(?:['’][a-z0-9]+)*/gi) ?? [];
+}
+
+function countFillerWords(text: string): number {
+  const normalized = normalizeTranscriptText(text);
+  if (!normalized) return 0;
+  let count = 0;
+
+  for (const phrase of FILLER_PHRASES) {
+    const regex = new RegExp(`\\b${phrase}\\b`, 'g');
+    const matches = normalized.match(regex);
+    if (matches) count += matches.length;
+  }
+
+  const words = extractTokens(normalized);
+  for (const word of words) {
+    if (FILLER_WORDS.has(word)) count++;
+  }
+
+  return count;
+}
+
+function countWords(text: string): number {
+  return extractTokens(normalizeTranscriptText(text)).length;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function smoothWithFriction(
+  previous: number,
+  target: number,
+  alpha: number,
+  maxStep: number,
+): number {
+  if (previous <= 0) return target;
+  const eased = previous + (target - previous) * alpha;
+  return clamp(eased, previous - maxStep, previous + maxStep);
+}
+
+function roundToNearest(value: number, step: number): number {
+  if (step <= 0) return Math.round(value);
+  return Math.round(value / step) * step;
+}
 
 export function useSessionState(): SessionState {
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [metrics, setMetrics] = useState<MetricValues>({
     wpm: 0,
     fillerWords: 0,
-    conciseness: 0,
-    clarity: 0,
+    wordCount: 0,
+    durationSecs: 0,
+    fillerRate: 0,
   });
   const [checklist, setChecklist] = useState<RealtimeChecklistItemState[]>(
     createInitialChecklistState('elevator'),
   );
-  const [insights, setInsights] = useState<InsightEntry[]>(MOCK_INSIGHTS);
-  const [speechBubbles, setSpeechBubbles] = useState<SpeechBubble[]>([]);
+  const [insights] = useState<InsightEntry[]>([]);
   const [isSessionActive, setIsSessionActive] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const bubbleIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const sessionStartRef = useRef<number | null>(null);
+  const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTranscriptRef = useRef<string>('');
+  const lastCommittedTranscriptRef = useRef<string>('');
+  const wordCountRef = useRef(0);
+  const fillerWordsRef = useRef(0);
+  const wpmSamplesRef = useRef<WpmSample[]>([]);
+  const smoothedWpmRef = useRef(0);
+  const smoothedFillerRateRef = useRef(0);
 
-  // Simulate top-level delivery metrics while session is active.
+  const getTargetWpm = useCallback((nowMs: number, totalWords: number): number => {
+    const startedAt = sessionStartRef.current;
+    if (!startedAt || totalWords <= 0) return 0;
+
+    const elapsedSecs = Math.max((nowMs - startedAt) / 1000, 1);
+    const samples = wpmSamplesRef.current;
+    const lastSample = samples[samples.length - 1];
+    if (
+      !lastSample ||
+      lastSample.timestamp !== nowMs ||
+      lastSample.wordCount !== totalWords
+    ) {
+      samples.push({ timestamp: nowMs, wordCount: totalWords });
+    }
+
+    const cutoff = nowMs - WPM_TREND_WINDOW_MS;
+    while (samples.length > 1 && samples[0].timestamp < cutoff) {
+      samples.shift();
+    }
+
+    const oldest = samples[0];
+    const deltaWords = Math.max(totalWords - oldest.wordCount, 0);
+    const deltaSecs = Math.max((nowMs - oldest.timestamp) / 1000, 1);
+    const windowWpm = (deltaWords / deltaSecs) * 60;
+    const cumulativeWpm = (totalWords / elapsedSecs) * 60;
+    const blend = Math.min(1, elapsedSecs / (WPM_TREND_WINDOW_MS / 1000));
+    return cumulativeWpm * (1 - blend) + windowWpm * blend;
+  }, []);
+
+  const refreshTrendMetrics = useCallback(
+    (nextWordCount: number, nextFillerWords: number) => {
+      const nowMs = Date.now();
+      const elapsed = sessionStartRef.current
+        ? Math.floor((nowMs - sessionStartRef.current) / 1000)
+        : 0;
+
+      setMetrics((prev) => {
+        const wordCount = isSessionActive
+          ? Math.max(prev.wordCount, nextWordCount)
+          : nextWordCount;
+        const fillerWords = isSessionActive
+          ? Math.max(prev.fillerWords, nextFillerWords)
+          : nextFillerWords;
+
+        const targetWpm = getTargetWpm(nowMs, wordCount);
+        smoothedWpmRef.current = smoothWithFriction(
+          smoothedWpmRef.current,
+          targetWpm,
+          WPM_SMOOTHING_ALPHA,
+          WPM_MAX_STEP,
+        );
+
+        const targetFillerRate = wordCount > 0 ? (fillerWords / wordCount) * 100 : 0;
+        smoothedFillerRateRef.current = smoothWithFriction(
+          smoothedFillerRateRef.current,
+          targetFillerRate,
+          FILLER_RATE_SMOOTHING_ALPHA,
+          FILLER_RATE_MAX_STEP,
+        );
+
+        return {
+          wpm: wordCount > 0 ? roundToNearest(Math.max(0, smoothedWpmRef.current), 10) : 0,
+          fillerWords,
+          wordCount,
+          durationSecs: prev.durationSecs > elapsed ? prev.durationSecs : elapsed,
+          fillerRate:
+            wordCount > 0 ? Math.round(Math.max(0, smoothedFillerRateRef.current) * 10) / 10 : 0,
+        };
+      });
+    },
+    [getTargetWpm, isSessionActive],
+  );
+
+  // Duration timer updates every second while session is active.
   useEffect(() => {
     if (!isSessionActive) {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (bubbleIntervalRef.current) clearInterval(bubbleIntervalRef.current);
+      if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
       return;
     }
 
-    intervalRef.current = setInterval(() => {
-      setMetrics((prev) => ({
-        wpm: Math.min(200, Math.max(80, prev.wpm + (Math.random() - 0.45) * 10)),
-        fillerWords: prev.fillerWords + (Math.random() > 0.7 ? 1 : 0),
-        conciseness: Math.min(
-          10,
-          Math.max(0, prev.conciseness + (Math.random() - 0.4) * 0.5),
-        ),
-        clarity: Math.min(10, Math.max(0, prev.clarity + (Math.random() - 0.4) * 0.5)),
-      }));
-
-      if (Math.random() > 0.85) {
-        const states: OrbState[] = ['active', 'positive', 'neutral'];
-        setOrbState(states[Math.floor(Math.random() * states.length)]);
-      }
-    }, 2000);
-
-    bubbleIntervalRef.current = setInterval(() => {
-      const msg = COACH_MESSAGES[Math.floor(Math.random() * COACH_MESSAGES.length)];
-      const bubble: SpeechBubble = {
-        id: Date.now().toString(),
-        text: msg,
-        expiresAt: Date.now() + 4000,
-      };
-      setSpeechBubbles((prev) => [...prev, bubble]);
-    }, 6000);
+    durationIntervalRef.current = setInterval(() => {
+      const elapsed = sessionStartRef.current
+        ? Math.floor((Date.now() - sessionStartRef.current) / 1000)
+        : 0;
+      setMetrics((prev) => ({ ...prev, durationSecs: elapsed }));
+    }, 1000);
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (bubbleIntervalRef.current) clearInterval(bubbleIntervalRef.current);
+      if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     };
   }, [isSessionActive]);
 
   useEffect(() => {
-    if (speechBubbles.length === 0) return;
-    const timer = setTimeout(() => {
-      setSpeechBubbles((prev) => prev.filter((bubble) => bubble.expiresAt > Date.now()));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [speechBubbles]);
+    if (!isSessionActive) {
+      return;
+    }
+
+    const trendInterval = setInterval(() => {
+      refreshTrendMetrics(wordCountRef.current, fillerWordsRef.current);
+    }, METRICS_REFRESH_MS);
+
+    return () => {
+      clearInterval(trendInterval);
+    };
+  }, [isSessionActive, refreshTrendMetrics]);
+
+  const updateTranscript = useCallback(
+    (fullText: string, committedText = '') => {
+      const normalizedFullText = normalizeTranscriptText(fullText);
+      const normalizedCommittedText = normalizeTranscriptText(committedText);
+
+      if (
+        normalizedFullText === lastTranscriptRef.current &&
+        normalizedCommittedText === lastCommittedTranscriptRef.current
+      ) {
+        return;
+      }
+      lastTranscriptRef.current = normalizedFullText;
+      lastCommittedTranscriptRef.current = normalizedCommittedText;
+
+      const liveWordCount = countWords(normalizedFullText);
+      const committedWordCount = countWords(normalizedCommittedText);
+      const nextWordCount = Math.max(liveWordCount, committedWordCount);
+
+      const liveFillerCount = countFillerWords(normalizedFullText);
+      const committedFillerCount = countFillerWords(normalizedCommittedText);
+      const nextFillerWords = Math.max(liveFillerCount, committedFillerCount);
+
+      wordCountRef.current = nextWordCount;
+      fillerWordsRef.current = nextFillerWords;
+      // Consume transcript updates immediately, but update rendered trend metrics
+      // on a slower timer so values stay stable and trend-like.
+    },
+    [],
+  );
 
   const resetChecklist = useCallback((mode: PitchMode) => {
     setChecklist(createInitialChecklistState(mode));
@@ -141,10 +272,16 @@ export function useSessionState(): SessionState {
   const startSession = useCallback((mode: PitchMode) => {
     setIsSessionActive(true);
     setOrbState('active');
-    setMetrics({ wpm: 120, fillerWords: 0, conciseness: 6, clarity: 7 });
+    sessionStartRef.current = Date.now();
+    lastTranscriptRef.current = '';
+    lastCommittedTranscriptRef.current = '';
+    wordCountRef.current = 0;
+    fillerWordsRef.current = 0;
+    wpmSamplesRef.current = [];
+    smoothedWpmRef.current = 0;
+    smoothedFillerRateRef.current = 0;
+    setMetrics({ wpm: 0, fillerWords: 0, wordCount: 0, durationSecs: 0, fillerRate: 0 });
     setChecklist(createInitialChecklistState(mode));
-    setInsights(MOCK_INSIGHTS);
-    setSpeechBubbles([]);
   }, []);
 
   const stopSession = useCallback(() => {
@@ -156,11 +293,11 @@ export function useSessionState(): SessionState {
     orbState,
     setOrbState,
     metrics,
+    updateTranscript,
     checklist,
     setChecklist,
     resetChecklist,
     insights,
-    speechBubbles,
     isSessionActive,
     startSession,
     stopSession,

@@ -1,224 +1,256 @@
 # Architecture
 
-**Analysis Date:** 2026-02-21
+**Analysis Date:** 2026-02-22
 
 ## Pattern Overview
 
-**Overall:** MVC (Model-View-Controller) adapted for Next.js App Router
+**Overall:** MVC adapted for Next.js App Router with event-driven session management
 
 **Key Characteristics:**
-- Pages/Routes as view entry points (`app/(app)/*/page.tsx`)
-- Controllers orchestrate HTTP operations (`controllers/pitchController.ts`)
-- Services encapsulate business logic and LLM orchestration (`services/analysisService.ts`, `services/scoringService.ts`)
-- Models handle data persistence via localStorage (MVP stage) (`models/run.ts`)
-- Hooks bridge component state and API calls (`hooks/usePitchRun.ts`, `hooks/useSessionState.ts`)
+- Page routes handle UI orchestration and Suspense boundaries
+- Controllers validate requests and queue background work
+- Services contain business logic, LLM orchestration, and external integrations
+- Hooks manage client-side state and media streams
+- Models handle data persistence (Supabase database)
+- Real-time metrics calculated live during session (no backend polling)
 
 ## Layers
 
-**Presentation Layer (Views):**
-- Purpose: Render UI and handle user interaction
-- Location: `app/(app)/*/page.tsx` (route pages), `views/components/` (reusable components)
-- Contains: React components using 'use client' directive, Tailwind CSS styling, form inputs, display logic
-- Depends on: Hooks, types, components from `views/components/`
-- Used by: Browser/Next.js app router
+**Presentation (Views):**
+- Purpose: React components rendering UI and managing user interactions
+- Location: `app/(app)/` (page routes), `views/components/`, `views/screens/`
+- Contains: Page components, interactive UI controls, modal dialogs
+- Depends on: Hooks, ThemeProvider context, TypeScript types
+- Used by: Browser user interactions
 
-**Controller Layer:**
-- Purpose: Validate HTTP requests, orchestrate API workflows, call services
-- Location: `controllers/pitchController.ts`
-- Contains: Request validation, service coordination, response formatting
-- Depends on: Services (`analysisService`), types
-- Used by: API route handlers (`app/api/*/route.ts`)
+**Application (Hooks):**
+- Purpose: Client-side state management, media stream handling, API orchestration
+- Location: `hooks/`
+- Contains: `useSessionState` (metrics/checklist/insights), `usePitchRun` (API calls), `useSTT` (speech-to-text), `useRecorder` (audio/video recording), `useDeckSlides`, `useMediaStream`, `useHeadTracking`
+- Depends on: Services, types, context providers
+- Used by: Page components and other hooks
 
-**Service Layer:**
-- Purpose: Implement business logic, coordinate external integrations, manage LLM calls
-- Location: `services/analysisService.ts`, `services/scoringService.ts`, `services/claude/`, `services/gemini/`, `services/elevenlabs/`, `services/miro/`
-- Contains: Pitch analysis pipeline, delivery metrics calculation, LLM prompting, external service wrappers
-- Depends on: LLM router, prompts, types, config
-- Used by: Controllers, hooks
+**Controllers (API Routes):**
+- Purpose: HTTP request validation, response marshaling, background job queuing
+- Location: `app/api/` route handlers
+- Contains: `pitchController.ts` (validation, runs), deck controller logic, miro sync
+- Depends on: Services, database models
+- Used by: Client fetch calls, Next.js routing
 
-**LLM Integration Layer:**
-- Purpose: Route requests to configured LLM provider with unified interface
-- Location: `lib/llm/router.ts`, `lib/llm/providers/anthropic.ts`, `lib/llm/providers/openrouter.ts`, `lib/llm/types.ts`
-- Contains: Provider abstraction, environment-based routing, completion request handling
-- Depends on: Provider implementations, types
-- Used by: Services (`analysisService`)
+**Services (Business Logic):**
+- Purpose: Core business logic, LLM integration, external APIs, data transformation
+- Location: `services/`
+- Contains:
+  - `analysisService.ts` - Main pitch analysis orchestration (build context → judge agent → scoring)
+  - `judgeAgentService.ts` - LLM-based feedback generation
+  - `prepAgentService.ts` - Context building for judge (rubric application, deck integration)
+  - `scoringService.ts` - Composite score calculation from rubric
+  - `runService.ts` - Run CRUD and lifecycle (queued/running/complete/failed)
+  - `realtimeChecklistService.ts` - Live checklist item updates during session
+  - `deckService.ts` - Deck upload, PDF parsing, slide extraction
+  - `recordingService.ts` - Audio/video upload to Supabase Storage
+- Depends on: LLM providers, Supabase client, types, config
+- Used by: Controllers, hooks, other services
 
-**Prompt Layer:**
-- Purpose: Define and manage LLM prompts with specialized builders
-- Location: `lib/prompts/system.ts`, `lib/prompts/rubric.ts`, `lib/prompts/rewrite.ts`
-- Contains: System prompts, rubric evaluation builders, repair/rewrite prompts
-- Depends on: Config, types
-- Used by: Services (`analysisService`)
+**LLM & Prompts:**
+- Purpose: Model provider abstraction, prompt templates
+- Location: `lib/llm/`, `lib/prompts/`
+- Contains:
+  - Providers: `lib/llm/providers/anthropic.ts` (Claude), fallback handling
+  - Prompts: `system.ts`, `judge.ts` (rubric questions), `rubric.ts`, `rewrite.ts`, `deckGeneration.ts`
+- Depends on: Environment variables (API keys)
+- Used by: analysisService, judge agent, prep agent
 
-**Model Layer (Data):**
-- Purpose: Persist and retrieve run data via localStorage
-- Location: `models/run.ts`
-- Contains: CRUD operations (getRuns, saveRun, deleteRun), validation, stats calculation
-- Depends on: Types
-- Used by: Hooks (`usePitchRun`), pages
+**Models (Data Layer):**
+- Purpose: Data schema definitions and Supabase CRUD
+- Location: `models/`, types in `types/`
+- Contains: `run.ts` (insert/query/update runs), schema interfaces
+- Depends on: Supabase client, types
+- Used by: Services, controllers
 
-**Hook Layer (Client State Management):**
-- Purpose: Bridge component state with API and service calls
-- Location: `hooks/usePitchRun.ts`, `hooks/useSessionState.ts`, `hooks/useMediaStream.ts`, `hooks/useSTT.ts`, `hooks/useDeckSlides.ts`
-- Contains: State management, async API orchestration, media stream handling, speech-to-text integration
-- Depends on: Models, types, services
-- Used by: Components and pages
+**Configuration:**
+- Purpose: Constants, rubrics, mode definitions, sample data
+- Location: `config/`
+- Contains: `modes.ts` (pitch configs), `rubric.ts`, `sampleResult.ts` (fallback), `realtimeChecklist.ts`
+- Used by: Services, controllers, hooks
 
-**Configuration Layer:**
-- Purpose: Centralize domain-specific constants and configurations
-- Location: `config/modes.ts` (pitch modes), `config/rubric.ts` (rubric definitions), `config/sampleResult.ts` (fallback demo data), `config/prompts/` (prompt configs)
-- Contains: Pitch mode definitions, rubric category weights, sample analysis results
-- Depends on: Types
-- Used by: Services, controllers, components
+**Utilities:**
+- Purpose: Shared helpers, audio processing, video frame extraction
+- Location: `lib/` subdirectories
+- Contains: Supabase singleton, audio utilities, head tracking (MediaPipe), video frame rendering
+- Used by: Hooks, components, services
 
 ## Data Flow
 
-**Pitch Analysis Flow (Main User Journey):**
+**Session Flow (Live Pitch):**
 
-1. User enters session page (`app/(app)/session/page.tsx`)
-2. Page calls `usePitchRun()` hook to get `runPitchAnalysis()` function
-3. User records audio/enters text transcript, clicks submit
-4. Hook makes POST request to `/api/pitch/run`
-5. API route handler calls `runPitchAnalysisController(body)`
-6. Controller validates request, calls `analyzePitch(transcript, mode)` service
-7. Service calls `completeWithLlmRouter()` with system prompt + rubric prompt
-8. LLM router checks `process.env.LLM_PROVIDER` and routes to provider (anthropic or openrouter)
-9. Provider returns JSON analysis result
-10. Service calls `calculateDeliveryMetrics()` to extract WPM, filler words, repeated phrases
-11. Service returns `AnalysisResult` to controller
-12. Controller generates `runId`, returns to hook
-13. Hook saves `Run` to localStorage via `saveRun()` model
-14. Page redirects to `/results/[runId]`
-15. Results page fetches run from localStorage via `getRun(runId)` model
-16. Results page displays score breakdown, fixes, rewrite script, delivery metrics
+1. User navigates to `/session` → `SessionPageContent` initializes
+2. `useMediaStream` requests webcam/microphone access
+3. User starts session → `useRecorder` captures audio/video stream
+4. `useSTT` streams audio to ElevenLabs Realtime API → transcription
+5. Transcription updates `useSessionState` → metrics calculated live (WPM, filler words, duration)
+6. `realtimeChecklistService` evaluates checklist items on new transcript chunks
+7. `useHeadTracking` analyzes head position via MediaPipe (engagement scoring)
+8. User stops session → audio/video uploaded to Supabase via `recordingService`
 
-**Session State Flow (Real-time Metrics):**
+**Analysis Flow (Backend):**
 
-1. Session page initializes `useSessionState()` hook
-2. Hook maintains state for: orbState, metrics, checklist, insights, speechBubbles
-3. When session is active, hook runs intervals to simulate live metric updates
-4. speechBubbles expire after 4 seconds via cleanup effect
-5. Page passes state/setters to `SessionCanvas`, `MetricsPanel`, `SiriBubble` components
-6. Components render real-time UI updates
+1. User submits pitch → `usePitchRun` POSTs to `/api/pitch/run`
+2. `pitchController` validates request, creates queued run record, enqueues background job
+3. Background worker calls `analysisService.analyzePitch()`
+4. `prepAgentService` builds scoring context (rubric, examples, deck text if present)
+5. `judgeAgentService` calls Claude with rubric questions → raw feedback JSON
+6. `scoringService` calculates composite score from rubric breakdown
+7. Run record updated with final analysis → `runService.updateRun()`
+8. Client polls `/api/pitch/run/[runId]` until status changes from 'queued' to 'complete'
 
-**Storage Flow:**
+**Results Flow:**
 
-1. Run data persists only to browser localStorage (MVP)
-2. Key: `pitchr_runs` (from `RUN_STORAGE_KEY`)
-3. Value: JSON array of Run objects sorted by createdAt desc
-4. On save: Run is added/updated to array, array is serialized to JSON, written to localStorage
-5. On load: JSON is parsed, validated against Run shape, returned as array
-6. On delete: Run is filtered out of array, remaining runs written back
+1. User navigates to `/results/[runId]` → fetches run via `/api/pitch/run/[runId]` (GET)
+2. Displays `AnalysisResult` feedback, rubric breakdown, delivery metrics
+3. Can regenerate specific outputs (`feedback` or `qa_1min`) by re-submitting with `regenerate` param
 
-**State Management:**
+**Deck Flow:**
 
-- Client state: Hooks manage session, media stream, analysis state
-- Persistent state: localStorage stores Run objects (analysis results, transcripts)
-- Theme state: `ThemeProvider` context manages dark/light mode and orb state
-- Sidebar state: `SidebarContext` tracks active session and navigation
+1. User uploads PDF → POST `/api/deck/upload` → `deckService` extracts text via pdf-parse
+2. Slides table populated with slide text extracted via regex/text segmentation
+3. During pitch, `useDeckSlides` loads deck, renders PDF slide by slide
+4. Optional: deck text included in analysis context for deck rubric scoring
+
+## State Management
+
+**Client-Side:**
+- `useSessionState` - Metrics, checklist, insights (controlled, updates on transcript change)
+- `useMediaStream` - Webcam/mic stream state
+- `useSTT` - Realtime transcription buffer
+- ThemeProvider context - Orb visual state
+- SidebarContext - Session active flag
+
+**Server-Side:**
+- Supabase `runs` table - Complete run records with analysis results
+- Supabase `decks` + `slides` tables - Deck metadata and extracted text
+- Supabase `storage` bucket - Audio/video files (public anonymous access)
+- Background job queue - Queued pitch analyses (implicit via `status: 'queued'` in DB)
+
+**No intermediate caching layer** - Analysis results cached only in Supabase, fallback sample in memory
 
 ## Key Abstractions
 
-**Run (Pitch Attempt Record):**
-- Purpose: Encapsulates a single pitch analysis result
-- Examples: `types/pitch.ts` (type def), `models/run.ts` (persistence), `hooks/usePitchRun.ts` (creation)
-- Pattern: Immutable data structure with id, createdAt, mode, inputType, transcript, audioUrl, analysis, overallScore
+**Run:**
+- Purpose: Encapsulates a single pitch submission with all its metadata
+- Schema: `id`, `mode`, `status`, `transcript`, `audio_url`, `analysis`, `overall_score`, `meta`
+- Examples: `models/run.ts`, `types/pitch.ts`
+- Pattern: Immutable record, status moves through lifecycle (queued → running → complete/failed)
 
-**AnalysisResult (LLM Output):**
-- Purpose: Structured output from LLM evaluation
-- Examples: `types/analysis.ts` (type def), `services/analysisService.ts` (generation), `app/(app)/results/[runId]/page.tsx` (display)
-- Pattern: JSON schema enforced by LLM prompt + server-side validation
+**AnalysisResult:**
+- Purpose: Complete LLM-generated feedback with scores and metrics
+- Schema: `overall_score`, `rubric_breakdown`, `top_fixes`, `delivery_metrics`, `one_line_verdict`
+- Examples: `types/analysis-v2.ts`
+- Pattern: Serialized JSON from Claude, normalized and validated on load
 
-**PitchMode (Domain Model):**
-- Purpose: Differentiates evaluation context and time limits
-- Examples: `types/pitch.ts` (type def: 'elevator' | 'vc_pitch'), `config/modes.ts` (mode config with duration limits)
-- Pattern: Union type with config lookup to apply mode-specific rubric weights
+**Session State:**
+- Purpose: Live real-time session metrics and checklist items
+- Contains: WPM, filler word count, word count, duration, checklist items, insights
+- Examples: `hooks/useSessionState.ts`
+- Pattern: Calculated from transcript in real-time (no backend persistence during session)
 
-**RubricScore (Evaluation Category):**
-- Purpose: Represents scoring for a single rubric dimension
-- Examples: `types/analysis.ts` (type def), `lib/prompts/rubric.ts` (prompt builder), `app/(app)/results/[runId]/page.tsx` (display as breakdown)
-- Pattern: Category + score (0-20) + max_score + rationale
-
-**Fix (Actionable Improvement):**
-- Purpose: Ranked, prioritized feedback with impact level
-- Examples: `types/analysis.ts` (type def), `lib/prompts/rubric.ts` (extracted by LLM), `app/(app)/results/[runId]/page.tsx` (sorted by rank and impact)
-- Pattern: rank + category + issue description + fix suggestion + impact level (high/medium/low)
+**ScoringContext:**
+- Purpose: Rich context passed to judge agent for consistent evaluation
+- Contains: Pitch stage, mode, rubric definitions, examples, deck text, transcript segments
+- Examples: `services/prepAgentService.ts`
+- Pattern: Built once per run, passed to all LLM calls to reduce hallucination
 
 ## Entry Points
 
-**Home/Root Page:**
+**Root:**
 - Location: `app/page.tsx`
-- Triggers: User visits /
-- Responsibilities: Redirects to /dashboard
+- Triggers: User visits `/`
+- Responsibilities: Redirects to `/dashboard`
 
-**Dashboard (App Root):**
+**Dashboard:**
 - Location: `app/(app)/dashboard/page.tsx`
-- Triggers: User navigates to /dashboard
-- Responsibilities: Shows run stats, history list, quick access to session/demo
+- Triggers: User navigates to `/dashboard` or logs in
+- Responsibilities: Landing page, run history summary, quick actions
 
-**Session Page (Recording/Analysis):**
+**Session (Live Pitch):**
 - Location: `app/(app)/session/page.tsx`
-- Triggers: User clicks "Start Session" button
-- Responsibilities: Orchestrates recording, STT, LLM analysis, displays live metrics via SiriBubble orb
+- Triggers: User clicks "Start Session" or navigates to `/session`
+- Responsibilities:
+  - Initialize media streams (camera, microphone)
+  - Manage recording and transcription lifecycle
+  - Display real-time metrics and checklist
+  - Submit for analysis on stop
 
-**Results Page (Score Display):**
+**Results:**
 - Location: `app/(app)/results/[runId]/page.tsx`
-- Triggers: User completes analysis or views historical run
-- Responsibilities: Loads run from localStorage, displays score breakdown, fixes, rewrite script, delivery metrics
+- Triggers: User clicks "View Results" or navigates to `/results/abc123`
+- Responsibilities:
+  - Poll for analysis completion if run still queued
+  - Display feedback, rubric breakdown, fixes, delivery metrics
+  - Allow regeneration (QA or rewrite)
 
-**History Page:**
-- Location: `app/(app)/history/page.tsx`
-- Triggers: User clicks History in sidebar
-- Responsibilities: Lists all past runs with filtering, deletion, sort options
-
-**API: Pitch Run Endpoint:**
+**Pitch API:**
 - Location: `app/api/pitch/run/route.ts`
-- Triggers: POST request from `usePitchRun()` hook
-- Responsibilities: JSON validation, calls `runPitchAnalysisController()`, returns analysis result
+- Triggers: `usePitchRun` POST with `CreatePitchRunRequest`
+- Responsibilities: Validate, create run record, enqueue analysis, return `CreatePitchRunResponse`
+
+**Pitch GET:**
+- Location: `app/api/pitch/run/route.ts` (GET)
+- Triggers: History page fetches all runs
+- Responsibilities: List completed runs with stats
+
+**Run Detail:**
+- Location: `app/api/pitch/run/[runId]/route.ts`
+- Triggers: Results page fetches specific run status
+- Responsibilities: Poll for completion, return updated run with analysis
 
 ## Error Handling
 
-**Strategy:** Try-catch at controller layer, fallback to demo result if all LLMs fail
+**Strategy:** Graceful degradation with fallback sample result
 
 **Patterns:**
+- Controllers validate input before queueing (throw `PitchValidationError`)
+- Services catch LLM errors, increment attempt count, retry if retriable (429, 5xx)
+- After max retries, use `SAMPLE_RESULT` fallback with `is_fallback: true` flag
+- Client displays error banner if response has error field, but shows fallback analysis
+- STT errors logged but session continues (user can enter text manually)
+- Database errors include migration hints if columns missing
 
-- **Request Validation Error:** `PitchValidationError` raised in controller → 400 response with error message
-- **LLM Failure:** `completeWithLlmRouter()` fails → service catches, returns fallback result from `SAMPLE_RESULT`
-- **API Error Response:** 500 status with error message string in `CreatePitchRunErrorResponse.error`
-- **Hook Error Handling:** `usePitchRun()` stores error in state, rethrows to component
-- **Component Error Boundaries:** Not implemented (TODO)
+**Try-Catch Locations:**
+- `analysisService.analyzePitch()` wraps full pipeline, catches any error and returns fallback
+- `anthropic.ts` provider has try-catch with retry logic
+- `runService` operations catch Supabase errors and wrap with hint messages
+- Hook callbacks (`usePitchRun`, `useSTT`) catch errors and expose via state
 
-**Fallback Strategy:**
-
-1. Try primary LLM provider (anthropic)
-2. If fails, try secondary provider (openrouter)
-3. If both fail, return cached `SAMPLE_RESULT` from `config/sampleResult.ts`
-4. Set `fallback: true` in response to signal UI that result is demo data
+**No suppression:** All catch blocks either re-throw, log, or return explicit error state
 
 ## Cross-Cutting Concerns
 
-**Logging:** Not centralized. Console.log calls scattered in services. TODO: implement structured logging.
+**Logging:**
+- Console.log for debug info (transcript chunks, metric updates)
+- Telemetry object passed through service chain for latency/attempt tracking
+- No structured logging framework (would need to add)
 
 **Validation:**
+- Controller layer: Type guards for PitchMode, InputType, PitchStage
+- Service layer: Schema validation via destructuring and assertions
+- Client layer: Form field validation in components
 
-- Request validation: `pitchController.ts` validates mode, inputType, transcript length
-- Type validation: Zod-like runtime checks in `models/run.ts` (isRun, isAnalysisResult)
-- LLM output validation: Prompt engineering + JSON parsing, no formal schema validation
-
-**Authentication:** Not implemented (out of MVP scope)
+**Authentication:**
+- None in MVP (anonymous public access to Supabase)
+- Next.js has no route protection (all app routes public)
 
 **Caching:**
+- Analysis cache in `analysisCacheService.ts` keyed by transcript hash
+- LLM response deduplication via in-flight tracking
+- No HTTP cache headers set
 
-- LLM responses: Implicit via localStorage (analyzed runs cached client-side)
-- Prompts: Loaded from `lib/prompts/` files (static)
-- Config: Loaded from `config/` files (static)
-
-**Error Recovery:**
-
-- Transient LLM failures: Fallback to demo result
-- Data corruption: Model layer filters invalid Run objects silently
-- State inconsistency: No explicit recovery (TODO)
+**Type Safety:**
+- Strict TypeScript mode enabled
+- Branded types for PitchMode, InputType, RunStatus
+- Import type used for type-only imports
+- No `any` types (use unknown with type guards)
 
 ---
 
-*Architecture analysis: 2026-02-21*
+*Architecture analysis: 2026-02-22*
