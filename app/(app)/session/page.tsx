@@ -39,11 +39,12 @@ function SessionPageContent() {
   const session = useSessionState();
   const stt = useSTT();
   const recorder = useRecorder();
-  const { runPitchAnalysis, isAnalyzing, error: runError } = usePitchRun();
+  const { runPitchAnalysis, error: runError } = usePitchRun();
   const { setOrbState } = useTheme();
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [showAnalyzing, setShowAnalyzing] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
   const [selectedMode, setSelectedMode] = useState<PitchMode>('elevator');
@@ -174,6 +175,7 @@ function SessionPageContent() {
 
   const handleStartSession = useCallback(() => {
     setAnalysisError(null);
+    setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
     session.startSession(selectedMode);
     stt.start({ mode: selectedMode });
@@ -185,6 +187,7 @@ function SessionPageContent() {
   const handleStopSession = useCallback(() => {
     session.stopSession();
     stt.stop();
+    setShowAnalyzing(true);
     // Do NOT stop the recorder here — the auto-submit effect handles stopping
     // and capturing the blob for upload. Stopping here causes a race condition
     // where the blob is lost before the effect can retrieve it.
@@ -209,6 +212,7 @@ function SessionPageContent() {
     const transcript = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
     if (!transcript) {
       autoSubmitLockRef.current = true;
+      setShowAnalyzing(false);
       setAnalysisError('Transcript was saved but no text was captured for analysis.');
       return;
     }
@@ -248,6 +252,7 @@ function SessionPageContent() {
         router.push(`/results/${result.runId}`);
       } catch (error) {
         autoSubmitLockRef.current = false;
+        setShowAnalyzing(false);
         setAnalysisError(
           error instanceof Error ? error.message : 'Failed to run pitch analysis.',
         );
@@ -307,8 +312,8 @@ function SessionPageContent() {
         checklistNextHint={stt.checklistNextHint}
         checklistError={stt.checklistError}
         sttError={analysisError ?? runError ?? stt.error}
-        sttSaved={stt.saved && !isAnalyzing}
-        isAnalyzing={isAnalyzing}
+        sttSaved={stt.saved && !showAnalyzing}
+        isAnalyzing={showAnalyzing}
         analysisError={analysisError ?? runError}
       />
       <video
@@ -324,7 +329,7 @@ function SessionPageContent() {
         className="sr-only"
         aria-hidden="true"
       />
-      <AnalyzingOverlay isVisible={isAnalyzing} />
+      <AnalyzingOverlay isVisible={showAnalyzing} />
     </>
   );
 }
