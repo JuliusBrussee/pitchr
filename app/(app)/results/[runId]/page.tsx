@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Copy, MessageCircleQuestion } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { FeedbackOutput, OneMinuteQAPack, PaidSyncMeta, RunEconomics } from '@/types/analysis-v2';
+import type { FeedbackOutput, OneMinuteQAPack, PaidSyncMeta, RewriteDiff, RunEconomics } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
 import {
   DeliveryEventsTimeline,
@@ -23,6 +23,7 @@ import {
   RecordingPlayer,
   type RecordingPlayerHandle,
 } from '@/views/components/RecordingPlayer';
+import { buildRewriteDiff } from '@/services/rewriteDiffService';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import type {
   MiroFixBoardResponse,
@@ -390,6 +391,15 @@ export default function ResultsPage() {
           : null,
     [feedback, run],
   );
+  const rewriteDiff = useMemo<RewriteDiff | undefined>(() => {
+    if (feedback?.rewrite_diff && feedback.rewrite_diff.hunks.length > 0) {
+      return feedback.rewrite_diff;
+    }
+    if (run?.transcript && feedback?.rewrite_script) {
+      return buildRewriteDiff(run.transcript, feedback.rewrite_script);
+    }
+    return undefined;
+  }, [feedback, run]);
   const economics = useMemo<RunEconomics | null>(
     () => run?.meta?.economics ?? null,
     [run],
@@ -748,7 +758,7 @@ export default function ResultsPage() {
 
       <SectionAccordion sections={feedback.section_feedback} />
 
-      <RewriteDiffPanel diff={feedback.rewrite_diff} />
+      <RewriteDiffPanel diff={rewriteDiff} />
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Section

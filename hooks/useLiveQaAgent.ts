@@ -107,60 +107,24 @@ function appendTurn(
   ];
 }
 
-function parseLiveTextEvent(payload: Record<string, unknown>): {
-  speaker: QATurnSpeaker;
-  text: string;
-} | null {
-  const agentResponseEvent = asRecord(payload.agent_response_event);
-  const userTranscriptionEvent = asRecord(payload.user_transcription_event);
-  const nestedAgentText = asNonEmptyString(agentResponseEvent?.agent_response);
-  if (nestedAgentText) {
-    return { speaker: 'investor', text: nestedAgentText };
-  }
-  const nestedUserText = asNonEmptyString(userTranscriptionEvent?.user_transcript);
-  if (nestedUserText) {
-    return { speaker: 'founder', text: nestedUserText };
-  }
-
-  const type = typeof payload.type === 'string' ? payload.type.toLowerCase() : '';
-  const text = asNonEmptyString(payload.text) ?? '';
-
-  if (!type && !text) return null;
-
-  if (
-    type.includes('agent') ||
-    type.includes('assistant') ||
-    typeof (payload.agent_text as string | undefined) === 'string'
-  ) {
-    const resolvedText = text || asNonEmptyString(payload.agent_text) || asNonEmptyString(payload.agent_response);
-    if (!resolvedText) return null;
-    return { speaker: 'investor', text: resolvedText };
-  }
-
-  if (
-    type.includes('user') ||
-    type.includes('transcript') ||
-    typeof (payload.user_text as string | undefined) === 'string'
-  ) {
-    const resolvedText =
-      text ||
-      asNonEmptyString(payload.user_text) ||
-      asNonEmptyString(payload.transcript);
-    if (!resolvedText) return null;
-    return { speaker: 'founder', text: resolvedText };
-  }
-
-  return null;
-}
-
-function parsePingEventId(payload: Record<string, unknown>): string | null {
-  const pingEvent = asRecord(payload.ping_event);
-  return asNonEmptyString(pingEvent?.event_id) || asNonEmptyString(payload.event_id);
-}
-
 function formatCloseMessage(code: number, reason: string | null): string {
   const reasonSuffix = reason && reason.length > 0 ? `: ${reason}` : '';
   return `Live QA websocket closed unexpectedly (code ${code})${reasonSuffix}.`;
+}
+
+/** Decode base64 PCM16 to Float32 samples for Web Audio playback. */
+function decodeBase64Pcm16(base64: string): Float32Array {
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i += 1) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const int16 = new Int16Array(bytes.buffer);
+  const float32 = new Float32Array(int16.length);
+  for (let i = 0; i < int16.length; i += 1) {
+    float32[i] = int16[i] / 0x8000;
+  }
+  return float32;
 }
 
 export function useLiveQaAgent({
@@ -190,6 +154,46 @@ export function useLiveQaAgent({
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const outboundAudioSentAtRef = useRef<number[]>([]);
   const closeIntentRef = useRef<CloseIntent>('none');
+
+  // Audio playback state
+  const playbackContextRef = useRef<AudioContext | null>(null);
+  const playbackNextTimeRef = useRef(0);
+
+  const stopPlayback = useCallback(() => {
+    if (playbackContextRef.current) {
+      playbackContextRef.current.close().catch(() => {});
+    }
+    playbackContextRef.current = null;
+    playbackNextTimeRef.current = 0;
+  }, []);
+
+  const playAudioChunk = useCallback((base64Audio: string, sampleRate: number) => {
+    if (!playbackContextRef.current) {
+      const AudioContextCtor =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      playbackContextRef.current = new AudioContextCtor({ sampleRate });
+    }
+    const ctx = playbackContextRef.current;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const samples = decodeBase64Pcm16(base64Audio);
+    if (samples.length === 0) return;
+
+    const buffer = ctx.createBuffer(1, samples.length, sampleRate);
+    buffer.copyToChannel(new Float32Array(samples), 0);
+
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    const startTime = Math.max(now, playbackNextTimeRef.current);
+    source.start(startTime);
+    playbackNextTimeRef.current = startTime + buffer.duration;
+  }, []);
 
   const stopMic = useCallback(() => {
     if (processorRef.current && sourceRef.current) {
@@ -231,6 +235,7 @@ export function useLiveQaAgent({
       closeIntentRef.current = reason;
       clearTimer();
       stopMic();
+      stopPlayback();
       const ws = wsRef.current;
       if (ws && ws.readyState === WebSocket.OPEN && reason !== 'failed') {
         try {
@@ -253,7 +258,7 @@ export function useLiveQaAgent({
         setStatus(reason === 'expired' ? 'expired' : 'completed');
       }
     },
-    [clearTimer, stopMic],
+    [clearTimer, stopMic, stopPlayback],
   );
 
   const startMicCapture = useCallback(async () => {
@@ -296,19 +301,7 @@ export function useLiveQaAgent({
         if (!socket || socket.readyState !== WebSocket.OPEN) {
           return;
         }
-        try {
-          // Preferred ConvAI payload format.
-          socket.send(JSON.stringify({ user_audio_chunk: base64 }));
-        } catch {
-          // Legacy fallback payload format for compatibility.
-          socket.send(
-            JSON.stringify({
-              type: 'user_audio_chunk',
-              audio_base_64: base64,
-              sample_rate: TARGET_SAMPLE_RATE,
-            }),
-          );
-        }
+        socket.send(JSON.stringify({ user_audio_chunk: base64 }));
       }
     };
 
@@ -331,6 +324,7 @@ export function useLiveQaAgent({
 
     clearTimer();
     stopMic();
+    stopPlayback();
     if (wsRef.current) {
       try {
         wsRef.current.close();
@@ -356,13 +350,19 @@ export function useLiveQaAgent({
 
     let ws: WebSocket;
     try {
-      ws = new WebSocket(signedUrl);
+      const wsUrl = signedUrl.includes('?')
+        ? `${signedUrl}&source=js_sdk&version=0.14.0`
+        : `${signedUrl}?source=js_sdk&version=0.14.0`;
+      ws = new WebSocket(wsUrl, ['convai']);
     } catch (caughtError) {
       setStatus('error');
       setError(caughtError instanceof Error ? caughtError.message : 'Failed to open websocket.');
       return;
     }
     wsRef.current = ws;
+
+    // Track the output audio format from server metadata.
+    let outputSampleRate = TARGET_SAMPLE_RATE;
 
     ws.onopen = () => {
       setDiagnostics((prev) => ({
@@ -387,27 +387,18 @@ export function useLiveQaAgent({
         }
       }, 200);
 
-      ws.send(
-        JSON.stringify({
-          type: 'conversation_initiation_client_data',
-          conversation_initiation_client_data: {
-            context: starterContext,
-          },
-        }),
-      );
-      void startMicCapture()
-        .then(() => {
-          setStatus('active');
-        })
-        .catch((caughtError) => {
-          closeIntentRef.current = 'failed';
-          setStatus('error');
-          setError(
-            caughtError instanceof Error ? caughtError.message : 'Microphone capture failed.',
-          );
-          stopSession('failed');
-        });
+      const initPayload = {
+        type: 'conversation_initiation_client_data',
+        dynamic_variables: {
+          context: starterContext,
+        },
+      };
+      console.log('[LiveQA] WS sending init:', JSON.stringify(initPayload).slice(0, 300));
+      ws.send(JSON.stringify(initPayload));
+      // Mic capture starts after receiving conversation_initiation_metadata (see onmessage).
     };
+
+    let micStarted = false;
 
     ws.onmessage = (event: MessageEvent) => {
       let payload: Record<string, unknown>;
@@ -418,30 +409,92 @@ export function useLiveQaAgent({
       }
 
       const type = typeof payload.type === 'string' ? payload.type.toLowerCase() : '';
+
+      // Wait for server to confirm session before streaming audio.
+      if (type === 'conversation_initiation_metadata' && !micStarted) {
+        micStarted = true;
+        // Parse output audio format (e.g. "pcm_16000").
+        const metaEvent = asRecord(payload.conversation_initiation_metadata_event);
+        const outputFormat = asNonEmptyString(
+          metaEvent?.agent_output_audio_format,
+        );
+        if (outputFormat) {
+          const parts = outputFormat.split('_');
+          const rate = Number(parts[parts.length - 1]);
+          if (!Number.isNaN(rate) && rate > 0) {
+            outputSampleRate = rate;
+          }
+        }
+        console.log('[LiveQA] Session confirmed, output sample rate:', outputSampleRate);
+        void startMicCapture()
+          .then(() => {
+            setStatus('active');
+          })
+          .catch((caughtError) => {
+            closeIntentRef.current = 'failed';
+            setStatus('error');
+            setError(
+              caughtError instanceof Error ? caughtError.message : 'Microphone capture failed.',
+            );
+            stopSession('failed');
+          });
+        return;
+      }
+
+      // Respond to server pings with pong (including event_id as-is).
       if (type === 'ping') {
-        const eventId = parsePingEventId(payload);
+        const pingEvent = asRecord(payload.ping_event);
+        const eventId = pingEvent?.event_id;
         const socket = wsRef.current;
         if (socket && socket.readyState === WebSocket.OPEN) {
-          socket.send(
-            JSON.stringify(
-              eventId
-                ? { type: 'pong', event_id: eventId }
-                : { type: 'pong' },
-            ),
-          );
+          const pongPayload = eventId != null
+            ? { type: 'pong', event_id: eventId }
+            : { type: 'pong' };
+          socket.send(JSON.stringify(pongPayload));
         }
         return;
       }
 
-      const parsed = parseLiveTextEvent(payload);
-      if (parsed) {
-        setTurns((prev) => appendTurn(prev, parsed.speaker, parsed.text));
-        if (parsed.speaker === 'investor' && outboundAudioSentAtRef.current.length > 0) {
-          const sentAt = outboundAudioSentAtRef.current.shift() ?? Date.now();
-          const latency = Math.max(0, Date.now() - sentAt);
-          setLatencySamples((prev) => [...prev, latency].slice(-200));
+      // Play agent audio.
+      if (type === 'audio') {
+        const audioBase64 = asNonEmptyString(payload.audio_base_64)
+          ?? asNonEmptyString(payload.audio);
+        if (audioBase64) {
+          playAudioChunk(audioBase64, outputSampleRate);
         }
+        return;
       }
+
+      // Agent response text — add as investor turn.
+      if (type === 'agent_response') {
+        const agentText = asNonEmptyString(payload.agent_response)
+          ?? asNonEmptyString(
+            (asRecord(payload.agent_response_event) ?? {}).agent_response as string | undefined,
+          );
+        if (agentText) {
+          setTurns((prev) => appendTurn(prev, 'investor', agentText));
+          if (outboundAudioSentAtRef.current.length > 0) {
+            const sentAt = outboundAudioSentAtRef.current.shift() ?? Date.now();
+            const latency = Math.max(0, Date.now() - sentAt);
+            setLatencySamples((prev) => [...prev, latency].slice(-200));
+          }
+        }
+        return;
+      }
+
+      // User transcript — add as founder turn.
+      if (type === 'user_transcript') {
+        const userText = asNonEmptyString(payload.user_transcript)
+          ?? asNonEmptyString(
+            (asRecord(payload.user_transcription_event) ?? {}).user_transcript as string | undefined,
+          );
+        if (userText) {
+          setTurns((prev) => appendTurn(prev, 'founder', userText));
+        }
+        return;
+      }
+
+      // Ignore other event types (vad_score, interruption, agent_response_correction, etc.)
     };
 
     ws.onerror = () => {
@@ -465,6 +518,7 @@ export function useLiveQaAgent({
 
       clearTimer();
       stopMic();
+      stopPlayback();
       outboundAudioSentAtRef.current = [];
       if (wsRef.current === ws) {
         wsRef.current = null;
@@ -485,13 +539,19 @@ export function useLiveQaAgent({
         return;
       }
 
+      // Server closed the connection with 1000 = normal end of conversation.
+      if (closeCode === 1000) {
+        setStatus('completed');
+        return;
+      }
+
       const currentStatus = statusRef.current;
       if (currentStatus === 'active' || currentStatus === 'connecting') {
         setStatus('error');
         setError((prev) => prev ?? formatCloseMessage(closeCode, closeReason));
       }
     };
-  }, [clearTimer, durationLimitSeconds, signedUrl, startMicCapture, starterContext, stopMic, stopSession]);
+  }, [clearTimer, durationLimitSeconds, playAudioChunk, signedUrl, startMicCapture, starterContext, stopMic, stopPlayback, stopSession]);
 
   useEffect(() => {
     if (statusRef.current === 'active' || statusRef.current === 'connecting') return;
@@ -514,6 +574,7 @@ export function useLiveQaAgent({
       closeIntentRef.current = 'completed';
       clearTimer();
       stopMic();
+      stopPlayback();
       const ws = wsRef.current;
       wsRef.current = null;
       if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
@@ -524,7 +585,7 @@ export function useLiveQaAgent({
         }
       }
     };
-  }, [clearTimer, stopMic]);
+  }, [clearTimer, stopMic, stopPlayback]);
 
   useEffect(() => {
     statusRef.current = status;
