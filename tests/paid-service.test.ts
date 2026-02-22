@@ -77,11 +77,12 @@ describe('paidService', () => {
   it('retries once on 500 and sends investor_ready signal for scores >= 80', async () => {
     process.env.PAID_ENABLED = 'true';
     process.env.PAID_API_KEY = 'paid-key';
+    process.env.PAID_EXTERNAL_PRODUCT_ID = 'product_456';
+    process.env.PAID_EXTERNAL_CUSTOMER_ID = 'customer_123';
 
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(new Response('server error', { status: 500 }))
-      .mockResolvedValueOnce(new Response('{}', { status: 200 }))
       .mockResolvedValueOnce(new Response('{}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
@@ -95,12 +96,35 @@ describe('paidService', () => {
     });
 
     expect(result.status).toBe('sent');
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const [firstUrl, firstOptions] = fetchMock.mock.calls[0] ?? [];
+    expect(firstUrl).toBe('https://api.paid.ai/v2/usage/bulk');
+    expect(firstOptions).toMatchObject({
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer paid-key',
+        'Content-Type': 'application/json',
+      },
+    });
+    const parsed = JSON.parse(String(firstOptions?.body));
+    expect(parsed.usageRecords).toHaveLength(2);
+    expect(parsed.usageRecords[0]).toMatchObject({
+      event_name: 'pitch_analysis_completed',
+      external_customer_id: 'customer_123',
+      external_product_id: 'product_456',
+    });
+    expect(parsed.usageRecords[1]).toMatchObject({
+      event_name: 'investor_ready_achieved',
+      external_customer_id: 'customer_123',
+      external_product_id: 'product_456',
+    });
   });
 
   it('returns failed when Paid keeps erroring after retry', async () => {
     process.env.PAID_ENABLED = 'true';
     process.env.PAID_API_KEY = 'paid-key';
+    process.env.PAID_EXTERNAL_PRODUCT_ID = 'product_456';
+    process.env.PAID_EXTERNAL_CUSTOMER_ID = 'customer_123';
 
     const fetchMock = vi
       .fn()
@@ -118,7 +142,32 @@ describe('paidService', () => {
     });
 
     expect(result.status).toBe('failed');
-    expect(result.error).toContain('Paid signal failed');
+    expect(result.error).toContain('Paid usage bulk request failed');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips when both product and customer identifiers are missing', async () => {
+    process.env.PAID_ENABLED = 'true';
+    process.env.PAID_API_KEY = 'paid-key';
+    delete process.env.PAID_PRODUCT_ID;
+    delete process.env.PAID_EXTERNAL_PRODUCT_ID;
+    delete process.env.PAID_CUSTOMER_ID;
+    delete process.env.PAID_EXTERNAL_CUSTOMER_ID;
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await syncRunToPaid({
+      runId: 'run-5',
+      mode: 'vc_pitch',
+      overallScore: 74,
+      latencyMs: 900,
+      fallbackUsed: false,
+      economics: baseEconomics(),
+    });
+
+    expect(result.status).toBe('skipped');
+    expect(result.error).toContain('Missing customer identifier');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

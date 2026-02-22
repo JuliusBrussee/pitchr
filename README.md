@@ -103,7 +103,10 @@ Optional:
 - `PAID_ENABLED` (`true` to enable Paid AI sync)
 - `PAID_API_KEY` (required when `PAID_ENABLED=true`)
 - `PAID_API_BASE_URL` (default: `https://api.paid.ai`)
-- `PAID_PRODUCT_ID`, `PAID_CUSTOMER_ID`, `PAID_ORDER_ID` (optional Paid metadata)
+- Product identifier: `PAID_PRODUCT_ID` or `PAID_EXTERNAL_PRODUCT_ID` (one required for sync)
+- Customer identifier: `PAID_CUSTOMER_ID` or `PAID_EXTERNAL_CUSTOMER_ID` (one required for sync)
+- `PAID_ORDER_ID` (optional metadata)
+- `PAID_SIGNAL_EVENT_COMPLETED`, `PAID_SIGNAL_EVENT_INVESTOR_READY` (optional event name overrides)
 - `FOUNDER_HOURLY_RATE_USD`, `VALUE_PER_SCORE_POINT_USD`
 - `ANTHROPIC_INPUT_PER_1M_USD`, `ANTHROPIC_OUTPUT_PER_1M_USD`
 - `OPENROUTER_INPUT_PER_1M_USD`, `OPENROUTER_OUTPUT_PER_1M_USD`
@@ -140,7 +143,9 @@ Miro:
 Pitchr can send post-analysis value signals to Paid AI after a run reaches `complete`.
 
 - Enable with `PAID_ENABLED=true` and set `PAID_API_KEY`.
-- Signal endpoint defaults to `https://api.paid.ai/v1/signals` (`PAID_API_BASE_URL` override supported).
+- Signal endpoint defaults to `https://api.paid.ai/v2/usage/bulk` (`PAID_API_BASE_URL` override supported).
+- Signal payload uses `usageRecords[]` with `event_name` and customer/product identifiers.
+- Use either internal IDs (`PAID_CUSTOMER_ID` / `PAID_PRODUCT_ID`) or external IDs (`PAID_EXTERNAL_CUSTOMER_ID` / `PAID_EXTERNAL_PRODUCT_ID`).
 - Sent signals:
   - `pitch_analysis_completed` for every completed run
   - `investor_ready_achieved` when score is `>= 80`

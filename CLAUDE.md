@@ -172,9 +172,13 @@ MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
 PAID_ENABLED=          # Optional Paid AI signal sync toggle (true/false)
 PAID_API_KEY=          # Paid AI API key (required when PAID_ENABLED=true)
 PAID_API_BASE_URL=     # Optional override (default: https://api.paid.ai)
-PAID_PRODUCT_ID=       # Optional product metadata
-PAID_CUSTOMER_ID=      # Optional customer metadata (default demo-founder)
-PAID_ORDER_ID=         # Optional order metadata
+PAID_PRODUCT_ID=       # Optional internal product ID (use this OR PAID_EXTERNAL_PRODUCT_ID)
+PAID_EXTERNAL_PRODUCT_ID= # Optional external product ID (use this OR PAID_PRODUCT_ID)
+PAID_CUSTOMER_ID=      # Optional internal customer ID (use this OR PAID_EXTERNAL_CUSTOMER_ID)
+PAID_EXTERNAL_CUSTOMER_ID= # Optional external customer ID (use this OR PAID_CUSTOMER_ID)
+PAID_ORDER_ID=         # Optional metadata field
+PAID_SIGNAL_EVENT_COMPLETED= # Optional override (default pitch_analysis_completed)
+PAID_SIGNAL_EVENT_INVESTOR_READY= # Optional override (default investor_ready_achieved)
 ```
 
 ## Implementation Phases (from PRD Section 16)

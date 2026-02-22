@@ -19,24 +19,30 @@ PAID_ENABLED=true
 PAID_API_KEY=your_paid_api_key
 PAID_API_BASE_URL=https://api.paid.ai
 PAID_PRODUCT_ID=
-PAID_CUSTOMER_ID=demo-founder
+PAID_EXTERNAL_PRODUCT_ID=product_456
+PAID_CUSTOMER_ID=
+PAID_EXTERNAL_CUSTOMER_ID=customer_123
 PAID_ORDER_ID=
+PAID_SIGNAL_EVENT_COMPLETED=pitch_analysis_completed
+PAID_SIGNAL_EVENT_INVESTOR_READY=investor_ready_achieved
 ```
 
 Notes:
 - If `PAID_ENABLED` is not truthy, sync is skipped.
 - If enabled but `PAID_API_KEY` is missing, sync is skipped with an explicit error status.
-- Endpoint path is always `/v1/signals`; base URL is configurable.
+- If both product and customer identifiers are missing, sync is skipped.
+- Endpoint path is `/v2/usage/bulk`; base URL is configurable.
 
 ## Payload Shape (High Level)
 
-Each signal contains:
-- `signal_key`, `signal_timestamp`
-- Optional metadata: `product_id`, `customer_id`, `order_id`
-- `data` including:
-  - run identifiers (`run_id`, `mode`)
-  - quality/latency (`overall_score`, `latency_ms`, `fallback_used`)
-  - economics (`estimated_cost_usd`, `estimated_value_usd`, `money_saved_vs_coach_usd`, `roi_multiple`, `time_saved_minutes`)
+Each request contains:
+- `usageRecords` array
+- Per record:
+  - `event_name`
+  - one customer identifier (`customer_id` or `external_customer_id`)
+  - one product identifier (`product_id` or `external_product_id`)
+  - optional `idempotency_key`
+  - optional `data` with run/economics metadata
 
 ## Reliability + Failure Behavior
 
