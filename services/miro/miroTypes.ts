@@ -1,4 +1,5 @@
 export type MiroFixStatus = "todo" | "doing" | "done" | "blocked";
+export type MiroFixSource = "app" | "miro" | "system";
 
 export interface MiroTopFixInput {
   rank: number;
@@ -15,14 +16,63 @@ export interface MiroFixBoardRequest {
   topFixes: MiroTopFixInput[];
   rewriteScript: string;
   boardNamePrefix?: string;
+  recreate?: boolean;
 }
 
-export interface MiroFixBoardResponse {
-  boardId: string;
-  boardUrl: string;
-  createdAt: string;
-  fallback?: boolean;
-  message?: string;
+export interface MiroFixPatch {
+  status?: MiroFixStatus;
+  owner?: string;
+  notes?: string;
+}
+
+export interface MiroFixPatchRequest {
+  runId: string;
+  rank: number;
+  patch: MiroFixPatch;
+  clientUpdatedAt: string;
+}
+
+export interface MiroFixLayoutColumnIds {
+  todo: string;
+  doing: string;
+  blocked: string;
+  done: string;
+}
+
+export interface MiroBoardLayoutState {
+  overviewFrameId: string;
+  kanbanFrameId: string;
+  rewriteFrameId: string;
+  columnIds: MiroFixLayoutColumnIds;
+}
+
+export interface PersistedMiroFixState {
+  itemId: string;
+  status: MiroFixStatus;
+  owner: string;
+  notes: string;
+  updatedAt: string;
+  source: MiroFixSource;
+  x?: number;
+  y?: number;
+}
+
+export interface PersistedMiroPendingOp {
+  opId: string;
+  rank: number;
+  patch: MiroFixPatch;
+  clientUpdatedAt: string;
+  attempts: number;
+  nextRetryAt: string;
+  lastError: string;
+}
+
+export interface PersistedMiroBoardState {
+  version: number;
+  layout: MiroBoardLayoutState;
+  fixes: Record<string, PersistedMiroFixState>;
+  pendingOps: PersistedMiroPendingOp[];
+  lastSyncedAt: string;
 }
 
 export interface MiroSyncedFix {
@@ -30,8 +80,10 @@ export interface MiroSyncedFix {
   status: MiroFixStatus;
   owner?: string;
   notes?: string;
-  lastUpdated?: string;
+  updatedAt?: string;
   itemId?: string;
+  source: MiroFixSource;
+  conflict?: boolean;
 }
 
 export interface MiroSyncSnapshot {
@@ -39,7 +91,75 @@ export interface MiroSyncSnapshot {
   syncedAt: string;
   fixes: MiroSyncedFix[];
   warnings: string[];
+  queuedOps: number;
+  degraded: boolean;
+  conflicts: number;
+  version: number;
   fallback?: boolean;
   message?: string;
 }
 
+export interface MiroFixBoardResponse {
+  boardId: string;
+  boardUrl: string;
+  createdAt: string;
+  reused: boolean;
+  snapshot: MiroSyncSnapshot;
+  fallback?: boolean;
+  message?: string;
+}
+
+export interface MiroGetFixBoardResponse {
+  boardId: string;
+  boardUrl: string;
+  createdAt: string;
+  snapshot: MiroSyncSnapshot;
+  fallback?: boolean;
+  message?: string;
+}
+
+export interface MiroFixPatchResponse {
+  accepted: true;
+  queued: boolean;
+  snapshot: MiroSyncSnapshot;
+}
+
+export interface MiroProviderCreateResult {
+  boardId: string;
+  boardUrl: string;
+  createdAt: string;
+  state: PersistedMiroBoardState;
+  snapshot: MiroSyncSnapshot;
+  fallback?: boolean;
+  message?: string;
+}
+
+export interface MiroProviderSyncedFix {
+  rank: number;
+  itemId: string;
+  status: MiroFixStatus;
+  owner: string;
+  notes: string;
+  updatedAt: string;
+  source: "miro";
+  x?: number;
+  y?: number;
+}
+
+export interface MiroProviderSyncResult {
+  boardId: string;
+  syncedAt: string;
+  fixes: MiroProviderSyncedFix[];
+  warnings: string[];
+  fallback?: boolean;
+  message?: string;
+}
+
+export interface MiroProviderPatchResult {
+  rank: number;
+  itemId: string;
+  status: MiroFixStatus;
+  owner: string;
+  notes: string;
+  updatedAt: string;
+}
