@@ -36,12 +36,19 @@ export function createSlideStyles(template: DeckTemplate) {
       color: template.colors.textSecondary,
       marginBottom: 24,
     },
+    accentRule: {
+      height: 3,
+      width: 48,
+      backgroundColor: template.colors.accent,
+      marginBottom: 16,
+      borderRadius: 2,
+    },
     bulletContainer: {
       marginTop: 12,
     },
     bulletRow: {
       flexDirection: 'row',
-      marginBottom: 12,
+      marginBottom: 16,
       alignItems: 'flex-start',
     },
     bulletDot: {
@@ -64,7 +71,7 @@ export function createSlideStyles(template: DeckTemplate) {
       fontSize: template.layout.bulletSize - 2,
       fontFamily: template.fonts.body,
       color: template.colors.textSecondary,
-      marginTop: 2,
+      marginTop: 3,
     },
     calloutBox: {
       backgroundColor: template.colors.backgroundSecondary,
@@ -85,6 +92,28 @@ export function createSlideStyles(template: DeckTemplate) {
       fontFamily: template.fonts.body,
       color: template.colors.textSecondary,
       marginTop: 4,
+    },
+    bannerCallout: {
+      backgroundColor: template.colors.backgroundSecondary,
+      borderRadius: 8,
+      padding: 20,
+      marginBottom: 20,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderLeftWidth: 4,
+      borderLeftColor: template.colors.accent,
+    },
+    bannerCalloutValue: {
+      fontSize: 36,
+      fontFamily: template.fonts.headline,
+      color: template.colors.accent,
+      marginRight: 16,
+    },
+    bannerCalloutLabel: {
+      fontSize: 13,
+      fontFamily: template.fonts.body,
+      color: template.colors.textSecondary,
+      flex: 1,
     },
   });
 }

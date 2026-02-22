@@ -1,19 +1,24 @@
-import type { Fix, RubricCategory } from '@/types/analysis';
+import type { Fix, ScoreCategory } from '@/types/analysis';
 
 export interface ReviewBullet {
   rank: number;
-  category: RubricCategory;
+  category: ScoreCategory;
   where: string;
   issue: string;
   improve: string;
 }
 
-const CATEGORY_LOCATION_MAP: Record<RubricCategory, string> = {
+const CATEGORY_LOCATION_MAP: Record<ScoreCategory, string> = {
   structure: 'Pitch structure / flow',
   clarity: 'Wording and messaging',
   evidence: 'Traction and proof points',
   market: 'Market / differentiation section',
   delivery: 'Pace and delivery language',
+  deck_narrative: 'Deck narrative flow',
+  deck_clarity: 'Slide clarity and hierarchy',
+  deck_evidence: 'Deck proof and data slide',
+  deck_design: 'Deck visual communication',
+  deck_ask: 'Deck ask and milestones',
 };
 
 function normalizeText(value: string): string {

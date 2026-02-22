@@ -23,9 +23,39 @@ import type {
 import { DeckDocument } from '@/views/components/deck-pdf/DeckDocument';
 
 const SLIDE_TYPES_IN_ORDER: SlideType[] = [
-  'title', 'problem', 'solution', 'market', 'product',
-  'business_model', 'traction', 'competition', 'team', 'ask',
+  'hook', 'problem', 'solution', 'traction',
+  'market', 'business_model', 'team', 'ask',
 ];
+
+// All valid types including legacy ones from stored 10-slide decks
+const ALL_VALID_TYPES = new Set<string>([
+  ...SLIDE_TYPES_IN_ORDER,
+  'title', 'product', 'competition',
+]);
+
+/* --- Placeholder Stripping (defense-in-depth) --- */
+
+const PLACEHOLDER_RE = /\[(?:placeholder|TBD|tbd|insert\s+\w+|Company|company|your\s+\w+|X+)\]/gi;
+
+function stripPlaceholders(deck: GeneratedDeck): GeneratedDeck {
+  return deck.map((slide) => ({
+    ...slide,
+    headline: slide.headline.replace(PLACEHOLDER_RE, '').trim(),
+    subheadline: slide.subheadline?.replace(PLACEHOLDER_RE, '').trim() || undefined,
+    bullets: slide.bullets
+      .map((b) => ({
+        text: b.text.replace(PLACEHOLDER_RE, '').trim(),
+        detail: b.detail?.replace(PLACEHOLDER_RE, '').trim() || undefined,
+      }))
+      .filter((b) => b.text.length > 0),
+    callout: slide.callout
+      ? {
+          value: slide.callout.value.replace(PLACEHOLDER_RE, '').trim(),
+          label: slide.callout.label.replace(PLACEHOLDER_RE, '').trim(),
+        }
+      : undefined,
+  }));
+}
 
 /* --- Validation --- */
 
@@ -34,14 +64,16 @@ function isGeneratedSlide(value: unknown): value is GeneratedSlide {
   const slide = value as Record<string, unknown>;
   return (
     typeof slide.type === 'string' &&
-    SLIDE_TYPES_IN_ORDER.includes(slide.type as SlideType) &&
+    ALL_VALID_TYPES.has(slide.type) &&
     typeof slide.headline === 'string' &&
     Array.isArray(slide.bullets)
   );
 }
 
 function isGeneratedDeck(value: unknown): value is GeneratedDeck {
-  if (!Array.isArray(value) || value.length !== 10) return false;
+  if (!Array.isArray(value)) return false;
+  // Accept 7-9 slides (prefer 8, flexible for edge cases)
+  if (value.length < 7 || value.length > 9) return false;
   return value.every(isGeneratedSlide);
 }
 
@@ -82,7 +114,7 @@ async function generateSlideContent(
 
     const candidate = parseJsonArray(rawOutput);
     if (isGeneratedDeck(candidate)) {
-      parsed = candidate;
+      parsed = stripPlaceholders(candidate);
     }
   } catch {
     parsed = null;
@@ -101,7 +133,7 @@ async function generateSlideContent(
 
       const repairedCandidate = parseJsonArray(repaired);
       if (isGeneratedDeck(repairedCandidate)) {
-        parsed = repairedCandidate;
+        parsed = stripPlaceholders(repairedCandidate);
       }
     } catch {
       parsed = null;
@@ -156,10 +188,10 @@ export async function generateDeck(
 
   // 4. Insert deck record
   const deck = await insertDeck({
-    name: `${companyName} — Pitch Deck`,
+    name: `${companyName} \u2014 Pitch Deck`,
     original_url: pdfUrl,
     pdf_url: pdfUrl,
-    slide_count: 10,
+    slide_count: slides.length,
     thumbnail_url: null,
   });
 

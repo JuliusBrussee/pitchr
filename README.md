@@ -11,15 +11,18 @@ Pitchr is an AI pitch coaching app. Record or transcribe a pitch, run structured
 
 ```bash
 yarn install
-copy .env.example .env
+copy .env.example .env .env.local
 ```
 
-Set at least these values in `.env`:
+Set at least these values in `.env.local`:
 
-- `ELEVENLABS_API_KEY` (required for realtime STT)
+- `ELEVENLABS_API_KEY_STT` (required for realtime STT)
 - `LLM_PROVIDER=openrouter`
+- `LLM_ROUTING_MODE=openrouter_then_anthropic`
+- `LLM_PROVIDER_PRIMARY=openrouter`
+- `LLM_PROVIDER_FALLBACK=anthropic`
 - `OPENROUTER_API_KEY`
-- Optional override: `OPENROUTER_MODEL=google/gemini-3-flash-preview`
+- Optional override: `OPENROUTER_MODEL=anthropic/claude-sonnet-4.6`
 
 ## Run Locally
 
@@ -40,9 +43,14 @@ This starts:
 | `yarn dev:next` | Start Next.js only |
 | `yarn dev:server` | Start STT proxy only |
 | `yarn dev:standalone` | Start server.ts directly |
+| `yarn knowledge:snapshot` | Capture curated research snapshots with Playwright |
+| `yarn knowledge:build` | Build `knowledge/patterns.v1.json` from corpus + snapshots |
+| `yarn knowledge:refresh` | Snapshot + rebuild knowledge pack |
+| `yarn calibrate:weights` | Calibrate deterministic delivery weights from fixtures |
 | `yarn stt` | Run CLI STT recorder script |
 | `yarn build` | Production build |
 | `yarn start` | Start production server |
+| `yarn typecheck` | Run TypeScript checks |
 | `yarn check:encoding` | Validate UTF-8 encoding guardrails |
 | `yarn fix:encoding` | Normalize UTF-16/UTF-8 BOM text files to UTF-8 |
 
@@ -64,18 +72,24 @@ yarn check:encoding
 ## Analysis Pipeline
 
 1. Session audio is transcribed via STT WebSocket.
-2. On transcript finalization (`saved`), the app auto-calls `POST /api/pitch/run`.
-3. Server runs prompt + scoring pipeline through the LLM router.
-4. Result is returned with `{ runId, status, analysis }`.
-5. Run is stored in browser `localStorage` (`pitchr_runs`) and displayed at `/results/[runId]`.
+2. Session submits to `POST /api/pitch/run` with mode + transcript + optional deck/stage.
+3. API enqueues a run and returns quickly with `{ runId, status: "queued" }`.
+4. Background processor runs prep + judge analysis and updates run status (`queued -> running -> complete|failed`).
+5. Results UI polls `GET /api/pitch/run/[runId]` until completion.
+6. Final run payload includes `{ analysisVersion, coverage, outputs, meta, analysis }`.
+
+## Async Run Migration
+
+Apply `migrations/08-add-run-lifecycle-columns.sql` in Supabase SQL editor before using async run status.
 
 More details: `docs/architecture/pitch-analysis-pipeline.md`.
 
 ## Provider Routing
 
-- Default: OpenRouter (`LLM_PROVIDER=openrouter`)
-- Model: `google/gemini-3-flash-preview`
-- Anthropic scaffold is implemented for later switch (`LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`).
+- Default: `LLM_ROUTING_MODE=openrouter_then_anthropic`
+- Primary provider: OpenRouter (`LLM_PROVIDER_PRIMARY=openrouter`)
+- Fallback provider: Anthropic (`LLM_PROVIDER_FALLBACK=anthropic`)
+- Legacy env (`LLM_PROVIDER`) is still accepted.
 
 ## Codex MCP
 

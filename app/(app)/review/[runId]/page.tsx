@@ -3,13 +3,11 @@
 import { useMemo, useState, useEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, ChevronDown, ChevronUp, Flag } from 'lucide-react';
-import {
-  formatReviewBulletLine,
-  formatReviewBullets,
-  getTranscriptPreview,
-} from '@/lib/review/formatters';
+import { ArrowLeft } from 'lucide-react';
+import type { FeedbackOutput, OneMinuteQAPack } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
+
+type ReviewTab = 'feedback' | 'qa';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString('en-US', {
@@ -21,56 +19,67 @@ function formatDate(iso: string): string {
   });
 }
 
+function fallbackQa(feedback: FeedbackOutput): OneMinuteQAPack {
+  const questions = feedback.top_fixes.slice(0, 3).map((fix) => `How will you address ${fix.category}?`);
+  const q1 = questions[0] ?? 'What is your strongest proof point right now?';
+  const q2 = questions[1] ?? 'Why are you differentiated in this market?';
+  const q3 = questions[2] ?? 'What milestones does this raise fund?';
+  return {
+    total_target_seconds: 60,
+    timing_plan_seconds: [20, 20, 20],
+    investor_questions: [q1, q2, q3],
+    suggested_answers: [
+      { question: q1, answer: feedback.top_fixes[0]?.fix ?? '', target_seconds: 20 },
+      { question: q2, answer: feedback.top_fixes[1]?.fix ?? '', target_seconds: 20 },
+      { question: q3, answer: feedback.top_fixes[2]?.fix ?? '', target_seconds: 20 },
+    ],
+    focus_tags: feedback.top_fixes.slice(0, 3).map((fix) => fix.category),
+    red_flags_to_avoid: [
+      'Avoid generic claims without proof.',
+      'Avoid vague fundraising ask language.',
+      'Avoid overly long answers.',
+    ],
+  };
+}
+
 export default function ReviewPage() {
   const params = useParams<{ runId: string | string[] }>();
   const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
-
   const [run, setRun] = useState<Run | null>(null);
-  const [checkedStorage, setCheckedStorage] = useState(false);
-  const [expandedTranscript, setExpandedTranscript] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<ReviewTab>('feedback');
 
   useEffect(() => {
     if (!runId) {
       setRun(null);
-      setCheckedStorage(true);
+      setLoading(false);
       return;
     }
     fetch(`/api/pitch/run/${runId}`)
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data && !data.error) {
-          setRun({
-            id: data.id,
-            createdAt: data.created_at,
-            mode: data.mode,
-            inputType: data.input_type,
-            transcript: data.transcript,
-            audioUrl: data.audio_url ?? undefined,
-            analysis: data.analysis,
-            overallScore: data.overall_score,
-          });
+      .then((payload) => {
+        if (payload?.run) {
+          setRun(payload.run as Run);
+        } else if (payload?.id) {
+          setRun(payload as Run);
         } else {
           setRun(null);
         }
-        setCheckedStorage(true);
       })
-      .catch(() => {
-        setRun(null);
-        setCheckedStorage(true);
-      });
+      .catch(() => setRun(null))
+      .finally(() => setLoading(false));
   }, [runId]);
 
-  const bullets = useMemo(
-    () => (run ? formatReviewBullets(run.analysis.top_fixes, 5) : []),
+  const feedback = useMemo<FeedbackOutput | null>(
+    () => run?.outputs?.feedback ?? run?.analysis ?? null,
     [run],
   );
+  const qaPack = useMemo<OneMinuteQAPack | null>(
+    () => (run?.outputs?.qa_1min ? run.outputs.qa_1min : feedback ? fallbackQa(feedback) : null),
+    [feedback, run],
+  );
 
-  const transcriptPreview = useMemo(() => {
-    if (!run) return { preview: '', isTruncated: false };
-    return getTranscriptPreview(run.transcript, 760);
-  }, [run]);
-
-  if (!checkedStorage) {
+  if (loading) {
     return (
       <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
         <p style={{ color: 'var(--text-muted)' }}>Loading review...</p>
@@ -78,7 +87,39 @@ export default function ReviewPage() {
     );
   }
 
-  if (!run) {
+  if (run && run.status !== 'complete') {
+    return (
+      <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+        <section
+          className="max-w-md rounded-2xl border p-6 text-center"
+          style={{
+            backgroundColor: 'var(--bg-surface)',
+            borderColor: 'var(--border-color)',
+            backdropFilter: 'blur(var(--blur-strength))',
+            WebkitBackdropFilter: 'blur(var(--blur-strength))',
+          }}
+        >
+          <h1 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+            Analysis In Progress
+          </h1>
+          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+            {run.status === 'failed'
+              ? run.error ?? 'Analysis failed for this run.'
+              : 'This run has not completed analysis yet.'}
+          </p>
+          <Link
+            href={`/results/${run.id}`}
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg no-underline font-medium"
+            style={{ color: 'white', backgroundColor: '#ff5941' }}
+          >
+            Open Results
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  if (!run || !feedback) {
     return (
       <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
         <section
@@ -94,7 +135,7 @@ export default function ReviewPage() {
             Review Not Found
           </h1>
           <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-            This run is missing from local history. Start another pitch to generate review feedback.
+            This run is not available in history.
           </p>
           <Link
             href="/session"
@@ -114,7 +155,7 @@ export default function ReviewPage() {
         <div className="flex items-start gap-3">
           <Link
             href="/session"
-            className="p-2 rounded-xl border transition-all duration-200 no-underline flex items-center justify-center"
+            className="p-2 rounded-xl border no-underline flex items-center justify-center"
             style={{
               backgroundColor: 'var(--bg-surface)',
               borderColor: 'var(--border-color)',
@@ -130,18 +171,8 @@ export default function ReviewPage() {
             <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
               {formatDate(run.createdAt)} | {run.mode === 'elevator' ? 'Elevator Pitch' : 'VC Pitch'}
             </p>
-            {run.fallback && (
-              <span
-                className="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-full text-[11px] font-semibold"
-                style={{ backgroundColor: 'rgba(255,170,51,0.16)', color: '#ffaa33' }}
-              >
-                <Flag size={12} />
-                Fallback feedback
-              </span>
-            )}
           </div>
         </div>
-
         <div className="flex items-center gap-2">
           <Link
             href="/session"
@@ -160,53 +191,76 @@ export default function ReviewPage() {
         </div>
       </header>
 
-      <SectionCard
-        title="Top 5 Improvements"
-        subtitle="Focused, actionable changes to improve investor clarity and confidence."
-      >
-        <ol className="flex flex-col gap-3">
-          {bullets.map((bullet) => (
-            <li
-              key={`${bullet.rank}-${bullet.category}`}
-              className="rounded-xl border p-3 text-sm leading-relaxed"
-              style={{ borderColor: 'var(--border-color)' }}
-            >
-              <p style={{ color: 'var(--text-primary)' }}>
-                <span
-                  className="inline-flex items-center justify-center w-6 h-6 mr-2 rounded-full text-xs font-bold"
-                  style={{ backgroundColor: 'rgba(255,89,65,0.16)', color: '#ff5941' }}
-                >
-                  {bullet.rank}
-                </span>
-                {formatReviewBulletLine(bullet)}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </SectionCard>
-
-      <SectionCard
-        title="Transcript Context"
-        subtitle="Use this as reference while applying the bullet-point improvements."
-      >
-        <p
-          className="text-sm leading-relaxed whitespace-pre-wrap"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          {expandedTranscript ? run.transcript : transcriptPreview.preview}
-        </p>
-        {transcriptPreview.isTruncated && (
+      <section className="rounded-2xl border p-2" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>
+        <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
-            onClick={() => setExpandedTranscript((prev) => !prev)}
-            className="mt-3 inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            onClick={() => setTab('feedback')}
+            className="px-3 py-2 rounded-xl text-sm font-medium"
+            style={{
+              backgroundColor: tab === 'feedback' ? 'rgba(255,89,65,0.16)' : 'transparent',
+              color: tab === 'feedback' ? '#ff5941' : 'var(--text-secondary)',
+            }}
           >
-            {expandedTranscript ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            {expandedTranscript ? 'Show less' : 'Show full transcript'}
+            Analytics & Feedback
           </button>
-        )}
-      </SectionCard>
+          <button
+            type="button"
+            onClick={() => setTab('qa')}
+            className="px-3 py-2 rounded-xl text-sm font-medium"
+            style={{
+              backgroundColor: tab === 'qa' ? 'rgba(255,89,65,0.16)' : 'transparent',
+              color: tab === 'qa' ? '#ff5941' : 'var(--text-secondary)',
+            }}
+          >
+            1-Minute Q&A
+          </button>
+        </div>
+      </section>
+
+      {tab === 'feedback' ? (
+        <>
+          <SectionCard title="Top 5 Improvements" subtitle="Prioritized actions to increase investor confidence.">
+            <ol className="flex flex-col gap-3">
+              {feedback.top_fixes.map((fix: FeedbackOutput['top_fixes'][number]) => (
+                <li key={`${fix.rank}-${fix.category}`} className="rounded-xl border p-3 text-sm leading-relaxed" style={{ borderColor: 'var(--border-color)' }}>
+                  <p style={{ color: 'var(--text-primary)' }}>
+                    <strong>#{fix.rank}</strong> [{fix.category}] {fix.issue}
+                  </p>
+                  <p className="mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    {fix.fix}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </SectionCard>
+
+          <SectionCard title="Transcript Context" subtitle="Reference the exact wording while applying fixes.">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>
+              {run.transcript}
+            </p>
+          </SectionCard>
+        </>
+      ) : (
+        <SectionCard title="1-Minute Drill" subtitle="Three investor questions with timed answers.">
+          {qaPack ? (
+            <div className="flex flex-col gap-3">
+              {qaPack.suggested_answers.map((entry, index) => (
+                <div key={`${entry.question}-${index}`} className="rounded-xl border p-3" style={{ borderColor: 'var(--border-color)' }}>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    Q{index + 1}: {entry.question}
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    {entry.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: 'var(--text-muted)' }}>No Q&A data available.</p>
+          )}
+        </SectionCard>
+      )}
     </main>
   );
 }
@@ -223,10 +277,7 @@ function SectionCard({
   return (
     <section
       className="rounded-2xl border p-4 md:p-5"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-      }}
+      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
     >
       <header className="mb-3">
         <h2 className="text-sm uppercase tracking-wide font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -240,4 +291,3 @@ function SectionCard({
     </section>
   );
 }
-

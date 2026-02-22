@@ -1,31 +1,51 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
 import { useSessionState } from '@/hooks/useSessionState';
 import { useDeckSlides } from '@/hooks/useDeckSlides';
 import { useSTT } from '@/hooks/useSTT';
+import { useRecorder } from '@/hooks/useRecorder';
+import { uploadRecording } from '@/services/recordingService';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
+import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
-import type { DeckRecord } from '@/services/deckService';
+import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
 
 export default function SessionPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+          <p style={{ color: 'var(--text-muted)' }}>Loading session...</p>
+        </main>
+      }
+    >
+      <SessionPageContent />
+    </Suspense>
+  );
+}
+
+function SessionPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const media = useMediaStream();
   const session = useSessionState();
   const stt = useSTT();
-  const pitchRun = usePitchRun();
+  const recorder = useRecorder();
+  const { runPitchAnalysis, isAnalyzing, error: runError } = usePitchRun();
   const { setOrbState } = useTheme();
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const hasTriggeredAnalysis = useRef(false);
-  const runModeRef = useRef<PitchMode>('elevator');
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const deckTextCacheRef = useRef<Record<string, string>>({});
+  const autoSubmitLockRef = useRef(false);
   const [selectedMode, setSelectedMode] = useState<PitchMode>('elevator');
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
@@ -33,6 +53,11 @@ export default function SessionPage() {
   const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
+  const modeFromQuery = searchParams.get('mode');
+  const pitchMode: PitchMode =
+    modeFromQuery === 'elevator' || modeFromQuery === 'vc_pitch'
+      ? modeFromQuery
+      : 'vc_pitch';
 
   // Fetch available decks on mount
   useEffect(() => {
@@ -54,6 +79,27 @@ export default function SessionPage() {
     () => decks.find((d) => d.id === selectedDeckId) ?? null,
     [decks, selectedDeckId],
   );
+
+  const loadDeckText = useCallback(async (deckId: string): Promise<string | undefined> => {
+    if (deckTextCacheRef.current[deckId]) {
+      return deckTextCacheRef.current[deckId];
+    }
+    const response = await fetch(`/api/deck/${deckId}`);
+    if (!response.ok) {
+      throw new Error('Failed to load selected deck text for analysis.');
+    }
+    const payload = (await response.json()) as { slides?: SlideRecord[] };
+    const deckText = (payload.slides ?? [])
+      .map((slide) => slide.text?.trim() ?? '')
+      .filter(Boolean)
+      .join('\n\n')
+      .trim();
+    if (deckText) {
+      deckTextCacheRef.current[deckId] = deckText;
+      return deckText;
+    }
+    return undefined;
+  }, []);
 
   const {
     currentSlide,
@@ -116,6 +162,7 @@ export default function SessionPage() {
     console.debug('[headTracking] state transition', headState);
   }, [headTrackingDebugEnabled, session.isSessionActive, media.isCameraOn, headState]);
 
+  // Sync realtime checklist from STT to session state
   useEffect(() => {
     setSessionChecklist(stt.realtimeChecklist);
   }, [setSessionChecklist, stt.realtimeChecklist]);
@@ -125,38 +172,22 @@ export default function SessionPage() {
     resetSessionChecklist(selectedMode);
   }, [selectedMode, session.isSessionActive, resetSessionChecklist]);
 
-  // When STT confirms transcript saved, trigger analysis and save to Supabase
-  useEffect(() => {
-    if (!stt.saved || hasTriggeredAnalysis.current) return;
-    const transcript = stt.transcriptSegments.join(' ').trim();
-    if (!transcript) return;
-
-    hasTriggeredAnalysis.current = true;
-
-    pitchRun
-      .runPitchAnalysis({
-        mode: runModeRef.current,
-        inputType: 'audio',
-        transcript,
-      })
-      .then((result) => {
-        router.push(`/results/${result.runId}`);
-      })
-      .catch(() => {
-        // Error state is set in pitchRun.error
-      });
-  }, [stt.saved, stt.transcriptSegments, pitchRun, router]);
-
   const handleStartSession = useCallback(() => {
-    hasTriggeredAnalysis.current = false;
-    runModeRef.current = selectedMode;
-    session.startSession(runModeRef.current);
-    stt.start({ mode: runModeRef.current });
-  }, [selectedMode, session, stt]);
+    setAnalysisError(null);
+    autoSubmitLockRef.current = false;
+    session.startSession(selectedMode);
+    stt.start({ mode: selectedMode });
+    if (media.stream) {
+      recorder.startRecording(media.stream);
+    }
+  }, [selectedMode, session, stt, media.stream, recorder]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
     stt.stop();
+    // Do NOT stop the recorder here — the auto-submit effect handles stopping
+    // and capturing the blob for upload. Stopping here causes a race condition
+    // where the blob is lost before the effect can retrieve it.
   }, [session, stt]);
 
   const handleSessionToggle = useCallback(() => {
@@ -169,6 +200,71 @@ export default function SessionPage() {
 
   // Register session controls with the shared sidebar
   useSidebarSession(handleSessionToggle, session.isSessionActive);
+
+  useEffect(() => {
+    if (!stt.saved || autoSubmitLockRef.current) {
+      return;
+    }
+
+    const transcript = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
+    if (!transcript) {
+      autoSubmitLockRef.current = true;
+      setAnalysisError('Transcript was saved but no text was captured for analysis.');
+      return;
+    }
+
+    autoSubmitLockRef.current = true;
+    session.setOrbState('active');
+
+    void (async () => {
+      try {
+        // Stop recording and upload blob
+        let audioUrl: string | undefined;
+        try {
+          const blob = await recorder.stopRecording();
+          if (blob && blob.size > 0) {
+            const tempId = crypto.randomUUID();
+            audioUrl = await uploadRecording(tempId, blob);
+          }
+        } catch (uploadErr) {
+          console.warn('[session] Recording upload failed, proceeding without:', uploadErr);
+        }
+
+        let deckText: string | undefined;
+        if (selectedDeckId !== null) {
+          try {
+            deckText = await loadDeckText(selectedDeckId);
+          } catch {
+            deckText = undefined;
+          }
+        }
+        const result = await runPitchAnalysis({
+          mode: pitchMode,
+          inputType: 'audio',
+          transcript,
+          audioUrl,
+          deckText,
+        });
+        router.push(`/results/${result.runId}`);
+      } catch (error) {
+        autoSubmitLockRef.current = false;
+        setAnalysisError(
+          error instanceof Error ? error.message : 'Failed to run pitch analysis.',
+        );
+        session.setOrbState('idle');
+      }
+    })();
+  }, [
+    loadDeckText,
+    pitchMode,
+    recorder,
+    router,
+    runPitchAnalysis,
+    selectedDeckId,
+    session,
+    stt.saved,
+    stt.transcriptSegments,
+  ]);
 
   return (
     <>
@@ -210,10 +306,10 @@ export default function SessionPage() {
         checklistSource={stt.checklistSource}
         checklistNextHint={stt.checklistNextHint}
         checklistError={stt.checklistError}
-        sttError={stt.error}
-        sttSaved={stt.saved}
-        isAnalyzing={pitchRun.isAnalyzing}
-        analysisError={pitchRun.error}
+        sttError={analysisError ?? runError ?? stt.error}
+        sttSaved={stt.saved && !isAnalyzing}
+        isAnalyzing={isAnalyzing}
+        analysisError={analysisError ?? runError}
       />
       <video
         ref={trackingVideoRef}
@@ -228,6 +324,7 @@ export default function SessionPage() {
         className="sr-only"
         aria-hidden="true"
       />
+      <AnalyzingOverlay isVisible={isAnalyzing} />
     </>
   );
 }
