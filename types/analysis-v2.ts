@@ -113,11 +113,16 @@ export interface SectionFeedback {
   beat: SectionBeat;
   start_sec: number;
   end_sec: number;
+  quotes: string[];
+  score: number;
+  score_reason: string;
   good: string;
   bad: string;
   evidence: string;
   top_issues: string[];
   top_fixes: string[];
+  rewrite?: string;
+  rewrite_diff?: RewriteDiff;
   slide_links?: DeckSlideLink[];
   confidence?: number;
 }
@@ -283,6 +288,7 @@ export interface AnalysisMeta {
   llm_calls_used: number;
   latency_ms: number;
   attempt_count: number;
+  economics?: RunEconomics;
   telemetry?: {
     sectioning_confidence?: number;
     deck_link_confidence?: number;
@@ -297,6 +303,33 @@ export interface AnalysisMeta {
       message: string;
     }>;
   };
+}
+
+export interface PaidSyncMeta {
+  status: 'sent' | 'skipped' | 'failed';
+  sent_at: string;
+  error?: string;
+}
+
+export interface RunEconomics {
+  model_cost_usd: number;
+  platform_overhead_usd: number;
+  cost_floor_usd: number;
+  estimated_input_tokens: number;
+  estimated_output_tokens: number;
+  estimated_cost_usd: number;
+  coach_hourly_rate_usd: number;
+  savings_realization_rate: number;
+  manual_baseline_minutes: number;
+  agent_runtime_minutes: number;
+  time_saved_minutes: number;
+  money_saved_vs_coach_usd: number;
+  score_delta_vs_previous_mode_run: number;
+  quality_bonus_usd: number;
+  estimated_value_usd: number;
+  roi_multiple: number;
+  gross_margin_usd: number;
+  paid_sync?: PaidSyncMeta;
 }
 
 export interface AnalysisOutputs {

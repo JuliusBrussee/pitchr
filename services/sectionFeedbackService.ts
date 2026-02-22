@@ -44,10 +44,20 @@ export function buildSectionFeedback(
     const bad = clip(issue, 160);
     const fixes = matchedFixes.map((fix) => fix.fix);
     const issues = matchedFixes.map((fix) => fix.issue);
+    const rubricScore = feedback.rubric_breakdown.find((item) =>
+      BEAT_CATEGORY_PRIORITY[slice.beat]?.includes(item.category),
+    );
+    const sectionScore = rubricScore
+      ? Math.round((rubricScore.score / rubricScore.max_score) * 5)
+      : 2;
+
     return {
       beat: slice.beat,
       start_sec: slice.start_sec,
       end_sec: slice.end_sec,
+      quotes: slice.text ? [slice.text] : [],
+      score: sectionScore,
+      score_reason: rubricScore?.rationale ?? `No specific scoring for ${slice.beat}.`,
       good: clip(good, 180),
       bad,
       evidence: clip(slice.text || `No clear evidence detected for ${slice.beat}.`, 220),

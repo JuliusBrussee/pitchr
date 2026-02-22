@@ -9,7 +9,8 @@ import {
 import { linkSectionFeedbackToDeck } from '@/services/deckLinkingService';
 import { buildScoringContext } from '@/services/prepAgentService';
 import { runJudgeAgent } from '@/services/judgeAgentService';
-import { buildRewriteDiff } from '@/services/rewriteDiffService';
+import { buildRewriteDiff, buildSectionRewriteDiff } from '@/services/rewriteDiffService';
+import { runSectionAgent } from '@/services/sectionAgentService';
 import { buildHistoricalLinks } from '@/services/runComparisonService';
 import { buildSectionFeedback } from '@/services/sectionFeedbackService';
 import { buildSectionSlices } from '@/services/sectioningService';
@@ -351,22 +352,48 @@ async function analyzeWithContext(
     let sectioningConfidence = 0;
     let deckLinkConfidence = 0;
     if (ENABLE_SECTION_FEEDBACK) {
-      const slices = buildSectionSlices({
-        transcript: input.transcript,
-        mode: input.mode,
-        segments: input.transcriptSegments,
-      });
-      sectioningConfidence =
-        slices.length === 0
-          ? 0
-          : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
-      let sectionFeedback = buildSectionFeedback(slices, feedback);
-      if (input.deckId) {
-        const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
-        sectionFeedback = linked.sections;
-        deckLinkConfidence = linked.averageConfidence;
+      try {
+        const sectionResult = await runSectionAgent({
+          mode: input.mode,
+          transcript: input.transcript,
+          globalVerdict: feedback.one_line_verdict,
+          topFixes: feedback.top_fixes.map((fix) => fix.fix),
+        });
+        for (const section of sectionResult.sections) {
+          section.rewrite_diff = buildSectionRewriteDiff(
+            section.quotes,
+            section.rewrite,
+          );
+        }
+        let sectionFeedback = sectionResult.sections;
+        sectioningConfidence = 0.8;
+        if (input.deckId) {
+          const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
+          sectionFeedback = linked.sections;
+          deckLinkConfidence = linked.averageConfidence;
+        }
+        feedback.section_feedback = sectionFeedback;
+      } catch (sectionError) {
+        console.warn('[analysis] section agent failed, falling back to regex', {
+          message: sectionError instanceof Error ? sectionError.message : String(sectionError),
+        });
+        const slices = buildSectionSlices({
+          transcript: input.transcript,
+          mode: input.mode,
+          segments: input.transcriptSegments,
+        });
+        sectioningConfidence =
+          slices.length === 0
+            ? 0
+            : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
+        let sectionFeedback = buildSectionFeedback(slices, feedback);
+        if (input.deckId) {
+          const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
+          sectionFeedback = linked.sections;
+          deckLinkConfidence = linked.averageConfidence;
+        }
+        feedback.section_feedback = sectionFeedback;
       }
-      feedback.section_feedback = sectionFeedback;
     }
 
     if (ENABLE_REWRITE_DIFF) {

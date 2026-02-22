@@ -1,15 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { HistoricalLink } from '@/types/analysis-v2';
 
 interface PreviousRunsLinksProps {
   links?: HistoricalLink[];
-}
-
-function deltaColor(delta: number): string {
-  if (delta >= 0) return '#22c55e';
-  return '#ef4444';
 }
 
 export function PreviousRunsLinks({ links }: PreviousRunsLinksProps) {
@@ -18,36 +14,50 @@ export function PreviousRunsLinks({ links }: PreviousRunsLinksProps) {
 
   return (
     <section
-      className="rounded-2xl border p-4 animate-fade-in-up"
-      style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+      className="rounded-2xl border p-5 results-card-enter"
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        borderColor: 'var(--border-color)',
+        '--card-delay': '0ms',
+      } as React.CSSProperties}
     >
-      <h3 className="text-sm uppercase tracking-wide mb-3" style={{ color: 'var(--text-muted)' }}>
+      <h3
+        className="text-xs font-semibold uppercase tracking-wider mb-3"
+        style={{ color: 'var(--text-muted)' }}
+      >
         Previous Runs
       </h3>
-      <div className="space-y-2">
-        {entries.map((entry) => (
-          <Link
-            key={entry.run_id}
-            href={`/results/${entry.run_id}`}
-            className="flex items-center justify-between rounded-xl border px-3 py-2 no-underline"
-            style={{ borderColor: 'var(--border-color)' }}
-          >
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-              {new Date(entry.created_at).toLocaleString()}
-            </span>
-            <span
-              className="text-xs px-2 py-0.5 rounded-full border"
-              style={{
-                color: deltaColor(entry.overall_delta),
-                borderColor: `${deltaColor(entry.overall_delta)}66`,
-                backgroundColor: `${deltaColor(entry.overall_delta)}14`,
-              }}
+      <div className="space-y-1">
+        {entries.map((entry) => {
+          const isPositive = entry.overall_delta >= 0;
+          const color = isPositive ? '#22c55e' : '#ef4444';
+
+          return (
+            <Link
+              key={entry.run_id}
+              href={`/results/${entry.run_id}`}
+              className="flex items-center justify-between rounded-lg px-3 py-2.5 no-underline transition-colors duration-150 hover:bg-[var(--bg-surface-hover)]"
+              style={{ color: 'var(--text-primary)' }}
             >
-              {entry.overall_delta >= 0 ? '+' : ''}
-              {entry.overall_delta}
-            </span>
-          </Link>
-        ))}
+              <span className="text-sm">
+                {new Date(entry.created_at).toLocaleString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </span>
+              <span
+                className="flex items-center gap-1 text-xs font-semibold tabular-nums px-2 py-0.5 rounded-md"
+                style={{ color, backgroundColor: `${color}14` }}
+              >
+                {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                {isPositive ? '+' : ''}
+                {entry.overall_delta}
+              </span>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

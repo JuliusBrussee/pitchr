@@ -322,7 +322,6 @@ function SessionPageContent() {
         metrics={session.metrics}
         targetDurationSeconds={modeConfig.targetDurationSeconds}
         checklist={session.checklist}
-        insights={session.insights}
         isSessionActive={session.isSessionActive}
         engagementBand={engagementBand}
         isCameraOn={media.isCameraOn}
