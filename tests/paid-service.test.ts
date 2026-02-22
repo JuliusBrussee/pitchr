@@ -10,12 +10,18 @@ function restoreEnv(): void {
 
 function baseEconomics(): RunEconomics {
   return {
+    model_cost_usd: 0.01,
+    platform_overhead_usd: 1.5,
+    cost_floor_usd: 2.5,
     estimated_input_tokens: 1000,
     estimated_output_tokens: 500,
-    estimated_cost_usd: 0.01,
+    estimated_cost_usd: 2.5,
+    coach_hourly_rate_usd: 200,
+    savings_realization_rate: 0.35,
     manual_baseline_minutes: 30,
     agent_runtime_minutes: 5,
     time_saved_minutes: 25,
+    money_saved_vs_coach_usd: 29.17,
     score_delta_vs_previous_mode_run: 8,
     quality_bonus_usd: 16,
     estimated_value_usd: 78.5,

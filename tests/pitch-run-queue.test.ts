@@ -37,9 +37,12 @@ describe('pitchRunQueueService', () => {
       } as never,
     ]);
     vi.mocked(buildRunEconomics).mockReturnValue({
+      model_cost_usd: 0.021,
+      platform_overhead_usd: 1.5,
+      cost_floor_usd: 2.5,
       estimated_input_tokens: 1800,
       estimated_output_tokens: 900,
-      estimated_cost_usd: 0.021,
+      estimated_cost_usd: 2.5,
       manual_baseline_minutes: 30,
       agent_runtime_minutes: 2.4,
       time_saved_minutes: 27.6,
@@ -87,7 +90,7 @@ describe('pitchRunQueueService', () => {
       analysis: {
         meta: {
           economics: {
-            estimated_cost_usd: 0.021,
+            estimated_cost_usd: 2.5,
             estimated_value_usd: 103,
           },
         },

@@ -159,12 +159,18 @@ export interface PaidSyncMeta {
 }
 
 export interface RunEconomics {
+  model_cost_usd: number;
+  platform_overhead_usd: number;
+  cost_floor_usd: number;
   estimated_input_tokens: number;
   estimated_output_tokens: number;
   estimated_cost_usd: number;
+  coach_hourly_rate_usd: number;
+  savings_realization_rate: number;
   manual_baseline_minutes: number;
   agent_runtime_minutes: number;
   time_saved_minutes: number;
+  money_saved_vs_coach_usd: number;
   score_delta_vs_previous_mode_run: number;
   quality_bonus_usd: number;
   estimated_value_usd: number;

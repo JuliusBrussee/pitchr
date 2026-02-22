@@ -484,18 +484,18 @@ export default function ResultsPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <StatPill
               icon={<Timer size={12} />}
-              label="AI Cost"
+              label="Estimated Cost"
               value={formatCurrency(economics.estimated_cost_usd)}
             />
             <StatPill
               icon={<MessageSquare size={12} />}
-              label="Value Created"
-              value={formatCurrency(economics.estimated_value_usd)}
+              label="Money Saved vs Coach"
+              value={formatCurrency(economics.money_saved_vs_coach_usd)}
             />
             <StatPill
               icon={<Clock size={12} />}
-              label="ROI"
-              value={`${economics.roi_multiple.toFixed(1)}x`}
+              label="Net Savings (Est.)"
+              value={formatCurrency(economics.gross_margin_usd)}
             />
             <StatPill
               icon={<Timer size={12} />}
@@ -503,6 +503,10 @@ export default function ResultsPage() {
               value={formatMinutes(economics.time_saved_minutes)}
             />
           </div>
+          
+          <p className="text-xs mt-3" style={{ color: 'var(--text-muted)' }}>
+            Based on an equivalent pitch-coach rate of {formatCurrency(economics.coach_hourly_rate_usd)}/hour.
+          </p>
         ) : (
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             Value proof is unavailable for this run.

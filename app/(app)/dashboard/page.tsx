@@ -120,14 +120,13 @@ export default function DashboardPage() {
   const bestScore = totalRuns > 0
     ? Math.max(...allRuns.map((r) => r.overallScore))
     : 0;
-  const totalValueUsd = Math.round(
-    allRuns.reduce((sum, run) => sum + (run.meta?.economics?.estimated_value_usd ?? 0), 0) * 100,
+  const totalMoneySavedUsd = Math.round(
+    allRuns.reduce((sum, run) => sum + (run.meta?.economics?.money_saved_vs_coach_usd ?? 0), 0) * 100,
   ) / 100;
   const totalAiSpendUsd = Math.round(
     allRuns.reduce((sum, run) => sum + (run.meta?.economics?.estimated_cost_usd ?? 0), 0) * 1_000_000,
   ) / 1_000_000;
-  const portfolioRoi =
-    totalAiSpendUsd > 0 ? Math.round((totalValueUsd / totalAiSpendUsd) * 100) / 100 : 0;
+  const netSavingsUsd = Math.round((totalMoneySavedUsd - totalAiSpendUsd) * 100) / 100;
 
   const rubricCategories = useMemo(() => computeRubricAverages(allRuns), [allRuns]);
   const insights = useMemo(() => computeInsights(rubricCategories), [rubricCategories]);
@@ -205,8 +204,8 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard
-            label="Total Value Created"
-            value={formatUsd(totalValueUsd)}
+            label="Total Money Saved"
+            value={formatUsd(totalMoneySavedUsd)}
             icon={<Zap size={16} />}
             animationDelay="0.24s"
           />
@@ -217,8 +216,8 @@ export default function DashboardPage() {
             animationDelay="0.28s"
           />
           <StatCard
-            label="Portfolio ROI"
-            value={portfolioRoi > 0 ? `${portfolioRoi.toFixed(1)}x` : '0.0x'}
+            label="Net Savings (Est.)"
+            value={formatUsd(netSavingsUsd)}
             icon={<TrendingUp size={16} />}
             animationDelay="0.32s"
           />
