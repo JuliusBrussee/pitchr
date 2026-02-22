@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef, memo } from 'react';
 import { Check, Circle, Minus, Sparkles, X } from 'lucide-react';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
 import type { PitchMode } from '@/types/pitch';
@@ -43,6 +44,102 @@ function formatDuration(secs: number): string {
   const s = secs % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Rolling digit animation system                                     */
+/* ------------------------------------------------------------------ */
+
+const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+const DIGIT_HEIGHT = 1.25; // em
+
+/**
+ * Single rolling character. Digit characters animate vertically through
+ * a strip of 0-9; non-digit chars render statically.
+ */
+const RollingChar = memo(function RollingChar({ char }: { char: string }) {
+  const isDigit = /^\d$/.test(char);
+
+  if (!isDigit) {
+    return (
+      <span
+        className="inline-block"
+        style={{
+          lineHeight: `${DIGIT_HEIGHT}em`,
+          opacity: char.trim() ? 0.85 : 0,
+          transition: 'opacity 0.3s ease',
+        }}
+      >
+        {char === ' ' ? '\u2007' : char}
+      </span>
+    );
+  }
+
+  const num = parseInt(char, 10);
+
+  return (
+    <span
+      className="inline-block overflow-hidden relative"
+      style={{ height: `${DIGIT_HEIGHT}em` }}
+    >
+      <span
+        className="flex flex-col will-change-transform"
+        style={{
+          transform: `translateY(${-num * DIGIT_HEIGHT}em)`,
+          transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+        }}
+      >
+        {DIGITS.map((d) => (
+          <span
+            key={d}
+            className="block text-center"
+            style={{
+              height: `${DIGIT_HEIGHT}em`,
+              lineHeight: `${DIGIT_HEIGHT}em`,
+            }}
+          >
+            {d}
+          </span>
+        ))}
+      </span>
+    </span>
+  );
+});
+
+/** Renders a string with per-digit rolling animation. */
+function AnimatedValue({ value }: { value: string }) {
+  return (
+    <span className="inline-flex" style={{ fontVariantNumeric: 'tabular-nums' }}>
+      {value.split('').map((char, i) => (
+        <RollingChar key={i} char={char} />
+      ))}
+    </span>
+  );
+}
+
+/** Returns true briefly after a value change (for pulse effects). */
+function useChangePulse(value: number | string, duration = 800): boolean {
+  const prevRef = useRef(value);
+  const [pulsing, setPulsing] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    if (prevRef.current !== value && value !== 0 && value !== '-') {
+      setPulsing(true);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setPulsing(false), duration);
+    }
+    prevRef.current = value;
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [value, duration]);
+
+  return pulsing;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main panel                                                         */
+/* ------------------------------------------------------------------ */
 
 export function MetricsPanel({
   metrics,
@@ -206,6 +303,10 @@ export function MetricsPanel({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/*  Sub-components                                                     */
+/* ------------------------------------------------------------------ */
+
 function ModeButton({
   active,
   label,
@@ -245,23 +346,47 @@ function MetricCard({
   value: number | string;
   accent?: string;
 }) {
+  const displayStr = String(value);
+  const isInactive = displayStr === '-';
+  const pulseKey = typeof value === 'number' ? Math.round(value) : value;
+  const pulsing = useChangePulse(pulseKey);
+
   return (
     <div
-      className="rounded-xl p-3 border"
+      className="rounded-xl p-3 border relative overflow-hidden"
       style={{
         backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
+        borderColor: pulsing
+          ? (accent ?? 'rgba(255, 89, 65, 0.35)')
+          : 'var(--border-color)',
+        transition: 'border-color 0.4s ease',
       }}
     >
       <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
         {label}
       </div>
       <div
-        className="text-xl font-bold tabular-nums transition-colors duration-300"
-        style={{ color: accent ?? 'var(--text-primary)' }}
+        className="text-xl font-bold"
+        style={{
+          color: accent ?? 'var(--text-primary)',
+          transition: 'color 0.3s ease',
+        }}
       >
-        {value}
+        {isInactive ? (
+          <span style={{ opacity: 0.3 }}>-</span>
+        ) : (
+          <AnimatedValue value={displayStr} />
+        )}
       </div>
+      {/* Subtle radial glow on value change */}
+      <div
+        className="absolute inset-0 pointer-events-none rounded-xl"
+        style={{
+          background: `radial-gradient(ellipse at 30% 80%, ${accent ?? 'rgba(255, 89, 65, 0.06)'} 0%, transparent 70%)`,
+          opacity: pulsing ? 1 : 0,
+          transition: 'opacity 0.6s ease-out',
+        }}
+      />
     </div>
   );
 }
@@ -273,23 +398,45 @@ function EngagementCard({
   band: HeadTrackingEngagementBand;
   active: boolean;
 }) {
+  const pulsing = useChangePulse(active ? band : '-');
+  const color = active ? ENGAGEMENT_COLORS[band] : 'var(--text-muted)';
+
   return (
     <div
-      className="rounded-xl p-3 border"
+      className="rounded-xl p-3 border relative overflow-hidden"
       style={{
         backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
+        borderColor: pulsing && band !== 'no_face'
+          ? `${ENGAGEMENT_COLORS[band]}55`
+          : 'var(--border-color)',
+        transition: 'border-color 0.5s ease',
       }}
     >
       <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
         Engagement
       </div>
       <div
-        className="text-lg font-bold transition-colors duration-300"
-        style={{ color: active ? ENGAGEMENT_COLORS[band] : 'var(--text-primary)' }}
+        className="text-lg font-bold"
+        style={{
+          color,
+          transition: 'color 0.5s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          transform: pulsing ? 'scale(1.05)' : 'scale(1)',
+          transformOrigin: 'left center',
+        }}
       >
         {active ? ENGAGEMENT_LABELS[band] : '-'}
       </div>
+      {/* Color-matched glow on band change */}
+      {active && band !== 'no_face' && (
+        <div
+          className="absolute inset-0 pointer-events-none rounded-xl"
+          style={{
+            background: `radial-gradient(ellipse at 50% 80%, ${ENGAGEMENT_COLORS[band]}15 0%, transparent 70%)`,
+            opacity: pulsing ? 1 : 0.2,
+            transition: 'opacity 0.6s ease, background 0.5s ease',
+          }}
+        />
+      )}
     </div>
   );
 }
