@@ -168,6 +168,15 @@ function SessionPageContent() {
     setSessionChecklist(stt.realtimeChecklist);
   }, [setSessionChecklist, stt.realtimeChecklist]);
 
+  // Sync transcript data to session metrics (WPM, filler words, etc.)
+  useEffect(() => {
+    const fullText = [...stt.transcriptSegments, stt.liveText]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+    session.updateTranscript(fullText);
+  }, [stt.transcriptSegments, stt.liveText, session.updateTranscript]);
+
   useEffect(() => {
     if (session.isSessionActive) return;
     resetSessionChecklist(selectedMode);
@@ -279,12 +288,6 @@ function SessionPageContent() {
         isMicOn={media.isMicOn}
         toggleCamera={media.toggleCamera}
         toggleMic={media.toggleMic}
-        orbState={session.orbState}
-        orbIntensity={0.6}
-        engagementBand={engagementBand}
-        headState={headState}
-        showEngagement={session.isSessionActive && media.isCameraOn}
-        headTrackingError={headTrackingError}
         isSessionActive={session.isSessionActive}
         onStartSession={handleStartSession}
         onStopSession={handleStopSession}
@@ -308,6 +311,8 @@ function SessionPageContent() {
         isSessionActive={session.isSessionActive}
         selectedMode={selectedMode}
         onModeChange={setSelectedMode}
+        engagementBand={engagementBand}
+        isCameraOn={media.isCameraOn}
         checklistSource={stt.checklistSource}
         checklistNextHint={stt.checklistNextHint}
         checklistError={stt.checklistError}

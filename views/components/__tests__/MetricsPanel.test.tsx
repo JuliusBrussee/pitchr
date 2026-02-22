@@ -19,7 +19,7 @@ describe('MetricsPanel', () => {
   it('renders checklist confidence and evidence snippet', () => {
     render(
       <MetricsPanel
-        metrics={{ wpm: 120, fillerWords: 1, conciseness: 6, clarity: 7 }}
+        metrics={{ wpm: 120, fillerWords: 1, wordCount: 50, durationSecs: 25, fillerRate: 2 }}
         checklist={checklist}
         insights={[]}
         isSessionActive
@@ -29,14 +29,14 @@ describe('MetricsPanel', () => {
     );
 
     expect(screen.getByText('85%')).toBeTruthy();
-    expect(screen.getByText('"My name is Alice and we solve..."')).toBeTruthy();
+    expect(screen.getByText(/My name is Alice and we solve/)).toBeTruthy();
   });
 
   it('calls onModeChange when mode button is clicked', () => {
     const onModeChange = vi.fn();
     render(
       <MetricsPanel
-        metrics={{ wpm: 120, fillerWords: 0, conciseness: 7, clarity: 7 }}
+        metrics={{ wpm: 120, fillerWords: 0, wordCount: 50, durationSecs: 25, fillerRate: 0 }}
         checklist={checklist}
         insights={[]}
         isSessionActive={false}
@@ -60,7 +60,7 @@ describe('MetricsPanel', () => {
 
     render(
       <MetricsPanel
-        metrics={{ wpm: 120, fillerWords: 0, conciseness: 7, clarity: 7 }}
+        metrics={{ wpm: 120, fillerWords: 0, wordCount: 50, durationSecs: 25, fillerRate: 0 }}
         checklist={failedChecklist}
         insights={[]}
         isSessionActive

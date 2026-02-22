@@ -4,6 +4,7 @@ import { Check, Circle, Minus, Sparkles, X } from 'lucide-react';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
 import type { PitchMode } from '@/types/pitch';
 import type { InsightEntry, MetricValues } from '@/hooks/useSessionState';
+import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
 
 interface MetricsPanelProps {
   metrics: MetricValues;
@@ -12,6 +13,8 @@ interface MetricsPanelProps {
   isSessionActive: boolean;
   selectedMode: PitchMode;
   onModeChange: (mode: PitchMode) => void;
+  engagementBand?: HeadTrackingEngagementBand;
+  isCameraOn?: boolean;
   checklistSource?: 'llm' | 'heuristic' | null;
   checklistNextHint?: string | null;
   checklistError?: string | null;
@@ -21,6 +24,26 @@ interface MetricsPanelProps {
   analysisError?: string | null;
 }
 
+const ENGAGEMENT_LABELS: Record<HeadTrackingEngagementBand, string> = {
+  good: 'Good',
+  could_improve: 'Needs Work',
+  bad: 'Poor',
+  no_face: '--',
+};
+
+const ENGAGEMENT_COLORS: Record<HeadTrackingEngagementBand, string> = {
+  good: '#22c55e',
+  could_improve: '#f59e0b',
+  bad: '#ef4444',
+  no_face: 'var(--text-muted)',
+};
+
+function formatDuration(secs: number): string {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export function MetricsPanel({
   metrics,
   checklist,
@@ -28,6 +51,8 @@ export function MetricsPanel({
   isSessionActive,
   selectedMode,
   onModeChange,
+  engagementBand = 'no_face',
+  isCameraOn = false,
   checklistSource,
   checklistNextHint,
   checklistError,
@@ -36,6 +61,8 @@ export function MetricsPanel({
   isAnalyzing,
   analysisError,
 }: MetricsPanelProps) {
+  const showEngagement = isSessionActive && isCameraOn;
+
   return (
     <aside
       className="flex flex-col w-80 rounded-2xl border overflow-hidden min-h-0"
@@ -107,14 +134,33 @@ export function MetricsPanel({
           Live Summary
         </h3>
         <div className="grid grid-cols-2 gap-3">
-          <MetricCard label="WPM" value={isSessionActive ? Math.round(metrics.wpm) : '-'} />
+          <MetricCard
+            label="WPM"
+            value={isSessionActive ? metrics.wpm : '-'}
+            accent={metrics.wpm > 160 ? '#f59e0b' : metrics.wpm > 0 && metrics.wpm < 100 ? '#f59e0b' : undefined}
+          />
+          <MetricCard
+            label="Words"
+            value={isSessionActive ? metrics.wordCount : '-'}
+          />
           <MetricCard
             label="Filler Words"
             value={isSessionActive ? metrics.fillerWords : '-'}
-            accent={metrics.fillerWords > 5 ? 'red' : undefined}
+            accent={metrics.fillerWords > 5 ? '#ef4444' : undefined}
           />
-          <MetricGauge label="Conciseness" value={isSessionActive ? metrics.conciseness : 0} max={10} />
-          <MetricGauge label="Clarity" value={isSessionActive ? metrics.clarity : 0} max={10} />
+          <MetricCard
+            label="Filler Rate"
+            value={isSessionActive && metrics.wordCount > 0 ? `${metrics.fillerRate}%` : '-'}
+            accent={metrics.fillerRate > 5 ? '#ef4444' : metrics.fillerRate > 3 ? '#f59e0b' : undefined}
+          />
+          <MetricCard
+            label="Duration"
+            value={isSessionActive ? formatDuration(metrics.durationSecs) : '-'}
+          />
+          <EngagementCard
+            band={engagementBand}
+            active={showEngagement}
+          />
         </div>
       </div>
 
@@ -212,7 +258,7 @@ function MetricCard({
       </div>
       <div
         className="text-xl font-bold tabular-nums transition-colors duration-300"
-        style={{ color: accent === 'red' ? '#ef4444' : 'var(--text-primary)' }}
+        style={{ color: accent ?? 'var(--text-primary)' }}
       >
         {value}
       </div>
@@ -220,8 +266,13 @@ function MetricCard({
   );
 }
 
-function MetricGauge({ label, value, max }: { label: string; value: number; max: number }) {
-  const pct = Math.max(0, Math.min(100, (value / max) * 100));
+function EngagementCard({
+  band,
+  active,
+}: {
+  band: HeadTrackingEngagementBand;
+  active: boolean;
+}) {
   return (
     <div
       className="rounded-xl p-3 border"
@@ -231,21 +282,13 @@ function MetricGauge({ label, value, max }: { label: string; value: number; max:
       }}
     >
       <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
-        {label}
+        Engagement
       </div>
-      <div className="flex items-center gap-2">
-        <div className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-          {value > 0 ? value.toFixed(1) : '-'}
-        </div>
-        <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-color)' }}>
-          <div
-            className="h-full rounded-full transition-all duration-700 ease-out"
-            style={{
-              width: `${pct}%`,
-              background: pct > 70 ? '#22c55e' : pct > 40 ? '#eab308' : '#ef4444',
-            }}
-          />
-        </div>
+      <div
+        className="text-lg font-bold transition-colors duration-300"
+        style={{ color: active ? ENGAGEMENT_COLORS[band] : 'var(--text-primary)' }}
+      >
+        {active ? ENGAGEMENT_LABELS[band] : '-'}
       </div>
     </div>
   );
@@ -310,7 +353,7 @@ function ChecklistRow({ item }: { item: RealtimeChecklistItemState }) {
       </div>
       {item.evidence ? (
         <p className="text-[11px] mt-1.5 ml-7" style={{ color: 'var(--text-muted)' }}>
-          "{item.evidence}"
+          &ldquo;{item.evidence}&rdquo;
         </p>
       ) : null}
     </div>
