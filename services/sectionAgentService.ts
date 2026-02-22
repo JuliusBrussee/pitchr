@@ -29,6 +29,14 @@ const ALL_BEATS = new Set<string>([
   'ask',
 ]);
 
+function getSectionAgentTimeoutMs(): number {
+  const raw = process.env.SECTION_AGENT_TIMEOUT_MS;
+  if (!raw) return 10_000;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 3_000) return 10_000;
+  return Math.min(parsed, 30_000);
+}
+
 export interface SectionAgentInput {
   mode: PitchMode;
   transcript: string;
@@ -175,7 +183,7 @@ export async function runSectionAgent(
     responseFormat: 'json',
     temperature: 0.2,
     maxTokens: 4096,
-    timeoutMs: 30_000,
+    timeoutMs: getSectionAgentTimeoutMs(),
     maxAttempts: 1,
   });
 

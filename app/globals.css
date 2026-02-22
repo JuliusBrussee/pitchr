@@ -540,6 +540,19 @@
   to { width: var(--bar-width); }
 }
 
+/* Rubric donut ring fill */
+.results-rubric-ring-progress {
+  stroke-dasharray: var(--ring-circumference);
+  stroke-dashoffset: var(--ring-circumference);
+  animation: results-rubric-ring-fill 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: var(--ring-delay, 0ms);
+}
+
+@keyframes results-rubric-ring-fill {
+  from { stroke-dashoffset: var(--ring-circumference); }
+  to { stroke-dashoffset: var(--ring-offset); }
+}
+
 /* Card/section entrance stagger */
 .results-card-enter {
   animation: results-card-in 0.4s ease-out both;
@@ -599,6 +612,39 @@
 
 .results-accordion-inner {
   overflow: hidden;
+}
+
+/* Pitch beat timestamp chips */
+.results-beat-timestamp-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.results-beat-timestamp-chip-button {
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.results-beat-timestamp-chip-button:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.results-beat-timestamp-chip-button:active {
+  transform: scale(0.98);
+}
+
+.results-beat-timestamp-chip-muted {
+  opacity: 0.72;
 }
 
 /* Section divider line */
