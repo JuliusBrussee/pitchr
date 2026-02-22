@@ -1,7 +1,6 @@
 import { completeWithLlmRouterWithTelemetry } from '@/lib/llm/router';
 import {
-  buildJudgeRepairPrompt,
-  buildJudgeUserPrompt,
+  buildJudgeUserPromptWithTelemetry,
   JUDGE_RESPONSE_SCHEMA_TEXT,
   JUDGE_SYSTEM_PROMPT,
 } from '@/lib/prompts/judge';
@@ -31,6 +30,17 @@ const DECK_CATEGORIES = new Set([
   'deck_design',
   'deck_ask',
 ] as const);
+
+interface JudgeAgentFailureTelemetry {
+  latencyMs: number;
+  attemptCount: number;
+  llmCallsUsed: number;
+  failedAttempts: Array<{ provider: 'openrouter' | 'anthropic'; message: string }>;
+  promptClipStage: number;
+  knowledgeIncluded: boolean;
+  knowledgeDigestChars: number;
+  knowledgeRulesUsedCount: number;
+}
 
 export interface JudgeAgentInput {
   mode: PitchMode;
@@ -208,17 +218,44 @@ function validatePayload(
   };
 }
 
+function countKnowledgeRules(context: ScoringContext): number {
+  if (typeof context.knowledge_digest_rules_count === 'number') {
+    return context.knowledge_digest_rules_count;
+  }
+  const digest = context.knowledge_digest;
+  const categoryCount = Object.values(digest.category_guidance).reduce(
+    (sum, rules) => sum + rules.length,
+    0,
+  );
+  return (
+    digest.do_rules.length +
+    digest.dont_rules.length +
+    categoryCount +
+    Object.keys(digest.anti_pattern_playbook).length
+  );
+}
+
+function buildFailureError(message: string, telemetry: JudgeAgentFailureTelemetry): Error {
+  const error = new Error(message) as Error & {
+    telemetry?: JudgeAgentFailureTelemetry;
+  };
+  error.telemetry = telemetry;
+  return error;
+}
+
 export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentResult> {
+  const promptBuild = buildJudgeUserPromptWithTelemetry({
+    mode: input.mode,
+    transcript: input.transcript,
+    deckText: input.deckText,
+    context: input.context,
+  });
+
   let response: Awaited<ReturnType<typeof completeWithLlmRouterWithTelemetry>>;
   try {
     response = await completeWithLlmRouterWithTelemetry({
       systemPrompt: JUDGE_SYSTEM_PROMPT,
-      userPrompt: buildJudgeUserPrompt({
-        mode: input.mode,
-        transcript: input.transcript,
-        deckText: input.deckText,
-        context: input.context,
-      }),
+      userPrompt: promptBuild.userPrompt,
       responseFormat: 'json',
       temperature: 0.2,
       maxTokens: 4096,
@@ -236,66 +273,44 @@ export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentR
     throw error;
   }
 
-  let parsed: unknown;
   try {
-    parsed = parseJson(response.text);
-  } catch {
-    throw new Error('Judge response is not valid JSON.');
-  }
-
-  let totalLlmCalls = response.telemetry.llmCallsUsed;
-  let totalLatency = response.telemetry.latencyMs;
-
-  try {
-    const payload = validatePayload(parsed, input.context.coverage);
+    const payload = validatePayload(parseJson(response.text), input.context.coverage);
     return {
       payload,
       meta: {
         provider_used: response.telemetry.providerUsed,
         fallback_used: response.telemetry.fallbackUsed,
         cache_hit: false,
-        llm_calls_used: totalLlmCalls,
-        latency_ms: totalLatency,
+        llm_calls_used: response.telemetry.llmCallsUsed,
+        latency_ms: response.telemetry.latencyMs,
         attempt_count: response.telemetry.attemptCount,
+        telemetry: {
+          knowledge_digest_chars: promptBuild.knowledgeChars,
+          knowledge_rules_used_count: countKnowledgeRules(input.context),
+          prompt_clip_stage: promptBuild.clipStage,
+          knowledge_included: promptBuild.knowledgeIncluded,
+        },
         error_details: undefined,
       },
       raw: response.text,
     };
-  } catch (validationError) {
-    console.warn('[judge-agent] validation failed, attempting repair', {
-      message: validationError instanceof Error ? validationError.message : String(validationError),
+  } catch (error) {
+    console.warn('[judge-agent] validation failed', {
+      message: error instanceof Error ? error.message : String(error),
     });
 
-    const repairResponse = await completeWithLlmRouterWithTelemetry({
-      systemPrompt: JUDGE_SYSTEM_PROMPT,
-      userPrompt: buildJudgeRepairPrompt(response.text),
-      responseFormat: 'json',
-      temperature: 0.1,
-      maxTokens: 4096,
-      timeoutMs: 30_000,
-      maxAttempts: 1,
-    });
-
-    totalLlmCalls += repairResponse.telemetry.llmCallsUsed;
-    totalLatency += repairResponse.telemetry.latencyMs;
-
-    const repairedPayload = validatePayload(
-      parseJson(repairResponse.text),
-      input.context.coverage,
-    );
-
-    return {
-      payload: repairedPayload,
-      meta: {
-        provider_used: response.telemetry.providerUsed,
-        fallback_used: true,
-        cache_hit: false,
-        llm_calls_used: totalLlmCalls,
-        latency_ms: totalLatency,
-        attempt_count: response.telemetry.attemptCount + 1,
-        error_details: undefined,
+    throw buildFailureError(
+      error instanceof Error ? error.message : 'Judge response failed validation.',
+      {
+        latencyMs: response.telemetry.latencyMs,
+        attemptCount: response.telemetry.attemptCount,
+        llmCallsUsed: response.telemetry.llmCallsUsed,
+        failedAttempts: response.telemetry.failedAttempts ?? [],
+        promptClipStage: promptBuild.clipStage,
+        knowledgeIncluded: promptBuild.knowledgeIncluded,
+        knowledgeDigestChars: promptBuild.knowledgeChars,
+        knowledgeRulesUsedCount: countKnowledgeRules(input.context),
       },
-      raw: repairResponse.text,
-    };
+    );
   }
 }

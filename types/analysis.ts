@@ -16,6 +16,8 @@ export type {
   FixImpact,
   HistoricalLink,
   HistoricalScoreDelta,
+  KnowledgeDigest,
+  KnowledgeDigestCategory,
   OneMinuteQAPack,
   PatternSnippet,
   PitchStage,
