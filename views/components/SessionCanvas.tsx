@@ -25,6 +25,8 @@ interface SessionCanvasProps {
   isLoadingDecks?: boolean;
   isLoadingPdf?: boolean;
   pdfError?: string | null;
+  elapsedSeconds?: number;
+  targetSeconds?: number;
 }
 
 export function SessionCanvas({
@@ -48,11 +50,18 @@ export function SessionCanvas({
   isLoadingDecks,
   isLoadingPdf,
   pdfError,
+  elapsedSeconds = 0,
+  targetSeconds,
 }: SessionCanvasProps) {
   const [focusMode, setFocusMode] = useState<'slides' | 'camera'>('slides');
 
   // In mic-only mode (camera off), always show slides as primary
   const effectiveFocus = !isCameraOn ? 'slides' : focusMode;
+  const hasTarget = typeof targetSeconds === 'number' && targetSeconds > 0;
+  const isOverrun = hasTarget && elapsedSeconds > targetSeconds;
+  const timerText = hasTarget
+    ? `${formatTimer(elapsedSeconds)} / ${formatTimer(targetSeconds)}`
+    : formatTimer(elapsedSeconds);
 
   return (
     <div className="flex flex-col gap-3 flex-1 min-w-0 min-h-0">
@@ -149,7 +158,17 @@ export function SessionCanvas({
         </div>
 
         {/* Right: Deck picker or spacer */}
-        <div className="flex items-center justify-end" style={{ minWidth: '5rem' }}>
+        <div className="flex items-center justify-end gap-2" style={{ minWidth: '8rem' }}>
+          <span
+            className="text-xs font-medium px-2 py-1 rounded-md border"
+            style={{
+              color: isOverrun ? '#ef4444' : 'var(--text-secondary)',
+              borderColor: isOverrun ? 'rgba(239,68,68,0.45)' : 'var(--border-color)',
+              backgroundColor: isOverrun ? 'rgba(239,68,68,0.08)' : 'transparent',
+            }}
+          >
+            {timerText}
+          </span>
           {decks && decks.length > 0 && onSelectDeck ? (
             <DeckDropdown
               decks={decks}
@@ -162,6 +181,13 @@ export function SessionCanvas({
       </div>
     </div>
   );
+}
+
+function formatTimer(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  const remaining = total % 60;
+  return `${minutes}:${remaining.toString().padStart(2, '0')}`;
 }
 
 /* --- Sub-components --- */

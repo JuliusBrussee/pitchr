@@ -18,6 +18,7 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - `Dashboard`: run stats, rubric averages, recommendations
 - `Session`: camera/mic, realtime transcript + checklist, mode selection, deck attachment
 - `Results`: polling view, score bands, fixes, rewrite, QA pack, recording playback
+- `Live QA`: dedicated 60-second VC Q&A route with persisted session logs
 - `History`: filter/search, grouped history, delete runs
 - `Deck`: upload PDF/PPTX, extract slide text, generate AI deck PDFs
 - `Miro`: create/sync fix boards or export markdown fallback
@@ -71,6 +72,8 @@ Run these SQL files in Supabase SQL Editor:
 6. `migrations/08-add-run-lifecycle-columns.sql`
 7. `migrations/09-create-recordings-bucket.sql`
 8. `migrations/10-recordings-storage-policies.sql`
+9. `migrations/11-create-qa-sessions-table.sql`
+10. `migrations/12-create-qa-resource-gaps-table.sql`
 
 Notes:
 
@@ -87,6 +90,8 @@ Required for core flow:
 - `ANTHROPIC_API_KEY` (if Anthropic selected)
 - `OPENROUTER_API_KEY` (if OpenRouter selected)
 - `ELEVENLABS_API_KEY_STT`
+- `ELEVENLABS_API_KEY_CONVAI` (for live VC Q&A)
+- `ELEVENLABS_CONVAI_AGENT_ID` (for signed URL generation)
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
@@ -96,6 +101,9 @@ Optional:
 - `OPENROUTER_MODEL`
 - `ELEVENLABS_API_KEY_TTS`
 - `ELEVENLABS_VOICE_ID`
+- `NEXT_PUBLIC_ENABLE_LIVE_QA` (`true`/`false`)
+- `ENABLE_SECTION_FEEDBACK` (`true`/`false`)
+- `ENABLE_REWRITE_DIFF` (`true`/`false`)
 - `PLACE_HOLDER_PITCH`
 - `PORT` (STT backend)
 - `NEXT_PUBLIC_WS_URL`
@@ -138,6 +146,13 @@ Miro:
 - `GET /api/miro/fix-board/sync`
 - `POST /api/miro/fix-board/markdown`
 
+Live VC Q&A:
+
+- `POST /api/qna/session` -> create session, signed URL, and starter context
+- `GET /api/qna/session/[qaSessionId]` -> fetch persisted QA session state/summary
+- `POST /api/qna/session/[qaSessionId]/complete` -> persist turns/transcript/evaluation
+- `POST /api/qna/resources/refresh` -> process queued knowledge gaps asynchronously
+
 ## Paid AI Integration (Optional)
 
 Pitchr can send post-analysis value signals to Paid AI after a run reaches `complete`.
@@ -160,7 +175,7 @@ Detailed setup and payload behavior: `docs/integrations/paid-ai.md`
 2. Client submits to `POST /api/pitch/run`.
 3. Controller inserts run with `status: queued`.
 4. Queue service marks run `running`, then executes analysis service.
-5. Analysis service builds scoring context, runs judge prompt, applies deterministic delivery scoring, and stores outputs.
+5. Analysis service builds scoring context, runs judge prompt, applies deterministic delivery scoring, and enriches vocabulary, section feedback, rewrite diff, and historical links.
 6. Run is updated to `complete` (or `failed` with error metadata).
 7. Results page polls run endpoint until terminal state.
 

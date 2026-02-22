@@ -8,6 +8,7 @@ import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBa
 
 interface MetricsPanelProps {
   metrics: MetricValues;
+  targetDurationSeconds?: number;
   checklist: RealtimeChecklistItemState[];
   isSessionActive: boolean;
   engagementBand?: HeadTrackingEngagementBand;
@@ -174,6 +175,7 @@ function useChangePulse(value: number | string, duration = 800): boolean {
 
 export function MetricsPanel({
   metrics,
+  targetDurationSeconds,
   checklist,
   isSessionActive,
   engagementBand = 'no_face',
@@ -187,6 +189,11 @@ export function MetricsPanel({
   analysisError,
 }: MetricsPanelProps) {
   const showEngagement = isSessionActive && isCameraOn;
+  const hasTarget = typeof targetDurationSeconds === 'number' && targetDurationSeconds > 0;
+  const isOverrun = hasTarget && metrics.durationSecs > targetDurationSeconds;
+  const timerLabel = hasTarget
+    ? `${formatDuration(metrics.durationSecs)} / ${formatDuration(targetDurationSeconds)}`
+    : formatDuration(metrics.durationSecs);
 
   return (
     <aside
@@ -260,7 +267,8 @@ export function MetricsPanel({
           />
           <MetricCard
             label="Duration"
-            value={isSessionActive ? formatDuration(metrics.durationSecs) : '-'}
+            value={isSessionActive ? timerLabel : '-'}
+            accent={isOverrun ? '#ef4444' : undefined}
           />
           <EngagementCard
             band={engagementBand}

@@ -2,14 +2,16 @@ import { analyzePitch } from '@/services/analysisService';
 import { buildRunEconomics } from '@/services/economicsService';
 import { syncRunToPaid } from '@/services/paidService';
 import { listRuns, updateRun } from '@/services/runService';
-import type { PitchStage } from '@/types/analysis-v2';
+import type { PitchStage, TranscriptSegment } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
 
 interface QueuePayload {
   runId: string;
   mode: PitchMode;
   transcript: string;
+  deckId?: string;
   deckText?: string;
+  transcriptSegments?: TranscriptSegment[];
   stage?: PitchStage;
   regenerate?: 'feedback' | 'qa_1min';
 }
@@ -27,9 +29,12 @@ async function processRun(payload: QueuePayload): Promise<void> {
 
   try {
     const { analysis, fallback } = await analyzePitch({
+      runId: payload.runId,
       transcript: payload.transcript,
       mode: payload.mode,
+      deckId: payload.deckId,
       deckText: payload.deckText,
+      transcriptSegments: payload.transcriptSegments,
       stage: payload.stage,
       regenerate: payload.regenerate,
     });

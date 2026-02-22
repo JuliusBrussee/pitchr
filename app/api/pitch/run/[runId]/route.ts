@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { listQASessionSummariesByRunIds } from '@/services/qnaSessionService';
 import { deleteRun, getRun, RunNotFoundError } from '@/services/runService';
 import { deleteRecordingByUrl } from '@/services/recordingService';
 import type { Run } from '@/types/pitch';
 
-function toRunResponse(run: Awaited<ReturnType<typeof getRun>>): Run {
+function toRunResponse(
+  run: Awaited<ReturnType<typeof getRun>>,
+  qaSessionsSummary?: Run['qaSessionsSummary'],
+): Run {
   const isComplete = run.status === 'complete';
   return {
     id: run.id,
@@ -16,11 +20,13 @@ function toRunResponse(run: Awaited<ReturnType<typeof getRun>>): Run {
     inputType: run.input_type,
     transcript: run.transcript,
     audioUrl: run.audio_url ?? undefined,
+    deckId: run.deck_id ?? undefined,
     analysis: isComplete ? run.analysis.outputs.feedback : undefined,
     analysisVersion: isComplete ? run.analysis.analysisVersion : undefined,
     coverage: isComplete ? run.analysis.coverage : undefined,
     outputs: isComplete ? run.analysis.outputs : undefined,
     meta: isComplete ? run.analysis.meta : run.meta ?? undefined,
+    qaSessionsSummary,
     overallScore: run.overall_score,
     fallback: run.is_fallback,
   };
@@ -33,7 +39,14 @@ export async function GET(
   try {
     const { runId } = await params;
     const run = await getRun(runId);
-    return NextResponse.json({ run: toRunResponse(run) }, { status: 200 });
+    let qaSessionsSummary: Run['qaSessionsSummary'];
+    try {
+      const summaryMap = await listQASessionSummariesByRunIds([run.id]);
+      qaSessionsSummary = summaryMap.get(run.id);
+    } catch {
+      qaSessionsSummary = undefined;
+    }
+    return NextResponse.json({ run: toRunResponse(run, qaSessionsSummary) }, { status: 200 });
   } catch (error) {
     if (error instanceof RunNotFoundError) {
       return NextResponse.json({ error: 'Run not found' }, { status: 404 });
