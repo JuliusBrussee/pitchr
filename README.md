@@ -17,12 +17,10 @@ copy .env.example .env .env.local
 Set at least these values in `.env.local`:
 
 - `ELEVENLABS_API_KEY_STT` (required for realtime STT)
-- `LLM_PROVIDER=openrouter`
-- `LLM_ROUTING_MODE=openrouter_then_anthropic`
-- `LLM_PROVIDER_PRIMARY=openrouter`
-- `LLM_PROVIDER_FALLBACK=anthropic`
-- `OPENROUTER_API_KEY`
-- Optional override: `OPENROUTER_MODEL=anthropic/claude-sonnet-4.6`
+- `LLM_PROVIDER=anthropic`
+- `ANTHROPIC_API_KEY`
+- Optional override: `ANTHROPIC_MODEL=claude-sonnet-4-6`
+- Optional rollback path: `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY`
 
 ## Run Locally
 
@@ -86,10 +84,9 @@ More details: `docs/architecture/pitch-analysis-pipeline.md`.
 
 ## Provider Routing
 
-- Default: `LLM_ROUTING_MODE=openrouter_then_anthropic`
-- Primary provider: OpenRouter (`LLM_PROVIDER_PRIMARY=openrouter`)
-- Fallback provider: Anthropic (`LLM_PROVIDER_FALLBACK=anthropic`)
-- Legacy env (`LLM_PROVIDER`) is still accepted.
+- Default: Anthropic (`LLM_PROVIDER=anthropic`)
+- Model: `claude-sonnet-4-6`
+- OpenRouter remains available as rollback (`LLM_PROVIDER=openrouter` with `OPENROUTER_API_KEY`).
 
 ## Codex MCP
 

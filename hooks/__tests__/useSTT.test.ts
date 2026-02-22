@@ -134,7 +134,7 @@ describe('useSTT', () => {
       socket.emit({
         type: 'checklist_update',
         mode: 'vc_pitch',
-        source: 'openrouter',
+        source: 'llm',
         items,
         progress: { completed: 1, total: 8 },
         nextHint: 'Cover the ask with numbers.',
@@ -143,7 +143,7 @@ describe('useSTT', () => {
     });
 
     expect(result.current.realtimeChecklist[0].status).toBe('partial');
-    expect(result.current.checklistSource).toBe('openrouter');
+    expect(result.current.checklistSource).toBe('llm');
     expect(result.current.checklistNextHint).toBe('Cover the ask with numbers.');
 
     act(() => {

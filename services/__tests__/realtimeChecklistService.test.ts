@@ -7,12 +7,18 @@ import {
 
 describe('realtimeChecklistService', () => {
   const nowMs = 1_700_000_000_000;
+  const originalAnthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   afterEach(() => {
+    if (originalAnthropicApiKey === undefined) {
+      delete process.env.ANTHROPIC_API_KEY;
+    } else {
+      process.env.ANTHROPIC_API_KEY = originalAnthropicApiKey;
+    }
     vi.unstubAllGlobals();
   });
 
@@ -81,6 +87,53 @@ describe('realtimeChecklistService', () => {
     const intro = result?.items.find((item) => item.id === 'intro_hook');
     expect(intro?.status).toBe('completed');
     expect(intro?.confidence).toBeGreaterThanOrEqual(0.95);
+  });
+
+  it('uses llm source when semantic evaluation succeeds', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  items: [
+                    {
+                      id: 'intro_hook',
+                      status: 'completed',
+                      confidence: 0.84,
+                      evidence: 'My name is Alice, founder of Acme.',
+                    },
+                  ],
+                  next_hint: 'Add one traction metric next.',
+                }),
+              },
+            ],
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        ),
+      ),
+    );
+
+    const result = await evaluateRealtimeChecklist({
+      mode: 'vc_pitch',
+      transcript:
+        'My name is Alice and we are building sales intelligence software for SMB teams.',
+      previousItems: createInitialChecklistState('vc_pitch'),
+      scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+      sessionStartedAtMs: nowMs - 5_000,
+      nowMs,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.source).toBe('llm');
+    expect(result?.message.nextHint).toBe('Add one traction metric next.');
   });
 
   it('can force evaluation despite cooldown', async () => {
