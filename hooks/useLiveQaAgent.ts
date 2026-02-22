@@ -456,11 +456,15 @@ export function useLiveQaAgent({
       }
 
       // Play agent audio.
-      if (type === 'audio') {
+      if (type === 'audio' || payload.audio_base_64 || payload.audio_event) {
+        const audioEvent = asRecord(payload.audio_event);
         const audioBase64 = asNonEmptyString(payload.audio_base_64)
+          ?? asNonEmptyString(audioEvent?.audio_base_64)
           ?? asNonEmptyString(payload.audio);
         if (audioBase64) {
           playAudioChunk(audioBase64, outputSampleRate);
+        } else {
+          console.log('[LiveQA] Audio event but no base64 data:', Object.keys(payload));
         }
         return;
       }
@@ -494,7 +498,8 @@ export function useLiveQaAgent({
         return;
       }
 
-      // Ignore other event types (vad_score, interruption, agent_response_correction, etc.)
+      // Log unhandled event types so we can see what's coming through.
+      console.log('[LiveQA] Unhandled event type:', type, Object.keys(payload));
     };
 
     ws.onerror = () => {
