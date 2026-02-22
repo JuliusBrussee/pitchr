@@ -275,11 +275,32 @@ function getAlternateProviderName(providerName: LlmProviderName): LlmProviderNam
   return providerName === 'anthropic' ? 'openrouter' : 'anthropic';
 }
 
+function getConfiguredProviderFromEnv(): LlmProviderName {
+  return process.env.LLM_PROVIDER?.toLowerCase() === 'openrouter'
+    ? 'openrouter'
+    : 'anthropic';
+}
+
+function getChecklistPrimaryProvider(): LlmProviderName {
+  const explicit = process.env.CHECKLIST_LLM_PROVIDER?.toLowerCase();
+  if (explicit === 'anthropic' || explicit === 'openrouter') {
+    return explicit;
+  }
+
+  // Checklist now prefers Anthropic when an Anthropic key exists.
+  if (hasAnthropicApiKey()) return 'anthropic';
+  if (hasOpenRouterApiKey()) return 'openrouter';
+  return getConfiguredProviderFromEnv();
+}
+
 function isLikelyProviderKeyRoutingIssue(error: unknown): boolean {
   const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
   return (
     message.includes('missing anthropic_api_key') ||
     message.includes('missing openrouter_api_key') ||
+    message.includes('api key') ||
+    message.includes('authentication') ||
+    message.includes('invalid x-api-key') ||
     message.includes('status 401') ||
     message.includes('status 403') ||
     message.includes('unauthorized')
@@ -306,14 +327,16 @@ async function completeWithChecklistLlm(userPrompt: string): Promise<string> {
     timeoutMs: CHECKLIST_LLM_TIMEOUT_MS,
   };
 
+  const primaryProvider = getChecklistPrimaryProvider();
+  const alternateProvider = getAlternateProviderName(primaryProvider);
+
   try {
+    if (hasProviderApiKey(primaryProvider)) {
+      return await completeWithDirectProvider(primaryProvider, request);
+    }
+
     return await completeWithLlmRouter(request);
   } catch (primaryError) {
-    const primaryProvider =
-      process.env.LLM_PROVIDER?.toLowerCase() === 'openrouter'
-        ? 'openrouter'
-        : 'anthropic';
-    const alternateProvider = getAlternateProviderName(primaryProvider);
     if (
       !isLikelyProviderKeyRoutingIssue(primaryError) ||
       !hasProviderApiKey(alternateProvider)

@@ -200,6 +200,55 @@ describe('realtimeChecklistService', () => {
     );
   });
 
+  it('prefers anthropic for checklist when anthropic key exists', async () => {
+    process.env.LLM_PROVIDER = 'openrouter';
+    process.env.OPENROUTER_API_KEY = 'test-openrouter-key';
+    process.env.ANTHROPIC_API_KEY = 'test-anthropic-key';
+
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                items: [
+                  {
+                    id: 'intro_hook',
+                    status: 'completed',
+                    confidence: 0.8,
+                    evidence: 'My name is Sam and I run Acme.',
+                  },
+                ],
+                next_hint: 'Add one traction metric.',
+              }),
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await evaluateRealtimeChecklist({
+      mode: 'vc_pitch',
+      transcript: 'My name is Sam and I run Acme for finance teams.',
+      previousItems: createInitialChecklistState('vc_pitch'),
+      scheduler: { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 },
+      sessionStartedAtMs: nowMs - 5_000,
+      nowMs,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.source).toBe('llm');
+    expect(fetchMock).toHaveBeenCalled();
+    const firstRequestUrl = String(fetchMock.mock.calls[0]?.[0] ?? '');
+    expect(firstRequestUrl).toContain('api.anthropic.com');
+  });
+
   it('can force evaluation despite cooldown', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
 
