@@ -155,6 +155,41 @@ const FALLBACK_FEEDBACK: AnalysisResultV2['outputs']['feedback'] = {
         'Clarify one-line differentiation against top competitor.',
         'Close with a crisp ask and milestone linkage.',
       ],
+      summary_good:
+        'Problem framing and structure are clear enough to keep an investor engaged through the full minute.',
+      summary_bad:
+        'Proof and differentiation language remains too generic, which weakens conviction and urgency.',
+      section_feedback: [],
+      rewrite_diff: {
+        hunks: [],
+        stats: {
+          added: 0,
+          removed: 0,
+          changed: 0,
+        },
+        alignment_score: 1,
+      },
+      vocabulary_metrics: {
+        total_words: 147,
+        unique_words: 109,
+        lexical_diversity: 0.7415,
+        hedge_density: 0.0136,
+        jargon_density: 0,
+        softener_density: 0.0136,
+        hedge_terms: [{ term: 'like', count: 1 }],
+        jargon_terms: [],
+        softener_terms: [{ term: 'like', count: 1 }],
+      },
+      historical_links: [],
+      advanced_reasoning: {
+        score_logic: [
+          'Delivery score is deterministic from pace, fillers, stutter, repetitions, and time compliance.',
+          'Evidence and market categories were capped by weak metric specificity.',
+        ],
+        strongest_signals: ['Clear problem statement', 'Explicit raise intent in rewrite'],
+        weakest_signals: ['Limited named proof metrics', 'Differentiation not anchored to alternatives'],
+        confidence: 0.71,
+      },
     };
 
 export const SAMPLE_RESULT: AnalysisResultV2 = {

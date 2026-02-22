@@ -9,6 +9,7 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - Persistence: Supabase Postgres (`runs`, `decks`, `slides`) + Supabase Storage (`decks`, `recordings`)
 - STT: ElevenLabs realtime via local WebSocket proxy (`server.ts`)
 - LLM routing: Anthropic (default) or OpenRouter (env-selected)
+- Paid AI: optional value-proof signal sync on completed runs (`services/paidService.ts`)
 - Fallback: deterministic/sample analysis payload if model calls fail
 - Planning files currently present in `.planning/codebase/` (stack, architecture, structure, conventions, integrations, concerns)
 
@@ -17,6 +18,7 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - `Dashboard`: run stats, rubric averages, recommendations
 - `Session`: camera/mic, realtime transcript + checklist, mode selection, deck attachment
 - `Results`: polling view, score bands, fixes, rewrite, QA pack, recording playback
+- `Live QA`: dedicated 60-second VC Q&A route with persisted session logs
 - `History`: filter/search, grouped history, delete runs
 - `Deck`: upload PDF/PPTX, extract slide text, generate AI deck PDFs
 - `Miro`: create/sync fix boards or export markdown fallback
@@ -70,6 +72,8 @@ Run these SQL files in Supabase SQL Editor:
 6. `migrations/08-add-run-lifecycle-columns.sql`
 7. `migrations/09-create-recordings-bucket.sql`
 8. `migrations/10-recordings-storage-policies.sql`
+9. `migrations/11-create-qa-sessions-table.sql`
+10. `migrations/12-create-qa-resource-gaps-table.sql`
 
 Notes:
 
@@ -86,6 +90,8 @@ Required for core flow:
 - `ANTHROPIC_API_KEY` (if Anthropic selected)
 - `OPENROUTER_API_KEY` (if OpenRouter selected)
 - `ELEVENLABS_API_KEY_STT`
+- `ELEVENLABS_API_KEY_CONVAI` (for live VC Q&A)
+- `ELEVENLABS_CONVAI_AGENT_ID` (for signed URL generation)
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
@@ -95,11 +101,27 @@ Optional:
 - `OPENROUTER_MODEL`
 - `ELEVENLABS_API_KEY_TTS`
 - `ELEVENLABS_VOICE_ID`
+- `NEXT_PUBLIC_ENABLE_LIVE_QA` (`true`/`false`)
+- `ENABLE_SECTION_FEEDBACK` (`true`/`false`)
+- `ENABLE_REWRITE_DIFF` (`true`/`false`)
 - `PLACE_HOLDER_PITCH`
 - `PORT` (STT backend)
 - `NEXT_PUBLIC_WS_URL`
 - `MIRO_ENABLED`, `MIRO_PROVIDER`, `MIRO_ACCESS_TOKEN`, `MIRO_TEAM_ID`
 - `MIRO_HYBRID_VISUAL_MODE` (`true` by default; set `false` to disable second visual pass)
+- `PAID_ENABLED` (`true` to enable Paid AI sync)
+- `PAID_API_KEY` (required when `PAID_ENABLED=true`)
+- `PAID_API_BASE_URL` (default: `https://api.paid.ai`)
+- Product identifier: `PAID_PRODUCT_ID` or `PAID_EXTERNAL_PRODUCT_ID` (one required for sync)
+- Customer identifier: `PAID_CUSTOMER_ID` or `PAID_EXTERNAL_CUSTOMER_ID` (one required for sync)
+- `PAID_ORDER_ID` (optional metadata)
+- `PAID_SIGNAL_EVENT_COMPLETED`, `PAID_SIGNAL_EVENT_INVESTOR_READY` (optional event name overrides)
+- `FOUNDER_HOURLY_RATE_USD`, `VALUE_PER_SCORE_POINT_USD`
+- `ANTHROPIC_INPUT_PER_1M_USD`, `ANTHROPIC_OUTPUT_PER_1M_USD`
+- `OPENROUTER_INPUT_PER_1M_USD`, `OPENROUTER_OUTPUT_PER_1M_USD`
+- `MANUAL_BASELINE_ELEVATOR_MIN`, `MANUAL_BASELINE_VC_MIN`
+- `ECON_PLATFORM_OVERHEAD_USD`, `ECON_MIN_RUN_COST_USD`
+- `ECON_OPERATIONS_BUFFER_MIN`, `ECON_QUALITY_BONUS_MAX_POINTS`
 
 ## API Surface
 
@@ -131,13 +153,36 @@ Miro content generation behavior:
 - If both fail (or JSON is invalid), deterministic template copy is used and board creation continues.
 - When `MIRO_HYBRID_VISUAL_MODE` is enabled, a second LLM pass refines visual composition (mind map + tool selection) while preserving fix-rank integrity.
 
+Live VC Q&A:
+
+- `POST /api/qna/session` -> create session, signed URL, and starter context
+- `GET /api/qna/session/[qaSessionId]` -> fetch persisted QA session state/summary
+- `POST /api/qna/session/[qaSessionId]/complete` -> persist turns/transcript/evaluation
+- `POST /api/qna/resources/refresh` -> process queued knowledge gaps asynchronously
+
+## Paid AI Integration (Optional)
+
+Pitchr can send post-analysis value signals to Paid AI after a run reaches `complete`.
+
+- Enable with `PAID_ENABLED=true` and set `PAID_API_KEY`.
+- Signal endpoint defaults to `https://api.paid.ai/v2/usage/bulk` (`PAID_API_BASE_URL` override supported).
+- Signal payload uses `usageRecords[]` with `event_name` and customer/product identifiers.
+- Use either internal IDs (`PAID_CUSTOMER_ID` / `PAID_PRODUCT_ID`) or external IDs (`PAID_EXTERNAL_CUSTOMER_ID` / `PAID_EXTERNAL_PRODUCT_ID`).
+- Sent signals:
+  - `pitch_analysis_completed` for every completed run
+  - `investor_ready_achieved` when score is `>= 80`
+- Payload includes run metadata and economics fields like estimated run cost, value, ROI, and time saved.
+- Sync failures are non-blocking for the user flow; run completion still succeeds and Paid sync status is stored in run metadata.
+
+Detailed setup and payload behavior: `docs/integrations/paid-ai.md`
+
 ## Analysis Flow
 
 1. Session captures transcript (realtime STT through `server.ts`).
 2. Client submits to `POST /api/pitch/run`.
 3. Controller inserts run with `status: queued`.
 4. Queue service marks run `running`, then executes analysis service.
-5. Analysis service builds scoring context, runs judge prompt, applies deterministic delivery scoring, and stores outputs.
+5. Analysis service builds scoring context, runs judge prompt, applies deterministic delivery scoring, and enriches vocabulary, section feedback, rewrite diff, and historical links.
 6. Run is updated to `complete` (or `failed` with error metadata).
 7. Results page polls run endpoint until terminal state.
 

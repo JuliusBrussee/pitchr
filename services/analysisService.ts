@@ -6,9 +6,15 @@ import {
   setCachedAnalysis,
   withInFlightDedup,
 } from '@/services/analysisCacheService';
+import { linkSectionFeedbackToDeck } from '@/services/deckLinkingService';
 import { buildScoringContext } from '@/services/prepAgentService';
 import { runJudgeAgent } from '@/services/judgeAgentService';
+import { buildRewriteDiff } from '@/services/rewriteDiffService';
+import { buildHistoricalLinks } from '@/services/runComparisonService';
+import { buildSectionFeedback } from '@/services/sectionFeedbackService';
+import { buildSectionSlices } from '@/services/sectioningService';
 import { calculateCompositeScore } from '@/services/scoringService';
+import { buildVocabularyEvents, calculateVocabularyMetrics } from '@/services/vocabularyService';
 import type {
   AnalysisResultV2,
   DeckRubricCategory,
@@ -18,15 +24,18 @@ import type {
   RubricScore,
   ScoringContext,
   ScoreCategory,
+  TranscriptSegment,
 } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
 
 interface AnalyzePitchInput {
   transcript: string;
   mode: PitchMode;
+  runId?: string;
+  deckId?: string;
   deckText?: string;
   stage?: 'pre_seed' | 'seed' | 'series_a' | 'series_b';
-  transcriptSegments?: Array<{ text?: string; start?: number; end?: number }>;
+  transcriptSegments?: TranscriptSegment[];
   regenerate?: 'feedback' | 'qa_1min';
 }
 
@@ -50,6 +59,9 @@ const DECK_CATEGORY_ORDER: DeckRubricCategory[] = [
   'deck_design',
   'deck_ask',
 ];
+
+const ENABLE_SECTION_FEEDBACK = process.env.ENABLE_SECTION_FEEDBACK !== 'false';
+const ENABLE_REWRITE_DIFF = process.env.ENABLE_REWRITE_DIFF !== 'false';
 
 function cloneSample(): AnalysisResultV2 {
   return JSON.parse(JSON.stringify(SAMPLE_RESULT)) as AnalysisResultV2;
@@ -180,6 +192,67 @@ function ensureQaPack(
   };
 }
 
+function mergeDeliveryEvents(
+  deliveryEvents: NonNullable<FeedbackOutput['delivery_metrics']['events']>,
+  vocabEvents: ReturnType<typeof buildVocabularyEvents>,
+): FeedbackOutput['delivery_metrics']['events'] {
+  const merged = [...deliveryEvents, ...vocabEvents].sort(
+    (left, right) => left.start_sec - right.start_sec,
+  );
+
+  const seen = new Set<string>();
+  const unique = merged.filter((event) => {
+    const key = `${event.type}:${event.start_sec}:${event.end_sec}:${event.label}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return unique.slice(0, 80);
+}
+
+function deriveGoodBadSummary(feedback: FeedbackOutput): {
+  good: string;
+  bad: string;
+} {
+  const strongest = [...feedback.rubric_breakdown].sort((left, right) => right.score - left.score)[0];
+  const weakest = [...feedback.rubric_breakdown].sort((left, right) => left.score - right.score)[0];
+  const strongestFix = feedback.top_fixes[0];
+
+  const good = strongest
+    ? `Strongest signal: ${strongest.category} scored ${strongest.score}/${strongest.max_score}. ${strongest.rationale}`
+    : 'Strongest signal: clear baseline pitch structure was detected.';
+  const bad = weakest
+    ? `Main risk: ${weakest.category} scored ${weakest.score}/${weakest.max_score}. ${strongestFix?.issue ?? weakest.rationale}`
+    : strongestFix?.issue ?? 'Main risk: the pitch needs sharper proof and phrasing.';
+
+  return { good, bad };
+}
+
+function buildAdvancedReasoning(feedback: FeedbackOutput, context: ScoringContext) {
+  const strongestSignals = [...feedback.rubric_breakdown]
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 2)
+    .map((item) => `${item.category}: ${item.rationale}`);
+  const weakestSignals = [...feedback.rubric_breakdown]
+    .sort((left, right) => left.score - right.score)
+    .slice(0, 2)
+    .map((item) => `${item.category}: ${item.rationale}`);
+
+  return {
+    score_logic: [
+      'Delivery is deterministic from local pace, filler, stutter, repetition, and time-limit signals.',
+      context.coverage === 'spoken+deck'
+        ? 'Overall score blends spoken and deck tracks with anti-pattern penalties.'
+        : 'Overall score combines spoken rubric and anti-pattern penalties.',
+      'Top fixes are prioritized by impact and weakest rubric categories.',
+    ],
+    strongest_signals: strongestSignals,
+    weakest_signals: weakestSignals,
+    confidence: Math.max(0.35, Math.min(0.95, 1 - feedback.penalty / 15)),
+  } satisfies NonNullable<FeedbackOutput['advanced_reasoning']>;
+}
+
 function applyDeterministicScoring(
   judgeFeedback: {
     one_line_verdict: string;
@@ -257,6 +330,59 @@ async function analyzeWithContext(
     });
 
     const feedback = applyDeterministicScoring(judged.payload.feedback, context);
+    const vocabularyMetrics = calculateVocabularyMetrics(input.transcript);
+    const vocabEvents = buildVocabularyEvents(
+      vocabularyMetrics,
+      input.transcript,
+      input.transcriptSegments,
+    );
+
+    feedback.delivery_metrics.events = mergeDeliveryEvents(
+      feedback.delivery_metrics.events ?? [],
+      vocabEvents,
+    );
+    feedback.vocabulary_metrics = vocabularyMetrics;
+
+    const summary = deriveGoodBadSummary(feedback);
+    feedback.summary_good = summary.good;
+    feedback.summary_bad = summary.bad;
+    feedback.advanced_reasoning = buildAdvancedReasoning(feedback, context);
+
+    let sectioningConfidence = 0;
+    let deckLinkConfidence = 0;
+    if (ENABLE_SECTION_FEEDBACK) {
+      const slices = buildSectionSlices({
+        transcript: input.transcript,
+        mode: input.mode,
+        segments: input.transcriptSegments,
+      });
+      sectioningConfidence =
+        slices.length === 0
+          ? 0
+          : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
+      let sectionFeedback = buildSectionFeedback(slices, feedback);
+      if (input.deckId) {
+        const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
+        sectionFeedback = linked.sections;
+        deckLinkConfidence = linked.averageConfidence;
+      }
+      feedback.section_feedback = sectionFeedback;
+    }
+
+    if (ENABLE_REWRITE_DIFF) {
+      feedback.rewrite_diff = buildRewriteDiff(input.transcript, feedback.rewrite_script);
+    }
+
+    try {
+      feedback.historical_links = await buildHistoricalLinks({
+        mode: input.mode,
+        currentFeedback: feedback,
+        currentRunId: input.runId,
+      });
+    } catch {
+      feedback.historical_links = [];
+    }
+
     const qaPack = ensureQaPack(judged.payload.qa_1min, feedback, context);
     const analysis: AnalysisResultV2 = {
       analysisVersion: 'v2',
@@ -265,7 +391,14 @@ async function analyzeWithContext(
         feedback,
         qa_1min: qaPack,
       },
-      meta: judged.meta,
+      meta: {
+        ...judged.meta,
+        telemetry: {
+          ...(judged.meta.telemetry ?? {}),
+          sectioning_confidence: Number(sectioningConfidence.toFixed(4)),
+          deck_link_confidence: Number(deckLinkConfidence.toFixed(4)),
+        },
+      },
       analysis: feedback,
       fallback: false,
     };
@@ -283,6 +416,64 @@ async function analyzeWithContext(
     const fallback = cloneSample();
     fallback.coverage = context.coverage;
     fallback.outputs.feedback.delivery_metrics = context.delivery_metrics;
+    const vocabularyMetrics = calculateVocabularyMetrics(input.transcript);
+    const vocabEvents = buildVocabularyEvents(
+      vocabularyMetrics,
+      input.transcript,
+      input.transcriptSegments,
+    );
+    fallback.outputs.feedback.delivery_metrics.events = mergeDeliveryEvents(
+      fallback.outputs.feedback.delivery_metrics.events ?? [],
+      vocabEvents,
+    );
+    fallback.outputs.feedback.vocabulary_metrics = vocabularyMetrics;
+
+    const summary = deriveGoodBadSummary(fallback.outputs.feedback);
+    fallback.outputs.feedback.summary_good = summary.good;
+    fallback.outputs.feedback.summary_bad = summary.bad;
+    fallback.outputs.feedback.advanced_reasoning = buildAdvancedReasoning(
+      fallback.outputs.feedback,
+      context,
+    );
+
+    let sectioningConfidence = 0;
+    let deckLinkConfidence = 0;
+    if (ENABLE_SECTION_FEEDBACK) {
+      const slices = buildSectionSlices({
+        transcript: input.transcript,
+        mode: input.mode,
+        segments: input.transcriptSegments,
+      });
+      sectioningConfidence =
+        slices.length === 0
+          ? 0
+          : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
+      let sectionFeedback = buildSectionFeedback(slices, fallback.outputs.feedback);
+      if (input.deckId) {
+        const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
+        sectionFeedback = linked.sections;
+        deckLinkConfidence = linked.averageConfidence;
+      }
+      fallback.outputs.feedback.section_feedback = sectionFeedback;
+    }
+
+    if (ENABLE_REWRITE_DIFF) {
+      fallback.outputs.feedback.rewrite_diff = buildRewriteDiff(
+        input.transcript,
+        fallback.outputs.feedback.rewrite_script,
+      );
+    }
+
+    try {
+      fallback.outputs.feedback.historical_links = await buildHistoricalLinks({
+        mode: input.mode,
+        currentFeedback: fallback.outputs.feedback,
+        currentRunId: input.runId,
+      });
+    } catch {
+      fallback.outputs.feedback.historical_links = [];
+    }
+
     if (context.coverage === 'spoken+deck') {
       const existingDeck = fallback.outputs.feedback.rubric_breakdown.filter((item) =>
         DECK_CATEGORY_ORDER.includes(item.category as DeckRubricCategory),
@@ -317,6 +508,10 @@ async function analyzeWithContext(
       llm_calls_used: 0,
       latency_ms: telemetry?.latencyMs ?? 0,
       attempt_count: telemetry?.attemptCount ?? 0,
+      telemetry: {
+        sectioning_confidence: Number(sectioningConfidence.toFixed(4)),
+        deck_link_confidence: Number(deckLinkConfidence.toFixed(4)),
+      },
       error_details: {
         message: errorMessage,
         timeout: errorMessage.toLowerCase().includes('timed out'),
@@ -332,6 +527,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
   const context = await buildScoringContext({
     mode: input.mode,
     transcript: input.transcript,
+    deckId: input.deckId,
     deckText: input.deckText,
     stage: input.stage,
     transcriptSegments: input.transcriptSegments,
@@ -347,7 +543,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     knowledgeVersion: context.knowledge_version,
   });
 
-  const shouldUseCache = !input.regenerate;
+  const shouldUseCache = !input.regenerate && !input.deckId && !input.runId;
   if (shouldUseCache) {
     const cached = await getCachedAnalysis(cacheKey);
     if (cached) {

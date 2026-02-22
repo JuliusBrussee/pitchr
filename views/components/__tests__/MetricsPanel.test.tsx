@@ -21,7 +21,6 @@ describe('MetricsPanel', () => {
       <MetricsPanel
         metrics={{ wpm: 120, fillerWords: 1, wordCount: 50, durationSecs: 25, fillerRate: 2 }}
         checklist={checklist}
-        insights={[]}
         isSessionActive
       />,
     );
@@ -35,7 +34,6 @@ describe('MetricsPanel', () => {
       <MetricsPanel
         metrics={{ wpm: 120, fillerWords: 0, wordCount: 50, durationSecs: 25, fillerRate: 0 }}
         checklist={checklist}
-        insights={[]}
         isSessionActive={false}
       />,
     );
@@ -57,7 +55,6 @@ describe('MetricsPanel', () => {
       <MetricsPanel
         metrics={{ wpm: 120, fillerWords: 0, wordCount: 50, durationSecs: 25, fillerRate: 0 }}
         checklist={failedChecklist}
-        insights={[]}
         isSessionActive
       />,
     );

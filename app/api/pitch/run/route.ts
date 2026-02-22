@@ -3,6 +3,7 @@ import {
   PitchValidationError,
   runPitchAnalysisController,
 } from '@/controllers/pitchController';
+import { listQASessionSummariesByRunIds } from '@/services/qnaSessionService';
 import { computeRunStats, listRuns } from '@/services/runService';
 import type {
   CreatePitchRunErrorResponse,
@@ -10,7 +11,10 @@ import type {
   Run,
 } from '@/types/pitch';
 
-function toRunResponse(run: Awaited<ReturnType<typeof listRuns>>[number]): Run {
+function toRunResponse(
+  run: Awaited<ReturnType<typeof listRuns>>[number],
+  qaSessionsSummary?: Run['qaSessionsSummary'],
+): Run {
   const isComplete = run.status === 'complete';
   return {
     id: run.id,
@@ -23,11 +27,13 @@ function toRunResponse(run: Awaited<ReturnType<typeof listRuns>>[number]): Run {
     inputType: run.input_type,
     transcript: run.transcript,
     audioUrl: run.audio_url ?? undefined,
+    deckId: run.deck_id ?? undefined,
     analysis: isComplete ? run.analysis.outputs.feedback : undefined,
     analysisVersion: isComplete ? run.analysis.analysisVersion : undefined,
     coverage: isComplete ? run.analysis.coverage : undefined,
     outputs: isComplete ? run.analysis.outputs : undefined,
     meta: isComplete ? run.analysis.meta : run.meta ?? undefined,
+    qaSessionsSummary,
     overallScore: run.overall_score,
     fallback: run.is_fallback,
   };
@@ -50,9 +56,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       Number.isFinite(limit) && limit !== undefined
         ? visibleRuns.slice(0, limit)
         : visibleRuns;
+    let qaSummariesByRunId = new Map<string, NonNullable<Run['qaSessionsSummary']>>();
+    try {
+      qaSummariesByRunId = await listQASessionSummariesByRunIds(runs.map((run) => run.id));
+    } catch {
+      qaSummariesByRunId = new Map();
+    }
 
     const response: ListPitchRunsResponse = {
-      runs: runs.map(toRunResponse),
+      runs: runs.map((run) => toRunResponse(run, qaSummariesByRunId.get(run.id))),
       stats: computeRunStats(visibleRuns),
     };
 

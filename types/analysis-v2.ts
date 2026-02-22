@@ -43,6 +43,135 @@ export interface RepeatedPhrase {
   count: number;
 }
 
+export interface TranscriptWord {
+  text: string;
+  start: number;
+  end: number;
+  confidence?: number;
+}
+
+export interface TranscriptSegment {
+  text: string;
+  start: number;
+  end: number;
+  words: TranscriptWord[];
+}
+
+export type DeliveryEventType =
+  | 'filler'
+  | 'stutter'
+  | 'hesitation'
+  | 'repetition'
+  | 'vocab';
+
+export interface DeliveryEvent {
+  id: string;
+  type: DeliveryEventType;
+  start_sec: number;
+  end_sec: number;
+  label: string;
+  evidence: string;
+  severity: 'low' | 'medium' | 'high';
+  count?: number;
+}
+
+export interface VocabularyTermStat {
+  term: string;
+  count: number;
+}
+
+export interface VocabularyMetrics {
+  total_words: number;
+  unique_words: number;
+  lexical_diversity: number;
+  hedge_density: number;
+  jargon_density: number;
+  softener_density: number;
+  hedge_terms: VocabularyTermStat[];
+  jargon_terms: VocabularyTermStat[];
+  softener_terms: VocabularyTermStat[];
+}
+
+export type SectionBeat =
+  | 'intro'
+  | 'problem'
+  | 'solution'
+  | 'market'
+  | 'model'
+  | 'traction'
+  | 'team'
+  | 'ask';
+
+export interface DeckSlideLink {
+  slide_num: number;
+  confidence: number;
+  matched_terms: string[];
+  snippet?: string;
+}
+
+export interface SectionFeedback {
+  beat: SectionBeat;
+  start_sec: number;
+  end_sec: number;
+  good: string;
+  bad: string;
+  evidence: string;
+  top_issues: string[];
+  top_fixes: string[];
+  slide_links?: DeckSlideLink[];
+  confidence?: number;
+}
+
+export type RewriteDiffTokenKind = 'context' | 'add' | 'remove';
+
+export type RewriteDiffGrammarTag =
+  | 'punctuation'
+  | 'article'
+  | 'tense'
+  | 'agreement'
+  | 'word_choice'
+  | 'other';
+
+export interface RewriteDiffToken {
+  kind: RewriteDiffTokenKind;
+  value: string;
+  grammar_tag?: RewriteDiffGrammarTag;
+}
+
+export interface RewriteDiffHunk {
+  id: string;
+  original_text: string;
+  rewrite_text: string;
+  tokens: RewriteDiffToken[];
+  summary?: string;
+}
+
+export interface RewriteDiff {
+  hunks: RewriteDiffHunk[];
+  stats: {
+    added: number;
+    removed: number;
+    changed: number;
+  };
+  alignment_score: number;
+}
+
+export interface HistoricalScoreDelta {
+  category: ScoreCategory | 'overall';
+  previous: number;
+  current: number;
+  delta: number;
+}
+
+export interface HistoricalLink {
+  run_id: string;
+  created_at: string;
+  mode: 'elevator' | 'vc_pitch';
+  overall_delta: number;
+  score_deltas: HistoricalScoreDelta[];
+  summary: string;
+}
+
 export interface SentimentProfile {
   confidence: number;
   urgency: number;
@@ -95,6 +224,7 @@ export interface DeliveryMetrics {
   delivery20: number;
   filler_words: FillerWord[];
   repeated_phrases: RepeatedPhrase[];
+  events?: DeliveryEvent[];
 }
 
 export interface FeedbackOutput {
@@ -113,6 +243,18 @@ export interface FeedbackOutput {
   citations: Citation[];
   stage_expectations: StageExpectation[];
   do_next_checklist: string[];
+  summary_good?: string;
+  summary_bad?: string;
+  section_feedback?: SectionFeedback[];
+  rewrite_diff?: RewriteDiff;
+  vocabulary_metrics?: VocabularyMetrics;
+  historical_links?: HistoricalLink[];
+  advanced_reasoning?: {
+    score_logic: string[];
+    strongest_signals: string[];
+    weakest_signals: string[];
+    confidence: number;
+  };
 }
 
 export interface OneMinuteQASuggestedAnswer {
@@ -141,6 +283,13 @@ export interface AnalysisMeta {
   llm_calls_used: number;
   latency_ms: number;
   attempt_count: number;
+  economics?: RunEconomics;
+  telemetry?: {
+    sectioning_confidence?: number;
+    deck_link_confidence?: number;
+    qa_latency_ms_p50?: number;
+    qa_cap_compliant?: boolean;
+  };
   error_details?: {
     message: string;
     timeout?: boolean;
@@ -149,6 +298,33 @@ export interface AnalysisMeta {
       message: string;
     }>;
   };
+}
+
+export interface PaidSyncMeta {
+  status: 'sent' | 'skipped' | 'failed';
+  sent_at: string;
+  error?: string;
+}
+
+export interface RunEconomics {
+  model_cost_usd: number;
+  platform_overhead_usd: number;
+  cost_floor_usd: number;
+  estimated_input_tokens: number;
+  estimated_output_tokens: number;
+  estimated_cost_usd: number;
+  coach_hourly_rate_usd: number;
+  savings_realization_rate: number;
+  manual_baseline_minutes: number;
+  agent_runtime_minutes: number;
+  time_saved_minutes: number;
+  money_saved_vs_coach_usd: number;
+  score_delta_vs_previous_mode_run: number;
+  quality_bonus_usd: number;
+  estimated_value_usd: number;
+  roi_multiple: number;
+  gross_margin_usd: number;
+  paid_sync?: PaidSyncMeta;
 }
 
 export interface AnalysisOutputs {
@@ -190,13 +366,20 @@ export interface ScoringContext {
   mode: 'elevator' | 'vc_pitch';
   stage: PitchStage;
   coverage: Coverage;
+  deck_id?: string;
   normalized_transcript: string;
   normalized_deck_text: string;
   transcript_word_count: number;
   deck_word_count: number;
+  transcript_segments?: TranscriptSegment[];
   beats: BeatMatch[];
   detected_anti_patterns: AntiPatternHit[];
   delivery_metrics: DeliveryMetrics;
+  delivery_events?: DeliveryEvent[];
+  vocabulary_metrics?: VocabularyMetrics;
+  section_feedback?: SectionFeedback[];
+  rewrite_diff?: RewriteDiff;
+  historical_links?: HistoricalLink[];
   retrieved_patterns: PatternSnippet[];
   stage_expectations: StageExpectation[];
   benchmark_profiles?: {
