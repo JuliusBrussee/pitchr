@@ -1,4 +1,4 @@
-# Pitch Analysis Pipeline (OpenRouter First)
+# Pitch Analysis Pipeline (Anthropic First)
 
 ## Overview
 Pitch analysis now runs through a server-side model pipeline and stores completed runs client-side in `localStorage`.
@@ -22,10 +22,11 @@ Pitch analysis now runs through a server-side model pipeline and stores complete
 9. Client navigates to `/results/[runId]`, which reads the run from local storage.
 
 ## Provider architecture
-- Active selector: `LLM_PROVIDER` (`openrouter` default, `anthropic` supported).
+- Active selector: `LLM_PROVIDER` (`anthropic` default, `openrouter` rollback).
 - OpenRouter transport: `lib/llm/providers/openrouter.ts`.
-- Anthropic scaffold: `lib/llm/providers/anthropic.ts`.
+- Anthropic transport: `lib/llm/providers/anthropic.ts`.
 - Provider-independent contract: `lib/llm/types.ts`.
+- Realtime checklist semantic evaluation also routes through `lib/llm/router.ts`.
 
 ## Why this shape
 - Keeps API keys server-side.
@@ -40,9 +41,9 @@ Pitch analysis now runs through a server-side model pipeline and stores complete
 1. Add mode picker and text input submit path into `usePitchRun`.
 2. Wire dashboard/history pages to `models/run.ts`.
 3. Introduce server-side persistence and move run CRUD behind API routes.
-4. Enable Anthropic as primary by setting:
-   - `LLM_PROVIDER=anthropic`
-   - `ANTHROPIC_API_KEY=...`
+4. Override provider when needed:
+   - Default path: `LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY=...`
+   - Rollback path: `LLM_PROVIDER=openrouter` with `OPENROUTER_API_KEY=...`
 5. Add provider failover policy (primary + backup) in `lib/llm/router.ts`.
 6. Add observability:
    - request IDs

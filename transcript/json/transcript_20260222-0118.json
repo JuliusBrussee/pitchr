@@ -1,0 +1,70 @@
+{
+  "transcript": "Hi, we're Pitcher. In Hack Europe, teams spend all night building, they lose points in the last two minutes because the pitch is unstructured. There's no crisp problem, no proof, and no clear ask. Judges don't reward effort, they reward clarity. Pitcher fixes that in one run. You paste a two minute script and record it. And Pitcher scores it against a strict jury rubric. Structure, clarity, proof, and delivery. Then it gives you the only three edits that matter right now. What to cut, what to move, and the exact one sentence line you should lead with.It rewrites the pitch to fit the time limit and saves the run so you can show improvement across attempts. Under the hood, it's a reevaluation pipeline. Transcription, schema validated rubric scoring, retrieval of proven pitch patterns, and a constrained rewrite so the feedback is consistent and not just vibes.",
+  "segments": [
+    {
+      "text": "Hi, we're Pitcher.",
+      "start": 0,
+      "end": 0.9013138686131388
+    },
+    {
+      "text": "In Hack Europe, teams spend all night building, they lose points in the last two minutes because the pitch is unstructured.",
+      "start": 0.9013138686131388,
+      "end": 7.06029197080292
+    },
+    {
+      "text": "There's no crisp problem, no proof, and no clear ask.",
+      "start": 7.06029197080292,
+      "end": 9.714160583941606
+    },
+    {
+      "text": "Judges don't reward effort, they reward clarity.",
+      "start": 9.714160583941606,
+      "end": 12.117664233576642
+    },
+    {
+      "text": "Pitcher fixes that in one run.",
+      "start": 12.117664233576642,
+      "end": 13.61985401459854
+    },
+    {
+      "text": "You paste a two minute script and record it.",
+      "start": 13.61985401459854,
+      "end": 15.823065693430657
+    },
+    {
+      "text": "And Pitcher scores it against a strict jury rubric.",
+      "start": 15.823065693430657,
+      "end": 18.376788321167883
+    },
+    {
+      "text": "Structure, clarity, proof, and delivery.",
+      "start": 18.376788321167883,
+      "end": 20.37970802919708
+    },
+    {
+      "text": "Then it gives you the only three edits that matter right now.",
+      "start": 20.37970802919708,
+      "end": 23.434160583941605
+    },
+    {
+      "text": "What to cut, what to move, and the exact one sentence line you should lead with.",
+      "start": 23.434160583941605,
+      "end": 27.439999999999998
+    },
+    {
+      "text": "It rewrites the pitch to fit the time limit and saves the run so you can show improvement across attempts.",
+      "start": 27.44,
+      "end": 32.22709677419355
+    },
+    {
+      "text": "Under the hood, it's a reevaluation pipeline.",
+      "start": 32.22709677419355,
+      "end": 34.259354838709676
+    },
+    {
+      "text": "Transcription, schema validated rubric scoring, retrieval of proven pitch patterns, and a constrained rewrite so the feedback is consistent and not just vibes.",
+      "start": 34.259354838709676,
+      "end": 41.44
+    }
+  ]
+}

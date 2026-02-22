@@ -12,7 +12,7 @@ interface MetricsPanelProps {
   isSessionActive: boolean;
   selectedMode: PitchMode;
   onModeChange: (mode: PitchMode) => void;
-  checklistSource?: 'openrouter' | 'heuristic' | null;
+  checklistSource?: 'llm' | 'heuristic' | null;
   checklistNextHint?: string | null;
   checklistError?: string | null;
   sttError?: string | null;
@@ -125,7 +125,7 @@ export function MetricsPanel({
           </h3>
           {checklistSource ? (
             <span className="text-[10px] px-2 py-0.5 rounded-md border" style={{ color: 'var(--text-muted)', borderColor: 'var(--border-color)' }}>
-              {checklistSource === 'openrouter' ? 'Semantic' : 'Heuristic'}
+              {checklistSource === 'llm' ? 'Semantic' : 'Heuristic'}
             </span>
           ) : null}
         </div>

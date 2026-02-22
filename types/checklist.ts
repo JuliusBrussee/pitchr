@@ -12,7 +12,7 @@ export type ChecklistItemId =
 
 export type ChecklistStatus = 'uncovered' | 'partial' | 'completed' | 'failed';
 
-export type ChecklistUpdateSource = 'openrouter' | 'heuristic';
+export type ChecklistUpdateSource = 'llm' | 'heuristic';
 
 export interface ChecklistDefinition {
   id: ChecklistItemId;
