@@ -8,6 +8,7 @@ import type {
   PitchStage,
   ScoringContext,
   StageExpectation,
+  TranscriptSegment,
 } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
 
@@ -41,8 +42,9 @@ export interface PrepAgentInput {
   mode: PitchMode;
   transcript: string;
   deckText?: string;
+  deckId?: string;
   stage?: PitchStage;
-  transcriptSegments?: Array<{ text?: string; start?: number; end?: number }>;
+  transcriptSegments?: TranscriptSegment[];
 }
 
 const PATTERNS_FILE = path.join(process.cwd(), 'knowledge', 'patterns.v1.json');
@@ -279,10 +281,12 @@ export async function buildScoringContext(input: PrepAgentInput): Promise<Scorin
     mode: input.mode,
     stage,
     coverage,
+    deck_id: input.deckId,
     normalized_transcript: normalizedTranscript,
     normalized_deck_text: normalizedDeckText,
     transcript_word_count: normalizedTranscript.split(/\s+/u).filter(Boolean).length,
     deck_word_count: normalizedDeckText.split(/\s+/u).filter(Boolean).length,
+    transcript_segments: input.transcriptSegments,
     beats: extractBeatEvidence(normalizedTranscript),
     detected_anti_patterns: antiPatternHits,
     delivery_metrics: deliveryMetrics,

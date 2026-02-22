@@ -21,6 +21,12 @@ All SQL migrations live in `migrations/` at the project root. Run them **in orde
 | `02-create-slides-table.sql` | Creates the `slides` table (per-slide text, FK to decks) |
 | `03-create-decks-storage-bucket.sql` | Creates the `decks` storage bucket (public, 50 MB limit) |
 | `04-storage-policies.sql` | Adds public read/upload/delete policies (no auth in MVP) |
+| `05-create-runs-table.sql` | Creates the `runs` table for pitch analysis payloads |
+| `08-add-run-lifecycle-columns.sql` | Adds async run lifecycle columns (`queued/running/complete/failed`) |
+| `09-create-recordings-bucket.sql` | Creates the `recordings` storage bucket |
+| `10-recordings-storage-policies.sql` | Adds public recording read/upload/delete policies |
+| `11-create-qa-sessions-table.sql` | Creates `qa_sessions` linked to `runs` for live VC Q&A persistence |
+| `12-create-qa-resource-gaps-table.sql` | Creates `qa_resource_gaps` queue for async knowledge refresh |
 
 **Quick run (all at once):**
 
@@ -31,6 +37,18 @@ cat migrations/*.sql | pbcopy
 Then paste into the SQL Editor and execute.
 
 All migrations use `if not exists` / `on conflict` guards, so they're safe to re-run.
+
+## 4. Additional Environment Variables
+
+For live VC Q&A and post-analysis features, add:
+
+```env
+ELEVENLABS_API_KEY_CONVAI=your-elevenlabs-api-key
+ELEVENLABS_CONVAI_AGENT_ID=your-convai-agent-id
+NEXT_PUBLIC_ENABLE_LIVE_QA=false
+ENABLE_SECTION_FEEDBACK=true
+ENABLE_REWRITE_DIFF=true
+```
 
 ## 3. Verify Setup
 

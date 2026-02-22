@@ -15,6 +15,7 @@ import { useTheme } from '@/views/components/ThemeProvider';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
+import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
 
@@ -58,6 +59,7 @@ function SessionPageContent() {
     modeFromQuery === 'elevator' || modeFromQuery === 'vc_pitch'
       ? modeFromQuery
       : 'vc_pitch';
+  const modeConfig = PITCH_MODE_CONFIG[pitchMode];
 
   // Fetch available decks on mount
   useEffect(() => {
@@ -169,8 +171,12 @@ function SessionPageContent() {
 
   // Sync transcript data to session metrics (WPM, filler words, etc.)
   useEffect(() => {
-    const committedText = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
-    const fullText = [...stt.transcriptSegments, stt.liveText]
+    const committedText = stt.transcriptSegments
+      .map((segment) => segment.text)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const fullText = [...stt.transcriptSegments.map((segment) => segment.text), stt.liveText]
       .filter(Boolean)
       .join(' ')
       .trim();
@@ -218,7 +224,11 @@ function SessionPageContent() {
       return;
     }
 
-    const transcript = stt.transcriptSegments.join(' ').replace(/\s+/g, ' ').trim();
+    const transcript = stt.transcriptSegments
+      .map((segment) => segment.text)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
     if (!transcript) {
       autoSubmitLockRef.current = true;
       setShowAnalyzing(false);
@@ -256,7 +266,9 @@ function SessionPageContent() {
           inputType: 'audio',
           transcript,
           audioUrl,
+          deckId: selectedDeckId ?? undefined,
           deckText,
+          transcriptSegments: stt.transcriptSegments,
         });
         router.push(`/results/${result.runId}`);
       } catch (error) {
@@ -303,9 +315,12 @@ function SessionPageContent() {
         isLoadingDecks={isLoadingDecks}
         isLoadingPdf={isLoadingPdf}
         pdfError={pdfError}
+        elapsedSeconds={session.metrics.durationSecs}
+        targetSeconds={modeConfig.targetDurationSeconds}
       />
       <MetricsPanel
         metrics={session.metrics}
+        targetDurationSeconds={modeConfig.targetDurationSeconds}
         checklist={session.checklist}
         insights={session.insights}
         isSessionActive={session.isSessionActive}

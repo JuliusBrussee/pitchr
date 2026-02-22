@@ -1,10 +1,12 @@
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type {
   AntiPatternHit,
+  DeliveryEvent,
   DeliveryMetrics,
   DeckRubricCategory,
   RubricCategory,
   RubricScore,
+  TranscriptSegment,
 } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
 
@@ -29,13 +31,14 @@ interface SegmentLike {
   start?: number;
   end?: number;
   text?: string;
+  words?: Array<{ text?: string; start?: number; end?: number }>;
 }
 
 interface DeliveryInput {
   transcript: string;
   mode: PitchMode;
   durationSeconds?: number;
-  segments?: SegmentLike[];
+  segments?: TranscriptSegment[] | SegmentLike[];
 }
 
 interface CompositeScoreInput {
@@ -77,6 +80,197 @@ function getDurationFromSegments(segments: SegmentLike[] | undefined): number | 
   const end = Math.max(...ends);
   if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
   return end - start;
+}
+
+interface TimelineWord {
+  text: string;
+  start: number;
+  end: number;
+}
+
+function cleanToken(token: string): string {
+  return token.toLowerCase().replace(/[^\p{L}\p{N}']+/gu, '').trim();
+}
+
+function buildSyntheticWords(transcript: string): TimelineWord[] {
+  const rawTokens = transcript.split(/\s+/u).filter(Boolean);
+  const secondsPerWord = 60 / 140;
+  return rawTokens.map((token, index) => {
+    const start = index * secondsPerWord;
+    const end = start + secondsPerWord * 0.8;
+    return { text: token, start, end };
+  });
+}
+
+function expandSegmentWords(segment: SegmentLike): TimelineWord[] {
+  const words = segment.words ?? [];
+  const withTimestamps = words
+    .map((word) => {
+      const text = String(word.text ?? '').trim();
+      if (!text) return null;
+      const start = typeof word.start === 'number' && word.start >= 0 ? word.start : null;
+      const end = typeof word.end === 'number' && word.end >= 0 ? word.end : null;
+      if (start === null || end === null || end < start) return null;
+      return { text, start, end } satisfies TimelineWord;
+    })
+    .filter((entry): entry is TimelineWord => Boolean(entry));
+
+  if (withTimestamps.length > 0) return withTimestamps;
+
+  const fallbackTokens = String(segment.text ?? '').split(/\s+/u).filter(Boolean);
+  if (fallbackTokens.length === 0) return [];
+
+  const segStart = typeof segment.start === 'number' && segment.start >= 0 ? segment.start : 0;
+  const segEnd =
+    typeof segment.end === 'number' && segment.end >= segStart
+      ? segment.end
+      : segStart + Math.max(0.25, fallbackTokens.length * 0.33);
+  const duration = Math.max(0.2, segEnd - segStart);
+  const secondsPerWord = duration / fallbackTokens.length;
+
+  return fallbackTokens.map((token, index) => {
+    const start = segStart + index * secondsPerWord;
+    const end = Math.min(segEnd, start + secondsPerWord * 0.9);
+    return { text: token, start, end };
+  });
+}
+
+function flattenTimelineWords(
+  transcript: string,
+  segments?: TranscriptSegment[] | SegmentLike[],
+): TimelineWord[] {
+  if (!segments || segments.length === 0) return buildSyntheticWords(transcript);
+  const words = segments.flatMap(expandSegmentWords);
+  if (words.length > 0) {
+    return [...words].sort((left, right) => left.start - right.start);
+  }
+  return buildSyntheticWords(transcript);
+}
+
+function severityForPause(seconds: number): DeliveryEvent['severity'] {
+  if (seconds >= 1.8) return 'high';
+  if (seconds >= 1.2) return 'medium';
+  return 'low';
+}
+
+function createEventId(
+  type: DeliveryEvent['type'],
+  startSec: number,
+  endSec: number,
+  index: number,
+): string {
+  const startTag = Math.round(startSec * 1000);
+  const endTag = Math.round(endSec * 1000);
+  return `${type}-${startTag}-${endTag}-${index}`;
+}
+
+export function extractDeliveryEvents(input: DeliveryInput): DeliveryEvent[] {
+  const words = flattenTimelineWords(input.transcript, input.segments);
+  if (words.length === 0) return [];
+
+  const events: DeliveryEvent[] = [];
+  const singleFillers = new Set(['um', 'uh', 'like', 'basically', 'actually']);
+  const multiFillers = new Set(['you know', 'sort of', 'kind of']);
+
+  for (let index = 0; index < words.length; index += 1) {
+    const current = words[index];
+    const next = words[index + 1];
+    const currentToken = cleanToken(current.text);
+    const nextToken = next ? cleanToken(next.text) : '';
+
+    if (singleFillers.has(currentToken)) {
+      events.push({
+        id: createEventId('filler', current.start, current.end, events.length),
+        type: 'filler',
+        start_sec: round(current.start, 3),
+        end_sec: round(current.end, 3),
+        label: currentToken,
+        evidence: `Detected filler "${currentToken}".`,
+        severity: 'low',
+      });
+    }
+
+    if (next && multiFillers.has(`${currentToken} ${nextToken}`)) {
+      events.push({
+        id: createEventId('filler', current.start, next.end, events.length),
+        type: 'filler',
+        start_sec: round(current.start, 3),
+        end_sec: round(next.end, 3),
+        label: `${currentToken} ${nextToken}`,
+        evidence: `Detected filler phrase "${currentToken} ${nextToken}".`,
+        severity: 'low',
+      });
+    }
+
+    if (index > 0) {
+      const previous = words[index - 1];
+      const previousToken = cleanToken(previous.text);
+      const gap = Math.max(0, current.start - previous.end);
+
+      if (
+        currentToken.length >= 2 &&
+        previousToken.length >= 2 &&
+        currentToken === previousToken &&
+        gap <= 0.45
+      ) {
+        events.push({
+          id: createEventId('stutter', previous.start, current.end, events.length),
+          type: 'stutter',
+          start_sec: round(previous.start, 3),
+          end_sec: round(current.end, 3),
+          label: currentToken,
+          evidence: `Repeated token "${currentToken}" in a short window.`,
+          severity: 'medium',
+          count: 2,
+        });
+      }
+
+      if (gap >= 0.95) {
+        events.push({
+          id: createEventId('hesitation', previous.end, current.start, events.length),
+          type: 'hesitation',
+          start_sec: round(previous.end, 3),
+          end_sec: round(current.start, 3),
+          label: 'pause',
+          evidence: `Pause of ${round(gap, 2)} seconds before "${currentToken || current.text}".`,
+          severity: severityForPause(gap),
+        });
+      }
+    }
+  }
+
+  const bigramFirstSeen = new Map<string, TimelineWord>();
+  for (let index = 0; index < words.length - 1; index += 1) {
+    const left = cleanToken(words[index].text);
+    const right = cleanToken(words[index + 1].text);
+    if (!left || !right) continue;
+    const bigram = `${left} ${right}`;
+    const first = bigramFirstSeen.get(bigram);
+    if (!first) {
+      bigramFirstSeen.set(bigram, words[index]);
+      continue;
+    }
+
+    const start = words[index].start;
+    const end = words[index + 1].end;
+    events.push({
+      id: createEventId('repetition', start, end, events.length),
+      type: 'repetition',
+      start_sec: round(start, 3),
+      end_sec: round(end, 3),
+      label: bigram,
+      evidence: `Repeated phrase "${bigram}" detected.`,
+      severity: 'low',
+      count: 2,
+    });
+
+    // Keep the earliest occurrence only and prevent a flood of duplicates.
+    bigramFirstSeen.delete(bigram);
+  }
+
+  return events
+    .sort((left, right) => left.start_sec - right.start_sec)
+    .slice(0, 60);
 }
 
 function getDurationSeconds({
@@ -177,6 +371,7 @@ export function calculateDeliveryMetrics(
   const disfluencyCount = getDisfluencyCount(transcript);
   const repeatedPhrases = getRepeatedPhrases(tokens);
   const repeatedNgramTokens = getRepeatedNgramTokens(repeatedPhrases);
+  const events = extractDeliveryEvents(input);
 
   const safeWordCount = Math.max(1, wordCount);
   const fillerRate = fillerCount / safeWordCount;
@@ -217,6 +412,7 @@ export function calculateDeliveryMetrics(
     delivery20: round(Math.max(0, Math.min(20, delivery20)), 2),
     filler_words: fillerWords,
     repeated_phrases: repeatedPhrases,
+    events,
   };
 }
 
@@ -286,4 +482,3 @@ export function calculateCompositeScore(input: CompositeScoreInput): {
     finalScore,
   };
 }
-

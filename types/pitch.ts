@@ -3,8 +3,10 @@ import type {
   AnalysisOutputs,
   Coverage,
   PitchStage,
+  TranscriptSegment,
 } from '@/types/analysis-v2';
 import type { AnalysisResult } from '@/types/analysis';
+import type { QASessionSummary } from '@/types/qna';
 
 export type PitchMode = 'elevator' | 'vc_pitch';
 export type InputType = 'audio' | 'text';
@@ -21,6 +23,7 @@ export interface Run {
   inputType: InputType;
   transcript: string;
   audioUrl?: string;
+  deckId?: string;
   deckText?: string;
   stage?: PitchStage;
   analysis?: AnalysisResult;
@@ -28,6 +31,7 @@ export interface Run {
   coverage?: Coverage;
   outputs?: AnalysisOutputs;
   meta?: AnalysisMeta;
+  qaSessionsSummary?: QASessionSummary[];
   overallScore: number;
   fallback?: boolean;
 }
@@ -37,7 +41,9 @@ export interface CreatePitchRunRequest {
   transcript: string;
   inputType: InputType;
   audioUrl?: string;
+  deckId?: string;
   deckText?: string;
+  transcriptSegments?: TranscriptSegment[];
   stage?: PitchStage;
   regenerate?: 'feedback' | 'qa_1min';
 }

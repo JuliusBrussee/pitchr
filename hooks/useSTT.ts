@@ -7,6 +7,7 @@ import type {
   RealtimeChecklistUpdateMessage,
   RealtimeChecklistItemState,
 } from '@/types/checklist';
+import type { TranscriptSegment } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
 
 const TARGET_SAMPLE_RATE = 16000;
@@ -82,11 +83,77 @@ interface RealtimeSttMessage {
   type?: string;
   message_type?: string;
   text?: string;
+  words?: Array<{ text?: string; start?: number; end?: number }>;
   error?: string;
   feedbackQuestion?: string;
   feedbackAnswer?: string;
   feedbackError?: string;
   base64?: string;
+}
+
+function buildSyntheticWords(
+  text: string,
+  start: number,
+  end: number,
+): TranscriptSegment['words'] {
+  const tokens = text.split(/\s+/u).filter(Boolean);
+  if (tokens.length === 0) return [];
+  const duration = Math.max(0.2, end - start);
+  const step = duration / tokens.length;
+  return tokens.map((token, index) => {
+    const tokenStart = start + index * step;
+    const tokenEnd = Math.min(end, tokenStart + step * 0.9);
+    return {
+      text: token,
+      start: Number(tokenStart.toFixed(3)),
+      end: Number(tokenEnd.toFixed(3)),
+    };
+  });
+}
+
+function buildCommittedSegment(
+  message: RealtimeSttMessage,
+  previous: TranscriptSegment[],
+): TranscriptSegment | null {
+  const text = message.text?.trim() ?? '';
+  if (!text) return null;
+
+  const normalizedWords = (message.words ?? [])
+    .map((word) => {
+      const wordText = String(word.text ?? '').trim();
+      const start = typeof word.start === 'number' ? word.start : Number.NaN;
+      const end = typeof word.end === 'number' ? word.end : Number.NaN;
+      if (!wordText || !Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+        return null;
+      }
+      return {
+        text: wordText,
+        start: Number(start.toFixed(3)),
+        end: Number(end.toFixed(3)),
+      };
+    })
+    .filter((word): word is TranscriptSegment['words'][number] => Boolean(word));
+
+  if (normalizedWords.length > 0) {
+    return {
+      text,
+      start: normalizedWords[0].start,
+      end: normalizedWords[normalizedWords.length - 1].end,
+      words: normalizedWords,
+    };
+  }
+
+  const previousEnd = previous.length > 0 ? previous[previous.length - 1].end : 0;
+  const tokens = text.split(/\s+/u).filter(Boolean).length;
+  const duration = Math.max(0.25, tokens * 0.33);
+  const start = Number(previousEnd.toFixed(3));
+  const end = Number((previousEnd + duration).toFixed(3));
+  return {
+    text,
+    start,
+    end,
+    words: buildSyntheticWords(text, start, end),
+  };
 }
 
 function isChecklistUpdateMessage(value: unknown): value is RealtimeChecklistUpdateMessage {
@@ -116,7 +183,7 @@ export interface UseSTTReturn {
   isAnswerRecording: boolean;
   answerTranscript: string | null;
   liveText: string;
-  transcriptSegments: string[];
+  transcriptSegments: TranscriptSegment[];
   saved: boolean;
   error: string | null;
   feedbackQuestion: string | null;
@@ -134,7 +201,7 @@ export interface UseSTTReturn {
 export function useSTT(): UseSTTReturn {
   const [isRecording, setIsRecording] = useState(false);
   const [liveText, setLiveText] = useState('');
-  const [transcriptSegments, setTranscriptSegments] = useState<string[]>([]);
+  const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedbackQuestion, setFeedbackQuestion] = useState<string | null>(null);
@@ -524,16 +591,25 @@ export function useSTT(): UseSTTReturn {
         return;
       }
       if ((type === 'committed_transcript_with_timestamps' || type === 'committed_transcript') && msg.text != null) {
-        const nextText = msg.text.trim();
-        if (!nextText) return;
         setTranscriptSegments((prev) => {
-          if (prev.length === 0) return [nextText];
+          const next = buildCommittedSegment(msg, prev);
+          if (!next) return prev;
+          if (prev.length === 0) return [next];
+
           const last = prev[prev.length - 1];
-          if (last === nextText) return prev;
-          if (nextText.startsWith(last) && nextText.length > last.length) {
-            return [...prev.slice(0, -1), nextText];
+          if (last.text === next.text) return prev;
+
+          if (next.text.startsWith(last.text) && next.text.length > last.text.length) {
+            return [
+              ...prev.slice(0, -1),
+              {
+                ...next,
+                start: last.start,
+              },
+            ];
           }
-          return [...prev, nextText];
+
+          return [...prev, next];
         });
         setLiveText('');
         return;
