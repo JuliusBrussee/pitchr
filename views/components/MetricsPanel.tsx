@@ -1,15 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef, memo } from 'react';
-import { Check, Circle, Minus, Sparkles, X } from 'lucide-react';
+import { Check, Circle, Minus, X } from 'lucide-react';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
-import type { InsightEntry, MetricValues } from '@/hooks/useSessionState';
+import type { MetricValues } from '@/hooks/useSessionState';
 import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
 
 interface MetricsPanelProps {
   metrics: MetricValues;
   checklist: RealtimeChecklistItemState[];
-  insights: InsightEntry[];
   isSessionActive: boolean;
   engagementBand?: HeadTrackingEngagementBand;
   isCameraOn?: boolean;
@@ -176,7 +175,6 @@ function useChangePulse(value: number | string, duration = 800): boolean {
 export function MetricsPanel({
   metrics,
   checklist,
-  insights,
   isSessionActive,
   engagementBand = 'no_face',
   isCameraOn = false,
@@ -294,21 +292,6 @@ export function MetricsPanel({
         ) : null}
       </div>
 
-      <div className="p-4 flex-1 overflow-y-auto min-h-0">
-        <h3 className="text-xs font-semibold mb-3 uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
-          <Sparkles size={12} />
-          Live Insights
-        </h3>
-        <div className="flex flex-col gap-2">
-          {!isSessionActive && (
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              Start a session to receive live feedback.
-            </p>
-          )}
-          {isSessionActive &&
-            insights.map((insight) => <InsightCard key={insight.id} insight={insight} />)}
-        </div>
-      </div>
     </aside>
   );
 }
@@ -487,28 +470,6 @@ function ChecklistRow({ item }: { item: RealtimeChecklistItemState }) {
           &ldquo;{item.evidence}&rdquo;
         </p>
       ) : null}
-    </div>
-  );
-}
-
-function InsightCard({ insight }: { insight: InsightEntry }) {
-  const colorMap = {
-    positive: '#22c55e',
-    suggestion: '#3b82f6',
-    neutral: 'var(--text-secondary)',
-  };
-
-  return (
-    <div
-      className="rounded-lg p-2.5 border text-xs transition-all duration-300 animate-fade-in-up"
-      style={{
-        backgroundColor: 'var(--bg-surface)',
-        borderColor: 'var(--border-color)',
-        borderLeftWidth: '3px',
-        borderLeftColor: colorMap[insight.type],
-      }}
-    >
-      <p style={{ color: 'var(--text-primary)' }}>{insight.text}</p>
     </div>
   );
 }

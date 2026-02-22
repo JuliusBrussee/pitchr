@@ -307,7 +307,6 @@ function SessionPageContent() {
       <MetricsPanel
         metrics={session.metrics}
         checklist={session.checklist}
-        insights={session.insights}
         isSessionActive={session.isSessionActive}
         engagementBand={engagementBand}
         isCameraOn={media.isCameraOn}
