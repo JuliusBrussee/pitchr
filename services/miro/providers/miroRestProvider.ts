@@ -75,7 +75,7 @@ const FIX_CARD_START_Y = 40;
 const FIX_CARD_ROW_GAP = 240;
 const FIX_CARD_START_Y_SMALL = 20;
 const FIX_CARD_ROW_GAP_SMALL = 220;
-const DETAIL_CARD_ROW_GAP = 210;
+const DETAIL_CARD_ROW_GAP = 250;
 const PRIMARY_ISSUE_MAX_CHARS = 120;
 const PRIMARY_ACTION_MAX_CHARS = 140;
 const DETAIL_BODY_MAX_CHARS = 260;
@@ -427,19 +427,28 @@ export function buildPitchrStickyContent(input: {
 
   const lines = [
     HEADER_MARKER,
+    "",
+    `<strong>Fix #${input.fix.rank}</strong>`,
     `Rank: ${input.fix.rank}`,
     `Category: ${input.fix.category}`,
     `Impact: ${input.fix.impact}`,
+    "",
+    "<strong>Execution</strong>",
     `Status: ${status}`,
     `Owner: ${owner}`,
+    "",
+    "<strong>Notes</strong>",
     `Notes: ${notes}`,
   ];
   if (nextStep) lines.push(`Next Step: ${nextStep}`);
   if (successMetric) lines.push(`Success Metric: ${successMetric}`);
   if (blocker) lines.push(`Blocker: ${blocker}`);
-  if (issue) lines.push(`Issue: ${issue}`);
-  if (action) lines.push(`Action: ${action}`);
-  return lines.join("\n");
+  if (issue || action) {
+    lines.push("", "<strong>Fix Summary</strong>");
+    if (issue) lines.push(`Issue: ${issue}`);
+    if (action) lines.push(`Action: ${action}`);
+  }
+  return lines.join("<br/>");
 }
 
 export function parsePitchrStickyContent(
