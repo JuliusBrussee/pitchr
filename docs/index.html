@@ -14,10 +14,10 @@
 
     :root {
       --bg: #050505;
-      --bg-card: rgba(255,255,255,0.03);
-      --bg-card-hover: rgba(255,255,255,0.055);
+      --bg-card: rgba(255,255,255,0.02);
+      --bg-card-hover: rgba(255,255,255,0.04);
       --border: rgba(255,255,255,0.06);
-      --border-hover: rgba(255,255,255,0.12);
+      --border-hover: rgba(255,255,255,0.15);
       --text: #ededec;
       --text-secondary: #9a9a98;
       --text-muted: #5c5c5a;
@@ -55,14 +55,16 @@
       padding: 0 24px;
     }
 
+    /* ═══ PREMIUM REVEAL ANIMATIONS ═══ */
     .reveal {
       opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
+      transform: translateY(30px) scale(0.98);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
     }
     .reveal.visible {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
 
     .accent { color: var(--accent); }
@@ -95,864 +97,270 @@
     }
 
     .nav.scrolled { padding: 10px 0; }
-
-    .nav-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .nav-logo {
-      font-weight: 700;
-      font-size: 18px;
-      letter-spacing: -0.04em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-logo-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 28px;
-    }
-
-    .nav-link {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      transition: color 0.15s ease;
-      letter-spacing: -0.01em;
-    }
-
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo { font-weight: 700; font-size: 18px; letter-spacing: -0.04em; display: flex; align-items: center; gap: 8px; }
+    .nav-logo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-link { font-size: 13px; font-weight: 500; color: var(--text-muted); transition: color 0.15s ease; letter-spacing: -0.01em; }
     .nav-link:hover { color: var(--text); }
 
     .nav-cta {
-      font-size: 13px;
-      font-weight: 600;
-      padding: 7px 16px;
-      border-radius: 8px;
-      background: var(--text);
-      color: var(--bg);
-      transition: opacity 0.15s ease;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      letter-spacing: -0.01em;
+      font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 8px;
+      background: var(--text); color: var(--bg); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+      display: inline-flex; align-items: center; gap: 6px; letter-spacing: -0.01em;
     }
+    .nav-cta:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(255,255,255,0.2); }
+    .nav-hamburger { display: none; width: 32px; height: 32px; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); }
 
-    .nav-cta:hover { opacity: 0.85; }
-
-    .nav-hamburger {
-      display: none;
-      width: 32px;
-      height: 32px;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--text-secondary);
-    }
-
-    /* ═══ HERO ═══ */
-    .hero {
-      position: relative;
-      z-index: 2;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      padding: 120px 0 80px;
-      overflow: hidden;
-    }
-
-    .hero-bg {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      background: url('hero-bg.png') center right / cover no-repeat;
-      opacity: 0.6;
-    }
-
-    /* Multi-layer vignette */
+    /* ═══ HERO (Kept original per priority) ═══ */
+    .hero { position: relative; z-index: 2; min-height: 100vh; display: flex; align-items: center; padding: 120px 0 80px; overflow: hidden; }
+    .hero-bg { position: absolute; inset: 0; z-index: 0; background: url('hero-bg.png') center right / cover no-repeat; opacity: 0.6; }
     .hero-bg::after {
-      content: '';
-      position: absolute;
-      inset: 0;
+      content: ''; position: absolute; inset: 0;
       background:
         linear-gradient(to right, var(--bg) 0%, var(--bg) 12%, rgba(5,5,5,0.88) 35%, rgba(5,5,5,0.4) 58%, rgba(5,5,5,0.15) 80%, rgba(5,5,5,0.1) 100%),
         linear-gradient(to top, var(--bg) 0%, rgba(5,5,5,0.6) 15%, transparent 35%),
         linear-gradient(to bottom, var(--bg) 0%, transparent 12%);
     }
-
-    .hero-inner {
-      position: relative;
-      z-index: 3;
-      max-width: 580px;
-    }
-
+    .hero-inner { position: relative; z-index: 3; max-width: 580px; }
     .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 14px 5px 10px;
-      border-radius: 100px;
-      border: 1px solid rgba(255,87,51,0.15);
-      background: rgba(255,87,51,0.05);
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 28px;
-      letter-spacing: -0.01em;
+      display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px 5px 10px;
+      border-radius: 100px; border: 1px solid rgba(255,87,51,0.15); background: rgba(255,87,51,0.05);
+      font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 28px; letter-spacing: -0.01em;
       animation: fadeUp 0.5s ease 0.1s both;
     }
+    .hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent); } 50% { opacity: 0.4; box-shadow: 0 0 0px transparent; } }
+    .hero h1 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(44px, 7vw, 80px); font-weight: 400; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 24px; animation: fadeUp 0.5s ease 0.2s both; }
+    .hero h1 .accent { font-style: italic; }
+    .hero-sub { font-size: clamp(16px, 1.8vw, 18px); color: var(--text-secondary); max-width: 460px; line-height: 1.6; letter-spacing: -0.01em; margin-bottom: 36px; animation: fadeUp 0.5s ease 0.35s both; }
+    .hero-ctas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: fadeUp 0.5s ease 0.45s both; }
+    .hero-scroll { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: fadeUp 0.5s ease 0.8s both; }
+    .hero-scroll-text { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
+    .hero-scroll-line { width: 1px; height: 32px; background: linear-gradient(to bottom, var(--text-muted), transparent); animation: scrollPulse 2s ease-in-out infinite; }
+    @keyframes scrollPulse { 0%, 100% { opacity: 0.3; transform: scaleY(1); } 50% { opacity: 0.8; transform: scaleY(1.2); transform-origin: top; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 
-    .hero-badge-dot {
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse 2.5s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    .hero h1 {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(44px, 7vw, 80px);
-      font-weight: 400;
-      line-height: 1.05;
-      letter-spacing: -0.02em;
-      margin-bottom: 24px;
-      animation: fadeUp 0.5s ease 0.2s both;
-    }
-
-    .hero h1 .accent {
-      font-style: italic;
-    }
-
-    .hero-sub {
-      font-size: clamp(16px, 1.8vw, 18px);
-      color: var(--text-secondary);
-      max-width: 460px;
-      line-height: 1.6;
-      letter-spacing: -0.01em;
-      margin-bottom: 36px;
-      animation: fadeUp 0.5s ease 0.35s both;
-    }
-
-    .hero-ctas {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-      animation: fadeUp 0.5s ease 0.45s both;
-    }
-
-    /* Scroll hint */
-    .hero-scroll {
-      position: absolute;
-      bottom: 32px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 3;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      animation: fadeUp 0.5s ease 0.8s both;
-    }
-
-    .hero-scroll-text {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-    }
-
-    .hero-scroll-line {
-      width: 1px;
-      height: 32px;
-      background: linear-gradient(to bottom, var(--text-muted), transparent);
-      animation: scrollPulse 2s ease-in-out infinite;
-    }
-
-    @keyframes scrollPulse {
-      0%, 100% { opacity: 0.3; transform: scaleY(1); }
-      50% { opacity: 0.8; transform: scaleY(1.2); transform-origin: top; }
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ═══ BUTTONS ═══ */
+    /* ═══ BUTTONS (Upgraded with Magnetic classes) ═══ */
     .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 600;
-      background: var(--accent);
-      color: white;
-      transition: all 0.2s ease;
-      cursor: pointer;
-      border: none;
-      letter-spacing: -0.01em;
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+      border-radius: 10px; font-size: 14px; font-weight: 600;
+      background: var(--accent); color: white; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+      cursor: pointer; border: none; letter-spacing: -0.01em; will-change: transform;
     }
-
-    .btn-primary:hover {
-      background: var(--accent-light);
-      transform: translateY(-1px);
-    }
-
+    .btn-primary:hover { background: var(--accent-light); box-shadow: 0 6px 20px rgba(255,87,51,0.3); transform: scale(1.02); }
     .btn-primary:active { transform: scale(0.98); }
 
     .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 24px;
-      border-radius: 10px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      border: 1px solid var(--border);
-      background: transparent;
-      transition: all 0.2s ease;
-      cursor: pointer;
-      letter-spacing: -0.01em;
+      display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px;
+      border-radius: 10px; font-size: 14px; font-weight: 500;
+      color: var(--text-secondary); border: 1px solid var(--border); background: transparent;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; letter-spacing: -0.01em; will-change: transform;
     }
+    .btn-secondary:hover { color: var(--text); border-color: var(--border-hover); background: var(--bg-card); transform: scale(1.02); }
+    .btn-icon { display: inline-flex; transition: transform 0.2s ease; }
+    .btn-primary:hover .btn-icon { transform: translateX(4px); }
 
-    .btn-secondary:hover {
-      color: var(--text);
-      border-color: var(--border-hover);
-      background: var(--bg-card);
-    }
-
-    .btn-icon {
-      display: inline-flex;
-      transition: transform 0.2s ease;
-    }
-
-    .btn-primary:hover .btn-icon { transform: translateX(2px); }
-
-    /* ═══ STATS BAR ═══ */
-    .stats-bar {
-      position: relative;
-      z-index: 2;
-      padding: 36px 0;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .stats-inner {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 56px;
-      flex-wrap: wrap;
-    }
-
-    .stat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      color: var(--text);
-    }
-
-    .stat-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
+    /* ═══ STATS BAR (Upgraded hover interactions) ═══ */
+    .stats-bar { position: relative; z-index: 2; padding: 48px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.01) 50%, transparent); }
+    .stats-inner { display: flex; align-items: center; justify-content: center; gap: 80px; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; align-items: center; gap: 4px; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .stat:hover { transform: translateY(-4px) scale(1.05); }
+    .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; color: var(--text); text-shadow: 0 0 20px rgba(255,255,255,0.1); }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
 
     /* ═══ MARQUEE ═══ */
-    .tag-strip {
-      position: relative;
-      z-index: 2;
-      overflow: hidden;
-      padding: 14px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .tag-strip-track {
-      display: flex;
-      gap: 10px;
-      animation: marquee 35s linear infinite;
-      width: max-content;
-    }
-
+    .tag-strip { position: relative; z-index: 2; overflow: hidden; padding: 14px 0; border-bottom: 1px solid var(--border); }
+    .tag-strip-track { display: flex; gap: 10px; animation: marquee 40s linear infinite; width: max-content; }
     .tag-strip-track:hover { animation-play-state: paused; }
-
     .tag-pill {
-      padding: 5px 14px;
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      letter-spacing: -0.01em;
-      transition: all 0.15s ease;
+      padding: 6px 16px; border-radius: 100px; font-size: 11px; font-weight: 600;
+      white-space: nowrap; border: 1px solid var(--border); color: var(--text-muted);
+      letter-spacing: -0.01em; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); cursor: default;
     }
-
-    .tag-pill:hover {
-      border-color: rgba(255,87,51,0.2);
-      color: var(--accent);
-    }
-
-    @keyframes marquee {
-      from { transform: translateX(0); }
-      to { transform: translateX(-50%); }
-    }
+    .tag-pill:hover { border-color: rgba(255,87,51,0.4); color: var(--accent); transform: scale(1.05); background: rgba(255,87,51,0.05); }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
     /* ═══ SECTIONS ═══ */
-    .section {
-      position: relative;
-      z-index: 2;
-      padding: 100px 0;
+    .section { position: relative; z-index: 2; padding: 120px 0; }
+    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); margin-bottom: 12px; }
+    .section-title { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(32px, 4.5vw, 56px); font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-title .accent { font-style: italic; }
+    .section-desc { font-size: 16px; color: var(--text-secondary); max-width: 480px; line-height: 1.6; letter-spacing: -0.01em; }
+    .section-header { margin-bottom: 64px; }
+    .section-header-center { text-align: center; display: flex; flex-direction: column; align-items: center; }
+
+    /* ═══ SPOTLIGHT CARDS (Applied to Steps & Features) ═══ */
+    .spotlight-wrapper { display: grid; gap: 16px; }
+    
+    .spotlight-card {
+      position: relative; background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: 32px 24px; overflow: hidden;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease;
     }
 
-    .section-label {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--accent);
-      margin-bottom: 10px;
+    .spotlight-card::before {
+      content: ""; position: absolute; inset: 0;
+      background: radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(255,255,255,0.06), transparent 40%);
+      opacity: 0; transition: opacity 0.4s; z-index: 0; pointer-events: none;
     }
-
-    .section-title {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(28px, 3.8vw, 44px);
-      font-weight: 400;
-      line-height: 1.15;
-      letter-spacing: -0.02em;
-      margin-bottom: 14px;
-    }
-
-    .section-title .accent {
-      font-style: italic;
-    }
-
-    .section-desc {
-      font-size: 15px;
-      color: var(--text-secondary);
-      max-width: 480px;
-      line-height: 1.6;
-      letter-spacing: -0.01em;
-    }
-
-    .section-header { margin-bottom: 56px; }
-
-    .section-header-center {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+    
+    .spotlight-wrapper:hover .spotlight-card::before { opacity: 1; }
+    .spotlight-card:hover { transform: translateY(-4px); border-color: var(--border-hover); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
+    .spotlight-content { position: relative; z-index: 1; }
 
     /* ═══ STEPS ═══ */
-    .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      counter-reset: step;
+    .steps-grid { grid-template-columns: repeat(3, 1fr); counter-reset: step; }
+    .step-card { counter-increment: step; }
+    .step-card::after {
+      content: '0' counter(step); font-size: 11px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+      color: var(--text-muted); position: absolute; top: 32px; right: 24px; letter-spacing: 0.02em;
     }
-
-    .step-card {
-      position: relative;
-      padding: 32px 24px;
-      border-radius: var(--radius-lg);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      transition: all 0.2s ease;
-      counter-increment: step;
-    }
-
-    .step-card::before {
-      content: '0' counter(step);
-      font-size: 11px;
-      font-weight: 700;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--text-muted);
-      display: block;
-      margin-bottom: 16px;
-      letter-spacing: 0.02em;
-    }
-
-    .step-card:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-hover);
-      transform: translateY(-2px);
-    }
-
-    .step-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-
+    .step-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    .step-card:hover .step-icon { transform: scale(1.1) rotate(5deg); }
     .step-icon-1 { background: rgba(255,87,51,0.1); color: var(--accent); }
     .step-icon-2 { background: rgba(255,145,0,0.1); color: var(--orange); }
     .step-icon-3 { background: rgba(0,200,83,0.1); color: var(--green); }
-
-    .step-card h3 {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      letter-spacing: -0.02em;
-    }
-
-    .step-card p {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.55;
-      letter-spacing: -0.01em;
-    }
+    .step-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
+    .step-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; letter-spacing: -0.01em; }
 
     /* ═══ FEATURES ═══ */
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-    }
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
+    .feature-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--accent-subtle); color: var(--accent); margin-bottom: 16px; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+    .spotlight-card:hover .feature-icon { transform: scale(1.1); }
+    .feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; }
+    .feature-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; letter-spacing: -0.01em; }
+    
+    .feature-card-lg { grid-column: span 2; display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 48px; align-items: center; padding: 48px 40px; }
 
-    .feature-card {
-      position: relative;
-      padding: 28px 24px;
-      border-radius: var(--radius-lg);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      transition: all 0.2s ease;
-    }
-
-    .feature-card:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-hover);
-      transform: translateY(-2px);
-    }
-
-    .feature-icon {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--accent-subtle);
-      color: var(--accent);
-      margin-bottom: 14px;
-    }
-
-    .feature-card h3 {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 6px;
-      letter-spacing: -0.02em;
-    }
-
-    .feature-card p {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.55;
-      letter-spacing: -0.01em;
-    }
-
-    .feature-card-lg {
-      grid-column: span 2;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 36px;
-      align-items: center;
-      padding: 36px 32px;
-    }
-
-    /* Score mockup */
-    .score-preview {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .score-ring-mock {
-      width: 120px;
-      height: 120px;
-      position: relative;
-    }
-
-    .score-ring-mock svg {
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
-    }
-
-    .score-ring-bg {
-      fill: none;
-      stroke: rgba(255,255,255,0.06);
-      stroke-width: 5;
-    }
-
+    /* Score mockup inside large feature */
+    .score-preview { display: flex; flex-direction: column; align-items: center; gap: 24px; position: relative; }
+    .score-ring-mock { width: 140px; height: 140px; position: relative; }
+    .score-ring-mock svg { width: 100%; height: 100%; transform: rotate(-90deg); filter: drop-shadow(0 0 20px rgba(255,87,51,0.1)); }
+    .score-ring-bg { fill: none; stroke: rgba(255,255,255,0.04); stroke-width: 6; }
     .score-ring-fill {
-      fill: none;
-      stroke: var(--accent);
-      stroke-width: 5;
-      stroke-linecap: round;
-      stroke-dasharray: 377;
-      stroke-dashoffset: 85;
-      filter: drop-shadow(0 0 6px rgba(255,87,51,0.25));
-      transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+      fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round;
+      stroke-dasharray: 377; stroke-dashoffset: 377;
+      filter: drop-shadow(0 0 8px rgba(255,87,51,0.5));
+      transition: stroke-dashoffset 2s cubic-bezier(0.16, 1, 0.3, 1);
     }
+    .score-ring-mock .score-number { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -55%); font-size: 36px; font-weight: 800; letter-spacing: -0.04em; color: var(--text); }
+    .score-ring-mock .score-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, calc(-50% + 22px)); font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; }
 
-    .score-ring-mock .score-number {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -55%);
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      color: var(--text);
-    }
+    .rubric-bars-mini { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 220px; }
+    .rubric-bar-row { display: flex; align-items: center; gap: 12px; }
+    .rubric-bar-label { font-size: 10px; font-weight: 700; color: var(--text-muted); width: 60px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .rubric-bar-track { flex: 1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; }
+    .rubric-bar-fill { height: 100%; border-radius: 2px; width: 0%; transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
 
-    .score-ring-mock .score-label {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, calc(-50% + 18px));
-      font-size: 10px;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    .rubric-bars-mini {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      width: 100%;
-      max-width: 200px;
-    }
-
-    .rubric-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .rubric-bar-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-muted);
-      width: 56px;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-
-    .rubric-bar-track {
-      flex: 1;
-      height: 3px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.06);
-      overflow: hidden;
-    }
-
-    .rubric-bar-fill {
-      height: 100%;
-      border-radius: 2px;
-      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    /* ═══ SCORE BANDS ═══ */
-    .bands-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-
+    /* ═══ SCORE BANDS (Interactive Upgrades) ═══ */
+    .bands-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     .band-card {
-      padding: 24px 18px;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      background: var(--bg-card);
-      text-align: center;
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
+      padding: 32px 20px; border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--bg-card); text-align: center; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative; overflow: hidden;
     }
-
-    .band-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 2px;
-    }
-
-    .band-card:hover {
-      transform: translateY(-2px);
-      border-color: var(--border-hover);
-    }
+    .band-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; transition: height 0.3s ease; }
+    
+    .band-card:hover { transform: translateY(-6px) scale(1.02); z-index: 10; }
+    .band-card:hover::before { height: 6px; }
 
     .band-card-red::before { background: var(--red); }
+    .band-card-red:hover { border-color: rgba(255,61,0,0.3); box-shadow: 0 16px 40px rgba(255,61,0,0.1); background: rgba(255,61,0,0.02); }
+    
     .band-card-yellow::before { background: var(--yellow); }
+    .band-card-yellow:hover { border-color: rgba(255,193,7,0.3); box-shadow: 0 16px 40px rgba(255,193,7,0.1); background: rgba(255,193,7,0.02); }
+    
     .band-card-orange::before { background: var(--orange); }
+    .band-card-orange:hover { border-color: rgba(255,145,0,0.3); box-shadow: 0 16px 40px rgba(255,145,0,0.1); background: rgba(255,145,0,0.02); }
+    
     .band-card-green::before { background: var(--green); }
+    .band-card-green:hover { border-color: rgba(0,200,83,0.3); box-shadow: 0 16px 40px rgba(0,200,83,0.1); background: rgba(0,200,83,0.02); }
 
-    .band-range {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 4px;
-    }
-
+    .band-range { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; margin-bottom: 8px; transition: transform 0.3s ease; }
+    .band-card:hover .band-range { transform: scale(1.1); }
+    
     .band-card-red .band-range { color: var(--red); }
     .band-card-yellow .band-range { color: var(--yellow); }
     .band-card-orange .band-range { color: var(--orange); }
     .band-card-green .band-range { color: var(--green); }
 
-    .band-name {
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 4px;
-      letter-spacing: -0.02em;
-    }
+    .band-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.02em; color: var(--text); }
+    .band-desc { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 
-    .band-desc {
-      font-size: 11px;
-      color: var(--text-muted);
-      line-height: 1.45;
-    }
-
-    /* ═══ RUBRIC ═══ */
-    .rubric-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      max-width: 580px;
-    }
-
+    /* ═══ RUBRIC LIST (Interactive) ═══ */
+    .rubric-list { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 600px; }
     .rubric-item {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 14px 18px;
-      border-radius: var(--radius);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      transition: all 0.15s ease;
+      display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+      border-radius: var(--radius); background: var(--bg-card); border: 1px solid var(--border);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); cursor: default;
     }
-
-    .rubric-item:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--border-hover);
-    }
-
-    .rubric-item-score {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 18px;
-      font-weight: 700;
-      min-width: 32px;
-    }
-
+    .rubric-item:hover { transform: scale(1.02) translateX(4px); background: var(--bg-card-hover); border-color: var(--border-hover); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+    .rubric-item-score { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; min-width: 32px; transition: transform 0.3s; }
+    .rubric-item:hover .rubric-item-score { transform: scale(1.1); }
     .rubric-item-info { flex: 1; }
-
-    .rubric-item-name {
-      font-size: 14px;
-      font-weight: 700;
-      margin-bottom: 1px;
-      letter-spacing: -0.02em;
-    }
-
-    .rubric-item-desc {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-
-    .rubric-item-bar {
-      width: 72px;
-      height: 3px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.06);
-      overflow: hidden;
-    }
-
-    .rubric-item-bar-fill {
-      height: 100%;
-      border-radius: 2px;
-    }
+    .rubric-item-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; letter-spacing: -0.02em; color: var(--text); }
+    .rubric-item-desc { font-size: 12px; color: var(--text-muted); }
+    
+    .rubric-item-bar { width: 80px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; position: relative; }
+    .rubric-item-bar-fill { height: 100%; border-radius: 2px; position: absolute; left: 0; top: 0; transition: box-shadow 0.3s ease; }
+    .rubric-item:hover .rubric-item-bar-fill { box-shadow: 0 0 10px currentColor; }
 
     /* ═══ TESTIMONIAL ═══ */
-    .testimonial-section {
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
+    .testimonial-section { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: radial-gradient(ellipse at center, rgba(255,255,255,0.01) 0%, transparent 70%); }
     .testimonial-card {
-      max-width: 620px;
-      margin: 0 auto;
-      text-align: center;
-      padding: 32px 0;
+      max-width: 700px; margin: 0 auto; text-align: center; padding: 48px 40px;
+      background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 24px; backdrop-filter: blur(10px);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease;
     }
-
-    .testimonial-quote {
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-size: clamp(22px, 2.8vw, 30px);
-      font-weight: 400;
-      font-style: italic;
-      line-height: 1.4;
-      letter-spacing: -0.01em;
-      margin-bottom: 24px;
-      color: var(--text);
-    }
-
-    .testimonial-quote::before { content: '\201C'; color: var(--accent); }
-    .testimonial-quote::after { content: '\201D'; color: var(--accent); }
-
-    .testimonial-author {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .testimonial-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 12px;
-      color: white;
-    }
-
-    .testimonial-name {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .testimonial-role {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+    .testimonial-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.1); }
+    .testimonial-quote { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(24px, 3vw, 36px); font-weight: 400; font-style: italic; line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 32px; color: var(--text); }
+    .testimonial-quote::before { content: '\201C'; color: var(--accent); margin-right: 4px; }
+    .testimonial-quote::after { content: '\201D'; color: var(--accent); margin-left: 4px; }
+    .testimonial-author { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .testimonial-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; box-shadow: 0 4px 12px rgba(255,87,51,0.3); transition: transform 0.3s; }
+    .testimonial-card:hover .testimonial-avatar { transform: scale(1.1) rotate(5deg); }
+    .testimonial-name { font-size: 14px; font-weight: 700; text-align: left; }
+    .testimonial-role { font-size: 13px; color: var(--text-muted); text-align: left; }
 
     /* ═══ CTA ═══ */
-    .cta-section {
-      position: relative;
-      z-index: 2;
-      padding: 100px 0 80px;
-      text-align: center;
-    }
-
-    .cta-glow {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 400px;
-      height: 250px;
-      background: radial-gradient(ellipse, rgba(255,87,51,0.06), transparent 70%);
-      pointer-events: none;
-    }
-
+    .cta-section { position: relative; z-index: 2; padding: 120px 0 100px; text-align: center; overflow: hidden; }
+    .cta-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 400px; background: radial-gradient(ellipse, rgba(255,87,51,0.08), transparent 60%); pointer-events: none; transition: transform 0.3s ease; }
     .cta-content { position: relative; z-index: 1; }
 
     /* ═══ FOOTER ═══ */
-    .footer {
-      position: relative;
-      z-index: 2;
-      padding: 32px 0;
-      border-top: 1px solid var(--border);
-    }
-
-    .footer-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .footer-left {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-
-    .footer-links { display: flex; gap: 20px; }
-
-    .footer-link {
-      font-size: 12px;
-      color: var(--text-muted);
-      transition: color 0.15s ease;
-    }
-
+    .footer { position: relative; z-index: 2; padding: 32px 0; border-top: 1px solid var(--border); }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .footer-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-link { font-size: 13px; color: var(--text-muted); transition: color 0.2s ease; font-weight: 500; }
     .footer-link:hover { color: var(--text); }
 
     /* ═══ RESPONSIVE ═══ */
     @media (max-width: 900px) {
       .steps-grid { grid-template-columns: 1fr; gap: 12px; }
       .features-grid { grid-template-columns: 1fr; }
-      .feature-card-lg { grid-column: span 1; grid-template-columns: 1fr; gap: 20px; }
+      .feature-card-lg { grid-column: span 1; grid-template-columns: 1fr; gap: 32px; padding: 32px 24px; }
       .bands-grid { grid-template-columns: repeat(2, 1fr); }
-
-      .hero {
-        text-align: center;
-        justify-content: center;
-      }
+      .hero { text-align: center; justify-content: center; }
       .hero-inner { max-width: 100%; }
       .hero-ctas { justify-content: center; }
       .hero-sub { margin-left: auto; margin-right: auto; }
       .hero-bg { background-position: center center; opacity: 0.25; }
-      .hero-bg::after {
-        background:
-          radial-gradient(ellipse at center, rgba(5,5,5,0.65) 0%, rgba(5,5,5,0.92) 70%),
-          linear-gradient(to top, var(--bg) 0%, transparent 25%);
-      }
+      .hero-bg::after { background: radial-gradient(ellipse at center, rgba(5,5,5,0.65) 0%, rgba(5,5,5,0.92) 70%), linear-gradient(to top, var(--bg) 0%, transparent 25%); }
     }
-
     @media (max-width: 600px) {
       .nav-links { gap: 12px; }
       .nav-link { display: none; }
       .nav-hamburger { display: flex; }
-      .bands-grid { grid-template-columns: 1fr 1fr; }
-      .stats-inner { gap: 20px; }
-      .stat-value { font-size: 22px; }
-      .section { padding: 64px 0; }
+      .bands-grid { grid-template-columns: 1fr; }
+      .stats-inner { gap: 32px; flex-direction: column; }
+      .stat-value { font-size: 28px; }
+      .section { padding: 80px 0; }
       .hero { padding: 100px 0 60px; }
       .hero-scroll { display: none; }
+      .testimonial-card { padding: 32px 24px; }
     }
   </style>
 </head>
@@ -960,7 +368,6 @@
 
   <div class="bg-noise"></div>
 
-  <!-- NAV -->
   <nav class="nav" id="nav">
     <div class="container nav-inner">
       <a href="#" class="nav-logo">
@@ -968,10 +375,10 @@
         Pitchr
       </a>
       <div class="nav-links">
-        <a href="#how" class="nav-link">How It Works</a>
-        <a href="#features" class="nav-link">Features</a>
-        <a href="#scoring" class="nav-link">Scoring</a>
-        <a href="https://github.com/JuliusBrussee/pitchr" class="nav-cta" target="_blank" rel="noopener">
+        <a href="#how" class="nav-link mag-link">How It Works</a>
+        <a href="#features" class="nav-link mag-link">Features</a>
+        <a href="#scoring" class="nav-link mag-link">Scoring</a>
+        <a href="https://github.com/JuliusBrussee/pitchr" class="nav-cta mag-btn" target="_blank" rel="noopener">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
           GitHub
         </a>
@@ -982,7 +389,6 @@
     </div>
   </nav>
 
-  <!-- HERO -->
   <section class="hero">
     <div class="hero-bg"></div>
     <div class="container hero-inner">
@@ -998,13 +404,13 @@
       </p>
 
       <div class="hero-ctas">
-        <a href="https://github.com/JuliusBrussee/pitchr" class="btn-primary" target="_blank" rel="noopener">
+        <a href="https://github.com/JuliusBrussee/pitchr" class="btn-primary mag-btn" target="_blank" rel="noopener">
           Get Started
           <span class="btn-icon">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </span>
         </a>
-        <a href="#how" class="btn-secondary">
+        <a href="#how" class="btn-secondary mag-btn">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
           See How It Works
         </a>
@@ -1017,63 +423,34 @@
     </div>
   </section>
 
-  <!-- MARQUEE -->
   <div class="tag-strip">
     <div class="tag-strip-track">
-      <span class="tag-pill">Pitch Scoring</span>
-      <span class="tag-pill">AI Rewrite</span>
-      <span class="tag-pill">Delivery Metrics</span>
-      <span class="tag-pill">Ranked Fixes</span>
-      <span class="tag-pill">WPM Analysis</span>
-      <span class="tag-pill">Filler Detection</span>
-      <span class="tag-pill">Rubric Breakdown</span>
-      <span class="tag-pill">Deck Upload</span>
-      <span class="tag-pill">Live Q&A Sim</span>
-      <span class="tag-pill">Score History</span>
-      <span class="tag-pill">Elevator Mode</span>
-      <span class="tag-pill">VC Pitch Mode</span>
-      <span class="tag-pill">Miro Export</span>
-      <span class="tag-pill">Progress Analytics</span>
-      <span class="tag-pill">Pitch Scoring</span>
-      <span class="tag-pill">AI Rewrite</span>
-      <span class="tag-pill">Delivery Metrics</span>
-      <span class="tag-pill">Ranked Fixes</span>
-      <span class="tag-pill">WPM Analysis</span>
-      <span class="tag-pill">Filler Detection</span>
-      <span class="tag-pill">Rubric Breakdown</span>
-      <span class="tag-pill">Deck Upload</span>
-      <span class="tag-pill">Live Q&A Sim</span>
-      <span class="tag-pill">Score History</span>
-      <span class="tag-pill">Elevator Mode</span>
-      <span class="tag-pill">VC Pitch Mode</span>
-      <span class="tag-pill">Miro Export</span>
-      <span class="tag-pill">Progress Analytics</span>
+      <span class="tag-pill">Pitch Scoring</span><span class="tag-pill">AI Rewrite</span>
+      <span class="tag-pill">Delivery Metrics</span><span class="tag-pill">Ranked Fixes</span>
+      <span class="tag-pill">WPM Analysis</span><span class="tag-pill">Filler Detection</span>
+      <span class="tag-pill">Rubric Breakdown</span><span class="tag-pill">Deck Upload</span>
+      <span class="tag-pill">Live Q&A Sim</span><span class="tag-pill">Score History</span>
+      <span class="tag-pill">Elevator Mode</span><span class="tag-pill">VC Pitch Mode</span>
+      <span class="tag-pill">Miro Export</span><span class="tag-pill">Progress Analytics</span>
+      <span class="tag-pill">Pitch Scoring</span><span class="tag-pill">AI Rewrite</span>
+      <span class="tag-pill">Delivery Metrics</span><span class="tag-pill">Ranked Fixes</span>
+      <span class="tag-pill">WPM Analysis</span><span class="tag-pill">Filler Detection</span>
+      <span class="tag-pill">Rubric Breakdown</span><span class="tag-pill">Deck Upload</span>
+      <span class="tag-pill">Live Q&A Sim</span><span class="tag-pill">Score History</span>
+      <span class="tag-pill">Elevator Mode</span><span class="tag-pill">VC Pitch Mode</span>
+      <span class="tag-pill">Miro Export</span><span class="tag-pill">Progress Analytics</span>
     </div>
   </div>
 
-  <!-- STATS -->
   <section class="stats-bar">
-    <div class="container stats-inner reveal">
-      <div class="stat">
-        <div class="stat-value">100</div>
-        <div class="stat-label">Point Scale</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">5</div>
-        <div class="stat-label">Rubric Categories</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">&lt;30s</div>
-        <div class="stat-label">Analysis Time</div>
-      </div>
-      <div class="stat">
-        <div class="stat-value">2</div>
-        <div class="stat-label">Pitch Modes</div>
-      </div>
+    <div class="container stats-inner reveal stagger-1">
+      <div class="stat"><div class="stat-value">100</div><div class="stat-label">Point Scale</div></div>
+      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Rubric Categories</div></div>
+      <div class="stat"><div class="stat-value">&lt;30s</div><div class="stat-label">Analysis Time</div></div>
+      <div class="stat"><div class="stat-value">2</div><div class="stat-label">Pitch Modes</div></div>
     </div>
   </section>
 
-  <!-- HOW IT WORKS -->
   <section class="section" id="how">
     <div class="container">
       <div class="section-header section-header-center reveal">
@@ -1082,35 +459,32 @@
         <p class="section-desc">Record a live pitch or paste your script. Our AI scores you against the same rubric real investors use.</p>
       </div>
 
-      <div class="steps-grid">
-        <div class="step-card reveal">
-          <div class="step-icon step-icon-1">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      <div class="spotlight-wrapper steps-grid">
+        <div class="spotlight-card step-card reveal stagger-1">
+          <div class="spotlight-content">
+            <div class="step-icon step-icon-1"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg></div>
+            <h3>Record or Paste</h3>
+            <p>Hit record and deliver your pitch live with real-time transcription, or paste your written script. Upload your deck for context.</p>
           </div>
-          <h3>Record or Paste</h3>
-          <p>Hit record and deliver your pitch live with real-time transcription, or paste your written script. Upload your deck for context-aware analysis.</p>
         </div>
-
-        <div class="step-card reveal">
-          <div class="step-icon step-icon-2">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        <div class="spotlight-card step-card reveal stagger-2">
+          <div class="spotlight-content">
+            <div class="step-icon step-icon-2"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+            <h3>Get Scored</h3>
+            <p>AI analyzes your pitch across 5 categories — Structure, Clarity, Evidence, Market, and Delivery — giving you a score out of 100.</p>
           </div>
-          <h3>Get Scored</h3>
-          <p>AI analyzes your pitch across 5 categories — Structure, Clarity, Evidence, Market, and Delivery — giving you a score out of 100.</p>
         </div>
-
-        <div class="step-card reveal">
-          <div class="step-icon step-icon-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="spotlight-card step-card reveal stagger-3">
+          <div class="spotlight-content">
+            <div class="step-icon step-icon-3"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            <h3>Ship Investor-Ready</h3>
+            <p>Apply ranked fixes, use the AI-rewritten script, and iterate until you hit the Investor-Ready band. Track progress over time.</p>
           </div>
-          <h3>Ship Investor-Ready</h3>
-          <p>Apply ranked fixes, use the AI-rewritten script, and iterate until you hit the Investor-Ready band. Track progress over time.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- FEATURES -->
   <section class="section" id="features" style="padding-top: 24px;">
     <div class="container">
       <div class="section-header section-header-center reveal">
@@ -1118,103 +492,73 @@
         <h2 class="section-title">Everything you need to<br /><span class="accent">nail the pitch.</span></h2>
       </div>
 
-      <div class="features-grid">
-        <div class="feature-card feature-card-lg reveal">
-          <div>
-            <div class="feature-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-            </div>
+      <div class="spotlight-wrapper features-grid">
+        <div class="spotlight-card feature-card-lg reveal stagger-1">
+          <div class="spotlight-content">
+            <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
             <h3>Investor-Grade Scoring</h3>
-            <p>Your pitch is scored on a 100-point scale across 5 categories that mirror what real investors evaluate. Each category gets detailed rationale — not just a number.</p>
+            <p style="margin-bottom: 16px;">Your pitch is scored on a 100-point scale across 5 categories that mirror what real investors evaluate. Each category gets detailed rationale — not just a number.</p>
+            <a href="#scoring" class="nav-link" style="color:var(--accent);font-weight:600;display:inline-flex;align-items:center;gap:4px">See Rubric <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></a>
           </div>
-          <div>
-            <div class="score-preview">
-              <div class="score-ring-mock" id="scoreRing">
-                <svg viewBox="0 0 128 128">
-                  <circle class="score-ring-bg" cx="64" cy="64" r="60" />
-                  <circle class="score-ring-fill" cx="64" cy="64" r="60" id="scoreRingFill" />
-                </svg>
-                <div class="score-number" id="scoreNum">0</div>
-                <div class="score-label">/ 100</div>
-              </div>
-              <div class="rubric-bars-mini" id="rubricBars">
-                <div class="rubric-bar-row">
-                  <span class="rubric-bar-label">Structure</span>
-                  <div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--accent);width:0%" data-width="85%"></div></div>
-                </div>
-                <div class="rubric-bar-row">
-                  <span class="rubric-bar-label">Clarity</span>
-                  <div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--orange);width:0%" data-width="90%"></div></div>
-                </div>
-                <div class="rubric-bar-row">
-                  <span class="rubric-bar-label">Evidence</span>
-                  <div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--green);width:0%" data-width="75%"></div></div>
-                </div>
-                <div class="rubric-bar-row">
-                  <span class="rubric-bar-label">Market</span>
-                  <div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--orange);width:0%" data-width="80%"></div></div>
-                </div>
-                <div class="rubric-bar-row">
-                  <span class="rubric-bar-label">Delivery</span>
-                  <div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--red);width:0%" data-width="88%"></div></div>
-                </div>
-              </div>
+          <div class="spotlight-content score-preview">
+            <div class="score-ring-mock" id="scoreRing">
+              <svg viewBox="0 0 128 128"><circle class="score-ring-bg" cx="64" cy="64" r="60" /><circle class="score-ring-fill" cx="64" cy="64" r="60" id="scoreRingFill" /></svg>
+              <div class="score-number" id="scoreNum">0</div>
+              <div class="score-label">/ 100</div>
+            </div>
+            <div class="rubric-bars-mini" id="rubricBars">
+              <div class="rubric-bar-row"><span class="rubric-bar-label">Struct</span><div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--accent);width:0%" data-width="85%"></div></div></div>
+              <div class="rubric-bar-row"><span class="rubric-bar-label">Clarity</span><div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--orange);width:0%" data-width="90%"></div></div></div>
+              <div class="rubric-bar-row"><span class="rubric-bar-label">Evid.</span><div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--green);width:0%" data-width="75%"></div></div></div>
+              <div class="rubric-bar-row"><span class="rubric-bar-label">Market</span><div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--orange);width:0%" data-width="80%"></div></div></div>
+              <div class="rubric-bar-row"><span class="rubric-bar-label">Deliv.</span><div class="rubric-bar-track"><div class="rubric-bar-fill" style="background:var(--red);width:0%" data-width="88%"></div></div></div>
             </div>
           </div>
         </div>
 
-        <div class="feature-card reveal">
-          <div class="feature-icon" style="background:rgba(255,145,0,0.1);color:var(--orange)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14Z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+        <div class="spotlight-card reveal stagger-2">
+          <div class="spotlight-content">
+            <div class="feature-icon" style="background:rgba(255,145,0,0.1);color:var(--orange)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14Z"/></svg></div>
+            <h3>Ranked Fixes</h3>
+            <p>Get a prioritized list of exactly what to fix, ranked by impact. Each fix targets a specific rubric category.</p>
           </div>
-          <h3>Ranked Fixes</h3>
-          <p>Get a prioritized list of exactly what to fix, ranked by impact. Each fix targets a specific rubric category.</p>
         </div>
 
-        <div class="feature-card reveal">
-          <div class="feature-icon" style="background:rgba(0,200,83,0.1);color:var(--green)">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <div class="spotlight-card reveal stagger-3">
+          <div class="spotlight-content">
+            <div class="feature-icon" style="background:rgba(0,200,83,0.1);color:var(--green)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+            <h3>AI Script Rewrite</h3>
+            <p>See your pitch rewritten by AI with a side-by-side diff view. Every change is highlighted so you learn why.</p>
           </div>
-          <h3>AI Script Rewrite</h3>
-          <p>See your pitch rewritten by AI with a side-by-side diff view. Every change is highlighted so you learn why.</p>
         </div>
 
-        <div class="feature-card reveal">
-          <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+        <div class="spotlight-card reveal stagger-1">
+          <div class="spotlight-content">
+            <div class="feature-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg></div>
+            <h3>Delivery Metrics</h3>
+            <p>WPM, filler word count, pauses, repetition detection, and duration analysis. Speak at the right pace.</p>
           </div>
-          <h3>Delivery Metrics</h3>
-          <p>WPM, filler word count, pauses, repetition detection, and duration analysis. Speak at the right pace.</p>
         </div>
 
-        <div class="feature-card reveal">
-          <div class="feature-icon" style="background:rgba(168,85,247,0.1);color:#a855f7">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg>
+        <div class="spotlight-card reveal stagger-2">
+          <div class="spotlight-content">
+            <div class="feature-icon" style="background:rgba(168,85,247,0.1);color:#a855f7"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></svg></div>
+            <h3>Deck Integration</h3>
+            <p>Upload your pitch deck for context-aware scoring. The AI factors in your slides when analyzing structure and claims.</p>
           </div>
-          <h3>Deck Integration</h3>
-          <p>Upload your pitch deck for context-aware scoring. The AI factors in your slides when analyzing structure and claims.</p>
         </div>
 
-        <div class="feature-card reveal">
-          <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/><path d="M2 20h20"/></svg>
+        <div class="spotlight-card reveal stagger-3">
+          <div class="spotlight-content">
+            <div class="feature-icon" style="background:rgba(245,158,11,0.1);color:#f59e0b"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/><path d="M2 20h20"/></svg></div>
+            <h3>Progress Analytics</h3>
+            <p>Track your scores over time. See how each rubric category improves session after session.</p>
           </div>
-          <h3>Progress Analytics</h3>
-          <p>Track your scores over time. See how each rubric category improves session after session.</p>
-        </div>
-
-        <div class="feature-card reveal">
-          <div class="feature-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <h3>Live Q&A Simulation</h3>
-          <p>Practice investor Q&A in real time. AI simulates tough questions based on your pitch.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- SCORING -->
   <section class="section" id="scoring">
     <div class="container">
       <div class="section-header section-header-center reveal">
@@ -1223,7 +567,7 @@
         <p class="section-desc">Your pitch is evaluated across five investor-critical dimensions, mapped to clear score bands.</p>
       </div>
 
-      <div class="bands-grid reveal">
+      <div class="bands-grid reveal stagger-1">
         <div class="band-card band-card-red">
           <div class="band-range">0 — 39</div>
           <div class="band-name">Needs Work</div>
@@ -1246,20 +590,20 @@
         </div>
       </div>
 
-      <div style="margin-top:56px;display:flex;flex-direction:column;align-items:center;">
-        <div class="section-header section-header-center reveal" style="margin-bottom:28px">
+      <div style="margin-top:80px;display:flex;flex-direction:column;align-items:center;">
+        <div class="section-header section-header-center reveal" style="margin-bottom:32px">
           <div class="section-label">The Rubric</div>
-          <h2 class="section-title" style="font-size:clamp(20px,2.5vw,28px)">Five categories. <span class="accent">20 points each.</span></h2>
+          <h2 class="section-title" style="font-size:clamp(24px,3vw,36px)">Five categories. <span class="accent">20 points each.</span></h2>
         </div>
 
-        <div class="rubric-list reveal">
+        <div class="rubric-list reveal stagger-2">
           <div class="rubric-item">
             <div class="rubric-item-score" style="color:var(--accent)">20</div>
             <div class="rubric-item-info">
               <div class="rubric-item-name">Structure</div>
               <div class="rubric-item-desc">Problem, Solution, Why Now, Traction, Ask</div>
             </div>
-            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--accent)"></div></div>
+            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--accent); color:var(--accent)"></div></div>
           </div>
           <div class="rubric-item">
             <div class="rubric-item-score" style="color:var(--orange)">20</div>
@@ -1267,7 +611,7 @@
               <div class="rubric-item-name">Clarity</div>
               <div class="rubric-item-desc">Every sentence earns its place, no jargon</div>
             </div>
-            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--orange)"></div></div>
+            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--orange); color:var(--orange)"></div></div>
           </div>
           <div class="rubric-item">
             <div class="rubric-item-score" style="color:var(--green)">20</div>
@@ -1275,7 +619,7 @@
               <div class="rubric-item-name">Evidence</div>
               <div class="rubric-item-desc">Specific numbers, named customers, milestones</div>
             </div>
-            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--green)"></div></div>
+            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--green); color:var(--green)"></div></div>
           </div>
           <div class="rubric-item">
             <div class="rubric-item-score" style="color:#f97316">20</div>
@@ -1283,7 +627,7 @@
               <div class="rubric-item-name">Market</div>
               <div class="rubric-item-desc">TAM/SAM sourced, competitors named, moat articulated</div>
             </div>
-            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:#f97316"></div></div>
+            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:#f97316; color:#f97316"></div></div>
           </div>
           <div class="rubric-item">
             <div class="rubric-item-score" style="color:var(--red)">20</div>
@@ -1291,15 +635,14 @@
               <div class="rubric-item-name">Delivery</div>
               <div class="rubric-item-desc">130-160 WPM, minimal fillers, no repetition</div>
             </div>
-            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--red)"></div></div>
+            <div class="rubric-item-bar"><div class="rubric-item-bar-fill" style="width:100%;background:var(--red); color:var(--red)"></div></div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- TESTIMONIAL -->
-  <section class="section testimonial-section" style="padding:64px 0">
+  <section class="section testimonial-section" style="padding:100px 0">
     <div class="container">
       <div class="testimonial-card reveal">
         <div class="testimonial-quote">
@@ -1316,32 +659,30 @@
     </div>
   </section>
 
-  <!-- CTA -->
-  <section class="cta-section">
-    <div class="cta-glow"></div>
+  <section class="cta-section" id="ctaContainer">
+    <div class="cta-glow" id="ctaGlow"></div>
     <div class="container cta-content reveal">
       <div class="section-label" style="text-align:center">Ready?</div>
-      <h2 class="section-title" style="text-align:center;margin-bottom:16px">Stop guessing.<br /><span class="accent">Start scoring.</span></h2>
-      <p class="section-desc" style="text-align:center;margin:0 auto 32px">
+      <h2 class="section-title" style="text-align:center;margin-bottom:20px">Stop guessing.<br /><span class="accent">Start scoring.</span></h2>
+      <p class="section-desc" style="text-align:center;margin:0 auto 40px">
         Your next pitch meeting doesn't have to be a coin flip. Get AI-powered scoring, fixes, and a rewritten script — free and open source.
       </p>
       <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
-        <a href="https://github.com/JuliusBrussee/pitchr" class="btn-primary" target="_blank" rel="noopener">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+        <a href="https://github.com/JuliusBrussee/pitchr" class="btn-primary mag-btn" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
           Star on GitHub
           <span class="btn-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </span>
         </a>
       </div>
     </div>
   </section>
 
-  <!-- FOOTER -->
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-left">
-        <div class="nav-logo-dot" style="width:5px;height:5px"></div>
+        <div class="nav-logo-dot" style="width:6px;height:6px"></div>
         Pitchr — Open Source AI Pitch Coach
       </div>
       <div class="footer-links">
@@ -1353,26 +694,67 @@
   </footer>
 
   <script>
-    /* Scroll reveal */
-    const reveals = document.querySelectorAll('.reveal');
+    // --- 1. Staggered Intersection Observer (Reveals) ---
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          setTimeout(() => entry.target.classList.add('visible'), i * 60);
+          let delay = 0;
+          if (entry.target.classList.contains('stagger-1')) delay = 0;
+          if (entry.target.classList.contains('stagger-2')) delay = 150;
+          if (entry.target.classList.contains('stagger-3')) delay = 300;
+          
+          setTimeout(() => { entry.target.classList.add('visible'); }, delay);
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
-    reveals.forEach(el => observer.observe(el));
+    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-    /* Nav scroll */
+    // --- 2. Spotlight Effect Tracker ---
+    document.querySelectorAll('.spotlight-wrapper').forEach(wrapper => {
+      wrapper.addEventListener('mousemove', e => {
+        wrapper.querySelectorAll('.spotlight-card').forEach(card => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          card.style.setProperty('--mouse-x', `${x}px`);
+          card.style.setProperty('--mouse-y', `${y}px`);
+        });
+      });
+    });
+
+    // --- 3. Magnetic Buttons ---
+    document.querySelectorAll('.mag-btn').forEach(btn => {
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        const x = (e.clientX - rect.left) - rect.width / 2;
+        const y = (e.clientY - rect.top) - rect.height / 2;
+        btn.style.transform = `translate(${x * 0.25}px, ${y * 0.25}px) scale(1.05)`;
+      });
+      btn.addEventListener('mouseleave', () => { btn.style.transform = ''; });
+    });
+
+    // --- 4. CTA Hover Glow Tracking ---
+    const ctaContainer = document.getElementById('ctaContainer');
+    const ctaGlow = document.getElementById('ctaGlow');
+    if (ctaContainer && ctaGlow) {
+      ctaContainer.addEventListener('mousemove', (e) => {
+        const rect = ctaContainer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        ctaGlow.style.left = `${x}px`;
+        ctaGlow.style.top = `${y}px`;
+      });
+    }
+
+    // --- 5. Nav Blur on Scroll ---
     window.addEventListener('scroll', () => {
       const nav = document.getElementById('nav');
       if (window.scrollY > 50) nav.classList.add('scrolled');
       else nav.classList.remove('scrolled');
     }, { passive: true });
 
-    /* Animated score counter */
+    // --- 6. Score Ring & Dashboard Animation ---
     const scoreRing = document.getElementById('scoreRing');
     const scoreNum = document.getElementById('scoreNum');
     const scoreRingFill = document.getElementById('scoreRingFill');
@@ -1383,29 +765,36 @@
         if (entry.isIntersecting && !scoreAnimated) {
           scoreAnimated = true;
           const target = 87;
-          const circumference = 2 * Math.PI * 60;
+          const circumference = 377; // 2 * pi * 60
           const offset = circumference - (target / 100) * circumference;
-          scoreRingFill.style.strokeDashoffset = offset;
 
+          setTimeout(() => { scoreRingFill.style.strokeDashoffset = offset; }, 200);
+
+          // Spring-like counter tick
           let current = 0;
-          const step = () => {
-            current += 1;
-            if (current <= target) {
-              scoreNum.textContent = current;
-              requestAnimationFrame(step);
-            }
+          const duration = 1500;
+          const startTime = performance.now();
+          const easeOutQuad = t => t * (2 - t);
+          
+          const step = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            current = Math.floor(easeOutQuad(progress) * target);
+            scoreNum.textContent = current;
+            if (progress < 1) requestAnimationFrame(step);
           };
-          setTimeout(step, 300);
+          requestAnimationFrame(step);
 
+          // Stagger mini bars
           document.querySelectorAll('.rubric-bar-fill[data-width]').forEach((bar, i) => {
-            setTimeout(() => { bar.style.width = bar.dataset.width; }, 400 + i * 100);
+            setTimeout(() => { bar.style.width = bar.dataset.width; }, 500 + (i * 120));
           });
         }
       });
-    }, { threshold: 0.3 });
-    scoreObserver.observe(scoreRing);
+    }, { threshold: 0.5 });
+    if(scoreRing) scoreObserver.observe(scoreRing);
 
-    /* Smooth scroll */
+    // --- 7. Smooth Scroll ---
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
       anchor.addEventListener('click', function(e) {
         const target = document.querySelector(this.getAttribute('href'));
