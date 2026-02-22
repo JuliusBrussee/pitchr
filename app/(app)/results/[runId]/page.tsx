@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import type { FeedbackOutput, OneMinuteQAPack } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
+import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 
 type ResultTab = 'feedback' | 'qa';
 
@@ -278,6 +279,8 @@ export default function ResultsPage() {
           </Link>
         </div>
       </header>
+
+      <RecordingPlayer recordingUrl={run.audioUrl} />
 
       <section
         className="rounded-2xl border p-5"

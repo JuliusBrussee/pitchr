@@ -19,7 +19,7 @@ export function AskSlide({ slide, template, pageNumber }: AskSlideProps) {
       alignItems: 'center',
     },
     askAmount: {
-      fontSize: 56,
+      fontSize: 64,
       fontFamily: template.fonts.headline,
       color: template.colors.accent,
       marginBottom: 8,
@@ -28,7 +28,7 @@ export function AskSlide({ slide, template, pageNumber }: AskSlideProps) {
       fontSize: 14,
       fontFamily: template.fonts.body,
       color: template.colors.textSecondary,
-      marginBottom: 32,
+      marginBottom: 36,
     },
     useFundsContainer: {
       width: '70%',
@@ -36,12 +36,13 @@ export function AskSlide({ slide, template, pageNumber }: AskSlideProps) {
     useFundsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      paddingVertical: 10,
+      alignItems: 'center',
+      paddingVertical: 12,
       borderBottomWidth: 1,
       borderBottomColor: template.colors.backgroundSecondary,
     },
     useFundsLabel: {
-      fontSize: 14,
+      fontSize: 15,
       fontFamily: template.fonts.headline,
       color: template.colors.text,
     },
@@ -49,6 +50,8 @@ export function AskSlide({ slide, template, pageNumber }: AskSlideProps) {
       fontSize: 13,
       fontFamily: template.fonts.body,
       color: template.colors.textSecondary,
+      maxWidth: '60%',
+      textAlign: 'right',
     },
   });
 

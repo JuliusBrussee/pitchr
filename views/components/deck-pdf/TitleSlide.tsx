@@ -13,40 +13,53 @@ export function TitleSlide({ slide, template, companyName }: TitleSlideProps) {
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      justifyContent: 'center',
+      flexDirection: 'row',
       alignItems: 'center',
     },
+    accentBar: {
+      width: 5,
+      height: '60%',
+      backgroundColor: template.colors.accent,
+      borderRadius: 3,
+      marginRight: 32,
+    },
+    content: {
+      flex: 1,
+      maxWidth: '65%',
+    },
     companyName: {
-      fontSize: 14,
+      fontSize: 12,
       fontFamily: template.fonts.body,
       color: template.colors.accent,
-      marginBottom: 16,
-      letterSpacing: 3,
+      letterSpacing: 2.5,
+      marginBottom: 14,
     },
     headline: {
-      fontSize: 44,
+      fontSize: 52,
       fontFamily: template.fonts.headline,
       color: template.colors.text,
-      textAlign: 'center',
-      marginBottom: 12,
+      lineHeight: 1.1,
+      marginBottom: 14,
     },
     subheadline: {
-      fontSize: 18,
+      fontSize: 17,
       fontFamily: template.fonts.body,
       color: template.colors.textSecondary,
-      textAlign: 'center',
-      maxWidth: 500,
+      lineHeight: 1.5,
     },
   });
 
   return (
     <SlideBase template={template} pageNumber={1}>
       <View style={styles.container}>
-        <Text style={styles.companyName}>{companyName.toUpperCase()}</Text>
-        <Text style={styles.headline}>{slide.headline}</Text>
-        {slide.subheadline && (
-          <Text style={styles.subheadline}>{slide.subheadline}</Text>
-        )}
+        <View style={styles.accentBar} />
+        <View style={styles.content}>
+          <Text style={styles.companyName}>{companyName.toUpperCase()}</Text>
+          <Text style={styles.headline}>{slide.headline}</Text>
+          {slide.subheadline && (
+            <Text style={styles.subheadline}>{slide.subheadline}</Text>
+          )}
+        </View>
       </View>
     </SlideBase>
   );

@@ -26,9 +26,11 @@ export function MetricsSlide({ slide, template, pageNumber }: MetricsSlideProps)
     right: {
       width: '60%',
       paddingLeft: 24,
+      borderLeftWidth: 2,
+      borderLeftColor: template.colors.accent,
     },
     bigCalloutValue: {
-      fontSize: 48,
+      fontSize: 64,
       fontFamily: template.fonts.headline,
       color: template.colors.accent,
     },
@@ -36,13 +38,15 @@ export function MetricsSlide({ slide, template, pageNumber }: MetricsSlideProps)
       fontSize: 14,
       fontFamily: template.fonts.body,
       color: template.colors.textSecondary,
-      marginTop: 6,
+      marginTop: 8,
+      textAlign: 'center',
     },
   });
 
   return (
     <SlideBase template={template} pageNumber={pageNumber}>
       <Text style={baseStyles.headline}>{slide.headline}</Text>
+      <View style={baseStyles.accentRule} />
       {slide.subheadline && (
         <Text style={baseStyles.subheadline}>{slide.subheadline}</Text>
       )}

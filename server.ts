@@ -263,13 +263,7 @@ wss.on("connection", (clientWs) => {
       clearTimeout(fallbackTimeout);
       fallbackTimeout = null;
     }
-    // #region agent log
     const finalTranscript = getChecklistTranscript();
-    const half = Math.floor(finalTranscript.length / 2);
-    const firstHalf = finalTranscript.slice(0, half);
-    const secondHalf = finalTranscript.slice(half);
-    fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:flushAndSave", message: "before write", data: { transcriptLen: finalTranscript.length, segmentsCount: segments.length, segmentTexts: segments.map((s) => s.text.length), firstHalfEqSecond: firstHalf === secondHalf, transcriptStart: finalTranscript.slice(0, 100) }, timestamp: Date.now(), hypothesisId: "H4" }) }).catch(() => {});
-    // #endregion
     const baseDir = path.join(process.cwd(), "transcript");
     const txtDir = path.join(baseDir, "txt");
     const jsonDir = path.join(baseDir, "json");
@@ -311,7 +305,7 @@ wss.on("connection", (clientWs) => {
       feedbackQuestion,
       feedbackError,
     });
-    // Voice feedback: always speak the question via ElevenLabs so the user hears it and can answer
+    // Voice feedback: speak the question via ElevenLabs so the user hears it and can answer
     if (feedbackQuestion && clientWs.readyState === WebSocket.OPEN) {
       try {
         const { audio } = await synthesizeMp3(feedbackQuestion);
@@ -374,9 +368,6 @@ wss.on("connection", (clientWs) => {
         segments.pop();
         segments.push({ text: msg.text, start, end });
         queueChecklistEvaluation(stopRequested);
-        // #region agent log
-        fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:committed_transcript_with_timestamps", message: "replaced segment H6", data: { lastLen: lastText.length, newLen: msg.text.length }, timestamp: Date.now(), hypothesisId: "H6", runId: "post-fix" }) }).catch(() => {});
-        // #endregion
         if (!answerMode && stopRequested && !saveDone && !saveTimeout) {
           if (fallbackTimeout) {
             clearTimeout(fallbackTimeout);
@@ -384,17 +375,13 @@ wss.on("connection", (clientWs) => {
           }
           saveTimeout = setTimeout(async () => {
             saveTimeout = null;
-            await flushAndSave();
+            flushAndSave();
             if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
           }, 800);
         }
         return;
       }
 
-      // #region agent log
-      const skipped = segments.length > 0 && lastText === msg.text;
-      fetch("http://127.0.0.1:7941/ingest/012d3377-6e83-4feb-8f7e-f56921fb8148", { method: "POST", headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "a91b2c" }, body: JSON.stringify({ sessionId: "a91b2c", location: "server.ts:committed_transcript_with_timestamps", message: "commit event", data: { textLen: msg.text.length, textStart: msg.text.slice(0, 80), segmentsLenBefore: segments.length, lastSegmentStart: lastText ? lastText.slice(0, 80) : null, skipped, exactMatch: lastText === msg.text }, timestamp: Date.now(), hypothesisId: "H1_H2_H5" }) }).catch(() => {});
-      // #endregion
       transcript += msg.text;
       segments.push({ text: msg.text, start, end });
       queueChecklistEvaluation(stopRequested);
@@ -405,7 +392,7 @@ wss.on("connection", (clientWs) => {
         }
         saveTimeout = setTimeout(async () => {
           saveTimeout = null;
-          await flushAndSave();
+          flushAndSave();
           if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
         }, 800);
       }
@@ -484,7 +471,7 @@ wss.on("connection", (clientWs) => {
       if (fallbackTimeout) clearTimeout(fallbackTimeout);
       fallbackTimeout = setTimeout(async () => {
         fallbackTimeout = null;
-        await flushAndSave();
+        flushAndSave();
         if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
       }, 1500);
       return;

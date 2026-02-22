@@ -13,73 +13,46 @@ interface TeamSlideProps {
 export function TeamSlide({ slide, template, pageNumber }: TeamSlideProps) {
   const baseStyles = createSlideStyles(template);
   const styles = StyleSheet.create({
-    cardRow: {
-      flexDirection: 'row',
+    memberList: {
       marginTop: 20,
     },
-    card: {
-      flex: 1,
+    memberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      marginBottom: 12,
       backgroundColor: template.colors.backgroundSecondary,
       borderRadius: 8,
-      padding: 16,
-      marginRight: 16,
-      alignItems: 'center',
-    },
-    cardLast: {
-      flex: 1,
-      backgroundColor: template.colors.backgroundSecondary,
-      borderRadius: 8,
-      padding: 16,
-      alignItems: 'center',
-    },
-    avatar: {
-      width: 48,
-      height: 48,
-      borderRadius: 24,
-      backgroundColor: template.colors.accent,
-      marginBottom: 10,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarText: {
-      fontSize: 18,
-      fontFamily: template.fonts.headline,
-      color: template.colors.background,
+      borderLeftWidth: 4,
+      borderLeftColor: template.colors.accent,
     },
     name: {
-      fontSize: 14,
+      fontSize: 16,
       fontFamily: template.fonts.headline,
       color: template.colors.text,
-      textAlign: 'center',
+      width: '35%',
     },
-    role: {
-      fontSize: 11,
+    credential: {
+      fontSize: 13,
       fontFamily: template.fonts.body,
       color: template.colors.textSecondary,
-      textAlign: 'center',
-      marginTop: 4,
+      flex: 1,
     },
   });
 
   return (
     <SlideBase template={template} pageNumber={pageNumber}>
       <Text style={baseStyles.headline}>{slide.headline}</Text>
+      <View style={baseStyles.accentRule} />
       {slide.subheadline && (
         <Text style={baseStyles.subheadline}>{slide.subheadline}</Text>
       )}
-      <View style={styles.cardRow}>
+      <View style={styles.memberList}>
         {slide.bullets.map((member, i) => (
-          <View
-            key={i}
-            style={i < slide.bullets.length - 1 ? styles.card : styles.cardLast}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {member.text.charAt(0).toUpperCase()}
-              </Text>
-            </View>
+          <View key={i} style={styles.memberRow}>
             <Text style={styles.name}>{member.text}</Text>
-            <Text style={styles.role}>{member.detail}</Text>
+            <Text style={styles.credential}>{member.detail}</Text>
           </View>
         ))}
       </View>

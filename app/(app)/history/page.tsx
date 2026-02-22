@@ -24,6 +24,8 @@ import {
   getModeLabel,
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui';
+import { RecordingPlayer } from '@/views/components/RecordingPlayer';
+import { RunDetailModal } from '@/views/components/RunDetailModal';
 
 /* ——— Types ——— */
 
@@ -36,6 +38,7 @@ interface HistoryRun {
   one_line_verdict: string;
   createdAt: string;
   duration_seconds: number;
+  audioUrl?: string;
   deck?: string;
   dateGroup: 'today' | 'yesterday' | 'thisWeek' | 'earlier';
 }
@@ -46,6 +49,7 @@ interface RunRecord {
   inputType: string;
   overallScore: number;
   createdAt: string;
+  audioUrl?: string;
   analysis: {
     one_line_verdict: string;
     delivery_metrics: { duration_seconds: number };
@@ -105,6 +109,7 @@ export default function HistoryPage() {
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
   const [visibleCount, setVisibleCount] = useState(8);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/pitch/run')
@@ -120,6 +125,7 @@ export default function HistoryPage() {
           one_line_verdict: r.analysis.one_line_verdict,
           createdAt: r.createdAt,
           duration_seconds: r.analysis.delivery_metrics.duration_seconds,
+          audioUrl: r.audioUrl,
           deck: undefined,
           dateGroup: getDateGroup(r.createdAt),
         }));
@@ -317,6 +323,7 @@ export default function HistoryPage() {
                           animationDelay: `${idx * 50}ms`,
                           animationFillMode: 'both',
                         }}
+                        onClick={() => setSelectedRunId(run.id)}
                         onMouseEnter={(e) => {
                           e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
                         }}
@@ -364,6 +371,13 @@ export default function HistoryPage() {
                             {formatDuration(run.duration_seconds)}
                           </span>
                         </div>
+
+                        {/* Recording playback */}
+                        {run.audioUrl && (
+                          <div className="flex-shrink-0">
+                            <RecordingPlayer recordingUrl={run.audioUrl} compact />
+                          </div>
+                        )}
 
                         {/* Score badge */}
                         <div className="flex-shrink-0">
@@ -437,6 +451,7 @@ export default function HistoryPage() {
                             animationDelay: `${idx * 60}ms`,
                             animationFillMode: 'both',
                           }}
+                          onClick={() => setSelectedRunId(run.id)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
                           }}
@@ -510,6 +525,11 @@ export default function HistoryPage() {
                             {run.one_line_verdict}
                           </p>
 
+                          {/* Recording playback */}
+                          {run.audioUrl && (
+                            <RecordingPlayer recordingUrl={run.audioUrl} compact />
+                          )}
+
                           {/* Meta row */}
                           <div className="flex items-center gap-3 mt-auto pt-1">
                             <span className="text-xs flex items-center gap-1" style={{ color: 'var(--text-muted)' }}>
@@ -574,6 +594,11 @@ export default function HistoryPage() {
           </span>
         </div>
       </GlassCard>
+
+      <RunDetailModal
+        runId={selectedRunId}
+        onClose={() => setSelectedRunId(null)}
+      />
     </main>
   );
 }

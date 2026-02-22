@@ -1,21 +1,36 @@
 export type SlideType =
-  | 'title'
+  | 'hook'
   | 'problem'
   | 'solution'
-  | 'market'
-  | 'product'
-  | 'business_model'
   | 'traction'
-  | 'competition'
+  | 'market'
+  | 'business_model'
   | 'team'
   | 'ask';
 
+// Legacy types from 10-slide format — used for backward compat with stored decks
+export type LegacySlideType =
+  | 'title'
+  | 'product'
+  | 'competition';
+
+// All possible types that can appear in stored deck data
+export type AnySlideType = SlideType | LegacySlideType;
+
+export type LayoutHint =
+  | 'centered'
+  | 'two-column'
+  | 'comparison'
+  | 'cards'
+  | 'big-number';
+
 export interface GeneratedSlide {
-  type: SlideType;
+  type: AnySlideType;
   headline: string;
   subheadline?: string;
   bullets: Array<{ text: string; detail?: string }>;
   callout?: { value: string; label: string };
+  layout_hint?: LayoutHint;
 }
 
 export type GeneratedDeck = GeneratedSlide[];
