@@ -60,6 +60,7 @@ Pitchr compresses pitch iteration loops by combining:
 - Deck upload (PDF/PPTX), extraction, and deck generation
 - Optional Miro fix-board creation and sync
 - Optional coach audio feedback flows (ElevenLabs TTS)
+- Optional Paid AI value-proof signal sync for completed runs
 
 ### 3.2 Explicitly Out Of Scope For MVP
 
@@ -132,6 +133,14 @@ Pitchr compresses pitch iteration loops by combining:
 - Board metadata is cached client-side in store.
 - Sync endpoint `GET /api/miro/fix-board/sync` refreshes fix statuses.
 - Markdown fallback available via `POST /api/miro/fix-board/markdown`.
+
+### 5.5 Paid AI Workflow
+
+- After a run reaches `complete`, queue processing triggers Paid sync.
+- Signal `pitch_analysis_completed` is sent for each completed run.
+- Signal `investor_ready_achieved` is sent when overall score is at least 80.
+- Sync status (`sent | skipped | failed`) is persisted under run analysis economics metadata.
+- Sync failures do not fail or roll back the run completion path.
 
 ## 6. Functional Requirements
 
@@ -483,6 +492,8 @@ Migrations create and evolve:
 - `ELEVENLABS_API_KEY_TTS`
 - `ELEVENLABS_VOICE_ID`
 - `MIRO_ENABLED`, `MIRO_PROVIDER`, `MIRO_ACCESS_TOKEN`, `MIRO_TEAM_ID`
+- `PAID_ENABLED`, `PAID_API_KEY`, `PAID_API_BASE_URL`
+- `PAID_PRODUCT_ID`, `PAID_CUSTOMER_ID`, `PAID_ORDER_ID`
 - `NEXT_PUBLIC_WS_URL`
 - `PORT`
 
@@ -625,4 +636,3 @@ Secondary demo path:
 - Planning audits: `.planning/codebase/*`
 - Integration setup: `docs/SUPABASE_SETUP.md`, `docs/integrations/miro.md`
 - Runtime overview: `README.md`
-

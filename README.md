@@ -9,6 +9,7 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - Persistence: Supabase Postgres (`runs`, `decks`, `slides`) + Supabase Storage (`decks`, `recordings`)
 - STT: ElevenLabs realtime via local WebSocket proxy (`server.ts`)
 - LLM routing: Anthropic (default) or OpenRouter (env-selected)
+- Paid AI: optional value-proof signal sync on completed runs (`services/paidService.ts`)
 - Fallback: deterministic/sample analysis payload if model calls fail
 - Planning files currently present in `.planning/codebase/` (stack, architecture, structure, conventions, integrations, concerns)
 
@@ -99,7 +100,10 @@ Optional:
 - `PORT` (STT backend)
 - `NEXT_PUBLIC_WS_URL`
 - `MIRO_ENABLED`, `MIRO_PROVIDER`, `MIRO_ACCESS_TOKEN`, `MIRO_TEAM_ID`
-- `PAID_ENABLED`, `PAID_API_KEY`, `PAID_API_BASE_URL`, `PAID_PRODUCT_ID`, `PAID_CUSTOMER_ID`, `PAID_ORDER_ID`
+- `PAID_ENABLED` (`true` to enable Paid AI sync)
+- `PAID_API_KEY` (required when `PAID_ENABLED=true`)
+- `PAID_API_BASE_URL` (default: `https://api.paid.ai`)
+- `PAID_PRODUCT_ID`, `PAID_CUSTOMER_ID`, `PAID_ORDER_ID` (optional Paid metadata)
 - `FOUNDER_HOURLY_RATE_USD`, `VALUE_PER_SCORE_POINT_USD`
 - `ANTHROPIC_INPUT_PER_1M_USD`, `ANTHROPIC_OUTPUT_PER_1M_USD`
 - `OPENROUTER_INPUT_PER_1M_USD`, `OPENROUTER_OUTPUT_PER_1M_USD`
@@ -130,6 +134,20 @@ Miro:
 - `POST /api/miro/fix-board`
 - `GET /api/miro/fix-board/sync`
 - `POST /api/miro/fix-board/markdown`
+
+## Paid AI Integration (Optional)
+
+Pitchr can send post-analysis value signals to Paid AI after a run reaches `complete`.
+
+- Enable with `PAID_ENABLED=true` and set `PAID_API_KEY`.
+- Signal endpoint defaults to `https://api.paid.ai/v1/signals` (`PAID_API_BASE_URL` override supported).
+- Sent signals:
+  - `pitch_analysis_completed` for every completed run
+  - `investor_ready_achieved` when score is `>= 80`
+- Payload includes run metadata and economics fields like estimated run cost, value, ROI, and time saved.
+- Sync failures are non-blocking for the user flow; run completion still succeeds and Paid sync status is stored in run metadata.
+
+Detailed setup and payload behavior: `docs/integrations/paid-ai.md`
 
 ## Analysis Flow
 

@@ -169,6 +169,12 @@ ANTHROPIC_API_KEY=     # Claude API (required for LLM scoring)
 GOOGLE_AI_API_KEY=     # Gemini fallback (optional)
 ELEVENLABS_API_KEY_STT=    # STT realtime (required for speech-to-text)
 MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
+PAID_ENABLED=          # Optional Paid AI signal sync toggle (true/false)
+PAID_API_KEY=          # Paid AI API key (required when PAID_ENABLED=true)
+PAID_API_BASE_URL=     # Optional override (default: https://api.paid.ai)
+PAID_PRODUCT_ID=       # Optional product metadata
+PAID_CUSTOMER_ID=      # Optional customer metadata (default demo-founder)
+PAID_ORDER_ID=         # Optional order metadata
 ```
 
 ## Implementation Phases (from PRD Section 16)
