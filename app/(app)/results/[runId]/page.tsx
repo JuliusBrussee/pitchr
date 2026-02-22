@@ -7,10 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { FeedbackOutput, OneMinuteQAPack, PaidSyncMeta, RunEconomics } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
 import {
-  DeliveryEventsTimeline,
-  GoodBadSummary,
   InvestorDrill,
-  PreviousRunsLinks,
   ReasoningPanel,
   RewriteDiffPanel,
   RubricBreakdown,
@@ -109,6 +106,22 @@ function getMiroPollIntervalMs(): number {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return 8_000;
   return parsed;
+}
+
+function getRunPollMs(): { initial: number; max: number; step: number } {
+  const initialRaw = process.env.NEXT_PUBLIC_RUN_POLL_INITIAL_MS;
+  const maxRaw = process.env.NEXT_PUBLIC_RUN_POLL_MAX_MS;
+  const stepRaw = process.env.NEXT_PUBLIC_RUN_POLL_STEP_MS;
+
+  const initial = Number.parseInt(initialRaw ?? '', 10);
+  const max = Number.parseInt(maxRaw ?? '', 10);
+  const step = Number.parseInt(stepRaw ?? '', 10);
+
+  return {
+    initial: Number.isFinite(initial) && initial >= 1_000 ? initial : 2_000,
+    max: Number.isFinite(max) && max >= 2_000 ? max : 8_000,
+    step: Number.isFinite(step) && step >= 250 ? step : 500,
+  };
 }
 
 interface MiroCreateFixBoardPayload {
@@ -257,6 +270,15 @@ export default function ResultsPage() {
     if (!runId) {
       setMiroBoard(null);
       setMiroLocalSnapshot(null);
+      setIsLoadingMiroBoard(false);
+      return;
+    }
+
+    // Wait until run completes before loading fix-board metadata.
+    if (run?.status !== 'complete') {
+      setMiroBoard(null);
+      setMiroLocalSnapshot(null);
+      setIsLoadingMiroBoard(false);
       return;
     }
 
@@ -314,7 +336,7 @@ export default function ResultsPage() {
     return () => {
       cancelled = true;
     };
-  }, [runId]);
+  }, [runId, run?.status]);
 
   /* ── Data fetching + polling ─────────────────────────────── */
 
@@ -327,11 +349,17 @@ export default function ResultsPage() {
 
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
+    const polling = getRunPollMs();
+    let nextDelayMs = polling.initial;
+    let isFetching = false;
 
     const pollRun = async () => {
+      if (isFetching) return;
+      isFetching = true;
       try {
-        const response = await fetch(`/api/pitch/run/${runId}`);
+        const response = await fetch(`/api/pitch/run/${runId}`, { cache: 'no-store' });
         if (!response.ok) {
+          if (cancelled) return;
           setRun(null);
           setRunError('Failed to load run.');
           setLoading(false);
@@ -341,6 +369,7 @@ export default function ResultsPage() {
         const payload = (await response.json()) as { run?: Run } | Run;
         const nextRun = (payload as { run?: Run }).run ?? (payload as Run);
         if (!nextRun || !nextRun.id) {
+          if (cancelled) return;
           setRun(null);
           setRunError('Run not found.');
           setLoading(false);
@@ -352,18 +381,25 @@ export default function ResultsPage() {
 
         if (nextRun.status === 'queued' || nextRun.status === 'running') {
           setLoading(true);
+          const delay = document.visibilityState === 'hidden'
+            ? Math.min(nextDelayMs * 2, polling.max)
+            : nextDelayMs;
           timer = setTimeout(() => {
+            nextDelayMs = Math.min(nextDelayMs + polling.step, polling.max);
             void pollRun();
-          }, 1500);
+          }, delay);
           return;
         }
 
         setLoading(false);
+        nextDelayMs = polling.initial;
       } catch {
         if (cancelled) return;
         setRun(null);
         setRunError('Failed to load run.');
         setLoading(false);
+      } finally {
+        isFetching = false;
       }
     };
 
@@ -660,66 +696,62 @@ export default function ResultsPage() {
       {/* ━━━ TIER 2: Actionable Insights ━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />
 
-      <GoodBadSummary good={feedback.summary_good} bad={feedback.summary_bad} />
+      <Section
+        title="Priority Fixes"
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              void createFixBoardInMiro(Boolean(miroBoard));
+            }}
+            disabled={isCreatingMiroBoard || isLoadingMiroBoard}
+            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border"
+            style={{
+              color: 'var(--text-secondary)',
+              borderColor: 'var(--border-color)',
+              opacity: isCreatingMiroBoard || isLoadingMiroBoard ? 0.7 : 1,
+            }}
+          >
+            {isCreatingMiroBoard
+              ? 'Creating...'
+              : isLoadingMiroBoard
+                ? 'Loading...'
+                : miroBoard
+                  ? 'Recreate Fix Board'
+                  : 'Create Fix Board'}
+          </button>
+        }
+      >
+        <TopFixes fixes={feedback.top_fixes.filter((fix) => !fix.category.startsWith('deck_'))} />
+        {miroCreateMessage ? (
+          <div
+            className="text-xs px-2 py-1 rounded-lg mt-3"
+            style={{ color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.10)' }}
+          >
+            {miroCreateMessage}
+          </div>
+        ) : null}
+        {combinedMiroError ? (
+          <div
+            className="text-xs px-2 py-1 rounded-lg mt-3"
+            style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}
+          >
+            {combinedMiroError}
+          </div>
+        ) : null}
+        {miroWarnings.length > 0 ? (
+          <div
+            className="text-xs px-2 py-1 rounded-lg mt-3"
+            style={{ color: '#ffaa33', backgroundColor: 'rgba(255,170,51,0.10)' }}
+          >
+            {miroWarnings[0]}
+          </div>
+        ) : null}
+      </Section>
 
-      <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <Section title="Score Breakdown">
-          <RubricBreakdown breakdown={feedback.rubric_breakdown.filter((item) => !item.category.startsWith('deck_'))} />
-        </Section>
-
-        <Section
-          title="Priority Fixes"
-          actions={
-            <button
-              type="button"
-              onClick={() => {
-                void createFixBoardInMiro(Boolean(miroBoard));
-              }}
-              disabled={isCreatingMiroBoard || isLoadingMiroBoard}
-              className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border"
-              style={{
-                color: 'var(--text-secondary)',
-                borderColor: 'var(--border-color)',
-                opacity: isCreatingMiroBoard || isLoadingMiroBoard ? 0.7 : 1,
-              }}
-            >
-              {isCreatingMiroBoard
-                ? 'Creating...'
-                : isLoadingMiroBoard
-                  ? 'Loading...'
-                  : miroBoard
-                    ? 'Recreate Fix Board'
-                    : 'Create Fix Board'}
-            </button>
-          }
-        >
-          <TopFixes fixes={feedback.top_fixes.filter((fix) => !fix.category.startsWith('deck_'))} />
-          {miroCreateMessage ? (
-            <div
-              className="text-xs px-2 py-1 rounded-lg mt-3"
-              style={{ color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.10)' }}
-            >
-              {miroCreateMessage}
-            </div>
-          ) : null}
-          {combinedMiroError ? (
-            <div
-              className="text-xs px-2 py-1 rounded-lg mt-3"
-              style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}
-            >
-              {combinedMiroError}
-            </div>
-          ) : null}
-          {miroWarnings.length > 0 ? (
-            <div
-              className="text-xs px-2 py-1 rounded-lg mt-3"
-              style={{ color: '#ffaa33', backgroundColor: 'rgba(255,170,51,0.10)' }}
-            >
-              {miroWarnings[0]}
-            </div>
-          ) : null}
-        </Section>
-      </section>
+      <Section title="Score Breakdown">
+        <RubricBreakdown breakdown={feedback.rubric_breakdown.filter((item) => !item.category.startsWith('deck_'))} />
+      </Section>
 
       {miroBoard ? (
         <section>
@@ -744,9 +776,13 @@ export default function ResultsPage() {
       {/* ━━━ TIER 3: Deep Dives ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />
 
-      <DeliveryEventsTimeline events={feedback.delivery_metrics.events} onSeek={onSeek} />
-
-      <SectionAccordion sections={feedback.section_feedback} />
+      <SectionAccordion
+        sections={feedback.section_feedback}
+        onSeek={onSeek}
+        canSeek={Boolean(run.audioUrl)}
+        totalDurationSec={feedback.delivery_metrics.duration_seconds}
+        mode={run.mode}
+      />
 
       <RewriteDiffPanel diff={feedback.rewrite_diff} />
 
@@ -787,8 +823,6 @@ export default function ResultsPage() {
         reasoning={feedback.advanced_reasoning}
         citations={feedback.citations}
       />
-
-      <PreviousRunsLinks links={feedback.historical_links} />
 
       {qaPack ? (
         <Section title="1-Minute Investor Drill">
