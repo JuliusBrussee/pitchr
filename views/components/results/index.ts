@@ -6,6 +6,7 @@ export { ReasoningPanel } from '@/views/components/results/ReasoningPanel';
 export { RewriteDiffPanel } from '@/views/components/results/RewriteDiffPanel';
 export { RubricBreakdown } from '@/views/components/results/RubricBreakdown';
 export { ScoreHero } from '@/views/components/results/ScoreHero';
+export { ScoreDashboard } from '@/views/components/results/ScoreDashboard';
 export { SectionAccordion } from '@/views/components/results/SectionAccordion';
 export { TopFixes } from '@/views/components/results/TopFixes';
 export { VocabDiagnostics } from '@/views/components/results/VocabDiagnostics';

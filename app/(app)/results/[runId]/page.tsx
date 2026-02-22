@@ -10,7 +10,6 @@ import {
   InvestorDrill,
   ReasoningPanel,
   RewriteDiffPanel,
-  RubricBreakdown,
   ScoreHero,
   SectionAccordion,
   TopFixes,
@@ -757,10 +756,6 @@ export default function ResultsPage() {
             {miroWarnings[0]}
           </div>
         ) : null}
-      </Section>
-
-      <Section title="Score Breakdown">
-        <RubricBreakdown breakdown={feedback.rubric_breakdown.filter((item) => !item.category.startsWith('deck_'))} />
       </Section>
 
       {miroBoard ? (

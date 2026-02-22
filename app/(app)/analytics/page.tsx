@@ -536,7 +536,7 @@ function computeFillerData(runs: RunRecord[]): {
 /* ——— Page Component ——————————————————————————————————————————— */
 
 export default function AnalyticsPage() {
-  const [range, setRange] = useState<TimeRange>('30D');
+  const [range, setRange] = useState<TimeRange>('7D');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
 
   useEffect(() => {

@@ -647,6 +647,12 @@
   opacity: 0.72;
 }
 
+/* Rubric bar row entrance (for ScoreDashboard) */
+.results-rubric-row-enter {
+  animation: results-card-in 0.35s ease-out both;
+  animation-delay: var(--row-delay, 0ms);
+}
+
 /* Section divider line */
 .results-tier-divider {
   height: 1px;
