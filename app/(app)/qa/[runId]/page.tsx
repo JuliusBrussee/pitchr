@@ -51,6 +51,9 @@ export default function LiveQaPage() {
   });
 
   const requestFreshSession = useCallback(() => {
+    bootstrapAbortRef.current?.abort();
+    bootstrapAbortRef.current = null;
+    bootstrapInFlightRef.current = null;
     setBootstrap(null);
     setError(null);
     setPersistError(null);
@@ -112,23 +115,7 @@ export default function LiveQaPage() {
         }
       }
     })();
-
-    return () => {
-      if (bootstrapAbortRef.current === controller) {
-        bootstrapAbortRef.current = null;
-      }
-      if (bootstrapInFlightRef.current === requestKey) {
-        bootstrapInFlightRef.current = null;
-      }
-      controller.abort();
-    };
   }, [bootstrapNonce, liveQaEnabled, runId]);
-
-  useEffect(() => {
-    return () => {
-      bootstrapAbortRef.current?.abort();
-    };
-  }, []);
 
   const qaSessionStatus: RunStatus | null = useMemo(() => {
     if (liveQa.status === 'active') return 'running';
