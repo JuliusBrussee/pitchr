@@ -33,6 +33,7 @@ import {
   computeInsights,
   computeRecommendations,
 } from '@/lib/analytics';
+import type { RunEconomics } from '@/types/analysis-v2';
 
 /* ——— Types ——— */
 
@@ -41,6 +42,9 @@ interface RunRecord {
   mode: string;
   overallScore: number;
   createdAt: string;
+  meta?: {
+    economics?: RunEconomics;
+  };
   analysis: {
     one_line_verdict: string;
     rubric_breakdown: { category: string; score: number; max_score: number }[];
@@ -81,6 +85,15 @@ function formatRunDate(iso: string): string {
   });
 }
 
+function formatUsd(amount: number): string {
+  return amount.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: amount < 1 ? 4 : 2,
+    maximumFractionDigits: amount < 1 ? 6 : 2,
+  });
+}
+
 /* ——— Page Component ——— */
 
 export default function DashboardPage() {
@@ -107,6 +120,14 @@ export default function DashboardPage() {
   const bestScore = totalRuns > 0
     ? Math.max(...allRuns.map((r) => r.overallScore))
     : 0;
+  const totalValueUsd = Math.round(
+    allRuns.reduce((sum, run) => sum + (run.meta?.economics?.estimated_value_usd ?? 0), 0) * 100,
+  ) / 100;
+  const totalAiSpendUsd = Math.round(
+    allRuns.reduce((sum, run) => sum + (run.meta?.economics?.estimated_cost_usd ?? 0), 0) * 1_000_000,
+  ) / 1_000_000;
+  const portfolioRoi =
+    totalAiSpendUsd > 0 ? Math.round((totalValueUsd / totalAiSpendUsd) * 100) / 100 : 0;
 
   const rubricCategories = useMemo(() => computeRubricAverages(allRuns), [allRuns]);
   const insights = useMemo(() => computeInsights(rubricCategories), [rubricCategories]);
@@ -179,6 +200,27 @@ export default function DashboardPage() {
             value={`${bestScore}/100`}
             icon={<Trophy size={16} />}
             animationDelay="0.20s"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard
+            label="Total Value Created"
+            value={formatUsd(totalValueUsd)}
+            icon={<Zap size={16} />}
+            animationDelay="0.24s"
+          />
+          <StatCard
+            label="Total AI Spend"
+            value={formatUsd(totalAiSpendUsd)}
+            icon={<Timer size={16} />}
+            animationDelay="0.28s"
+          />
+          <StatCard
+            label="Portfolio ROI"
+            value={portfolioRoi > 0 ? `${portfolioRoi.toFixed(1)}x` : '0.0x'}
+            icon={<TrendingUp size={16} />}
+            animationDelay="0.32s"
           />
         </div>
 

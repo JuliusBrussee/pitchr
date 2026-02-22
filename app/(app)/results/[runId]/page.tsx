@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Timer,
 } from 'lucide-react';
-import type { FeedbackOutput, OneMinuteQAPack } from '@/types/analysis-v2';
+import type { FeedbackOutput, OneMinuteQAPack, PaidSyncMeta, RunEconomics } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
 import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 import type { MiroFixBoardResponse, MiroTopFixInput } from '@/services/miro/miroTypes';
@@ -86,6 +86,29 @@ function formatDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remaining = seconds % 60;
   return `${minutes}:${remaining.toString().padStart(2, '0')}`;
+}
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: value < 1 ? 4 : 2,
+    maximumFractionDigits: value < 1 ? 6 : 2,
+  });
+}
+
+function formatMinutes(value: number): string {
+  return `${value.toFixed(1)} min`;
+}
+
+function paidSyncBadge(sync?: PaidSyncMeta): { label: string; color: string; bg: string } {
+  if (!sync || sync.status === 'skipped') {
+    return { label: 'Dry Run', color: '#ffaa33', bg: 'rgba(255,170,51,0.14)' };
+  }
+  if (sync.status === 'sent') {
+    return { label: 'Synced', color: '#22c55e', bg: 'rgba(34,197,94,0.14)' };
+  }
+  return { label: 'Sync Failed', color: '#ef4444', bg: 'rgba(239,68,68,0.14)' };
 }
 
 function getMiroPollIntervalMs(): number {
@@ -206,6 +229,10 @@ export default function ResultsPage() {
   const qaPack = useMemo<OneMinuteQAPack | null>(
     () => (run?.outputs?.qa_1min ? run.outputs.qa_1min : feedback ? synthesizeQaFromFeedback(feedback) : null),
     [feedback, run],
+  );
+  const economics = useMemo<RunEconomics | null>(
+    () => run?.meta?.economics ?? null,
+    [run],
   );
   const band = feedback ? scoreBand(feedback.overall_score) : null;
 
@@ -430,6 +457,57 @@ export default function ResultsPage() {
             </div>
           </div>
         </div>
+      </section>
+
+      <section
+        className="rounded-2xl border p-5"
+        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            Value Proof
+          </h2>
+          {economics ? (
+            <span
+              className="text-xs font-semibold px-2 py-1 rounded-full"
+              style={{
+                color: paidSyncBadge(economics.paid_sync).color,
+                backgroundColor: paidSyncBadge(economics.paid_sync).bg,
+              }}
+            >
+              {paidSyncBadge(economics.paid_sync).label}
+            </span>
+          ) : null}
+        </div>
+
+        {economics ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <StatPill
+              icon={<Timer size={12} />}
+              label="AI Cost"
+              value={formatCurrency(economics.estimated_cost_usd)}
+            />
+            <StatPill
+              icon={<MessageSquare size={12} />}
+              label="Value Created"
+              value={formatCurrency(economics.estimated_value_usd)}
+            />
+            <StatPill
+              icon={<Clock size={12} />}
+              label="ROI"
+              value={`${economics.roi_multiple.toFixed(1)}x`}
+            />
+            <StatPill
+              icon={<Timer size={12} />}
+              label="Time Saved"
+              value={formatMinutes(economics.time_saved_minutes)}
+            />
+          </div>
+        ) : (
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            Value proof is unavailable for this run.
+          </p>
+        )}
       </section>
 
       <section className="rounded-2xl border p-2" style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}>

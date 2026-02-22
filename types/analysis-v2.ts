@@ -141,6 +141,7 @@ export interface AnalysisMeta {
   llm_calls_used: number;
   latency_ms: number;
   attempt_count: number;
+  economics?: RunEconomics;
   error_details?: {
     message: string;
     timeout?: boolean;
@@ -149,6 +150,27 @@ export interface AnalysisMeta {
       message: string;
     }>;
   };
+}
+
+export interface PaidSyncMeta {
+  status: 'sent' | 'skipped' | 'failed';
+  sent_at: string;
+  error?: string;
+}
+
+export interface RunEconomics {
+  estimated_input_tokens: number;
+  estimated_output_tokens: number;
+  estimated_cost_usd: number;
+  manual_baseline_minutes: number;
+  agent_runtime_minutes: number;
+  time_saved_minutes: number;
+  score_delta_vs_previous_mode_run: number;
+  quality_bonus_usd: number;
+  estimated_value_usd: number;
+  roi_multiple: number;
+  gross_margin_usd: number;
+  paid_sync?: PaidSyncMeta;
 }
 
 export interface AnalysisOutputs {
