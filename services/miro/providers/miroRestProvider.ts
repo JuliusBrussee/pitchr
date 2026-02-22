@@ -41,17 +41,17 @@ type MiroStickyShape = "square" | "rectangle";
 
 const KANBAN_COLUMN_ORDER: MiroFixStatus[] = ["todo", "doing", "blocked", "done"];
 const COLUMN_OFFSETS_X: Record<MiroFixStatus, number> = {
-  todo: -930,
-  doing: -310,
-  blocked: 310,
-  done: 930,
+  todo: -1080,
+  doing: -360,
+  blocked: 360,
+  done: 1080,
 };
 
 const COLUMN_OFFSETS_X_SMALL: Record<MiroFixStatus, number> = {
-  todo: -420,
-  doing: -140,
-  blocked: 140,
-  done: 420,
+  todo: -570,
+  doing: -190,
+  blocked: 190,
+  done: 570,
 };
 
 const COLUMN_TINT_FRAME: Record<MiroFixStatus, MiroFrameFillColor> = {
@@ -71,10 +71,14 @@ const COLUMN_TINT_STICKY: Record<MiroFixStatus, MiroStickyFillColor> = {
 const INITIAL_STATUS_BY_INDEX: MiroFixStatus[] = ["doing", "todo", "blocked", "done", "todo"];
 const FIX_CARD_SHAPE: MiroStickyShape = "rectangle";
 const GUIDE_CARD_SHAPE: MiroStickyShape = "rectangle";
-const FIX_CARD_START_Y = -80;
-const FIX_CARD_ROW_GAP = 270;
-const FIX_CARD_START_Y_SMALL = -140;
-const FIX_CARD_ROW_GAP_SMALL = 210;
+const FIX_CARD_START_Y = 40;
+const FIX_CARD_ROW_GAP = 240;
+const FIX_CARD_START_Y_SMALL = 20;
+const FIX_CARD_ROW_GAP_SMALL = 220;
+const DETAIL_CARD_ROW_GAP = 210;
+const PRIMARY_ISSUE_MAX_CHARS = 120;
+const PRIMARY_ACTION_MAX_CHARS = 140;
+const DETAIL_BODY_MAX_CHARS = 260;
 
 const MINDMAP_NODE_FILL: Record<MiroFixStatus, MiroStickyFillColor> = {
   todo: "light_yellow",
@@ -103,12 +107,62 @@ function getFixCardRowGap(kanbanSize: "small" | "full") {
   return kanbanSize === "small" ? FIX_CARD_ROW_GAP_SMALL : FIX_CARD_ROW_GAP;
 }
 
+function getDetailCardStartY(layoutStyle: "mindmap_hybrid" | "compact_kanban") {
+  return layoutStyle === "mindmap_hybrid" ? 2240 : 2140;
+}
+
+function getDetailCardColumnOffset(layoutStyle: "mindmap_hybrid" | "compact_kanban") {
+  return layoutStyle === "mindmap_hybrid" ? 560 : 430;
+}
+
+function resolveKanbanSizeFromColumnWidth(width: number): "small" | "full" {
+  return width >= 500 ? "full" : "small";
+}
+
+function getFixedSlotAbsoluteY(rank: number, kanbanSize: "small" | "full") {
+  const safeRank = Math.min(5, Math.max(1, rank));
+  return getFixCardStartY(kanbanSize) + (safeRank - 1) * getFixCardRowGap(kanbanSize);
+}
+
+function toParentRelativeCoordinate(parentCenter: number, parentSize: number, absolute: number) {
+  return absolute - (parentCenter - parentSize / 2);
+}
+
+function getFixedSlotPosition(input: {
+  rank: number;
+  columnX: number;
+  columnY: number;
+  columnWidth: number;
+  columnHeight: number;
+  useParentCoords: boolean;
+}) {
+  const kanbanSize = resolveKanbanSizeFromColumnWidth(input.columnWidth);
+  const absoluteY = getFixedSlotAbsoluteY(input.rank, kanbanSize);
+  const absoluteX = input.columnX;
+
+  if (!input.useParentCoords) {
+    return {
+      x: absoluteX,
+      y: absoluteY,
+      absoluteX,
+      absoluteY,
+    };
+  }
+
+  return {
+    x: input.columnWidth / 2,
+    y: toParentRelativeCoordinate(input.columnY, input.columnHeight, absoluteY),
+    absoluteX,
+    absoluteY,
+  };
+}
+
 function toBulletLines(lines: string[]) {
   return lines
     .map((line) => line.trim())
     .filter(Boolean)
     .slice(0, 4)
-    .map((line) => `• ${line}`);
+    .map((line) => `- ${line}`);
 }
 
 function buildMindMapNodeContent(node: MiroGeneratedMindMapNode) {
@@ -152,7 +206,16 @@ interface MiroBoardItemResponse {
   id: string;
   modifiedAt?: string;
   parent?: { id?: string };
-  position?: { x?: number; y?: number };
+  position?: {
+    x?: number;
+    y?: number;
+    origin?: string;
+    relativeTo?: string;
+  };
+  geometry?: {
+    width?: number;
+    height?: number;
+  };
   data?: { content?: string };
 }
 
@@ -171,6 +234,23 @@ function isValidFixStatus(value: string): value is MiroFixStatus {
 
 function normalizeSpaces(value: string) {
   return value.trim().replace(/\s+/g, " ");
+}
+
+function compactStickyText(value: string, maxChars: number) {
+  const normalized = normalizeSpaces(value || "");
+  if (normalized.length <= maxChars) return normalized;
+  return `${normalized.slice(0, maxChars).trimEnd()}...`;
+}
+
+function buildFixDetailStickyContent(input: {
+  title: string;
+  body: string;
+  footer?: string;
+}) {
+  const lines = [input.title.trim(), "", compactStickyText(input.body, DETAIL_BODY_MAX_CHARS)];
+  const footer = input.footer?.trim();
+  if (footer) lines.push("", footer);
+  return lines.join("\n");
 }
 
 function trimWrappedQuotes(value: string) {
@@ -339,29 +419,27 @@ export function buildPitchrStickyContent(input: {
   const status = input.status ?? "todo";
   const owner = (input.owner ?? "").trim();
   const notes = (input.notes ?? "").trim();
-  const nextStep = (input.nextStep || "[define next step]").trim();
-  const successMetric = (input.successMetric || "[define success metric]").trim();
-  const blocker = (input.blocker || "[none]").trim();
+  const nextStep = (input.nextStep ?? "").trim();
+  const successMetric = (input.successMetric ?? "").trim();
+  const blocker = (input.blocker ?? "").trim();
   const issue = (input.issue ?? input.fix.issue).trim();
   const action = (input.action ?? input.fix.fix).trim();
 
-  return [
+  const lines = [
     HEADER_MARKER,
     `Rank: ${input.fix.rank}`,
     `Category: ${input.fix.category}`,
     `Impact: ${input.fix.impact}`,
-    "",
-    "Execution:",
     `Status: ${status}`,
     `Owner: ${owner}`,
     `Notes: ${notes}`,
-    `Next Step: ${nextStep}`,
-    `Success Metric: ${successMetric}`,
-    `Blocker: ${blocker}`,
-    "",
-    `Issue: ${issue}`,
-    `Action: ${action}`,
-  ].join("\n");
+  ];
+  if (nextStep) lines.push(`Next Step: ${nextStep}`);
+  if (successMetric) lines.push(`Success Metric: ${successMetric}`);
+  if (blocker) lines.push(`Blocker: ${blocker}`);
+  if (issue) lines.push(`Issue: ${issue}`);
+  if (action) lines.push(`Action: ${action}`);
+  return lines.join("\n");
 }
 
 export function parsePitchrStickyContent(
@@ -592,6 +670,8 @@ export class MiroRestProvider implements MiroProvider {
     content: string;
     x: number;
     y: number;
+    fallbackX?: number;
+    fallbackY?: number;
     parentId?: string;
     fillColor?: MiroStickyFillColor;
     shape?: MiroStickyShape;
@@ -642,7 +722,14 @@ export class MiroRestProvider implements MiroProvider {
       }
 
       if (!input.parentId) throw error;
-      return postSticky({ ...safePayload, parent: undefined });
+      return postSticky({
+        ...safePayload,
+        parent: undefined,
+        position: {
+          x: typeof input.fallbackX === "number" ? input.fallbackX : safePayload.position.x,
+          y: typeof input.fallbackY === "number" ? input.fallbackY : safePayload.position.y,
+        },
+      });
     }
   }
 
@@ -794,6 +881,26 @@ export class MiroRestProvider implements MiroProvider {
     );
   }
 
+  private async updateItemPosition(input: {
+    boardId: string;
+    itemId: string;
+    x: number;
+    y: number;
+  }): Promise<void> {
+    await this.fetchMiro(
+      `/boards/${encodeURIComponent(input.boardId)}/items/${encodeURIComponent(input.itemId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          position: {
+            x: input.x,
+            y: input.y,
+          },
+        }),
+      },
+    );
+  }
+
   private getColumnXPosition(
     baseX: number,
     status: MiroFixStatus,
@@ -848,9 +955,9 @@ export class MiroRestProvider implements MiroProvider {
       boardId: board.id,
       title: "Fix Execution Kanban",
       x: kanbanX,
-      y: 120,
-      width: kanbanSize === "small" ? 1450 : 3000,
-      height: 1750,
+      y: 180,
+      width: kanbanSize === "small" ? 1600 : 3000,
+      height: kanbanSize === "small" ? 1950 : 2100,
     });
 
     const rewriteFrame = await this.createFrame({
@@ -862,16 +969,25 @@ export class MiroRestProvider implements MiroProvider {
       height: 900,
     });
 
+    const detailsFrame = await this.createFrame({
+      boardId: board.id,
+      title: "Fix Details",
+      x: rootX,
+      y: layoutStyle === "mindmap_hybrid" ? 2720 : 2620,
+      width: mindMapWidth,
+      height: 1180,
+    });
+
     const columnIds: PersistedMiroBoardState["layout"]["columnIds"] = {
       todo: "",
       doing: "",
       blocked: "",
       done: "",
     };
-    const columnWidth = kanbanSize === "small" ? 300 : 620;
-    const columnHeight = kanbanSize === "small" ? 1320 : 1450;
-    const columnY = kanbanSize === "small" ? 140 : 100;
-    const guideY = kanbanSize === "small" ? -470 : -380;
+    const columnWidth = kanbanSize === "small" ? 320 : 640;
+    const columnHeight = kanbanSize === "small" ? 1500 : 1650;
+    const columnY = kanbanSize === "small" ? 230 : 200;
+    const guideY = kanbanSize === "small" ? -260 : -230;
     const columnX: Record<MiroFixStatus, number> = {
       todo: this.getColumnXPosition(kanbanX, "todo", kanbanSize),
       doing: this.getColumnXPosition(kanbanX, "doing", kanbanSize),
@@ -896,11 +1012,15 @@ export class MiroRestProvider implements MiroProvider {
     for (const status of KANBAN_COLUMN_ORDER) {
       const parentId = columnIds[status];
       if (!parentId) continue;
+      const guideX = columnWidth / 2;
+      const guideYRelative = toParentRelativeCoordinate(columnY, columnHeight, guideY);
       await this.createSticky({
         boardId: board.id,
         content: input.generated.columnGuides[status] || buildColumnGuideContent(status),
-        x: columnX[status],
-        y: guideY,
+        x: guideX,
+        y: guideYRelative,
+        fallbackX: columnX[status],
+        fallbackY: guideY,
         parentId,
         fillColor: COLUMN_TINT_STICKY[status],
         shape: GUIDE_CARD_SHAPE,
@@ -1000,18 +1120,19 @@ export class MiroRestProvider implements MiroProvider {
       .slice(0, 5);
 
     const fixes: PersistedMiroBoardState["fixes"] = {};
-    const columnRowIndex: Record<MiroFixStatus, number> = {
-      todo: 0,
-      doing: 0,
-      blocked: 0,
-      done: 0,
-    };
 
     for (const [index, fix] of sortedFixes.entries()) {
       const initialStatus = getGeneratedFixStatus(fix, index);
-      const row = columnRowIndex[initialStatus];
-      columnRowIndex[initialStatus] = row + 1;
-      const stickyY = getFixCardStartY(kanbanSize) + row * getFixCardRowGap(kanbanSize);
+      const slot = getFixedSlotPosition({
+        rank: fix.rank,
+        columnX: columnX[initialStatus],
+        columnY,
+        columnWidth,
+        columnHeight,
+        useParentCoords: true,
+      });
+      const compactIssue = compactStickyText(fix.issue, PRIMARY_ISSUE_MAX_CHARS);
+      const compactAction = compactStickyText(fix.action, PRIMARY_ACTION_MAX_CHARS);
 
       const sticky = await this.createSticky({
         boardId: board.id,
@@ -1026,14 +1147,13 @@ export class MiroRestProvider implements MiroProvider {
           status: initialStatus,
           owner: fix.owner,
           notes: fix.notes,
-          nextStep: fix.nextStep,
-          successMetric: fix.successMetric,
-          blocker: fix.blocker,
-          issue: fix.issue,
-          action: fix.action,
+          issue: compactIssue,
+          action: compactAction,
         }),
-        x: columnX[initialStatus],
-        y: stickyY,
+        x: slot.x,
+        y: slot.y,
+        fallbackX: slot.absoluteX,
+        fallbackY: slot.absoluteY,
         parentId: columnIds[initialStatus],
         fillColor: COLUMN_TINT_STICKY[initialStatus],
         shape: FIX_CARD_SHAPE,
@@ -1046,9 +1166,46 @@ export class MiroRestProvider implements MiroProvider {
         notes: fix.notes,
         updatedAt: sticky.modifiedAt || nowIso,
         source: "system",
-        x: columnX[initialStatus],
-        y: stickyY,
+        x: slot.absoluteX,
+        y: slot.absoluteY,
       };
+
+      const detailsY = getDetailCardStartY(layoutStyle) + index * DETAIL_CARD_ROW_GAP;
+      const detailOffsetX = getDetailCardColumnOffset(layoutStyle);
+      await this.createSticky({
+        boardId: board.id,
+        content: buildFixDetailStickyContent({
+          title: `#${fix.rank} Issue`,
+          body: fix.issue || "No issue text provided.",
+          footer: `Category: ${fix.category} (${fix.impact})`,
+        }),
+        x: rootX - detailOffsetX,
+        y: detailsY,
+        fillColor: "light_pink",
+        shape: "rectangle",
+      });
+
+      const actionBody = [
+        fix.action,
+        fix.nextStep ? `Next: ${fix.nextStep}` : "",
+        fix.successMetric ? `Success: ${fix.successMetric}` : "",
+        fix.blocker ? `Blocker: ${fix.blocker}` : "",
+      ]
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join("\n");
+      await this.createSticky({
+        boardId: board.id,
+        content: buildFixDetailStickyContent({
+          title: `#${fix.rank} Action Plan`,
+          body: actionBody || "No action text provided.",
+          footer: fix.owner ? `Owner: ${fix.owner}` : "",
+        }),
+        x: rootX + detailOffsetX,
+        y: detailsY,
+        fillColor: "light_green",
+        shape: "rectangle",
+      });
     }
 
     const state: PersistedMiroBoardState = {
@@ -1210,6 +1367,47 @@ export class MiroRestProvider implements MiroProvider {
       });
     }
 
+    let nextX = typeof existing.x === "number" ? existing.x : 0;
+    let nextY =
+      typeof existing.y === "number" ? existing.y : getFixedSlotAbsoluteY(input.rank, "small");
+    if (targetColumnId) {
+      try {
+        const targetColumn = await this.getItem(input.boardId, targetColumnId);
+        const columnX = typeof targetColumn.position?.x === "number" ? targetColumn.position.x : 0;
+        const columnY =
+          typeof targetColumn.position?.y === "number"
+            ? targetColumn.position.y
+            : getFixCardStartY("small");
+        const columnWidth =
+          typeof targetColumn.geometry?.width === "number" ? targetColumn.geometry.width : 320;
+        const columnHeight =
+          typeof targetColumn.geometry?.height === "number" ? targetColumn.geometry.height : 1500;
+        const slot = getFixedSlotPosition({
+          rank: input.rank,
+          columnX,
+          columnY,
+          columnWidth,
+          columnHeight,
+          useParentCoords: true,
+        });
+        nextX = slot.x;
+        nextY = slot.y;
+      } catch {
+        // Keep existing slot values if target column metadata cannot be resolved.
+      }
+    }
+
+    try {
+      await this.updateItemPosition({
+        boardId: input.boardId,
+        itemId: existing.itemId,
+        x: nextX,
+        y: nextY,
+      });
+    } catch {
+      // If position patch is unsupported by the workspace, keep sync alive with parent/content updates.
+    }
+
     return {
       rank: input.rank,
       itemId: existing.itemId,
@@ -1217,6 +1415,8 @@ export class MiroRestProvider implements MiroProvider {
       owner: nextOwner,
       notes: nextNotes,
       updatedAt: updatedSticky.modifiedAt || input.updatedAtIso,
+      x: Number.isFinite(nextX) ? nextX : undefined,
+      y: Number.isFinite(nextY) ? nextY : undefined,
     };
   }
 }

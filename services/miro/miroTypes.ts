@@ -213,4 +213,6 @@ export interface MiroProviderPatchResult {
   owner: string;
   notes: string;
   updatedAt: string;
+  x?: number;
+  y?: number;
 }
