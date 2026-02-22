@@ -7,6 +7,7 @@ import {
   withInFlightDedup,
 } from '@/services/analysisCacheService';
 import { linkSectionFeedbackToDeck } from '@/services/deckLinkingService';
+import { calibrateFeedbackWithKnowledge } from '@/services/knowledgeCalibrationService';
 import { buildScoringContext } from '@/services/prepAgentService';
 import { runJudgeAgent } from '@/services/judgeAgentService';
 import { buildRewriteDiff, buildSectionRewriteDiff } from '@/services/rewriteDiffService';
@@ -63,6 +64,9 @@ const DECK_CATEGORY_ORDER: DeckRubricCategory[] = [
 
 const ENABLE_SECTION_FEEDBACK = process.env.ENABLE_SECTION_FEEDBACK !== 'false';
 const ENABLE_REWRITE_DIFF = process.env.ENABLE_REWRITE_DIFF !== 'false';
+const ENABLE_KNOWLEDGE_CALIBRATED_JUDGE =
+  process.env.ENABLE_KNOWLEDGE_CALIBRATED_JUDGE !== 'false';
+const EXPOSE_JUDGE_CITATIONS = process.env.EXPOSE_JUDGE_CITATIONS === 'true';
 
 function cloneSample(): AnalysisResultV2 {
   return JSON.parse(JSON.stringify(SAMPLE_RESULT)) as AnalysisResultV2;
@@ -97,6 +101,22 @@ function normalizeRubric(
 
 function isDeckCategory(category: ScoreCategory): category is DeckRubricCategory {
   return DECK_CATEGORY_ORDER.includes(category as DeckRubricCategory);
+}
+
+function countKnowledgeRulesInContext(context: ScoringContext): number {
+  if (typeof context.knowledge_digest_rules_count === 'number') {
+    return context.knowledge_digest_rules_count;
+  }
+  const categoryRuleCount = Object.values(context.knowledge_digest.category_guidance).reduce(
+    (sum, rules) => sum + rules.length,
+    0,
+  );
+  return (
+    context.knowledge_digest.do_rules.length +
+    context.knowledge_digest.dont_rules.length +
+    categoryRuleCount +
+    Object.keys(context.knowledge_digest.anti_pattern_playbook).length
+  );
 }
 
 export function applyHardGateCaps(
@@ -312,7 +332,7 @@ function applyDeterministicScoring(
     penalty: composite.penalty,
     sentiment_profile: judgeFeedback.sentiment_profile,
     anti_pattern_hits: context.detected_anti_patterns,
-    citations: judgeFeedback.citations,
+    citations: EXPOSE_JUDGE_CITATIONS ? judgeFeedback.citations : [],
     stage_expectations: context.stage_expectations,
     do_next_checklist: judgeFeedback.do_next_checklist.slice(0, 5),
   };
@@ -330,7 +350,22 @@ async function analyzeWithContext(
       context,
     });
 
-    const feedback = applyDeterministicScoring(judged.payload.feedback, context);
+    let feedback = applyDeterministicScoring(judged.payload.feedback, context);
+    let knowledgeRulesUsedCount =
+      judged.meta.telemetry?.knowledge_rules_used_count ??
+      countKnowledgeRulesInContext(context);
+
+    if (ENABLE_KNOWLEDGE_CALIBRATED_JUDGE) {
+      const calibrated = calibrateFeedbackWithKnowledge(feedback, context);
+      feedback = calibrated.feedback;
+      if (calibrated.rulesUsedCount > 0) {
+        knowledgeRulesUsedCount = Math.max(
+          knowledgeRulesUsedCount,
+          calibrated.rulesUsedCount,
+        );
+      }
+    }
+
     const vocabularyMetrics = calculateVocabularyMetrics(input.transcript);
     const vocabEvents = buildVocabularyEvents(
       vocabularyMetrics,
@@ -422,6 +457,15 @@ async function analyzeWithContext(
         ...judged.meta,
         telemetry: {
           ...(judged.meta.telemetry ?? {}),
+          knowledge_digest_chars:
+            judged.meta.telemetry?.knowledge_digest_chars ??
+            context.knowledge_digest_chars ??
+            0,
+          knowledge_rules_used_count: knowledgeRulesUsedCount,
+          prompt_clip_stage: judged.meta.telemetry?.prompt_clip_stage ?? 0,
+          knowledge_included:
+            judged.meta.telemetry?.knowledge_included ??
+            Boolean(context.knowledge_digest.do_rules.length),
           sectioning_confidence: Number(sectioningConfidence.toFixed(4)),
           deck_link_confidence: Number(deckLinkConfidence.toFixed(4)),
         },
@@ -436,7 +480,12 @@ async function analyzeWithContext(
         telemetry?: {
           latencyMs?: number;
           attemptCount?: number;
+          llmCallsUsed?: number;
           failedAttempts?: Array<{ provider: 'openrouter' | 'anthropic'; message: string }>;
+          promptClipStage?: number;
+          knowledgeIncluded?: boolean;
+          knowledgeDigestChars?: number;
+          knowledgeRulesUsedCount?: number;
         };
       })?.telemetry ?? undefined;
     const errorMessage = error instanceof Error ? error.message : 'Judge call failed.';
@@ -454,6 +503,24 @@ async function analyzeWithContext(
       vocabEvents,
     );
     fallback.outputs.feedback.vocabulary_metrics = vocabularyMetrics;
+
+    let knowledgeRulesUsedCount =
+      telemetry?.knowledgeRulesUsedCount ?? countKnowledgeRulesInContext(context);
+
+    if (ENABLE_KNOWLEDGE_CALIBRATED_JUDGE) {
+      const calibrated = calibrateFeedbackWithKnowledge(fallback.outputs.feedback, context);
+      fallback.outputs.feedback = calibrated.feedback;
+      if (calibrated.rulesUsedCount > 0) {
+        knowledgeRulesUsedCount = Math.max(
+          knowledgeRulesUsedCount,
+          calibrated.rulesUsedCount,
+        );
+      }
+    }
+
+    if (!EXPOSE_JUDGE_CITATIONS) {
+      fallback.outputs.feedback.citations = [];
+    }
 
     const summary = deriveGoodBadSummary(fallback.outputs.feedback);
     fallback.outputs.feedback.summary_good = summary.good;
@@ -532,10 +599,16 @@ async function analyzeWithContext(
       provider_used: 'none',
       fallback_used: true,
       cache_hit: false,
-      llm_calls_used: 0,
+      llm_calls_used: telemetry?.llmCallsUsed ?? 0,
       latency_ms: telemetry?.latencyMs ?? 0,
       attempt_count: telemetry?.attemptCount ?? 0,
       telemetry: {
+        knowledge_digest_chars:
+          telemetry?.knowledgeDigestChars ?? context.knowledge_digest_chars ?? 0,
+        knowledge_rules_used_count: knowledgeRulesUsedCount,
+        prompt_clip_stage: telemetry?.promptClipStage ?? 0,
+        knowledge_included:
+          telemetry?.knowledgeIncluded ?? Boolean(context.knowledge_digest.do_rules.length),
         sectioning_confidence: Number(sectioningConfidence.toFixed(4)),
         deck_link_confidence: Number(deckLinkConfidence.toFixed(4)),
       },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildJudgeUserPrompt } from '@/lib/prompts/judge';
+import { buildJudgeUserPromptWithTelemetry } from '@/lib/prompts/judge';
 import type { ScoringContext } from '@/types/analysis-v2';
 
 describe('buildJudgeUserPrompt', () => {
@@ -45,6 +45,30 @@ describe('buildJudgeUserPrompt', () => {
         filler_words: [],
         repeated_phrases: [],
       },
+      knowledge_digest: {
+        do_rules: [
+          'Open with one sentence: what you do, for whom, and why now.',
+          'Quantify traction with metric, timeframe, and denominator.',
+        ],
+        dont_rules: [
+          'Do not claim market size without execution proof.',
+          'Do not end without a clear ask.',
+        ],
+        category_guidance: {
+          structure: ['Use problem -> solution -> proof -> ask.'],
+          clarity: ['Replace abstract claims with plain language.'],
+          evidence: ['Attach a metric and timeframe to each major claim.'],
+          market: ['Define beachhead ICP before TAM expansion.'],
+          delivery: ['Remove filler words from opening and close.'],
+        },
+        anti_pattern_playbook: {
+          no_proof: 'Replace one abstract claim with one metric + timeframe + denominator.',
+          no_ask: 'State amount raised, runway months, and milestones funded.',
+        },
+        digest_version: 'v1.2.0-digest.1',
+      },
+      knowledge_digest_chars: 640,
+      knowledge_digest_rules_count: 12,
       retrieved_patterns: [
         {
           id: 'huge-pattern',
@@ -67,13 +91,16 @@ describe('buildJudgeUserPrompt', () => {
       rubric_version: 'rubric-v2.0.0',
     };
 
-    const prompt = buildJudgeUserPrompt({
+    const promptBuild = buildJudgeUserPromptWithTelemetry({
       mode: 'vc_pitch',
       transcript: 'hello '.repeat(2000),
       context,
     });
 
-    expect(prompt.length).toBeLessThanOrEqual(9000);
-    expect(prompt.includes(hugePattern)).toBe(false);
+    expect(promptBuild.userPrompt.length).toBeLessThanOrEqual(9000);
+    expect(promptBuild.userPrompt.includes(hugePattern)).toBe(false);
+    expect(promptBuild.userPrompt.includes('knowledge_digest')).toBe(true);
+    expect(promptBuild.knowledgeIncluded).toBe(true);
+    expect(promptBuild.knowledgeChars).toBeGreaterThanOrEqual(320);
   });
 });

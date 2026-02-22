@@ -209,6 +209,21 @@ export interface StageExpectation {
   expectations: string[];
 }
 
+export type KnowledgeDigestCategory =
+  | 'structure'
+  | 'clarity'
+  | 'evidence'
+  | 'market'
+  | 'delivery';
+
+export interface KnowledgeDigest {
+  do_rules: string[];
+  dont_rules: string[];
+  category_guidance: Record<KnowledgeDigestCategory, string[]>;
+  anti_pattern_playbook: Record<string, string>;
+  digest_version: string;
+}
+
 export interface DeliveryMetrics {
   word_count: number;
   duration_seconds: number;
@@ -294,6 +309,10 @@ export interface AnalysisMeta {
     deck_link_confidence?: number;
     qa_latency_ms_p50?: number;
     qa_cap_compliant?: boolean;
+    knowledge_digest_chars?: number;
+    knowledge_rules_used_count?: number;
+    prompt_clip_stage?: number;
+    knowledge_included?: boolean;
   };
   error_details?: {
     message: string;
@@ -385,6 +404,9 @@ export interface ScoringContext {
   section_feedback?: SectionFeedback[];
   rewrite_diff?: RewriteDiff;
   historical_links?: HistoricalLink[];
+  knowledge_digest: KnowledgeDigest;
+  knowledge_digest_chars?: number;
+  knowledge_digest_rules_count?: number;
   retrieved_patterns: PatternSnippet[];
   stage_expectations: StageExpectation[];
   benchmark_profiles?: {
