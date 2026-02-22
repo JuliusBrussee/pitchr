@@ -2,10 +2,15 @@
 
 import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
-import type { SectionFeedback } from '@/types/analysis-v2';
+import type { SectionBeat, SectionFeedback } from '@/types/analysis-v2';
+import type { PitchMode } from '@/types/pitch';
 
 interface SectionAccordionProps {
   sections?: SectionFeedback[];
+  onSeek?: (seconds: number) => void;
+  canSeek?: boolean;
+  totalDurationSec?: number;
+  mode?: PitchMode;
 }
 
 const BEAT_LABELS: Record<string, string> = {
@@ -28,11 +33,85 @@ const SCORE_COLORS: Record<number, string> = {
   5: '#22c55e',
 };
 
-export function SectionAccordion({ sections }: SectionAccordionProps) {
+const MODE_BEATS: Record<PitchMode, SectionBeat[]> = {
+  elevator: ['intro', 'problem', 'solution', 'ask'],
+  vc_pitch: ['intro', 'problem', 'solution', 'market', 'model', 'traction', 'team', 'ask'],
+};
+
+function formatTime(value: number): string {
+  const total = Math.max(0, Math.round(value));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function getDefaultDurationByMode(mode?: PitchMode): number {
+  return mode === 'elevator' ? 45 : 120;
+}
+
+function resolveBeatStartSec(
+  section: SectionFeedback,
+  index: number,
+  beatCount: number,
+  durationSec: number,
+): number {
+  if (Number.isFinite(section.start_sec) && section.start_sec > 0) {
+    return section.start_sec;
+  }
+
+  if (beatCount <= 0) return 0;
+  const slice = durationSec / Math.max(1, beatCount);
+  return Math.max(0, index * slice);
+}
+
+function isSectionUndetected(section: SectionFeedback): boolean {
+  const reason = section.score_reason.toLowerCase();
+  const bad = section.bad.toLowerCase();
+  const issues = section.top_issues.map((item) => item.toLowerCase());
+  const quotes = section.quotes.filter((quote) => quote.trim().length > 0);
+  const evidence = section.evidence.trim();
+  const confidence = section.confidence ?? 1;
+
+  const explicitMissing =
+    reason.includes('not covered') ||
+    bad.includes('missing from the pitch') ||
+    issues.some((issue) => issue.includes('no ') && issue.includes('content')) ||
+    evidence.toLowerCase().startsWith('no clear evidence detected');
+
+  const lowConfidenceMissing = quotes.length === 0 && confidence <= 0.2;
+
+  return explicitMissing || lowConfidenceMissing;
+}
+
+export function SectionAccordion({
+  sections,
+  onSeek,
+  canSeek = false,
+  totalDurationSec,
+  mode,
+}: SectionAccordionProps) {
   const [openBeat, setOpenBeat] = useState<string | null>(null);
   const entries = sections ?? [];
+  const expectedBeats = mode ? MODE_BEATS[mode] : (Object.keys(BEAT_LABELS) as SectionBeat[]);
+  const undetectedByPayload = entries
+    .filter((section) => isSectionUndetected(section))
+    .map((section) => section.beat);
+  const detectedEntries = entries.filter((section) => !isSectionUndetected(section));
+  const detectedBeatSet = new Set(detectedEntries.map((section) => section.beat));
+  const undetectedSet = new Set<string>([
+    ...undetectedByPayload,
+    ...expectedBeats.filter((beat) => !detectedBeatSet.has(beat)),
+  ]);
+  const undetectedBeats = expectedBeats.filter((beat) => undetectedSet.has(beat));
+  const resolvedDuration =
+    typeof totalDurationSec === 'number' &&
+    Number.isFinite(totalDurationSec) &&
+    totalDurationSec > 0
+      ? totalDurationSec
+      : getDefaultDurationByMode(mode);
+  const seekEnabled = canSeek && typeof onSeek === 'function';
 
-  if (entries.length === 0) return null;
+  if (detectedEntries.length === 0 && undetectedBeats.length === 0) return null;
 
   return (
     <section
@@ -49,10 +128,48 @@ export function SectionAccordion({ sections }: SectionAccordionProps) {
       >
         Pitch Beats
       </h3>
+      {undetectedBeats.length > 0 ? (
+        <details className="mb-3 rounded-lg border px-3 py-2" style={{ borderColor: 'var(--border-color)' }}>
+          <summary
+            className="cursor-pointer text-xs font-medium select-none"
+            style={{ color: 'var(--text-secondary)' }}
+          >
+            Not detected ({undetectedBeats.length})
+          </summary>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {undetectedBeats.map((beat) => (
+              <span
+                key={beat}
+                className="text-[11px] px-2 py-1 rounded-md border"
+                style={{
+                  color: 'var(--text-muted)',
+                  borderColor: 'var(--border-color)',
+                  backgroundColor: 'var(--bg-surface)',
+                }}
+              >
+                {BEAT_LABELS[beat]} not detected
+              </span>
+            ))}
+          </div>
+        </details>
+      ) : null}
+      {detectedEntries.length === 0 ? (
+        <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+          No pitch beats were detected in this run.
+        </p>
+      ) : null}
       <div className="space-y-1">
-        {entries.map((section, index) => {
+        {detectedEntries.map((section, index) => {
           const isOpen = openBeat === section.beat;
-          const scoreColor = SCORE_COLORS[Math.min(5, Math.max(0, section.score))] ?? '#ffaa33';
+          const normalizedScore = Math.min(5, Math.max(0, section.score));
+          const scoreColor = SCORE_COLORS[normalizedScore] ?? '#ffaa33';
+          const startSec = resolveBeatStartSec(
+            section,
+            index,
+            detectedEntries.length,
+            resolvedDuration,
+          );
+          const timestampLabel = formatTime(startSec);
 
           return (
             <article
@@ -62,26 +179,49 @@ export function SectionAccordion({ sections }: SectionAccordionProps) {
                 backgroundColor: isOpen ? 'var(--bg-surface-hover)' : 'transparent',
               }}
             >
-              <button
-                type="button"
-                onClick={() => setOpenBeat((prev) => (prev === section.beat ? null : section.beat))}
-                className="w-full px-3 py-2.5 flex items-center gap-3 text-left"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                <ChevronRight
-                  size={12}
-                  style={{
-                    color: 'var(--text-muted)',
-                    transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                    transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-                    flexShrink: 0,
-                  }}
-                />
-                <span className="font-medium text-sm flex-1">
-                  {BEAT_LABELS[section.beat] ?? section.beat}
-                </span>
-                {/* Score bar inline */}
+              <div className="px-3 py-2.5 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setOpenBeat((prev) => (prev === section.beat ? null : section.beat))
+                  }
+                  className="flex items-center gap-3 text-left min-w-0 flex-1"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <ChevronRight
+                    size={12}
+                    style={{
+                      color: 'var(--text-muted)',
+                      transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1)',
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span className="font-medium text-sm truncate">
+                    {BEAT_LABELS[section.beat] ?? section.beat}
+                  </span>
+                </button>
+
                 <div className="flex items-center gap-2 shrink-0">
+                  {seekEnabled ? (
+                    <button
+                      type="button"
+                      className="results-beat-timestamp-chip results-beat-timestamp-chip-button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSeek?.(startSec);
+                      }}
+                      title="Seek recording"
+                      aria-label={`Seek recording to ${timestampLabel}`}
+                    >
+                      {timestampLabel}
+                    </button>
+                  ) : (
+                    <span className="results-beat-timestamp-chip results-beat-timestamp-chip-muted">
+                      {timestampLabel}
+                    </span>
+                  )}
+
                   <div
                     className="w-16 h-1.5 rounded-full overflow-hidden"
                     style={{ backgroundColor: `${scoreColor}1a` }}
@@ -89,7 +229,7 @@ export function SectionAccordion({ sections }: SectionAccordionProps) {
                     <div
                       className="h-full rounded-full"
                       style={{
-                        width: `${(section.score / 5) * 100}%`,
+                        width: `${(normalizedScore / 5) * 100}%`,
                         backgroundColor: scoreColor,
                       }}
                     />
@@ -98,10 +238,10 @@ export function SectionAccordion({ sections }: SectionAccordionProps) {
                     className="text-[11px] font-semibold tabular-nums w-6 text-right"
                     style={{ color: scoreColor }}
                   >
-                    {section.score}/5
+                    {normalizedScore}/5
                   </span>
                 </div>
-              </button>
+              </div>
 
               <div className="results-accordion-content" data-open={isOpen}>
                 <div className="results-accordion-inner">

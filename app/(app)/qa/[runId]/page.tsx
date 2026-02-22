@@ -1,12 +1,22 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clock, Mic, RefreshCw, StopCircle } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  Mic,
+  MicOff,
+  Radio,
+  RefreshCw,
+  Signal,
+  Square,
+  Wifi,
+  WifiOff,
+  Zap,
+} from 'lucide-react';
 import { useLiveQaAgent } from '@/hooks/useLiveQaAgent';
 import type { CreateQASessionResponse } from '@/types/qna';
-import type { RunStatus } from '@/types/pitch';
 import type { QATurn } from '@/types/qna';
 
 interface SessionBootstrap {
@@ -18,16 +28,224 @@ interface SessionBootstrap {
 }
 
 function formatSeconds(seconds: number): string {
-  const total = Math.max(0, Math.round(seconds));
-  const minutes = Math.floor(total / 60);
-  const rest = total % 60;
-  return `${minutes}:${rest.toString().padStart(2, '0')}`;
+  const abs = Math.abs(Math.round(seconds));
+  const minutes = Math.floor(abs / 60);
+  const rest = abs % 60;
+  const sign = seconds < 0 ? '+' : '';
+  return `${sign}${minutes}:${rest.toString().padStart(2, '0')}`;
 }
 
 function transcriptFromTurns(turns: QATurn[]): string {
   return turns.map((turn) => `${turn.speaker.toUpperCase()}: ${turn.text}`).join('\n');
 }
 
+/* ——— Countdown Ring ——— */
+function CountdownRing({
+  elapsed,
+  total,
+  isActive,
+  status,
+}: {
+  elapsed: number;
+  total: number;
+  isActive: boolean;
+  status: string;
+}) {
+  const radius = 90;
+  const circumference = 2 * Math.PI * radius;
+  const remaining = total - elapsed;
+  const isOvertime = remaining < 0 && isActive;
+  const progress = Math.min(elapsed / total, 1);
+  const offset = circumference * (1 - progress);
+  const isUrgent = remaining <= 10 && remaining > 0 && isActive;
+
+  // In overtime, pulse the ring fully filled
+  const overtimeOffset = 0;
+
+  const ringClass = [
+    'qa-ring-wrap',
+    isActive ? 'qa-ring-active' : '',
+    isUrgent ? 'qa-ring-urgent' : '',
+    isOvertime ? 'qa-ring-overtime' : '',
+  ].filter(Boolean).join(' ');
+
+  return (
+    <div className={ringClass}>
+      {/* Ambient glow */}
+      <div className="qa-ring-glow" />
+
+      {/* Overtime badge */}
+      {isOvertime ? (
+        <div className="qa-overtime-badge">OVERTIME</div>
+      ) : null}
+
+      <svg
+        viewBox="0 0 200 200"
+        className="qa-ring-svg"
+      >
+        {/* Track */}
+        <circle
+          cx="100"
+          cy="100"
+          r={radius}
+          fill="none"
+          stroke="var(--border-color)"
+          strokeWidth="4"
+          opacity="0.3"
+        />
+        {/* Progress arc */}
+        <circle
+          cx="100"
+          cy="100"
+          r={radius}
+          fill="none"
+          stroke={isOvertime ? 'url(#qa-ring-overtime-gradient)' : 'url(#qa-ring-gradient)'}
+          strokeWidth={isOvertime ? 6 : 5}
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={isOvertime ? overtimeOffset : offset}
+          transform="rotate(-90 100 100)"
+          className={`qa-ring-progress ${isOvertime ? 'qa-ring-progress-overtime' : ''}`}
+          style={{ '--ring-offset': `${isOvertime ? overtimeOffset : offset}` } as React.CSSProperties}
+        />
+        {/* Tick marks */}
+        {Array.from({ length: 60 }, (_, i) => {
+          const angle = (i * 6 - 90) * (Math.PI / 180);
+          const isMajor = i % 5 === 0;
+          const innerR = isMajor ? 78 : 82;
+          const outerR = 86;
+          return (
+            <line
+              key={i}
+              x1={100 + innerR * Math.cos(angle)}
+              y1={100 + innerR * Math.sin(angle)}
+              x2={100 + outerR * Math.cos(angle)}
+              y2={100 + outerR * Math.sin(angle)}
+              stroke={isOvertime ? '#ef4444' : 'var(--text-muted)'}
+              strokeWidth={isMajor ? 1.5 : 0.5}
+              opacity={isOvertime ? (isMajor ? 0.6 : 0.25) : (isMajor ? 0.4 : 0.15)}
+            />
+          );
+        })}
+        <defs>
+          <linearGradient id="qa-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ff5941" />
+            <stop offset="50%" stopColor="#ffaa33" />
+            <stop offset="100%" stopColor="#e63b26" />
+          </linearGradient>
+          <linearGradient id="qa-ring-overtime-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ef4444" />
+            <stop offset="50%" stopColor="#dc2626" />
+            <stop offset="100%" stopColor="#b91c1c" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* Center content */}
+      <div className="qa-ring-center">
+        <span className={`qa-ring-time ${isOvertime ? 'qa-ring-time-overtime' : ''}`}>
+          {isOvertime ? formatSeconds(remaining) : formatSeconds(Math.max(0, remaining))}
+        </span>
+        <span className={`qa-ring-label ${isOvertime ? 'qa-ring-label-overtime' : ''}`}>
+          {isOvertime ? 'OVERTIME' : status === 'idle' ? 'READY' : status === 'connecting' ? 'CONNECTING' : status === 'active' ? 'REMAINING' : status === 'completed' ? 'COMPLETE' : status === 'expired' ? 'EXPIRED' : 'ERROR'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ——— Audio Waveform Visualizer ——— */
+function WaveformVisualizer({ isActive }: { isActive: boolean }) {
+  return (
+    <div className="qa-waveform">
+      {Array.from({ length: 24 }, (_, i) => (
+        <div
+          key={i}
+          className={`qa-waveform-bar ${isActive ? 'qa-waveform-bar-active' : ''}`}
+          style={{
+            '--bar-index': i,
+            '--bar-delay': `${i * 60}ms`,
+            '--bar-height': `${20 + Math.sin(i * 0.8) * 60}%`,
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ——— Latency Badge ——— */
+function LatencyBadge({ label, value }: { label: string; value: number }) {
+  const rounded = Math.round(value);
+  const quality = rounded < 300 ? 'good' : rounded < 600 ? 'fair' : 'poor';
+
+  return (
+    <div className={`qa-latency-badge qa-latency-${quality}`}>
+      <span className="qa-latency-dot" />
+      <span className="qa-latency-label">{label}</span>
+      <span className="qa-latency-value">{rounded}ms</span>
+    </div>
+  );
+}
+
+/* ——— Status Pill ——— */
+function StatusPill({ status, isOvertime }: { status: string; isOvertime: boolean }) {
+  const isLive = status === 'active';
+  const label = isOvertime ? 'OVERTIME' : status === 'idle' ? 'Standby' : status === 'connecting' ? 'Connecting...' : status === 'active' ? 'LIVE' : status === 'completed' ? 'Session Complete' : status === 'expired' ? 'Time Expired' : 'Error';
+
+  return (
+    <div className={`qa-status-pill ${isLive ? 'qa-status-live' : ''} ${isOvertime ? 'qa-status-overtime' : ''}`}>
+      {isLive ? <span className={`qa-live-dot ${isOvertime ? 'qa-live-dot-overtime' : ''}`} /> : null}
+      {status === 'connecting' ? <RefreshCw size={10} className="qa-spin" /> : null}
+      <span>{label}</span>
+    </div>
+  );
+}
+
+/* ——— Chat Bubble ——— */
+function ChatBubble({
+  turn,
+  index,
+}: {
+  turn: QATurn;
+  index: number;
+}) {
+  const isInvestor = turn.speaker === 'investor';
+
+  return (
+    <div
+      className={`qa-bubble-wrap ${isInvestor ? 'qa-bubble-left' : 'qa-bubble-right'}`}
+      style={{ '--bubble-delay': `${Math.min(index * 50, 300)}ms` } as React.CSSProperties}
+    >
+      <div className="qa-bubble-avatar">
+        {isInvestor ? (
+          <div className="qa-avatar-investor">VC</div>
+        ) : (
+          <div className="qa-avatar-founder">You</div>
+        )}
+      </div>
+      <div className={`qa-bubble ${isInvestor ? 'qa-bubble-investor' : 'qa-bubble-founder'}`}>
+        <div className="qa-bubble-speaker">
+          {isInvestor ? 'Investor' : 'You'}
+        </div>
+        <div className="qa-bubble-text">{turn.text}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ——— Connection Quality Indicator ——— */
+function ConnectionQuality({ diagnostics }: { diagnostics: { wsOpened: boolean; wsErrorCount: number } }) {
+  const quality = !diagnostics.wsOpened ? 'disconnected' : diagnostics.wsErrorCount > 0 ? 'degraded' : 'excellent';
+
+  return (
+    <div className={`qa-connection qa-connection-${quality}`}>
+      {quality === 'disconnected' ? <WifiOff size={12} /> : quality === 'degraded' ? <Wifi size={12} /> : <Signal size={12} />}
+      <span>{quality === 'disconnected' ? 'Offline' : quality === 'degraded' ? 'Unstable' : 'Connected'}</span>
+    </div>
+  );
+}
+
+/* ——— Main Page ——— */
 export default function LiveQaPage() {
   const params = useParams<{ runId: string | string[] }>();
   const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
@@ -43,12 +261,18 @@ export default function LiveQaPage() {
   const bootstrapInFlightRef = useRef<string | null>(null);
   const bootstrapAbortRef = useRef<AbortController | null>(null);
   const persistInFlightRef = useRef(false);
+  const transcriptEndRef = useRef<HTMLDivElement | null>(null);
 
   const liveQa = useLiveQaAgent({
     signedUrl: bootstrap?.signedUrl ?? null,
     starterContext: bootstrap?.starterContext ?? '',
     durationLimitSeconds: bootstrap?.durationLimitSeconds ?? 60,
   });
+
+  // Auto-scroll transcript
+  useEffect(() => {
+    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [liveQa.turns]);
 
   const requestFreshSession = useCallback(() => {
     bootstrapAbortRef.current?.abort();
@@ -117,14 +341,6 @@ export default function LiveQaPage() {
     })();
   }, [bootstrapNonce, liveQaEnabled, runId]);
 
-  const qaSessionStatus: RunStatus | null = useMemo(() => {
-    if (liveQa.status === 'active') return 'running';
-    if (liveQa.status === 'connecting') return 'queued';
-    if (liveQa.status === 'completed' || liveQa.status === 'expired') return 'complete';
-    if (liveQa.status === 'error') return 'failed';
-    return null;
-  }, [liveQa.status]);
-
   useEffect(() => {
     if (!bootstrap || persistInFlightRef.current || persistedStatus) return;
     if (liveQa.status !== 'completed' && liveQa.status !== 'expired' && liveQa.status !== 'error') return;
@@ -182,27 +398,24 @@ export default function LiveQaPage() {
     persistedStatus,
   ]);
 
+  const isSessionDone = liveQa.status === 'completed' || liveQa.status === 'expired';
+  const canStart = !!bootstrap && !isLoading && liveQa.status !== 'connecting' && liveQa.status !== 'active' && liveQa.status !== 'error';
+  const canStop = liveQa.status === 'active';
+  const canReset = !isLoading && liveQa.status !== 'active' && liveQa.status !== 'connecting';
+
+  /* ——— Disabled State ——— */
   if (!liveQaEnabled) {
     return (
       <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
-        <div
-          className="rounded-2xl border p-6 max-w-lg"
-          style={{
-            borderColor: 'var(--border-color)',
-            backgroundColor: 'var(--bg-surface)',
-          }}
-        >
-          <h1 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-            Live VC Q&A Disabled
-          </h1>
-          <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+        <div className="qa-disabled-card">
+          <div className="qa-disabled-icon">
+            <MicOff size={32} />
+          </div>
+          <h1 className="qa-disabled-title">Live VC Q&A Disabled</h1>
+          <p className="qa-disabled-desc">
             Enable this feature with <code>NEXT_PUBLIC_ENABLE_LIVE_QA=true</code>.
           </p>
-          <Link
-            href={`/results/${runId}`}
-            className="px-4 py-2 rounded-lg no-underline"
-            style={{ color: 'white', backgroundColor: '#ff5941' }}
-          >
+          <Link href={`/results/${runId}`} className="qa-btn qa-btn-primary no-underline">
             Back to Results
           </Link>
         </div>
@@ -210,193 +423,222 @@ export default function LiveQaPage() {
     );
   }
 
+  /* ——— Main UI ——— */
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-4 pr-1">
-      <header className="flex items-center justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-            Live VC Q&A (60s)
-          </h1>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Status: {qaSessionStatus ?? 'idle'} | Session ID: {bootstrap?.qaSessionId ?? 'pending'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <main className="qa-page">
+      {/* Background ambient effects */}
+      <div className="qa-ambient" />
+      <div className="qa-grid-overlay" />
+
+      {/* Top Navigation Bar */}
+      <header className="qa-topbar">
+        <div className="qa-topbar-left">
           <Link
             href={`/results/${runId}`}
-            className="px-3 py-1.5 rounded-lg border no-underline text-sm"
-            style={{ borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
+            className="qa-back-btn no-underline"
           >
-            Back to Results
+            <ArrowLeft size={14} />
+            <span>Results</span>
           </Link>
-          <Link
-            href="/history"
-            className="px-3 py-1.5 rounded-lg no-underline text-sm"
-            style={{ backgroundColor: '#ff5941', color: 'white' }}
-          >
-            View History
-          </Link>
+          <div className="qa-topbar-divider" />
+          <StatusPill status={liveQa.status} isOvertime={liveQa.remainingSeconds < 0 && liveQa.isActive} />
+        </div>
+
+        <div className="qa-topbar-right">
+          <ConnectionQuality diagnostics={liveQa.diagnostics} />
+          <div className="qa-topbar-divider" />
+          <div className="qa-latency-group">
+            <LatencyBadge label="p50" value={liveQa.latency.p50Ms} />
+            <LatencyBadge label="p95" value={liveQa.latency.p95Ms} />
+          </div>
         </div>
       </header>
 
-      <section
-        className="rounded-2xl border p-4"
-        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="rounded-xl border p-3" style={{ borderColor: 'var(--border-color)' }}>
-            <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-              Elapsed / Remaining
-            </p>
-            <p className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {formatSeconds(liveQa.elapsedSeconds)} / {formatSeconds(liveQa.remainingSeconds)}
-            </p>
-          </div>
-          <div className="rounded-xl border p-3" style={{ borderColor: 'var(--border-color)' }}>
-            <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-              Latency
-            </p>
-            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-              latest {Math.round(liveQa.latency.latestMs)}ms | p50 {Math.round(liveQa.latency.p50Ms)}ms | p95{' '}
-              {Math.round(liveQa.latency.p95Ms)}ms
-            </p>
-          </div>
-          <div className="rounded-xl border p-3" style={{ borderColor: 'var(--border-color)' }}>
-            <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-              Controls
-            </p>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  void liveQa.startSession();
-                }}
-                disabled={
-                  !bootstrap ||
-                  isLoading ||
-                  liveQa.status === 'connecting' ||
-                  liveQa.status === 'active' ||
-                  liveQa.status === 'error'
-                }
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm"
-                style={{
-                  backgroundColor: '#e63b26',
-                  color: 'white',
-                  opacity:
-                    !bootstrap ||
-                    isLoading ||
-                    liveQa.status === 'connecting' ||
-                    liveQa.status === 'active' ||
-                    liveQa.status === 'error'
-                      ? 0.6
-                      : 1,
-                }}
-              >
-                <Mic size={14} />
-                Start
-              </button>
-              <button
-                type="button"
-                onClick={() => liveQa.stopSession('completed')}
-                disabled={liveQa.status !== 'active'}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm"
-                style={{
-                  backgroundColor: '#334155',
-                  color: 'white',
-                  opacity: liveQa.status === 'active' ? 1 : 0.6,
-                }}
-              >
-                <StopCircle size={14} />
-                Stop
-              </button>
-              <button
-                type="button"
-                onClick={requestFreshSession}
-                disabled={isLoading || liveQa.status === 'active' || liveQa.status === 'connecting'}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border"
-                style={{
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-secondary)',
-                  opacity:
-                    isLoading || liveQa.status === 'active' || liveQa.status === 'connecting' ? 0.6 : 1,
-                }}
-              >
-                <RefreshCw size={14} />
-                New Session
-              </button>
+      {/* Main Content Area */}
+      <div className="qa-content">
+        {/* Left Panel: Controls + Timer */}
+        <aside className="qa-sidebar">
+          <div className="qa-sidebar-inner">
+            {/* Title */}
+            <div className="qa-sidebar-header">
+              <Radio size={14} style={{ color: '#ff5941' }} />
+              <h1 className="qa-sidebar-title">Investor Q&A</h1>
             </div>
-            <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-              WS close code: {liveQa.diagnostics.wsCloseCode ?? 'n/a'} | reason:{' '}
-              {liveQa.diagnostics.wsCloseReason ?? 'n/a'}
-            </p>
+
+            {/* Countdown Ring */}
+            <CountdownRing
+              elapsed={liveQa.elapsedSeconds}
+              total={bootstrap?.durationLimitSeconds ?? 60}
+              isActive={liveQa.isActive}
+              status={liveQa.status}
+            />
+
+            {/* Waveform */}
+            <WaveformVisualizer isActive={liveQa.isActive} />
+
+            {/* Session time readout */}
+            <div className={`qa-time-readout ${liveQa.remainingSeconds < 0 && liveQa.isActive ? 'qa-time-readout-overtime' : ''}`}>
+              <div className="qa-time-col">
+                <span className="qa-time-value">{formatSeconds(liveQa.elapsedSeconds)}</span>
+                <span className="qa-time-label">Elapsed</span>
+              </div>
+              <div className="qa-time-divider" />
+              <div className="qa-time-col">
+                <span className={`qa-time-value ${liveQa.remainingSeconds < 0 ? 'qa-time-value-overtime' : ''}`}>
+                  {formatSeconds(liveQa.remainingSeconds)}
+                </span>
+                <span className="qa-time-label">
+                  {liveQa.remainingSeconds < 0 ? 'Overtime' : 'Remaining'}
+                </span>
+              </div>
+            </div>
+
+            {/* Control Buttons */}
+            <div className="qa-controls">
+              {!canStop ? (
+                <button
+                  type="button"
+                  onClick={() => { void liveQa.startSession(); }}
+                  disabled={!canStart}
+                  className="qa-mic-btn"
+                >
+                  <span className="qa-mic-btn-glow" />
+                  <Mic size={20} />
+                  <span>{liveQa.status === 'connecting' ? 'Connecting...' : isSessionDone ? 'Session Ended' : 'Start Session'}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => liveQa.stopSession('completed')}
+                  className="qa-stop-btn"
+                >
+                  <span className="qa-stop-pulse" />
+                  <Square size={16} />
+                  <span>End Session</span>
+                </button>
+              )}
+
+              {(liveQa.status === 'connecting' || liveQa.status === 'active') && liveQa.turns.length === 0 ? (
+                <div className="qa-say-ready">
+                  <Mic size={14} className="qa-say-ready-icon" />
+                  <span>Say <strong>&quot;I&apos;m ready for the Q&A&quot;</strong> to begin</span>
+                </div>
+              ) : null}
+
+              {canReset ? (
+                <button
+                  type="button"
+                  onClick={requestFreshSession}
+                  className="qa-reset-btn"
+                >
+                  <RefreshCw size={13} />
+                  <span>New Session</span>
+                </button>
+              ) : null}
+            </div>
+
+            {/* Error/Status Messages */}
+            <div className="qa-messages">
+              {isLoading ? (
+                <div className="qa-msg qa-msg-info">
+                  <RefreshCw size={12} className="qa-spin" />
+                  <span>Preparing session...</span>
+                </div>
+              ) : null}
+              {error ? (
+                <div className="qa-msg qa-msg-error">{error}</div>
+              ) : null}
+              {liveQa.error ? (
+                <div className="qa-msg qa-msg-error">{liveQa.error}</div>
+              ) : null}
+              {persistError ? (
+                <div className="qa-msg qa-msg-error">{persistError}</div>
+              ) : null}
+              {persistedStatus === 'completed' || persistedStatus === 'expired' ? (
+                <div className="qa-msg qa-msg-success">
+                  <Zap size={12} />
+                  <span>Session saved successfully</span>
+                </div>
+              ) : null}
+              {persistedStatus === 'failed' ? (
+                <div className="qa-msg qa-msg-warn">Failed session logged for diagnostics</div>
+              ) : null}
+            </div>
+
+            {/* Debug info */}
+            {liveQa.diagnostics.wsCloseCode !== null ? (
+              <div className="qa-debug">
+                WS {liveQa.diagnostics.wsCloseCode}{liveQa.diagnostics.wsCloseReason ? ` — ${liveQa.diagnostics.wsCloseReason}` : ''}
+              </div>
+            ) : null}
           </div>
-        </div>
+        </aside>
 
-        {isLoading ? (
-          <p className="text-sm mt-3" style={{ color: 'var(--text-secondary)' }}>
-            Preparing live QA session...
-          </p>
-        ) : null}
-        {error ? (
-          <p className="text-sm mt-3" style={{ color: '#ef4444' }}>
-            {error}
-          </p>
-        ) : null}
-        {liveQa.error ? (
-          <p className="text-sm mt-3" style={{ color: '#ef4444' }}>
-            {liveQa.error}
-          </p>
-        ) : null}
-        {persistError ? (
-          <p className="text-sm mt-3" style={{ color: '#ef4444' }}>
-            {persistError}
-          </p>
-        ) : null}
-        {persistedStatus === 'completed' || persistedStatus === 'expired' ? (
-          <p className="text-sm mt-3" style={{ color: '#22c55e' }}>
-            Session persisted.
-          </p>
-        ) : null}
-        {persistedStatus === 'failed' ? (
-          <p className="text-sm mt-3" style={{ color: '#f97316' }}>
-            Failed session persisted for diagnostics.
-          </p>
-        ) : null}
-      </section>
+        {/* Right Panel: Transcript */}
+        <section className="qa-transcript-panel">
+          <div className="qa-transcript-header">
+            <h2 className="qa-transcript-title">Live Transcript</h2>
+            <span className="qa-turn-count">
+              {liveQa.turns.length} {liveQa.turns.length === 1 ? 'turn' : 'turns'}
+            </span>
+          </div>
 
-      <section
-        className="rounded-2xl border p-4"
-        style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-      >
-        <div className="flex items-center gap-2 mb-3">
-          <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-          <h2 className="text-sm uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-            Live Transcript Timeline
-          </h2>
-        </div>
-        <div className="space-y-2 max-h-[28rem] overflow-y-auto pr-1">
-          {liveQa.turns.length === 0 ? (
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              No turns captured yet. Start the session to begin streaming.
-            </p>
-          ) : (
-            liveQa.turns.map((turn) => (
-              <div
-                key={turn.id}
-                className="rounded-xl border p-3"
-                style={{ borderColor: 'var(--border-color)' }}
-              >
-                <p className="text-xs uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
-                  {turn.speaker}
-                </p>
-                <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                  {turn.text}
+          <div className="qa-transcript-body">
+            {liveQa.turns.length === 0 ? (
+              <div className="qa-empty-state">
+                <div className="qa-empty-icon">
+                  <Mic size={28} />
+                </div>
+                <p className="qa-empty-title">Ready for Q&A</p>
+                <p className="qa-empty-desc">
+                  Start the session and speak naturally. The AI investor will grill you on your pitch weaknesses.
                 </p>
               </div>
-            ))
-          )}
-        </div>
-      </section>
+            ) : (
+              <div className="qa-bubbles">
+                {liveQa.turns.map((turn, i) => (
+                  <ChatBubble key={turn.id} turn={turn} index={i} />
+                ))}
+                <div ref={transcriptEndRef} />
+              </div>
+            )}
+          </div>
+
+          {/* Active session indicator at bottom */}
+          {liveQa.isActive ? (
+            <div className="qa-listening-bar">
+              <span className="qa-listening-dot" />
+              <span className="qa-listening-dot" />
+              <span className="qa-listening-dot" />
+              <span className="qa-listening-text">Listening...</span>
+            </div>
+          ) : null}
+
+          {/* Session complete summary */}
+          {isSessionDone && liveQa.turns.length > 0 ? (
+            <div className="qa-session-summary">
+              <div className="qa-summary-stats">
+                <div className="qa-summary-stat">
+                  <span className="qa-summary-value">{liveQa.turns.filter((t) => t.speaker === 'investor').length}</span>
+                  <span className="qa-summary-label">Questions</span>
+                </div>
+                <div className="qa-summary-stat">
+                  <span className="qa-summary-value">{liveQa.turns.filter((t) => t.speaker === 'founder').length}</span>
+                  <span className="qa-summary-label">Responses</span>
+                </div>
+                <div className="qa-summary-stat">
+                  <span className="qa-summary-value">{formatSeconds(liveQa.elapsedSeconds)}</span>
+                  <span className="qa-summary-label">Duration</span>
+                </div>
+                <div className="qa-summary-stat">
+                  <span className="qa-summary-value">{Math.round(liveQa.latency.p50Ms)}ms</span>
+                  <span className="qa-summary-label">Avg Latency</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      </div>
     </main>
   );
 }

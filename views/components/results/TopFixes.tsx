@@ -15,7 +15,7 @@ const IMPACT_STYLES: Record<FixImpact, { color: string; bg: string; label: strin
 
 export function TopFixes({ fixes }: TopFixesProps) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
       {fixes.map((fix, index) => {
         const impact = IMPACT_STYLES[fix.impact] ?? IMPACT_STYLES.low;
 
