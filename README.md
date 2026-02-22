@@ -108,6 +108,7 @@ Optional:
 - `PORT` (STT backend)
 - `NEXT_PUBLIC_WS_URL`
 - `MIRO_ENABLED`, `MIRO_PROVIDER`, `MIRO_ACCESS_TOKEN`, `MIRO_TEAM_ID`
+- `MIRO_HYBRID_VISUAL_MODE` (`true` by default; set `false` to disable second visual pass)
 - `PAID_ENABLED` (`true` to enable Paid AI sync)
 - `PAID_API_KEY` (required when `PAID_ENABLED=true`)
 - `PAID_API_BASE_URL` (default: `https://api.paid.ai`)
@@ -142,9 +143,15 @@ Decks:
 
 Miro:
 
-- `POST /api/miro/fix-board`
+- `POST /api/miro/fix-board` (supports optional `transcript`; LLM copy generation)
 - `GET /api/miro/fix-board/sync`
 - `POST /api/miro/fix-board/markdown`
+
+Miro content generation behavior:
+- On create/recreate only, board copy is generated via OpenRouter first.
+- If OpenRouter fails, Anthropic is attempted automatically.
+- If both fail (or JSON is invalid), deterministic template copy is used and board creation continues.
+- When `MIRO_HYBRID_VISUAL_MODE` is enabled, a second LLM pass refines visual composition (mind map + tool selection) while preserving fix-rank integrity.
 
 Live VC Q&A:
 

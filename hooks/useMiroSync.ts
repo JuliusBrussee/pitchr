@@ -5,7 +5,6 @@ import type { MiroSyncSnapshot } from "@/services/miro/miroTypes";
 
 interface UseMiroSyncOptions {
   runId: string;
-  boardId?: string;
   enabled: boolean;
   pollIntervalMs?: number;
 }
@@ -25,9 +24,8 @@ function computeBackoff(baseMs: number, failures: number) {
 
 export function useMiroSync({
   runId,
-  boardId,
   enabled,
-  pollIntervalMs = 30_000,
+  pollIntervalMs = 8_000,
 }: UseMiroSyncOptions): UseMiroSyncResult {
   const [snapshot, setSnapshot] = useState<MiroSyncSnapshot | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -39,13 +37,12 @@ export function useMiroSync({
   const mountedRef = useRef(true);
 
   const syncNow = useCallback(async () => {
-    if (!enabled || !boardId) return;
+    if (!enabled || !runId) return;
 
     setIsSyncing(true);
     try {
       const params = new URLSearchParams({
         runId,
-        boardId,
       });
       const response = await fetch(`/api/miro/fix-board/sync?${params.toString()}`, {
         method: "GET",
@@ -69,7 +66,7 @@ export function useMiroSync({
     } finally {
       if (mountedRef.current) setIsSyncing(false);
     }
-  }, [boardId, enabled, runId]);
+  }, [enabled, runId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -83,7 +80,7 @@ export function useMiroSync({
   }, []);
 
   useEffect(() => {
-    if (!enabled || !boardId) return;
+    if (!enabled || !runId) return;
 
     let stopped = false;
 
@@ -116,7 +113,7 @@ export function useMiroSync({
         timerRef.current = null;
       }
     };
-  }, [boardId, enabled, pollIntervalMs, syncNow]);
+  }, [enabled, pollIntervalMs, runId, syncNow]);
 
   return {
     snapshot,
@@ -126,4 +123,3 @@ export function useMiroSync({
     consecutiveFailures,
   };
 }
-
