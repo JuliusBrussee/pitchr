@@ -6,8 +6,8 @@ export type LlmProviderName = 'openrouter' | 'anthropic';
 
 function getConfiguredProvider(): LlmProviderName {
   const configured = process.env.LLM_PROVIDER?.toLowerCase();
-  if (configured === 'anthropic') return 'anthropic';
-  return 'openrouter';
+  if (configured === 'openrouter') return 'openrouter';
+  return 'anthropic';
 }
 
 function getProviderInstance(name: LlmProviderName): LlmProvider {

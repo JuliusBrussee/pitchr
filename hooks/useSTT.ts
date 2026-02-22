@@ -105,7 +105,7 @@ export interface UseSTTReturn {
   feedbackText: string | null;
   feedbackError: string | null;
   realtimeChecklist: RealtimeChecklistItemState[];
-  checklistSource: 'openrouter' | 'heuristic' | null;
+  checklistSource: 'llm' | 'heuristic' | null;
   checklistNextHint: string | null;
   checklistError: string | null;
 }
@@ -121,7 +121,7 @@ export function useSTT(): UseSTTReturn {
   const [realtimeChecklist, setRealtimeChecklist] = useState<RealtimeChecklistItemState[]>(
     createInitialChecklistState('elevator'),
   );
-  const [checklistSource, setChecklistSource] = useState<'openrouter' | 'heuristic' | null>(
+  const [checklistSource, setChecklistSource] = useState<'llm' | 'heuristic' | null>(
     null,
   );
   const [checklistNextHint, setChecklistNextHint] = useState<string | null>(null);

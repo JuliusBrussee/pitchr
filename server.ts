@@ -100,7 +100,7 @@ wss.on("connection", (clientWs) => {
     }
   }
 
-  function sendChecklistSnapshot(source: "openrouter" | "heuristic"): void {
+  function sendChecklistSnapshot(source: "llm" | "heuristic"): void {
     forwardToClient(
       buildChecklistUpdateMessage({
         mode: checklistSession.mode,

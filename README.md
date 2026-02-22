@@ -17,9 +17,10 @@ copy .env.example .env
 Set at least these values in `.env`:
 
 - `ELEVENLABS_API_KEY` (required for realtime STT)
-- `LLM_PROVIDER=openrouter`
-- `OPENROUTER_API_KEY`
-- Optional override: `OPENROUTER_MODEL=google/gemini-3-flash-preview`
+- `LLM_PROVIDER=anthropic`
+- `ANTHROPIC_API_KEY`
+- Optional override: `ANTHROPIC_MODEL=claude-sonnet-4-6`
+- Optional rollback path: `LLM_PROVIDER=openrouter` + `OPENROUTER_API_KEY`
 
 ## Run Locally
 
@@ -73,9 +74,9 @@ More details: `docs/architecture/pitch-analysis-pipeline.md`.
 
 ## Provider Routing
 
-- Default: OpenRouter (`LLM_PROVIDER=openrouter`)
-- Model: `google/gemini-3-flash-preview`
-- Anthropic scaffold is implemented for later switch (`LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`).
+- Default: Anthropic (`LLM_PROVIDER=anthropic`)
+- Model: `claude-sonnet-4-6`
+- OpenRouter remains available as rollback (`LLM_PROVIDER=openrouter` with `OPENROUTER_API_KEY`).
 
 ## Codex MCP
 

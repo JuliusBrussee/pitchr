@@ -1,4 +1,5 @@
 import { createInitialChecklistState, getChecklistDefinitions } from '../config/realtimeChecklist';
+import { completeWithLlmRouter } from '../lib/llm/router';
 import { buildRealtimeChecklistPrompt } from '../lib/prompts/realtimeChecklist';
 import type {
   ChecklistDefinition,
@@ -10,11 +11,8 @@ import type {
 } from '../types/checklist';
 import type { PitchMode } from '../types/pitch';
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_MODEL_DEFAULT = 'google/gemini-3-flash-preview';
-const OPENROUTER_TIMEOUT_MS = 20000;
-const OPENROUTER_MAX_ATTEMPTS = 2;
-const OPENROUTER_SYSTEM_PROMPT =
+const CHECKLIST_LLM_TIMEOUT_MS = 20000;
+const CHECKLIST_LLM_SYSTEM_PROMPT =
   'You are an expert startup pitch coach. Return valid JSON only.';
 
 const MIN_EVALUATION_INTERVAL_MS = 6000;
@@ -39,15 +37,6 @@ const CHECKLIST_IDS = new Set<ChecklistItemId>([
   'team',
   'ask',
 ]);
-
-interface OpenRouterMessage {
-  content?: string | Array<{ text?: string }>;
-}
-
-interface OpenRouterResponse {
-  choices?: Array<{ message?: OpenRouterMessage }>;
-  error?: { message?: string };
-}
 
 interface RawChecklistItem {
   id?: string;
@@ -107,19 +96,6 @@ function takeTailWords(transcript: string, limit: number = TAIL_WORD_LIMIT): str
   if (tokens.length <= limit) return transcript;
   const tail = tokens.slice(-limit).join(' ');
   return tail;
-}
-
-function shouldRetry(status: number): boolean {
-  return status === 429 || status >= 500;
-}
-
-function extractMessageContent(message: OpenRouterMessage | undefined): string {
-  if (!message) return '';
-  if (typeof message.content === 'string') return message.content;
-  return (message.content ?? [])
-    .map((part) => part.text ?? '')
-    .join('')
-    .trim();
 }
 
 function parseJsonPayload(raw: string): RawChecklistPayload {
@@ -280,72 +256,15 @@ function evaluateHeuristicChecklist(
   return map;
 }
 
-async function completeWithOpenRouter(userPrompt: string): Promise<string> {
-  const apiKey = process.env.OPENROUTER_API_KEY?.trim();
-  if (!apiKey) {
-    throw new Error('Missing OPENROUTER_API_KEY for realtime checklist.');
-  }
-
-  const model = process.env.OPENROUTER_MODEL?.trim() || OPENROUTER_MODEL_DEFAULT;
-
-  for (let attempt = 1; attempt <= OPENROUTER_MAX_ATTEMPTS; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(OPENROUTER_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          temperature: 0.3,
-          max_tokens: 1200,
-          response_format: { type: 'json_object' },
-          messages: [
-            {
-              role: 'system',
-              content: OPENROUTER_SYSTEM_PROMPT,
-            },
-            {
-              role: 'user',
-              content: userPrompt,
-            },
-          ],
-        }),
-        signal: controller.signal,
-      });
-
-      const payload = (await response.json()) as OpenRouterResponse;
-      if (!response.ok) {
-        const message =
-          payload.error?.message ??
-          `OpenRouter realtime checklist failed (${response.status}).`;
-        if (attempt < OPENROUTER_MAX_ATTEMPTS && shouldRetry(response.status)) {
-          continue;
-        }
-        throw new Error(message);
-      }
-
-      const content = extractMessageContent(payload.choices?.[0]?.message);
-      if (!content) {
-        throw new Error('OpenRouter returned empty checklist output.');
-      }
-      return content;
-    } catch (error) {
-      if (attempt < OPENROUTER_MAX_ATTEMPTS) continue;
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('OpenRouter realtime checklist request timed out.');
-      }
-      throw error;
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  throw new Error('OpenRouter realtime checklist request failed.');
+async function completeWithChecklistLlm(userPrompt: string): Promise<string> {
+  return completeWithLlmRouter({
+    systemPrompt: CHECKLIST_LLM_SYSTEM_PROMPT,
+    userPrompt,
+    responseFormat: 'json',
+    temperature: 0.3,
+    maxTokens: 1200,
+    timeoutMs: CHECKLIST_LLM_TIMEOUT_MS,
+  });
 }
 
 function getHigherNonCompletedStatus(
@@ -485,7 +404,7 @@ export function buildChecklistUpdateMessage({
   };
 }
 
-async function evaluateWithOpenRouter({
+async function evaluateWithLlm({
   mode,
   transcript,
   sessionElapsedSeconds,
@@ -504,7 +423,7 @@ async function evaluateWithOpenRouter({
     checklist,
     previousItems,
   });
-  const raw = await completeWithOpenRouter(userPrompt);
+  const raw = await completeWithChecklistLlm(userPrompt);
   const payload = parseJsonPayload(raw);
   const items = normalizeRawItems(payload);
   if (items.size === 0) {
@@ -533,12 +452,12 @@ export async function evaluateRealtimeChecklist(
     (nowMs - input.sessionStartedAtMs) / 1000,
   );
   const wordCount = countWords(input.transcript);
-  let source: ChecklistUpdateSource = 'openrouter';
+  let source: ChecklistUpdateSource = 'llm';
   let candidateItems: Map<ChecklistItemId, NormalizedChecklistItem>;
   let llmNextHint: string | null = null;
 
   try {
-    const llm = await evaluateWithOpenRouter({
+    const llm = await evaluateWithLlm({
       mode: input.mode,
       transcript: input.transcript,
       sessionElapsedSeconds,
@@ -569,7 +488,7 @@ export async function evaluateRealtimeChecklist(
     evaluatedAtIso,
   });
 
-  if (source === 'openrouter' && llmNextHint) {
+  if (source === 'llm' && llmNextHint) {
     message.nextHint = normalizeEvidence(llmNextHint).slice(0, 120) || message.nextHint;
   }
 
