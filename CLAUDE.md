@@ -167,7 +167,7 @@ NEXT_PUBLIC_SUPABASE_URL=   # Supabase project URL (required for deck features)
 NEXT_PUBLIC_SUPABASE_ANON_KEY= # Supabase anon key (required for deck features)
 ANTHROPIC_API_KEY=     # Claude API (required for LLM scoring)
 GOOGLE_AI_API_KEY=     # Gemini fallback (optional)
-ELEVENLABS_API_KEY=    # TTS coach voice (Tier 1, optional)
+ELEVENLABS_API_KEY_STT=    # STT realtime (required for speech-to-text)
 MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
 ```
 

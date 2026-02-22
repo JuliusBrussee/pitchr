@@ -1,3 +1,5 @@
+export type ChatTurn = { role: 'user' | 'assistant'; content: string };
+
 export interface LlmCompletionRequest {
   systemPrompt: string;
   userPrompt: string;

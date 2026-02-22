@@ -22,6 +22,18 @@ function getWsUrl(): string {
   return `${protocol}//${window.location.host}/ws`;
 }
 
+function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const base = process.env.NEXT_PUBLIC_WS_URL;
+  if (base) {
+    return base.replace(/\/ws\/?$/, '').replace(/^ws/, 'http');
+  }
+  const host = window.location.hostname;
+  const port = window.location.port;
+  if (host === 'localhost' && port === '3000') return 'http://localhost:3001';
+  return `${window.location.protocol}//${window.location.host}`;
+}
+
 function resampleTo16k(float32Mono: Float32Array, inputSampleRate: number): Float32Array {
   if (inputSampleRate === TARGET_SAMPLE_RATE) return float32Mono;
   const inLen = float32Mono.length;
@@ -63,12 +75,20 @@ export interface UseSTTReturn {
   start: (options?: StartOptions) => Promise<void>;
   pause: () => void;
   stop: () => void;
+  startAnswerRecording: () => void;
+  stopAnswerRecording: () => void;
+  isAnswerRecording: boolean;
+  answerTranscript: string | null;
   liveText: string;
   transcriptSegments: string[];
   saved: boolean;
   error: string | null;
-  feedbackText: string | null;
+  feedbackQuestion: string | null;
+  feedbackAnswer: string | null;
   feedbackError: string | null;
+  coachFeedbackText: string | null;
+  hasCoachFeedbackAudio: boolean;
+  playCoachFeedbackAudio: () => void;
 }
 
 export function useSTT(): UseSTTReturn {
@@ -77,10 +97,22 @@ export function useSTT(): UseSTTReturn {
   const [transcriptSegments, setTranscriptSegments] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [feedbackText, setFeedbackText] = useState<string | null>(null);
+  const [feedbackQuestion, setFeedbackQuestion] = useState<string | null>(null);
+  const [feedbackAnswer, setFeedbackAnswer] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [answerTranscript, setAnswerTranscript] = useState<string | null>(null);
+  const [isAnswerRecording, setIsAnswerRecording] = useState(false);
+  const [coachFeedbackText, setCoachFeedbackText] = useState<string | null>(null);
+  const [hasCoachFeedbackAudio, setHasCoachFeedbackAudio] = useState(false);
+  const coachFeedbackAudioErrorRef = useRef<string | null>(null);
+
+  const coachFeedbackAudioUrlRef = useRef<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const answerWsRef = useRef<WebSocket | null>(null);
+  const targetWsRef = useRef<WebSocket | null>(null);
+  const submittedAnswerRef = useRef<string | null>(null);
+  const answerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -88,7 +120,7 @@ export function useSTT(): UseSTTReturn {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
 
   const sendChunk = useCallback((base64: string, commit: boolean) => {
-    const ws = wsRef.current;
+    const ws = targetWsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     ws.send(
       JSON.stringify({
@@ -198,7 +230,7 @@ export function useSTT(): UseSTTReturn {
           wsRef.current.close();
           wsRef.current = null;
         }
-      }, 6000);
+      }, 20000);
     } else if (ws) {
       ws.close();
       wsRef.current = null;
@@ -213,11 +245,99 @@ export function useSTT(): UseSTTReturn {
     };
   }, [stop]);
 
+  const startAnswerRecording = useCallback(() => {
+    const wsUrl = getWsUrl();
+    if (!wsUrl) {
+      setError('WebSocket URL not configured');
+      return;
+    }
+    setAnswerTranscript(null);
+    setCoachFeedbackText(null);
+    setHasCoachFeedbackAudio(false);
+    coachFeedbackAudioErrorRef.current = null;
+    submittedAnswerRef.current = null;
+    setError(null);
+    let answerWs: WebSocket;
+    try {
+      answerWs = new WebSocket(wsUrl);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'WebSocket error');
+      return;
+    }
+    answerWsRef.current = answerWs;
+    answerWs.onopen = () => {
+      answerWs.send(JSON.stringify({ type: 'start_answer' }));
+      targetWsRef.current = answerWs;
+      void startMicCapture().then((micReady) => {
+        if (!micReady) {
+          answerWs.close();
+          answerWsRef.current = null;
+          targetWsRef.current = wsRef.current;
+          return;
+        }
+        setIsAnswerRecording(true);
+      });
+    };
+    answerWs.onmessage = (event: MessageEvent) => {
+      let msg: { type?: string; text?: string; error?: string };
+      try {
+        msg = JSON.parse(event.data as string);
+      } catch {
+        return;
+      }
+      if (msg.type === 'answer_transcript') {
+        if (answerTimeoutRef.current) {
+          clearTimeout(answerTimeoutRef.current);
+          answerTimeoutRef.current = null;
+        }
+        const text = msg.text != null ? String(msg.text).trim() : '';
+        setAnswerTranscript(text || null);
+        setIsAnswerRecording(false);
+        answerWsRef.current = null;
+        targetWsRef.current = wsRef.current;
+      } else if (msg.type === 'error') {
+        if (answerTimeoutRef.current) {
+          clearTimeout(answerTimeoutRef.current);
+          answerTimeoutRef.current = null;
+        }
+        setError(msg.error ?? 'Error');
+      }
+    };
+    answerWs.onerror = () => setError('WebSocket error.');
+    answerWs.onclose = () => {
+      if (answerWsRef.current === answerWs) {
+        answerWsRef.current = null;
+        targetWsRef.current = wsRef.current;
+        setIsAnswerRecording(false);
+      }
+    };
+  }, [startMicCapture]);
+
+  const stopAnswerRecording = useCallback(() => {
+    const ws = answerWsRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'stop' }));
+      if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
+      answerTimeoutRef.current = setTimeout(() => {
+        answerTimeoutRef.current = null;
+        if (answerWsRef.current) {
+          setError('No transcript received. Try speaking and stopping again.');
+        }
+      }, 6000);
+    } else {
+      setError('Answer recording not active. Click "Record answer" first.');
+    }
+    stopMic();
+    setIsAnswerRecording(false);
+    targetWsRef.current = wsRef.current;
+  }, [stopMic]);
+
   const start = useCallback(async (options?: StartOptions) => {
     const resume = options?.resume === true;
     setError(null);
     setSaved(false);
-    setFeedbackText(null);
+    setFeedbackQuestion(null);
+    setFeedbackAnswer(null);
     setFeedbackError(null);
     setLiveText('');
     if (!resume) {
@@ -267,6 +387,7 @@ export function useSTT(): UseSTTReturn {
     };
     ws.onopen = () => {
       opened = true;
+      targetWsRef.current = ws;
       void startMicCapture().then((micReady) => {
         if (!micReady) {
           ws.close();
@@ -277,7 +398,16 @@ export function useSTT(): UseSTTReturn {
     };
 
     ws.onmessage = (event: MessageEvent) => {
-      let msg: { type?: string; message_type?: string; text?: string; error?: string; feedbackText?: string; feedbackError?: string; base64?: string };
+      let msg: {
+        type?: string;
+        message_type?: string;
+        text?: string;
+        error?: string;
+        feedbackQuestion?: string;
+        feedbackAnswer?: string;
+        feedbackError?: string;
+        base64?: string;
+      };
       try {
         msg = JSON.parse(event.data as string);
       } catch {
@@ -285,8 +415,9 @@ export function useSTT(): UseSTTReturn {
       }
       if (msg.type === 'saved') {
         setSaved(true);
-        setFeedbackText((msg as { feedbackText?: string }).feedbackText ?? null);
-        setFeedbackError((msg as { feedbackError?: string }).feedbackError ?? null);
+        setFeedbackQuestion(msg.feedbackQuestion ?? null);
+        setFeedbackAnswer(msg.feedbackAnswer ?? null);
+        setFeedbackError(msg.feedbackError ?? null);
         if (closeTimerRef.current) {
           clearTimeout(closeTimerRef.current);
           closeTimerRef.current = null;
@@ -297,9 +428,9 @@ export function useSTT(): UseSTTReturn {
         }
         return;
       }
-      if (msg.type === 'feedback_audio' && typeof (msg as { base64?: string }).base64 === 'string') {
+      if (msg.type === 'feedback_audio' && typeof msg.base64 === 'string') {
         try {
-          const binary = atob((msg as { base64: string }).base64);
+          const binary = atob(msg.base64);
           const bytes = new Uint8Array(binary.length);
           for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
           const blob = new Blob([bytes], { type: 'audio/mpeg' });
@@ -341,16 +472,86 @@ export function useSTT(): UseSTTReturn {
     };
   }, [startMicCapture, stopMic]);
 
+  useEffect(() => {
+    const q = feedbackQuestion;
+    const a = answerTranscript;
+    if (!a || !q || submittedAnswerRef.current === a) return;
+    submittedAnswerRef.current = a;
+    const apiBase = getApiBaseUrl();
+    if (!apiBase) return;
+    fetch(`${apiBase}/api/coach-answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: q, answer: a }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(res.statusText);
+        return res.json();
+      })
+      .then((data: { feedbackText?: string; audioBase64?: string; audioError?: string }) => {
+        setCoachFeedbackText(data.feedbackText ?? null);
+        setHasCoachFeedbackAudio(!!data.audioBase64);
+        coachFeedbackAudioErrorRef.current = data.audioError ?? null;
+        if (coachFeedbackAudioUrlRef.current) {
+          URL.revokeObjectURL(coachFeedbackAudioUrlRef.current);
+          coachFeedbackAudioUrlRef.current = null;
+        }
+        if (data.audioBase64) {
+          try {
+            const binary = atob(data.audioBase64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            const blob = new Blob([bytes], { type: 'audio/mpeg' });
+            const url = URL.createObjectURL(blob);
+            coachFeedbackAudioUrlRef.current = url;
+            const audio = new Audio(url);
+            audio.play().catch(() => {});
+          } catch (_) {}
+        }
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : 'Feedback request failed'));
+  }, [answerTranscript, feedbackQuestion]);
+
+  const playCoachFeedbackAudio = useCallback(() => {
+    const url = coachFeedbackAudioUrlRef.current;
+    if (!url) {
+      const serverError = coachFeedbackAudioErrorRef.current;
+      setError(
+        serverError
+          ? `Voice wasn't generated: ${serverError}`
+          : "Voice wasn't generated. Set ELEVENLABS_API_KEY_TTS and ELEVENLABS_VOICE_ID in .env.local and restart the STT server.",
+      );
+      return;
+    }
+    const audio = new Audio(url);
+    audio.volume = 1;
+    audio.play().catch((e) => {
+      setError(
+        e?.name === 'NotAllowedError'
+          ? 'Allow audio for this site (browser blocked playback), then click Play again.'
+          : 'Playback failed. Try clicking Play again.',
+      );
+    });
+  }, []);
+
   return {
     isRecording,
     start,
     pause,
     stop,
+    startAnswerRecording,
+    stopAnswerRecording,
+    isAnswerRecording,
+    answerTranscript,
     liveText,
     transcriptSegments,
     saved,
     error,
-    feedbackText,
+    feedbackQuestion,
+    feedbackAnswer,
     feedbackError,
+    coachFeedbackText,
+    hasCoachFeedbackAudio,
+    playCoachFeedbackAudio,
   };
 }
