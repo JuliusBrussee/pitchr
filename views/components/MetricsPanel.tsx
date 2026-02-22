@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, memo } from 'react';
-import { Check, Circle, Minus, X } from 'lucide-react';
+import { Check, Circle, Minus, X, ScanFace } from 'lucide-react';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
 import type { MetricValues } from '@/hooks/useSessionState';
 import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
@@ -366,6 +366,59 @@ function MetricCard({
   );
 }
 
+function WireframeMeshBg({ color }: { color: string }) {
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full pointer-events-none"
+      preserveAspectRatio="none"
+      viewBox="0 0 200 80"
+      fill="none"
+      style={{ opacity: 0.18, transition: 'opacity 0.4s ease' }}
+    >
+      {/* Horizontal grid lines */}
+      <line x1="0" y1="16" x2="200" y2="16" stroke={color} strokeWidth="0.5" />
+      <line x1="0" y1="40" x2="200" y2="40" stroke={color} strokeWidth="0.5" />
+      <line x1="0" y1="64" x2="200" y2="64" stroke={color} strokeWidth="0.5" />
+      {/* Vertical grid lines */}
+      <line x1="40" y1="0" x2="40" y2="80" stroke={color} strokeWidth="0.5" />
+      <line x1="80" y1="0" x2="80" y2="80" stroke={color} strokeWidth="0.5" />
+      <line x1="120" y1="0" x2="120" y2="80" stroke={color} strokeWidth="0.5" />
+      <line x1="160" y1="0" x2="160" y2="80" stroke={color} strokeWidth="0.5" />
+      {/* Warped mesh — curves that suggest a 3D face surface */}
+      <path d="M60 0 Q58 40 60 80" stroke={color} strokeWidth="0.6" />
+      <path d="M100 0 Q102 40 100 80" stroke={color} strokeWidth="0.6" />
+      <path d="M0 28 Q100 22 200 28" stroke={color} strokeWidth="0.6" />
+      <path d="M0 52 Q100 58 200 52" stroke={color} strokeWidth="0.6" />
+      {/* Diagonal mesh connectors */}
+      <line x1="40" y1="16" x2="80" y2="40" stroke={color} strokeWidth="0.3" />
+      <line x1="80" y1="16" x2="120" y2="40" stroke={color} strokeWidth="0.3" />
+      <line x1="120" y1="16" x2="160" y2="40" stroke={color} strokeWidth="0.3" />
+      <line x1="40" y1="40" x2="80" y2="64" stroke={color} strokeWidth="0.3" />
+      <line x1="80" y1="40" x2="120" y2="64" stroke={color} strokeWidth="0.3" />
+      <line x1="120" y1="40" x2="160" y2="64" stroke={color} strokeWidth="0.3" />
+      <line x1="80" y1="16" x2="40" y2="40" stroke={color} strokeWidth="0.3" />
+      <line x1="120" y1="16" x2="80" y2="40" stroke={color} strokeWidth="0.3" />
+      <line x1="160" y1="16" x2="120" y2="40" stroke={color} strokeWidth="0.3" />
+      <line x1="80" y1="40" x2="40" y2="64" stroke={color} strokeWidth="0.3" />
+      <line x1="120" y1="40" x2="80" y2="64" stroke={color} strokeWidth="0.3" />
+      <line x1="160" y1="40" x2="120" y2="64" stroke={color} strokeWidth="0.3" />
+      {/* Vertex dots at intersections */}
+      <circle cx="40" cy="16" r="1.2" fill={color} />
+      <circle cx="80" cy="16" r="1.2" fill={color} />
+      <circle cx="120" cy="16" r="1.2" fill={color} />
+      <circle cx="160" cy="16" r="1.2" fill={color} />
+      <circle cx="40" cy="40" r="1.2" fill={color} />
+      <circle cx="80" cy="40" r="1.5" fill={color} />
+      <circle cx="120" cy="40" r="1.5" fill={color} />
+      <circle cx="160" cy="40" r="1.2" fill={color} />
+      <circle cx="40" cy="64" r="1.2" fill={color} />
+      <circle cx="80" cy="64" r="1.2" fill={color} />
+      <circle cx="120" cy="64" r="1.2" fill={color} />
+      <circle cx="160" cy="64" r="1.2" fill={color} />
+    </svg>
+  );
+}
+
 function EngagementCard({
   band,
   active,
@@ -387,20 +440,27 @@ function EngagementCard({
         transition: 'border-color 0.5s ease',
       }}
     >
-      <div className="text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
-        Engagement
+      {/* Wireframe shader mesh background */}
+      <WireframeMeshBg color={active && band !== 'no_face' ? ENGAGEMENT_COLORS[band] : 'var(--text-muted)'} />
+
+      <div className="relative">
+        <div className="flex items-center gap-1 text-xs mb-1" style={{ color: 'var(--text-muted)' }}>
+          <ScanFace size={12} />
+          Engagement
+        </div>
+        <div
+          className="text-lg font-bold"
+          style={{
+            color,
+            transition: 'color 0.5s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            transform: pulsing ? 'scale(1.05)' : 'scale(1)',
+            transformOrigin: 'left center',
+          }}
+        >
+          {active ? ENGAGEMENT_LABELS[band] : '-'}
+        </div>
       </div>
-      <div
-        className="text-lg font-bold"
-        style={{
-          color,
-          transition: 'color 0.5s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          transform: pulsing ? 'scale(1.05)' : 'scale(1)',
-          transformOrigin: 'left center',
-        }}
-      >
-        {active ? ENGAGEMENT_LABELS[band] : '-'}
-      </div>
+
       {/* Color-matched glow on band change */}
       {active && band !== 'no_face' && (
         <div
