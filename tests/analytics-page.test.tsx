@@ -15,6 +15,12 @@ function getStatValue(label: string): string {
   return valueNode.textContent?.trim() ?? '';
 }
 
+function countVisibleBars(testId: string): number {
+  return screen
+    .getAllByTestId(testId)
+    .filter((bar) => (bar as HTMLElement).style.opacity !== '0').length;
+}
+
 describe('AnalyticsPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -82,6 +88,11 @@ describe('AnalyticsPage', () => {
     expect(screen.getByText('Score Trend')).toBeTruthy();
     expect(screen.getByText('Rubric Category Trend')).toBeTruthy();
     expect(screen.queryByText('Sessions This Period')).toBeTruthy();
+    // Default 30D buckets.
+    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(30);
+    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(150);
+    // Two days with data should be visible.
+    expect(countVisibleBars('score-trend-bar')).toBe(2);
   });
 
   it('updates analytics when the top time-range selector changes', async () => {
@@ -142,11 +153,19 @@ describe('AnalyticsPage', () => {
 
     // Default range is 30D, so only the recent run should count.
     expect(getStatValue('Sessions This Period')).toBe('1');
+    // 30 day grouped buckets.
+    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(30);
+    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(150);
+    expect(countVisibleBars('score-trend-bar')).toBe(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'All' }));
 
     await waitFor(() => {
       expect(getStatValue('Sessions This Period')).toBe('2');
     });
+    // "All" groups by month, so buckets/positions reflow.
+    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(2);
+    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(10);
+    expect(countVisibleBars('score-trend-bar')).toBe(2);
   });
 });

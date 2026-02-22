@@ -45,6 +45,18 @@ interface RunRecord {
   };
 }
 
+interface TrendPoint {
+  label: string;
+  value: number;
+  hasData: boolean;
+}
+
+interface RubricTrendPoint {
+  label: string;
+  hasData: boolean;
+  scores: { category: string; score: number; hasData: boolean }[];
+}
+
 /* ——— Helpers ——— */
 
 const DEFAULT_DELIVERY_METRICS: DeliveryMetrics = {
@@ -89,6 +101,97 @@ function formatDayLabel(dayKey: string): string {
 function mean(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function startOfMonth(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addMonths(date: Date, months: number): Date {
+  return new Date(date.getFullYear(), date.getMonth() + months, 1);
+}
+
+interface TimeBucket {
+  fromMs: number;
+  toMs: number;
+  label: string;
+}
+
+function buildTimeBuckets(runs: RunRecord[], range: TimeRange): TimeBucket[] {
+  const now = new Date();
+  const today = startOfDay(now);
+
+  if (range === '7D' || range === '30D') {
+    const days = range === '7D' ? 7 : 30;
+    const firstDay = addDays(today, -(days - 1));
+    return Array.from({ length: days }, (_, index) => {
+      const from = addDays(firstDay, index);
+      const to = addDays(from, 1);
+      return {
+        fromMs: from.getTime(),
+        toMs: to.getTime(),
+        label: from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      };
+    });
+  }
+
+  if (range === '90D') {
+    const weeks = 13;
+    const firstWeek = addDays(today, -(weeks - 1) * 7);
+    return Array.from({ length: weeks }, (_, index) => {
+      const from = addDays(firstWeek, index * 7);
+      const to = addDays(from, 7);
+      return {
+        fromMs: from.getTime(),
+        toMs: to.getTime(),
+        label: from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      };
+    });
+  }
+
+  const sorted = sortChronological(runs);
+  if (sorted.length === 0) return [];
+
+  const firstRunDate = new Date(sorted[0].createdAt);
+  const lastRunDate = new Date(sorted[sorted.length - 1].createdAt);
+  const firstMonth = startOfMonth(firstRunDate);
+  const lastMonth = startOfMonth(lastRunDate);
+
+  const buckets: TimeBucket[] = [];
+  let cursor = firstMonth;
+  while (cursor.getTime() <= lastMonth.getTime()) {
+    const next = addMonths(cursor, 1);
+    buckets.push({
+      fromMs: cursor.getTime(),
+      toMs: next.getTime(),
+      label: cursor.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+    });
+    cursor = next;
+  }
+  return buckets;
+}
+
+function labelStride(length: number): number {
+  if (length <= 10) return 1;
+  return Math.ceil(length / 10);
+}
+
+function applySparseLabels<T extends { label: string }>(points: T[]): T[] {
+  const stride = labelStride(points.length);
+  return points.map((point, index) => ({
+    ...point,
+    label: index % stride === 0 || index === points.length - 1 ? point.label : '',
+  }));
 }
 
 function normalizeCategory(rawCategory: string): string {
@@ -272,23 +375,27 @@ function filterByRange(runs: RunRecord[], range: TimeRange): RunRecord[] {
   return runs.filter((r) => new Date(r.createdAt) >= cutoff);
 }
 
-function computeTrend(runs: RunRecord[]): { label: string; value: number }[] {
-  const byDay = new Map<string, number[]>();
-  for (const run of sortChronological(runs)) {
-    const score = toFiniteNumber(run.overallScore, 0);
-    const dayKey = toDayKey(run.createdAt);
-    const existing = byDay.get(dayKey) ?? [];
-    existing.push(score);
-    byDay.set(dayKey, existing);
-  }
-  return Array.from(byDay.entries()).map(([dayKey, scores]) => ({
-    label: formatDayLabel(dayKey),
-    value: Math.round(mean(scores)),
-  }));
-}
+function computeTrend(runs: RunRecord[], range: TimeRange): TrendPoint[] {
+  const chronological = sortChronological(runs);
+  const buckets = buildTimeBuckets(chronological, range);
 
-function formatSessionLabel(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const points: TrendPoint[] = buckets.map((bucket) => {
+    const bucketScores = chronological
+      .filter((run) => {
+        const ts = new Date(run.createdAt).getTime();
+        return ts >= bucket.fromMs && ts < bucket.toMs;
+      })
+      .map((run) => toFiniteNumber(run.overallScore, 0))
+      .filter((score) => Number.isFinite(score));
+
+    return {
+      label: bucket.label,
+      value: bucketScores.length > 0 ? Math.round(mean(bucketScores)) : 0,
+      hasData: bucketScores.length > 0,
+    };
+  });
+
+  return applySparseLabels(points);
 }
 
 /* ——— Compute functions ——— */
@@ -345,36 +452,54 @@ function computeStatDeltas(runs: RunRecord[]) {
   };
 }
 
-function computeRubricTrend(runs: RunRecord[]): { label: string; scores: { category: string; score: number }[] }[] {
-  const byDay = new Map<string, Map<string, number[]>>();
-  for (const run of sortChronological(runs)) {
-    const dayKey = toDayKey(run.createdAt);
-    const dayBucket = byDay.get(dayKey) ?? new Map<string, number[]>();
-    for (const rb of run.analysis.rubric_breakdown ?? []) {
-      const category = normalizeCategory(rb.category);
-      if (!(category in RUBRIC_COLORS)) continue;
-      const score = toFiniteNumber(rb.score, 0);
-      const normalizedScore = score > 0 && score <= 1.2 ? score * 20 : score;
-      const existing = dayBucket.get(category) ?? [];
-      existing.push(normalizedScore);
-      dayBucket.set(category, existing);
+function computeRubricTrend(runs: RunRecord[], range: TimeRange): RubricTrendPoint[] {
+  const chronological = sortChronological(runs);
+  const buckets = buildTimeBuckets(chronological, range);
+  const categories = Object.keys(RUBRIC_COLORS);
+
+  const points: RubricTrendPoint[] = buckets.map((bucket) => {
+    const runsInBucket = chronological.filter((run) => {
+      const ts = new Date(run.createdAt).getTime();
+      return ts >= bucket.fromMs && ts < bucket.toMs;
+    });
+
+    const scoresByCategory = new Map<string, number[]>();
+    for (const category of categories) {
+      scoresByCategory.set(category, []);
     }
-    byDay.set(dayKey, dayBucket);
-  }
-  return Array.from(byDay.entries()).map(([dayKey, scoresByCategory]) => ({
-    label: formatDayLabel(dayKey),
-    scores: Object.keys(RUBRIC_COLORS).map((category) => ({
-      category,
-      score: Math.round(mean(scoresByCategory.get(category) ?? [])),
-    })),
-  }));
+
+    for (const run of runsInBucket) {
+      for (const rb of run.analysis.rubric_breakdown ?? []) {
+        const category = normalizeCategory(rb.category);
+        if (!scoresByCategory.has(category)) continue;
+        const score = toFiniteNumber(rb.score, 0);
+        const normalizedScore = score > 0 && score <= 1.2 ? score * 20 : score;
+        scoresByCategory.get(category)?.push(normalizedScore);
+      }
+    }
+
+    return {
+      label: bucket.label,
+      hasData: runsInBucket.length > 0,
+      scores: categories.map((category) => {
+        const values = scoresByCategory.get(category) ?? [];
+        return {
+          category,
+          score: values.length > 0 ? Math.round(mean(values)) : 0,
+          hasData: values.length > 0,
+        };
+      }),
+    };
+  });
+
+  return applySparseLabels(points);
 }
 
 function computeWpmTrend(runs: RunRecord[]): { label: string; wpm: number }[] {
   return sortChronological(runs)
     .filter((r) => Number.isFinite(r.analysis.delivery_metrics?.wpm))
     .map((r) => ({
-      label: formatSessionLabel(r.createdAt),
+      label: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       wpm: r.analysis.delivery_metrics.wpm,
     }));
 }
@@ -387,7 +512,10 @@ function computeFillerData(runs: RunRecord[]): {
   const trend = chronological.map((r) => {
     const fillers = r.analysis.delivery_metrics?.filler_words ?? [];
     const total = fillers.reduce((s, f) => s + (f.count ?? 0), 0);
-    return { label: formatSessionLabel(r.createdAt), total };
+    return {
+      label: new Date(r.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      total,
+    };
   });
 
   const wordMap = new Map<string, number>();
@@ -419,9 +547,12 @@ export default function AnalyticsPage() {
   }, []);
 
   const filteredRuns = useMemo(() => filterByRange(allRuns, range), [allRuns, range]);
-  const trendData = useMemo(() => computeTrend(filteredRuns), [filteredRuns]);
+  const trendData = useMemo(() => computeTrend(filteredRuns, range), [filteredRuns, range]);
   const deltas = useMemo(() => computeStatDeltas(filteredRuns), [filteredRuns]);
-  const rubricTrend = useMemo(() => computeRubricTrend(filteredRuns), [filteredRuns]);
+  const rubricTrend = useMemo(
+    () => computeRubricTrend(filteredRuns, range),
+    [filteredRuns, range],
+  );
   const wpmTrend = useMemo(() => computeWpmTrend(filteredRuns), [filteredRuns]);
   const fillerData = useMemo(() => computeFillerData(filteredRuns), [filteredRuns]);
 
@@ -504,7 +635,10 @@ export default function AnalyticsPage() {
         {trendData.length === 0 ? (
           <EmptyState message="No sessions in this time range" />
         ) : (
-          <ScoreTrendChart data={trendData} />
+          <ScoreTrendChart
+            key={`score-${range}-${trendData.length}`}
+            data={trendData}
+          />
         )}
       </GlassCard>
 
@@ -517,7 +651,10 @@ export default function AnalyticsPage() {
         {rubricTrend.length === 0 ? (
           <EmptyState message="No sessions to show rubric trends" />
         ) : (
-          <RubricTrendChart data={rubricTrend} />
+          <RubricTrendChart
+            key={`rubric-${range}-${rubricTrend.length}`}
+            data={rubricTrend}
+          />
         )}
       </GlassCard>
 
@@ -532,7 +669,10 @@ export default function AnalyticsPage() {
         {wpmTrend.length === 0 ? (
           <EmptyState message="No WPM data available" />
         ) : (
-          <WpmTrendChart data={wpmTrend} />
+          <WpmTrendChart
+            key={`wpm-${range}-${wpmTrend.length}`}
+            data={wpmTrend}
+          />
         )}
       </GlassCard>
 
@@ -546,8 +686,14 @@ export default function AnalyticsPage() {
           <EmptyState message="No filler word data available" />
         ) : (
           <div className="grid grid-cols-2 gap-6">
-            <FillerTrendChart data={fillerData.trend} />
-            <FillerAggregateTable data={fillerData.aggregate} />
+            <FillerTrendChart
+              key={`filler-trend-${range}-${fillerData.trend.length}`}
+              data={fillerData.trend}
+            />
+            <FillerAggregateTable
+              key={`filler-table-${range}-${fillerData.aggregate.length}`}
+              data={fillerData.aggregate}
+            />
           </div>
         )}
       </GlassCard>
@@ -560,7 +706,7 @@ export default function AnalyticsPage() {
 
 /* ——— Sub-components ——————————————————————————————————————————— */
 
-function ScoreTrendChart({ data }: { data: { label: string; value: number }[] }) {
+function ScoreTrendChart({ data }: { data: TrendPoint[] }) {
   const maxVal = 100;
   const yLabels = [100, 80, 60, 40, 20, 0];
 
@@ -618,10 +764,11 @@ function ScoreTrendChart({ data }: { data: { label: string; value: number }[] })
               >
                 <div
                   className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
+                  data-testid="score-trend-bar"
                   style={{
                     height: `${clampedHeightPct}%`,
-                    backgroundColor: barColor,
-                    opacity: 0.85,
+                    backgroundColor: d.hasData ? barColor : 'transparent',
+                    opacity: d.hasData ? 0.85 : 0,
                   }}
                 >
                   {/* Shine effect on hover */}
@@ -675,7 +822,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   delivery: 'Delivery',
 };
 
-function RubricTrendChart({ data }: { data: { label: string; scores: { category: string; score: number }[] }[] }) {
+function RubricTrendChart({ data }: { data: RubricTrendPoint[] }) {
   const maxVal = 20;
   const yLabels = [20, 15, 10, 5, 0];
   const categories = Object.keys(RUBRIC_COLORS);
@@ -728,20 +875,23 @@ function RubricTrendChart({ data }: { data: { label: string; scores: { category:
                 className="flex-1 h-full flex items-end justify-center gap-[2px] relative z-10 group cursor-default"
               >
                 {categories.map((cat) => {
-                  const score = session.scores.find((s) => s.category === cat)?.score ?? 0;
+                  const scoreEntry = session.scores.find((s) => s.category === cat);
+                  const score = scoreEntry?.score ?? 0;
+                  const hasData = scoreEntry?.hasData ?? false;
                   const heightPct = (score / maxVal) * 100;
                   const clampedHeightPct = score > 0 ? Math.max(2.5, heightPct) : 0;
                   return (
                     <div
                       key={cat}
                       className="rounded-t-sm transition-all duration-500 ease-out"
+                      data-testid="rubric-trend-bar"
                       style={{
                         width: '16%',
                         minWidth: 3,
                         maxWidth: 8,
                         height: `${clampedHeightPct}%`,
-                        backgroundColor: getRubricColor(cat),
-                        opacity: 0.85,
+                        backgroundColor: hasData ? getRubricColor(cat) : 'transparent',
+                        opacity: hasData ? 0.85 : 0,
                       }}
                     />
                   );
@@ -883,6 +1033,7 @@ function WpmTrendChart({ data }: { data: { label: string; wpm: number }[] }) {
               >
                 <div
                   className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
+                  data-testid="wpm-trend-bar"
                   style={{
                     height: `${heightPct}%`,
                     backgroundColor: barColor,
@@ -980,6 +1131,7 @@ function FillerTrendChart({ data }: { data: { label: string; total: number }[] }
                 >
                   <div
                     className="w-full max-w-[36px] rounded-t-md relative overflow-hidden transition-all duration-500 ease-out group cursor-default"
+                    data-testid="filler-trend-bar"
                     style={{
                       height: `${clampedHeightPct}%`,
                       backgroundColor: '#f59e0b',
@@ -1032,7 +1184,7 @@ function FillerAggregateTable({ data }: { data: { word: string; total: number }[
   const topItems = data.slice(0, 8);
 
   return (
-    <div>
+    <div className="pt-2 pl-4">
       <h4 className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
         Most Used Filler Words
       </h4>
