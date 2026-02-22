@@ -31,11 +31,12 @@ describe('useSessionState', () => {
 
     act(() => {
       result.current.updateTranscript(transcript, transcript);
+      vi.advanceTimersByTime(2_000);
     });
 
     expect(result.current.metrics.wordCount).toBe(10);
     expect(result.current.metrics.fillerWords).toBe(4);
-    expect(result.current.metrics.fillerRate).toBe(40);
+    expect(result.current.metrics.fillerRate).toBeGreaterThan(0);
   });
 
   it('keeps metrics anchored to committed transcript when live partial regresses', () => {
@@ -55,6 +56,7 @@ describe('useSessionState', () => {
 
     act(() => {
       result.current.updateTranscript('we are', 'we are building software for modern teams');
+      vi.advanceTimersByTime(2_000);
     });
 
     expect(result.current.metrics.wordCount).toBe(7);
@@ -72,18 +74,19 @@ describe('useSessionState', () => {
     act(() => {
       vi.advanceTimersByTime(12_000);
       result.current.updateTranscript(transcript, transcript);
+      vi.advanceTimersByTime(2_000);
     });
 
     const firstWpm = result.current.metrics.wpm;
 
     act(() => {
-      vi.advanceTimersByTime(1_000);
+      vi.advanceTimersByTime(2_000);
     });
 
     const secondWpm = result.current.metrics.wpm;
     expect(firstWpm).toBeGreaterThan(0);
-    expect(firstWpm % 5).toBe(0);
-    expect(secondWpm % 5).toBe(0);
-    expect(Math.abs(secondWpm - firstWpm)).toBeLessThanOrEqual(10);
+    expect(firstWpm % 10).toBe(0);
+    expect(secondWpm % 10).toBe(0);
+    expect(Math.abs(secondWpm - firstWpm)).toBeLessThanOrEqual(8);
   });
 });

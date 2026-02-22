@@ -42,11 +42,12 @@ const FILLER_WORDS = new Set([
 
 const FILLER_PHRASES = ['you know', 'i mean', 'kind of', 'sort of'];
 
-const WPM_TREND_WINDOW_MS = 20_000;
-const WPM_SMOOTHING_ALPHA = 0.2;
-const WPM_MAX_STEP = 8;
-const FILLER_RATE_SMOOTHING_ALPHA = 0.25;
-const FILLER_RATE_MAX_STEP = 0.9;
+const METRICS_REFRESH_MS = 2_000;
+const WPM_TREND_WINDOW_MS = 30_000;
+const WPM_SMOOTHING_ALPHA = 0.12;
+const WPM_MAX_STEP = 4;
+const FILLER_RATE_SMOOTHING_ALPHA = 0.15;
+const FILLER_RATE_MAX_STEP = 0.4;
 
 interface WpmSample {
   timestamp: number;
@@ -157,7 +158,7 @@ export function useSessionState(): SessionState {
     return cumulativeWpm * (1 - blend) + windowWpm * blend;
   }, []);
 
-  const refreshMetrics = useCallback(
+  const refreshTrendMetrics = useCallback(
     (nextWordCount: number, nextFillerWords: number) => {
       const nowMs = Date.now();
       const elapsed = sessionStartRef.current
@@ -189,10 +190,10 @@ export function useSessionState(): SessionState {
         );
 
         return {
-          wpm: wordCount > 0 ? roundToNearest(Math.max(0, smoothedWpmRef.current), 5) : 0,
+          wpm: wordCount > 0 ? roundToNearest(Math.max(0, smoothedWpmRef.current), 10) : 0,
           fillerWords,
           wordCount,
-          durationSecs: elapsed,
+          durationSecs: prev.durationSecs > elapsed ? prev.durationSecs : elapsed,
           fillerRate:
             wordCount > 0 ? Math.round(Math.max(0, smoothedFillerRateRef.current) * 10) / 10 : 0,
         };
@@ -209,13 +210,30 @@ export function useSessionState(): SessionState {
     }
 
     durationIntervalRef.current = setInterval(() => {
-      refreshMetrics(wordCountRef.current, fillerWordsRef.current);
+      const elapsed = sessionStartRef.current
+        ? Math.floor((Date.now() - sessionStartRef.current) / 1000)
+        : 0;
+      setMetrics((prev) => ({ ...prev, durationSecs: elapsed }));
     }, 1000);
 
     return () => {
       if (durationIntervalRef.current) clearInterval(durationIntervalRef.current);
     };
-  }, [isSessionActive, refreshMetrics]);
+  }, [isSessionActive]);
+
+  useEffect(() => {
+    if (!isSessionActive) {
+      return;
+    }
+
+    const trendInterval = setInterval(() => {
+      refreshTrendMetrics(wordCountRef.current, fillerWordsRef.current);
+    }, METRICS_REFRESH_MS);
+
+    return () => {
+      clearInterval(trendInterval);
+    };
+  }, [isSessionActive, refreshTrendMetrics]);
 
   const updateTranscript = useCallback(
     (fullText: string, committedText = '') => {
@@ -241,9 +259,10 @@ export function useSessionState(): SessionState {
 
       wordCountRef.current = nextWordCount;
       fillerWordsRef.current = nextFillerWords;
-      refreshMetrics(nextWordCount, nextFillerWords);
+      // Consume transcript updates immediately, but update rendered trend metrics
+      // on a slower timer so values stay stable and trend-like.
     },
-    [refreshMetrics],
+    [],
   );
 
   const resetChecklist = useCallback((mode: PitchMode) => {
