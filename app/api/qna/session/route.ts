@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ElevenLabsConvaiError, getSignedUrl } from '@/lib/elevenlabs/convai';
 import { buildQaAgentSystemPrompt } from '@/lib/prompts/qaAgent';
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import { createQASession } from '@/services/qnaSessionService';
 import { buildQaStarterContext } from '@/services/qna/contextBuilderService';
 import type {
@@ -56,7 +57,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const context = await buildQaStarterContext(runId);
+    const { supabase } = await getAuthenticatedUser();
+    const context = await buildQaStarterContext(supabase, runId);
     const qaSystemPrompt = buildQaAgentSystemPrompt({
       starterContext: context.starterContext,
       weakestCategories: context.weakestCategories,
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       drillPack: context.drillPack,
     });
     const signed = await getSignedUrl(agentId, true);
-    const qaSession = await createQASession({
+    const qaSession = await createQASession(supabase, {
       runId,
       status: 'active',
       conversationId: signed.conversationId,
@@ -104,6 +106,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         },
         { status: 500 },
       );
+    }
+
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
     const message = error instanceof Error ? error.message : 'Failed to create QA session.';

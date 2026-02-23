@@ -10,6 +10,14 @@ vi.mock("@/services/miro/miroService", () => {
   };
 });
 
+vi.mock("@/lib/supabase/auth-helpers", () => ({
+  getAuthenticatedUser: vi.fn().mockResolvedValue({
+    supabase: {},
+    user: { id: "test-user-id" },
+  }),
+  AuthenticationError: class AuthenticationError extends Error {},
+}));
+
 import { POST } from "@/app/api/miro/fix-board/route";
 import { getMiroService } from "@/services/miro/miroService";
 
@@ -44,7 +52,7 @@ function createRequest(body: Record<string, unknown>) {
 
 describe("POST /api/miro/fix-board", () => {
   beforeEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
   });
 
   it("accepts transcript when it is a string", async () => {

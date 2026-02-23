@@ -4,10 +4,14 @@ import {
   runPitchAnalysisController,
 } from '@/controllers/pitchController';
 
+const mockSupabase = {} as any;
+const testUserId = 'test-user-id';
+
 // Mock dependencies
 vi.mock('@/services/runService', () => ({
   insertRun: vi.fn().mockResolvedValue({
     id: 'test-run-id',
+    user_id: 'test-user-id',
     mode: 'vc_pitch',
     status: 'queued',
     input_type: 'text',
@@ -35,16 +39,16 @@ describe('pitchController validation', () => {
   });
 
   it('rejects null body', async () => {
-    await expect(runPitchAnalysisController(null)).rejects.toThrow(PitchValidationError);
+    await expect(runPitchAnalysisController(mockSupabase, testUserId, null)).rejects.toThrow(PitchValidationError);
   });
 
   it('rejects non-object body', async () => {
-    await expect(runPitchAnalysisController('string')).rejects.toThrow(PitchValidationError);
+    await expect(runPitchAnalysisController(mockSupabase, testUserId, 'string')).rejects.toThrow(PitchValidationError);
   });
 
   it('rejects missing mode', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         transcript: 'test pitch',
         inputType: 'text',
       }),
@@ -53,7 +57,7 @@ describe('pitchController validation', () => {
 
   it('rejects invalid mode', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'invalid',
         transcript: 'test pitch',
         inputType: 'text',
@@ -63,7 +67,7 @@ describe('pitchController validation', () => {
 
   it('rejects missing inputType', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         transcript: 'test pitch',
       }),
@@ -72,7 +76,7 @@ describe('pitchController validation', () => {
 
   it('rejects invalid inputType', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         transcript: 'test pitch',
         inputType: 'video',
@@ -82,7 +86,7 @@ describe('pitchController validation', () => {
 
   it('rejects missing transcript', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
       }),
@@ -91,7 +95,7 @@ describe('pitchController validation', () => {
 
   it('rejects empty transcript', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: '   ',
@@ -101,7 +105,7 @@ describe('pitchController validation', () => {
 
   it('rejects non-string audioUrl', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'audio',
         transcript: 'test pitch',
@@ -112,7 +116,7 @@ describe('pitchController validation', () => {
 
   it('rejects non-UUID deckId', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: 'test pitch',
@@ -123,7 +127,7 @@ describe('pitchController validation', () => {
 
   it('rejects non-string deckText', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: 'test pitch',
@@ -134,7 +138,7 @@ describe('pitchController validation', () => {
 
   it('rejects invalid stage', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: 'test pitch',
@@ -145,7 +149,7 @@ describe('pitchController validation', () => {
 
   it('rejects invalid regenerate value', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: 'test pitch',
@@ -156,7 +160,7 @@ describe('pitchController validation', () => {
 
   it('rejects non-array transcriptSegments', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: 'test pitch',
@@ -167,7 +171,7 @@ describe('pitchController validation', () => {
 
   it('rejects segment without text', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: 'test pitch',
@@ -178,7 +182,7 @@ describe('pitchController validation', () => {
 
   it('rejects segment with invalid timestamps', async () => {
     await expect(
-      runPitchAnalysisController({
+      runPitchAnalysisController(mockSupabase, testUserId, {
         mode: 'vc_pitch',
         inputType: 'text',
         transcript: 'test pitch',
@@ -188,7 +192,7 @@ describe('pitchController validation', () => {
   });
 
   it('accepts valid request and returns queued result', async () => {
-    const result = await runPitchAnalysisController({
+    const result = await runPitchAnalysisController(mockSupabase, testUserId, {
       mode: 'vc_pitch',
       inputType: 'text',
       transcript: 'We build tools for enterprise teams to scale faster.',
@@ -198,7 +202,7 @@ describe('pitchController validation', () => {
   });
 
   it('accepts all valid optional fields', async () => {
-    const result = await runPitchAnalysisController({
+    const result = await runPitchAnalysisController(mockSupabase, testUserId, {
       mode: 'elevator',
       inputType: 'audio',
       transcript: 'We build tools for enterprise.',
@@ -225,12 +229,13 @@ describe('pitchController validation', () => {
 
   it('trims transcript whitespace', async () => {
     const { insertRun } = await import('@/services/runService');
-    await runPitchAnalysisController({
+    await runPitchAnalysisController(mockSupabase, testUserId, {
       mode: 'vc_pitch',
       inputType: 'text',
       transcript: '  We build great tools.  ',
     });
     expect(insertRun).toHaveBeenCalledWith(
+      mockSupabase,
       expect.objectContaining({ transcript: 'We build great tools.' }),
     );
   });

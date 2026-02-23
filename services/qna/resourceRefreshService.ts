@@ -1,5 +1,6 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
   listQueuedResourceGaps,
   markResourceGapDone,
@@ -98,7 +99,8 @@ export async function processQueuedResourceRefresh(limit = 5): Promise<{
   queued: number;
   failed: number;
 }> {
-  const queued = await listQueuedResourceGaps(limit);
+  const supabase = createAdminClient();
+  const queued = await listQueuedResourceGaps(supabase, limit);
   if (queued.length === 0) {
     return {
       processed: 0,
@@ -108,13 +110,13 @@ export async function processQueuedResourceRefresh(limit = 5): Promise<{
   }
 
   for (const gap of queued) {
-    await markResourceGapProcessing(gap.id);
+    await markResourceGapProcessing(supabase, gap.id);
   }
 
   try {
     await runKnowledgeRefreshScripts();
     for (const gap of queued) {
-      await markResourceGapDone(gap.id);
+      await markResourceGapDone(supabase, gap.id);
     }
     return {
       processed: queued.length,
@@ -124,7 +126,7 @@ export async function processQueuedResourceRefresh(limit = 5): Promise<{
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Knowledge refresh failed.';
     for (const gap of queued) {
-      await markResourceGapFailed(gap.id, message);
+      await markResourceGapFailed(supabase, gap.id, message);
     }
     return {
       processed: 0,

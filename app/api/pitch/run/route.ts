@@ -3,6 +3,7 @@ import {
   PitchValidationError,
   runPitchAnalysisController,
 } from '@/controllers/pitchController';
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import { listQASessionSummariesByRunIds } from '@/services/qnaSessionService';
 import { computeRunStats, listRuns } from '@/services/runService';
 import type {
@@ -41,6 +42,7 @@ function toRunResponse(
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const { searchParams } = request.nextUrl;
     const mode = searchParams.get('mode');
     const limitParam = searchParams.get('limit');
@@ -48,7 +50,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
     const parsedMode = mode === 'elevator' || mode === 'vc_pitch' ? mode : undefined;
 
-    const allRuns = await listRuns({ mode: parsedMode });
+    const allRuns = await listRuns(supabase, { mode: parsedMode });
     const visibleRuns = includePending
       ? allRuns
       : allRuns.filter((run) => run.status === 'complete');
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         : visibleRuns;
     let qaSummariesByRunId = new Map<string, NonNullable<Run['qaSessionsSummary']>>();
     try {
-      qaSummariesByRunId = await listQASessionSummariesByRunIds(runs.map((run) => run.id));
+      qaSummariesByRunId = await listQASessionSummariesByRunIds(supabase, runs.map((run) => run.id));
     } catch {
       qaSummariesByRunId = new Map();
     }
@@ -70,6 +72,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to list runs' },
       { status: 500 },
@@ -87,10 +92,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const result = await runPitchAnalysisController(body);
+    const { supabase, user } = await getAuthenticatedUser();
+    const result = await runPitchAnalysisController(supabase, user.id, body);
     const statusCode = result.status === 'complete' ? 201 : 202;
     return NextResponse.json(result, { status: statusCode });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     if (error instanceof PitchValidationError) {
       const response: CreatePitchRunErrorResponse = { error: error.message };
       return NextResponse.json(response, { status: 400 });

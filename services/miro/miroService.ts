@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { MiroProvider } from "@/services/miro/miroProvider";
 import {
   generateMiroBoardCopy,
@@ -234,16 +235,18 @@ function makePendingOp(input: {
 }
 
 export class MiroService {
+  private readonly supabase: SupabaseClient;
   private readonly liveProvider: MiroProvider | null;
   private readonly stubProvider: MiroProvider;
   private readonly generateBoardCopy: (
     input: MiroFixBoardRequest,
   ) => Promise<MiroBoardCopyGenerationResult>;
 
-  constructor(opts?: {
+  constructor(supabase: SupabaseClient, opts?: {
     provider?: MiroProvider;
     generateBoardCopy?: (input: MiroFixBoardRequest) => Promise<MiroBoardCopyGenerationResult>;
   }) {
+    this.supabase = supabase;
     this.stubProvider = new MiroStubProvider();
     this.generateBoardCopy = opts?.generateBoardCopy ?? generateMiroBoardCopy;
     if (opts?.provider) {
@@ -278,7 +281,7 @@ export class MiroService {
     isFallback?: boolean;
     state: PersistedMiroBoardState;
   }) {
-    return upsertRunMiroBoard({
+    return upsertRunMiroBoard(this.supabase, {
       runId: input.runId,
       boardId: input.boardId,
       boardUrl: input.boardUrl,
@@ -439,7 +442,7 @@ export class MiroService {
 
   async createFixBoard(input: MiroFixBoardRequest): Promise<MiroFixBoardResponse> {
     const sanitizedInput = sanitizeCreateInput(input);
-    const existing = await getRunMiroBoard(sanitizedInput.runId);
+    const existing = await getRunMiroBoard(this.supabase, sanitizedInput.runId);
     if (existing && !sanitizedInput.recreate) {
       const snapshot = await this.syncInternal(existing);
       return {
@@ -510,7 +513,7 @@ export class MiroService {
   }
 
   async getFixBoard(runId: string): Promise<MiroGetFixBoardResponse> {
-    const board = await getRequiredRunMiroBoard(runId);
+    const board = await getRequiredRunMiroBoard(this.supabase,runId);
     const snapshot = await this.syncInternal(board);
     return {
       boardId: board.board_id,
@@ -522,12 +525,12 @@ export class MiroService {
   }
 
   async syncFixBoard(input: { runId: string }): Promise<MiroSyncSnapshot> {
-    const board = await getRequiredRunMiroBoard(input.runId);
+    const board = await getRequiredRunMiroBoard(this.supabase,input.runId);
     return this.syncInternal(board);
   }
 
   async patchFix(input: MiroFixPatchRequest): Promise<MiroFixPatchResponse> {
-    const board = await getRequiredRunMiroBoard(input.runId);
+    const board = await getRequiredRunMiroBoard(this.supabase,input.runId);
     const provider = this.getProviderForBoard(board.board_id);
     const state = cloneState(board.state);
     const rankKey = String(input.rank);
@@ -637,7 +640,7 @@ export class MiroService {
 
 export { RunMiroBoardNotFoundError };
 
-export function getMiroService() {
+export function getMiroService(supabase: SupabaseClient) {
   // Do not memoize across requests in dev: env/provider mode can change while server is running.
-  return new MiroService();
+  return new MiroService(supabase);
 }

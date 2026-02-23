@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { SAMPLE_RESULT } from '@/config/sampleResult';
 import { insertRun } from '@/services/runService';
 import { enqueuePitchRun } from '@/services/pitchRunQueueService';
@@ -163,13 +164,16 @@ function createQueuedAnalysisPlaceholder(): AnalysisOutputs {
 }
 
 export async function runPitchAnalysisController(
+  supabase: SupabaseClient,
+  userId: string,
   body: unknown,
 ): Promise<RunPitchAnalysisControllerResult> {
   const payload = validateRequest(body);
   const queuedOutputs = createQueuedAnalysisPlaceholder();
 
-  const run = await insertRun({
+  const run = await insertRun(supabase, {
     id: randomUUID(),
+    user_id: userId,
     mode: payload.mode,
     status: 'queued',
     input_type: payload.inputType,

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import { expireQASessionIfTimedOut } from '@/services/qnaSessionService';
 import type { GetQASessionResponse } from '@/types/qna';
 
@@ -18,13 +19,18 @@ export async function GET(
   }
 
   try {
-    const qaSession = await expireQASessionIfTimedOut(qaSessionId);
+    const { supabase } = await getAuthenticatedUser();
+    const qaSession = await expireQASessionIfTimedOut(supabase, qaSessionId);
     if (!qaSession) {
       return NextResponse.json({ error: 'QA session not found.' }, { status: 404 });
     }
     const response: GetQASessionResponse = { qaSession };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const message = error instanceof Error ? error.message : 'Failed to fetch QA session.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

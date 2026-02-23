@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getConversation } from '@/lib/elevenlabs/convai';
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import {
   completeQASession,
   getQASession,
@@ -74,7 +75,8 @@ export async function POST(
   const payload = body as CompleteQASessionRequest;
 
   try {
-    const session = await getQASession(qaSessionId);
+    const { supabase } = await getAuthenticatedUser();
+    const session = await getQASession(supabase, qaSessionId);
     if (!session) {
       return NextResponse.json({ error: 'QA session not found.' }, { status: 404 });
     }
@@ -115,7 +117,7 @@ export async function POST(
     const finalStatus =
       payload.status ?? (capCompliant ? 'completed' : 'expired');
 
-    const qaSession = await completeQASession(qaSessionId, {
+    const qaSession = await completeQASession(supabase, qaSessionId, {
       status: finalStatus,
       conversationId,
       durationSeconds,
@@ -133,6 +135,10 @@ export async function POST(
     const response: CompleteQASessionResponse = { qaSession };
     return NextResponse.json(response, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const message = error instanceof Error ? error.message : 'Failed to complete QA session.';
     return NextResponse.json({ error: message }, { status: 500 });
   }

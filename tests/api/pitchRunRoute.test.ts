@@ -24,6 +24,14 @@ vi.mock('@/services/qnaSessionService', () => ({
   listQASessionSummariesByRunIds: (...args: unknown[]) => mockListQASessionSummariesByRunIds(...args),
 }));
 
+vi.mock('@/lib/supabase/auth-helpers', () => ({
+  getAuthenticatedUser: vi.fn().mockResolvedValue({
+    supabase: {},
+    user: { id: 'test-user-id' },
+  }),
+  AuthenticationError: class AuthenticationError extends Error {},
+}));
+
 // Import route handlers after mocks are set up
 import { GET, POST } from '@/app/api/pitch/run/route';
 
@@ -107,7 +115,7 @@ describe('GET /api/pitch/run', () => {
     const request = makeRequest('/api/pitch/run?mode=elevator');
     await GET(request);
 
-    expect(mockListRuns).toHaveBeenCalledWith({ mode: 'elevator' });
+    expect(mockListRuns).toHaveBeenCalledWith(expect.anything(), { mode: 'elevator' });
   });
 
   it('filters completed runs by default (excludes pending)', async () => {

@@ -1,5 +1,6 @@
 import { renderToBuffer } from '@react-pdf/renderer';
 import React from 'react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { DECK_TEMPLATES } from '@/config/deckTemplates';
 import { completeWithLlmRouter } from '@/lib/llm/router';
 import {
@@ -167,6 +168,8 @@ async function renderDeckPdf(
 /* --- Main Export --- */
 
 export async function generateDeck(
+  supabase: SupabaseClient,
+  userId: string,
   request: GenerateDeckRequest,
 ): Promise<DeckRecord> {
   const { companyName, description, templateId } = request;
@@ -180,6 +183,8 @@ export async function generateDeck(
   // 3. Upload PDF to Supabase Storage
   const deckId = crypto.randomUUID();
   const pdfUrl = await uploadToStorage(
+    supabase,
+    userId,
     deckId,
     'slides.pdf',
     pdfBuffer,
@@ -187,7 +192,7 @@ export async function generateDeck(
   );
 
   // 4. Insert deck record
-  const deck = await insertDeck({
+  const deck = await insertDeck(supabase, {
     name: `${companyName} \u2014 Pitch Deck`,
     original_url: pdfUrl,
     pdf_url: pdfUrl,
@@ -200,7 +205,7 @@ export async function generateDeck(
     slideNum: index + 1,
     text: `${slide.headline}\n${slide.subheadline || ''}\n${slide.bullets.map((b) => `${b.text}: ${b.detail || ''}`).join('\n')}`,
   }));
-  await insertSlides(deck.id, slideRecords);
+  await insertSlides(supabase, deck.id, slideRecords);
 
   return deck;
 }

@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ResourceGapRecord {
   id: number;
@@ -15,17 +15,19 @@ export interface ResourceGapRecord {
   updated_at: string;
 }
 
-export async function queueResourceGap(input: {
+export async function queueResourceGap(supabase: SupabaseClient, input: {
   runId?: string;
   qaSessionId?: string;
   topic: string;
   queryText?: string;
   reason?: string;
+  user_id?: string;
   meta?: Record<string, unknown>;
 }): Promise<void> {
   const payload = {
     run_id: input.runId ?? null,
     qa_session_id: input.qaSessionId ?? null,
+    user_id: input.user_id ?? null,
     topic: input.topic,
     query_text: input.queryText ?? null,
     reason: input.reason ?? null,
@@ -39,7 +41,7 @@ export async function queueResourceGap(input: {
   }
 }
 
-export async function listQueuedResourceGaps(limit = 5): Promise<ResourceGapRecord[]> {
+export async function listQueuedResourceGaps(supabase: SupabaseClient, limit = 5): Promise<ResourceGapRecord[]> {
   const { data, error } = await supabase
     .from('qa_resource_gaps')
     .select('*')
@@ -53,7 +55,7 @@ export async function listQueuedResourceGaps(limit = 5): Promise<ResourceGapReco
   return (data ?? []) as ResourceGapRecord[];
 }
 
-export async function markResourceGapProcessing(id: number): Promise<void> {
+export async function markResourceGapProcessing(supabase: SupabaseClient, id: number): Promise<void> {
   const { error } = await supabase
     .from('qa_resource_gaps')
     .update({
@@ -79,7 +81,7 @@ export async function markResourceGapProcessing(id: number): Promise<void> {
     .eq('id', id);
 }
 
-export async function markResourceGapDone(id: number): Promise<void> {
+export async function markResourceGapDone(supabase: SupabaseClient, id: number): Promise<void> {
   const { error } = await supabase
     .from('qa_resource_gaps')
     .update({
@@ -93,7 +95,7 @@ export async function markResourceGapDone(id: number): Promise<void> {
   }
 }
 
-export async function markResourceGapFailed(id: number, message: string): Promise<void> {
+export async function markResourceGapFailed(supabase: SupabaseClient, id: number, message: string): Promise<void> {
   const { error } = await supabase
     .from('qa_resource_gaps')
     .update({

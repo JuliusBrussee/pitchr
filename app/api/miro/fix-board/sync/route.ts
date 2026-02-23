@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import {
   getMiroService,
   MiroSyncUnavailableError,
@@ -7,6 +8,7 @@ import {
 
 export async function GET(req: Request) {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const url = new URL(req.url);
     const runId = url.searchParams.get("runId");
 
@@ -17,10 +19,13 @@ export async function GET(req: Request) {
       );
     }
 
-    const service = getMiroService();
+    const service = getMiroService(supabase);
     const result = await service.syncFixBoard({ runId });
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
     if (error instanceof RunMiroBoardNotFoundError) {
       return NextResponse.json({ error: "Miro board not found for this run" }, { status: 404 });
     }

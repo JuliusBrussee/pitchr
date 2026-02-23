@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import { listQASessionSummariesByRunIds } from '@/services/qnaSessionService';
 import { deleteRun, getRun, RunNotFoundError } from '@/services/runService';
 import { deleteRecordingByUrl } from '@/services/recordingService';
@@ -37,17 +38,21 @@ export async function GET(
   { params }: { params: Promise<{ runId: string }> },
 ): Promise<NextResponse> {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const { runId } = await params;
-    const run = await getRun(runId);
+    const run = await getRun(supabase, runId);
     let qaSessionsSummary: Run['qaSessionsSummary'];
     try {
-      const summaryMap = await listQASessionSummariesByRunIds([run.id]);
+      const summaryMap = await listQASessionSummariesByRunIds(supabase, [run.id]);
       qaSessionsSummary = summaryMap.get(run.id);
     } catch {
       qaSessionsSummary = undefined;
     }
     return NextResponse.json({ run: toRunResponse(run, qaSessionsSummary) }, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     if (error instanceof RunNotFoundError) {
       return NextResponse.json({ error: 'Run not found' }, { status: 404 });
     }
@@ -63,19 +68,23 @@ export async function DELETE(
   { params }: { params: Promise<{ runId: string }> },
 ): Promise<NextResponse> {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const { runId } = await params;
     // Clean up recording file (best-effort, don't fail the delete if this errors)
     try {
-      const run = await getRun(runId);
+      const run = await getRun(supabase, runId);
       if (run.audio_url) {
-        await deleteRecordingByUrl(run.audio_url);
+        await deleteRecordingByUrl(supabase, run.audio_url);
       }
     } catch {
       // Recording may not exist or run fetch may fail — proceed with deletion
     }
-    await deleteRun(runId);
+    await deleteRun(supabase, runId);
     return NextResponse.json({ deleted: true }, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
     if (error instanceof RunNotFoundError) {
       return NextResponse.json({ error: 'Run not found' }, { status: 404 });
     }

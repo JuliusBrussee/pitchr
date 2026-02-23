@@ -5,6 +5,7 @@ import { SAMPLE_RESULT } from '@/config/sampleResult';
 function makeRun(partial: Partial<RunRecord>): RunRecord {
   return {
     id: 'run',
+    user_id: 'test-user-id',
     mode: 'vc_pitch',
     status: 'complete',
     error_message: null,

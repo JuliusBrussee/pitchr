@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { queueResourceGap } from '@/services/qna/resourceGapService';
 import type { Citation } from '@/types/analysis-v2';
 
@@ -141,7 +142,7 @@ export async function lookupLocalKnowledge(queryText: string): Promise<Knowledge
   };
 }
 
-export async function queueKnowledgeGapIfNeeded(input: {
+export async function queueKnowledgeGapIfNeeded(supabase: SupabaseClient, input: {
   runId?: string;
   qaSessionId?: string;
   topic: string;
@@ -152,7 +153,7 @@ export async function queueKnowledgeGapIfNeeded(input: {
   const threshold = input.threshold ?? 0.35;
   if (input.confidence >= threshold) return false;
 
-  await queueResourceGap({
+  await queueResourceGap(supabase, {
     runId: input.runId,
     qaSessionId: input.qaSessionId,
     topic: input.topic,

@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   MiroFixStatus,
   PersistedMiroBoardState,
@@ -187,7 +187,7 @@ function normalizeRow(row: RunMiroBoardRow): RunMiroBoardRecord {
   };
 }
 
-export async function getRunMiroBoard(runId: string): Promise<RunMiroBoardRecord | null> {
+export async function getRunMiroBoard(supabase: SupabaseClient, runId: string): Promise<RunMiroBoardRecord | null> {
   const { data, error } = await supabase
     .from("run_miro_boards")
     .select("*")
@@ -203,13 +203,13 @@ export async function getRunMiroBoard(runId: string): Promise<RunMiroBoardRecord
   return normalizeRow(data as RunMiroBoardRow);
 }
 
-export async function getRequiredRunMiroBoard(runId: string): Promise<RunMiroBoardRecord> {
-  const board = await getRunMiroBoard(runId);
+export async function getRequiredRunMiroBoard(supabase: SupabaseClient, runId: string): Promise<RunMiroBoardRecord> {
+  const board = await getRunMiroBoard(supabase, runId);
   if (!board) throw new RunMiroBoardNotFoundError(runId);
   return board;
 }
 
-export async function upsertRunMiroBoard(input: {
+export async function upsertRunMiroBoard(supabase: SupabaseClient, input: {
   runId: string;
   boardId: string;
   boardUrl: string;

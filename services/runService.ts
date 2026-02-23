@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeStoredAnalysis } from '@/services/analysisNormalizationService';
 import type { AnalysisResultV2 } from '@/types/analysis-v2';
 import type { InputType, PitchMode, RunStats, RunStatus } from '@/types/pitch';
@@ -23,6 +23,7 @@ function withMigrationHint(message: string): string {
 
 export interface RunRecord {
   id: string;
+  user_id: string;
   mode: PitchMode;
   status: RunStatus;
   error_message: string | null;
@@ -41,6 +42,7 @@ export interface RunRecord {
 
 export interface RunInsert {
   id?: string;
+  user_id: string;
   mode: PitchMode;
   status?: RunStatus;
   error_message?: string | null;
@@ -72,7 +74,7 @@ function normalizeRun(run: Omit<RunRecord, 'analysis'> & { analysis: unknown }):
   };
 }
 
-export async function insertRun(run: RunInsert): Promise<RunRecord> {
+export async function insertRun(supabase: SupabaseClient, run: RunInsert): Promise<RunRecord> {
   const payload = {
     ...run,
     status: run.status ?? 'complete',
@@ -91,7 +93,7 @@ export async function insertRun(run: RunInsert): Promise<RunRecord> {
   return normalizeRun(data);
 }
 
-export async function listRuns(opts?: {
+export async function listRuns(supabase: SupabaseClient, opts?: {
   mode?: PitchMode;
   limit?: number;
 }): Promise<RunRecord[]> {
@@ -105,7 +107,7 @@ export async function listRuns(opts?: {
   );
 }
 
-export async function getRun(runId: string): Promise<RunRecord> {
+export async function getRun(supabase: SupabaseClient, runId: string): Promise<RunRecord> {
   const { data, error } = await supabase
     .from('runs')
     .select('*')
@@ -121,7 +123,7 @@ export async function getRun(runId: string): Promise<RunRecord> {
   return normalizeRun(data);
 }
 
-export async function deleteRun(runId: string): Promise<void> {
+export async function deleteRun(supabase: SupabaseClient, runId: string): Promise<void> {
   const { error, count } = await supabase
     .from('runs')
     .delete({ count: 'exact' })
@@ -135,6 +137,7 @@ export async function deleteRun(runId: string): Promise<void> {
 }
 
 export async function updateRun(
+  supabase: SupabaseClient,
   runId: string,
   updates: Partial<
     Pick<
@@ -192,7 +195,7 @@ export function computeRunStats(runs: RunRecord[]): RunStats {
   return { totalRuns, averageScore, bestScore, trend };
 }
 
-export async function getRunStats(): Promise<RunStats> {
-  const runs = await listRuns();
+export async function getRunStats(supabase: SupabaseClient): Promise<RunStats> {
+  const runs = await listRuns(supabase);
   return computeRunStats(runs);
 }

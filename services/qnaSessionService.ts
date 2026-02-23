@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   CompleteQASessionRequest,
   QASession,
@@ -87,7 +87,7 @@ function toQASession(row: QASessionRow): QASession {
   };
 }
 
-export async function createQASession(input: {
+export async function createQASession(supabase: SupabaseClient, input: {
   runId: string;
   status?: QASessionStatus;
   conversationId?: string;
@@ -120,7 +120,7 @@ export async function createQASession(input: {
   return toQASession(data as QASessionRow);
 }
 
-export async function getQASession(qaSessionId: string): Promise<QASession | null> {
+export async function getQASession(supabase: SupabaseClient, qaSessionId: string): Promise<QASession | null> {
   const { data, error } = await supabase
     .from('qa_sessions')
     .select('*')
@@ -135,6 +135,7 @@ export async function getQASession(qaSessionId: string): Promise<QASession | nul
 }
 
 export async function updateQASession(
+  supabase: SupabaseClient,
   qaSessionId: string,
   patch: Partial<{
     status: QASessionStatus;
@@ -165,13 +166,14 @@ export async function updateQASession(
 }
 
 export async function completeQASession(
+  supabase: SupabaseClient,
   qaSessionId: string,
   payload: CompleteQASessionRequest,
 ): Promise<QASession> {
   const now = new Date().toISOString();
   const nextStatus = payload.status ?? 'completed';
   const turns = payload.turns ?? [];
-  return updateQASession(qaSessionId, {
+  return updateQASession(supabase, qaSessionId, {
     status: nextStatus,
     conversation_id: payload.conversationId ?? null,
     completed_at: now,
@@ -187,9 +189,10 @@ export async function completeQASession(
 }
 
 export async function expireQASessionIfTimedOut(
+  supabase: SupabaseClient,
   qaSessionId: string,
 ): Promise<QASession | null> {
-  const session = await getQASession(qaSessionId);
+  const session = await getQASession(supabase, qaSessionId);
   if (!session) return null;
   if (session.status !== 'created' && session.status !== 'active') return session;
 
@@ -198,7 +201,7 @@ export async function expireQASessionIfTimedOut(
   const elapsedSeconds = (Date.now() - startedAtMs) / 1000;
   if (elapsedSeconds <= QA_EXPIRE_SAFETY_SECONDS) return session;
 
-  return updateQASession(qaSessionId, {
+  return updateQASession(supabase, qaSessionId, {
     status: 'expired',
     completed_at: new Date().toISOString(),
     duration_seconds: Math.round(elapsedSeconds),
@@ -211,6 +214,7 @@ export async function expireQASessionIfTimedOut(
 }
 
 export async function listQASessionSummariesByRunIds(
+  supabase: SupabaseClient,
   runIds: string[],
 ): Promise<Map<string, QASessionSummary[]>> {
   const summaryMap = new Map<string, QASessionSummary[]>();

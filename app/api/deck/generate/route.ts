@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDeck } from '@/services/deckGenerationService';
 import type { GenerateDeckRequest, TemplateId } from '@/types/deckGeneration';
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 
 export const runtime = 'nodejs';
 
@@ -13,6 +14,7 @@ const VALID_TEMPLATES = new Set<TemplateId>([
 
 export async function POST(request: NextRequest) {
   try {
+    const { supabase, user } = await getAuthenticatedUser();
     const body = await request.json() as Partial<GenerateDeckRequest>;
 
     // Validate companyName
@@ -57,7 +59,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const deck = await generateDeck({
+    const deck = await generateDeck(supabase, user.id, {
       companyName: body.companyName.trim(),
       description: body.description.trim(),
       templateId: body.templateId as TemplateId,
@@ -65,6 +67,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(deck, { status: 201 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
     const message = error instanceof Error ? error.message : 'Generation failed';
     return NextResponse.json({ error: message }, { status: 500 });
   }

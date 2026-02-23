@@ -31,15 +31,15 @@ vi.mock("@/services/miro/runMiroBoardService", () => {
 
   return {
     RunMiroBoardNotFoundError,
-    async getRunMiroBoard(runId: string) {
+    async getRunMiroBoard(_supabase: unknown, runId: string) {
       return inMemoryStore.get(runId) ?? null;
     },
-    async getRequiredRunMiroBoard(runId: string) {
+    async getRequiredRunMiroBoard(_supabase: unknown, runId: string) {
       const row = inMemoryStore.get(runId);
       if (!row) throw new RunMiroBoardNotFoundError(runId);
       return row;
     },
-    async upsertRunMiroBoard(input: {
+    async upsertRunMiroBoard(_supabase: unknown, input: {
       runId: string;
       boardId: string;
       boardUrl: string;
@@ -247,7 +247,7 @@ describe("miroService integration behaviors", () => {
       fallbackUsed: false,
       message: "Miro content generated via OpenRouter.",
     }));
-    const service = new MiroService({ provider: mock.provider, generateBoardCopy });
+    const service = new MiroService({} as any, { provider: mock.provider, generateBoardCopy });
 
     const first = await service.createFixBoard(sampleRequest);
     expect(first.reused).toBe(false);
@@ -272,7 +272,7 @@ describe("miroService integration behaviors", () => {
       fallbackUsed: false,
       message: "Miro content generated via OpenRouter.",
     }));
-    const service = new MiroService({ provider: mock.provider, generateBoardCopy });
+    const service = new MiroService({} as any, { provider: mock.provider, generateBoardCopy });
 
     await service.createFixBoard(sampleRequest);
     await service.createFixBoard({ ...sampleRequest, recreate: true });
@@ -287,7 +287,7 @@ describe("miroService integration behaviors", () => {
       throw new Error("Miro API 429 on /boards/board-1/items/item-1: rate limited");
     });
 
-    const service = new MiroService({
+    const service = new MiroService({} as any, {
       provider: mock.provider,
       generateBoardCopy: async () => ({
         generated: makeGeneratedBoardCopy(),
@@ -332,7 +332,7 @@ describe("miroService integration behaviors", () => {
     });
     mock.syncFixBoard.mockImplementation(async () => makeSyncResult("doing"));
 
-    const service = new MiroService({
+    const service = new MiroService({} as any, {
       provider: mock.provider,
       generateBoardCopy: async () => ({
         generated: makeGeneratedBoardCopy(),

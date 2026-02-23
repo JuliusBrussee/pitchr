@@ -1,3 +1,4 @@
+import { createAdminClient } from '@/lib/supabase/admin';
 import { analyzePitch } from '@/services/analysisService';
 import { buildRunEconomics } from '@/services/economicsService';
 import { syncRunToPaid } from '@/services/paidService';
@@ -19,7 +20,8 @@ interface QueuePayload {
 const inFlightJobs = new Map<string, Promise<void>>();
 
 async function processRun(payload: QueuePayload): Promise<void> {
-  await updateRun(payload.runId, {
+  const supabase = createAdminClient();
+  await updateRun(supabase, payload.runId, {
     status: 'running',
     started_at: new Date().toISOString(),
     error_message: null,
@@ -50,7 +52,7 @@ async function processRun(payload: QueuePayload): Promise<void> {
     let previousModeScore: number | undefined;
 
     try {
-      const historicalRuns = await listRuns({ mode: payload.mode });
+      const historicalRuns = await listRuns(supabase, { mode: payload.mode });
       const previousCompleted = historicalRuns.find(
         (run) => run.status === 'complete' && run.id !== payload.runId,
       );
@@ -78,7 +80,7 @@ async function processRun(payload: QueuePayload): Promise<void> {
       },
     };
 
-    await updateRun(payload.runId, {
+    await updateRun(supabase, payload.runId, {
       status: 'complete',
       completed_at: new Date().toISOString(),
       overall_score: overallScore,
@@ -109,7 +111,7 @@ async function processRun(payload: QueuePayload): Promise<void> {
         },
       };
 
-      await updateRun(payload.runId, {
+      await updateRun(supabase, payload.runId, {
         analysis: finalAnalysis,
         meta: finalAnalysis.meta,
       });
@@ -125,7 +127,7 @@ async function processRun(payload: QueuePayload): Promise<void> {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : 'Pitch analysis job failed.';
-    await updateRun(payload.runId, {
+    await updateRun(supabase, payload.runId, {
       status: 'failed',
       completed_at: new Date().toISOString(),
       error_message: message,

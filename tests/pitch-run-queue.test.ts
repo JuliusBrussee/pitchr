@@ -24,6 +24,10 @@ vi.mock('@/services/paidService', () => ({
   syncRunToPaid: vi.fn(),
 }));
 
+vi.mock('@/lib/supabase/admin', () => ({
+  createAdminClient: vi.fn().mockReturnValue({}),
+}));
+
 describe('pitchRunQueueService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -86,8 +90,8 @@ describe('pitchRunQueueService', () => {
     });
 
     const completeCall = vi.mocked(updateRun).mock.calls[1];
-    expect(completeCall?.[0]).toBe('run-queue-1');
-    expect(completeCall?.[1]).toMatchObject({
+    expect(completeCall?.[1]).toBe('run-queue-1');
+    expect(completeCall?.[2]).toMatchObject({
       status: 'complete',
       overall_score: SAMPLE_RESULT.outputs.feedback.overall_score,
       analysis: {
@@ -101,7 +105,7 @@ describe('pitchRunQueueService', () => {
     });
 
     const paidSyncCall = vi.mocked(updateRun).mock.calls[2];
-    expect(paidSyncCall?.[1]).toMatchObject({
+    expect(paidSyncCall?.[2]).toMatchObject({
       analysis: {
         meta: {
           economics: {

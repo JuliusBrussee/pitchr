@@ -9,6 +9,7 @@ import { useSessionState } from '@/hooks/useSessionState';
 import { useDeckSlides } from '@/hooks/useDeckSlides';
 import { useSTT } from '@/hooks/useSTT';
 import { useRecorder } from '@/hooks/useRecorder';
+import { createClient } from '@/lib/supabase/client';
 import { uploadRecording } from '@/services/recordingService';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
@@ -246,8 +247,10 @@ function SessionPageContent() {
         try {
           const blob = await recorder.stopRecording();
           if (blob && blob.size > 0) {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
             const tempId = crypto.randomUUID();
-            audioUrl = await uploadRecording(tempId, blob);
+            audioUrl = await uploadRecording(supabase, user?.id ?? 'anonymous', tempId, blob);
           }
         } catch (uploadErr) {
           console.warn('[session] Recording upload failed, proceeding without:', uploadErr);

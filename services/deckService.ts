@@ -3,7 +3,7 @@ import { promisify } from 'util';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { supabase } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const execFileAsync = promisify(execFile);
 
@@ -79,12 +79,14 @@ export async function extractPdfText(
 /* ─── Supabase Storage ─── */
 
 export async function uploadToStorage(
+  supabase: SupabaseClient,
+  userId: string,
   deckId: string,
   fileName: string,
   buffer: Buffer,
   contentType: string,
 ): Promise<string> {
-  const filePath = `${deckId}/${fileName}`;
+  const filePath = `${userId}/${deckId}/${fileName}`;
 
   const { error } = await supabase.storage
     .from('decks')
@@ -99,6 +101,7 @@ export async function uploadToStorage(
 /* ─── Database Operations ─── */
 
 export async function insertDeck(
+  supabase: SupabaseClient,
   deck: Omit<DeckRecord, 'id' | 'created_at'>,
 ): Promise<DeckRecord> {
   const { data, error } = await supabase
@@ -112,6 +115,7 @@ export async function insertDeck(
 }
 
 export async function insertSlides(
+  supabase: SupabaseClient,
   deckId: string,
   slides: { slideNum: number; text: string }[],
 ): Promise<void> {
@@ -125,7 +129,7 @@ export async function insertSlides(
   if (error) throw new Error(`Failed to insert slides: ${error.message}`);
 }
 
-export async function listDecks(): Promise<DeckRecord[]> {
+export async function listDecks(supabase: SupabaseClient): Promise<DeckRecord[]> {
   const { data, error } = await supabase
     .from('decks')
     .select('*')
@@ -136,6 +140,7 @@ export async function listDecks(): Promise<DeckRecord[]> {
 }
 
 export async function getDeckWithSlides(
+  supabase: SupabaseClient,
   deckId: string,
 ): Promise<{ deck: DeckRecord; slides: SlideRecord[] }> {
   const [deckRes, slidesRes] = await Promise.all([
@@ -153,12 +158,12 @@ export async function getDeckWithSlides(
   return { deck: deckRes.data, slides: slidesRes.data };
 }
 
-export async function deleteDeck(deckId: string): Promise<void> {
+export async function deleteDeck(supabase: SupabaseClient, userId: string, deckId: string): Promise<void> {
   // Delete storage files first
-  const { data: files } = await supabase.storage.from('decks').list(deckId);
+  const { data: files } = await supabase.storage.from('decks').list(`${userId}/${deckId}`);
 
   if (files && files.length > 0) {
-    const paths = files.map((f) => `${deckId}/${f.name}`);
+    const paths = files.map((f: { name: string }) => `${userId}/${deckId}/${f.name}`);
     await supabase.storage.from('decks').remove(paths);
   }
 

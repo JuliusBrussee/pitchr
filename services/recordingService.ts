@@ -1,14 +1,14 @@
-import { supabase } from '@/lib/supabase';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const BUCKET = 'recordings';
 const MAX_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 
-export async function uploadRecording(id: string, blob: Blob): Promise<string> {
+export async function uploadRecording(supabase: SupabaseClient, userId: string, id: string, blob: Blob): Promise<string> {
   if (blob.size > MAX_SIZE_BYTES) {
     throw new Error(`Recording too large (${Math.round(blob.size / 1024 / 1024)} MB). Max is 100 MB.`);
   }
 
-  const filePath = `${id}/recording.webm`;
+  const filePath = `${userId}/${id}/recording.webm`;
 
   const { error } = await supabase.storage
     .from(BUCKET)
@@ -29,7 +29,7 @@ export async function uploadRecording(id: string, blob: Blob): Promise<string> {
  * Delete a recording by its public URL. Extracts the storage path from the URL
  * to handle cases where the upload path doesn't match the run ID.
  */
-export async function deleteRecordingByUrl(audioUrl: string): Promise<void> {
+export async function deleteRecordingByUrl(supabase: SupabaseClient, audioUrl: string): Promise<void> {
   // Extract the file path from the public URL.
   // URL format: {supabaseUrl}/storage/v1/object/public/recordings/{path}
   const marker = `/storage/v1/object/public/${BUCKET}/`;

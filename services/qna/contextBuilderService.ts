@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getRun } from '@/services/runService';
 import {
   lookupLocalKnowledge,
@@ -21,8 +22,8 @@ function clip(text: string, max = 220): string {
   return `${normalized.slice(0, max - 1).trimEnd()}...`;
 }
 
-export async function buildQaStarterContext(runId: string): Promise<QaStarterContext> {
-  const run = await getRun(runId);
+export async function buildQaStarterContext(supabase: SupabaseClient, runId: string): Promise<QaStarterContext> {
+  const run = await getRun(supabase, runId);
   const feedback = run.analysis.outputs.feedback;
 
   const weakestCategories = [...feedback.rubric_breakdown]
@@ -48,7 +49,7 @@ export async function buildQaStarterContext(runId: string): Promise<QaStarterCon
     .join(' ');
 
   const knowledge = await lookupLocalKnowledge(queryText);
-  const queuedKnowledgeGap = await queueKnowledgeGapIfNeeded({
+  const queuedKnowledgeGap = await queueKnowledgeGapIfNeeded(supabase, {
     runId,
     topic: weakestCategories[0] ?? 'general',
     queryText,

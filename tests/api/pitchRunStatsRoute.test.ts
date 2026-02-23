@@ -6,6 +6,14 @@ vi.mock('@/services/runService', () => ({
   getRunStats: (...args: unknown[]) => mockGetRunStats(...args),
 }));
 
+vi.mock('@/lib/supabase/auth-helpers', () => ({
+  getAuthenticatedUser: vi.fn().mockResolvedValue({
+    supabase: {},
+    user: { id: 'test-user-id' },
+  }),
+  AuthenticationError: class AuthenticationError extends Error {},
+}));
+
 import { GET } from '@/app/api/pitch/run/stats/route';
 
 describe('GET /api/pitch/run/stats', () => {

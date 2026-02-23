@@ -20,6 +20,7 @@ describe('runPitchAnalysisController async queue flow', () => {
   it('creates queued run and returns queued response', async () => {
     vi.mocked(insertRun).mockResolvedValue({
       id: 'run-1',
+      user_id: 'test-user-id',
       mode: 'vc_pitch',
       status: 'queued',
       error_message: null,
@@ -36,7 +37,7 @@ describe('runPitchAnalysisController async queue flow', () => {
       created_at: new Date().toISOString(),
     });
 
-    const result = await runPitchAnalysisController({
+    const result = await runPitchAnalysisController({} as any, 'test-user-id', {
       mode: 'vc_pitch',
       inputType: 'audio',
       transcript: 'hello world',

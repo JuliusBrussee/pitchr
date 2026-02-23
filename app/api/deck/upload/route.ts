@@ -6,6 +6,7 @@ import {
   insertDeck,
   insertSlides,
 } from '@/services/deckService';
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_TYPES = new Set([
@@ -16,6 +17,7 @@ const ALLOWED_EXTENSIONS = new Set(['.pdf', '.pptx']);
 
 export async function POST(request: NextRequest) {
   try {
+    const { supabase, user } = await getAuthenticatedUser();
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -73,13 +75,15 @@ export async function POST(request: NextRequest) {
     console.log('[deck/upload] uploading to storage...');
     const [originalUrl, pdfUrl] = await Promise.all([
       uploadToStorage(
+        supabase,
+        user.id,
         tempId,
         `original${ext}`,
         buffer,
         file.type || 'application/octet-stream',
       ),
       isPptx
-        ? uploadToStorage(tempId, 'slides.pdf', pdfBuffer, 'application/pdf')
+        ? uploadToStorage(supabase, user.id, tempId, 'slides.pdf', pdfBuffer, 'application/pdf')
         : Promise.resolve(''), // PDF original IS the slides.pdf
     ]);
     console.log('[deck/upload] storage done');
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest) {
     // Insert deck record
     console.log('[deck/upload] inserting deck record...');
     const deckName = file.name.replace(/\.(pptx|pdf)$/i, '');
-    const deck = await insertDeck({
+    const deck = await insertDeck(supabase, {
       name: deckName,
       original_url: originalUrl,
       pdf_url: finalPdfUrl,
@@ -101,11 +105,14 @@ export async function POST(request: NextRequest) {
 
     // Insert per-slide text
     console.log('[deck/upload] inserting slides...');
-    await insertSlides(deck.id, slides);
+    await insertSlides(supabase, deck.id, slides);
     console.log('[deck/upload] done');
 
     return NextResponse.json(deck, { status: 201 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
     console.error('[deck/upload] ERROR:', error);
     const message = error instanceof Error ? error.message : 'Upload failed';
     return NextResponse.json({ error: message }, { status: 500 });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import {
   getMiroService,
   MiroSyncUnavailableError,
@@ -102,6 +103,7 @@ function isValidPatchPayload(body: unknown): body is MiroFixPatchRequest {
 
 export async function GET(req: Request) {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const url = new URL(req.url);
     const runId = url.searchParams.get("runId");
     if (!runId) {
@@ -111,10 +113,13 @@ export async function GET(req: Request) {
       );
     }
 
-    const service = getMiroService();
+    const service = getMiroService(supabase);
     const result = await service.getFixBoard(runId);
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
     if (error instanceof RunMiroBoardNotFoundError) {
       return NextResponse.json({ error: "Miro board not found for this run" }, { status: 404 });
     }
@@ -133,6 +138,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const body: unknown = await req.json();
     if (!isValidCreatePayload(body)) {
       return NextResponse.json(
@@ -141,10 +147,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const service = getMiroService();
+    const service = getMiroService(supabase);
     const result = await service.createFixBoard(body);
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
       { status: 500 },
@@ -154,6 +163,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const body: unknown = await req.json();
     if (!isValidPatchPayload(body)) {
       return NextResponse.json(
@@ -162,10 +172,13 @@ export async function PATCH(req: Request) {
       );
     }
 
-    const service = getMiroService();
+    const service = getMiroService(supabase);
     const result = await service.patchFix(body);
     return NextResponse.json(result, { status: 200 });
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
     if (error instanceof RunMiroBoardNotFoundError) {
       return NextResponse.json({ error: "Miro board not found for this run" }, { status: 404 });
     }

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getAuthenticatedUser, AuthenticationError } from '@/lib/supabase/auth-helpers';
 import { getMiroService } from "@/services/miro/miroService";
 import type { MiroFixBoardRequest } from "@/services/miro/miroTypes";
 
@@ -16,6 +17,7 @@ function isValidMarkdownPayload(body: unknown): body is MiroFixBoardRequest {
 
 export async function POST(req: Request) {
   try {
+    const { supabase } = await getAuthenticatedUser();
     const body: unknown = await req.json();
     if (!isValidMarkdownPayload(body)) {
       return NextResponse.json(
@@ -24,7 +26,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const service = getMiroService();
+    const service = getMiroService(supabase);
     const markdown = service.createMarkdownFallback(body);
     return NextResponse.json(
       {
@@ -34,6 +36,9 @@ export async function POST(req: Request) {
       { status: 200 },
     );
   } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
       { status: 500 },

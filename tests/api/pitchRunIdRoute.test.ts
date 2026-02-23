@@ -27,6 +27,14 @@ vi.mock('@/services/qnaSessionService', () => ({
   listQASessionSummariesByRunIds: (...args: unknown[]) => mockListQASessionSummariesByRunIds(...args),
 }));
 
+vi.mock('@/lib/supabase/auth-helpers', () => ({
+  getAuthenticatedUser: vi.fn().mockResolvedValue({
+    supabase: {},
+    user: { id: 'test-user-id' },
+  }),
+  AuthenticationError: class AuthenticationError extends Error {},
+}));
+
 import { GET, DELETE } from '@/app/api/pitch/run/[runId]/route';
 
 function makeRunRecord(overrides: Record<string, unknown> = {}) {
@@ -135,7 +143,7 @@ describe('DELETE /api/pitch/run/[runId]', () => {
     const request = new NextRequest(new URL('/api/pitch/run/run-1', 'http://localhost:3000'));
     await DELETE(request, { params: Promise.resolve({ runId: 'run-1' }) });
 
-    expect(mockDeleteRecordingByUrl).toHaveBeenCalledWith('https://storage.example.com/recording.webm');
+    expect(mockDeleteRecordingByUrl).toHaveBeenCalledWith(expect.anything(), 'https://storage.example.com/recording.webm');
   });
 
   it('still deletes run if recording cleanup fails', async () => {
