@@ -15,14 +15,14 @@
 }
 
 .dark {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-surface: rgba(255, 255, 255, 0.06);
-  --bg-surface-hover: rgba(255, 255, 255, 0.10);
+  --bg-primary: #050505;
+  --bg-secondary: #0a0a0a;
+  --bg-surface: rgba(255, 255, 255, 0.02);
+  --bg-surface-hover: rgba(255, 255, 255, 0.06);
   --border-color: rgba(255, 255, 255, 0.08);
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #ededec;
+  --text-secondary: #9a9a98;
+  --text-muted: #5c5c5a;
   --blur-strength: 16px;
   --aura-color: rgba(255, 89, 65, 0.08);
   --aura-secondary: rgba(255, 170, 51, 0.05);

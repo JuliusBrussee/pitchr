@@ -115,6 +115,17 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
       {/* Spacer */}
       <div className="flex-1" />
 
+      {/* Legal links */}
+      <div className="flex items-center gap-3 px-3 mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+        <Link href="/terms" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
+          Terms
+        </Link>
+        <span>·</span>
+        <Link href="/privacy" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
+          Privacy
+        </Link>
+      </div>
+
       {/* Start Session CTA */}
       {onStartSession ? (
         <StartSessionButton onClick={onStartSession} isSessionActive={isSessionActive} />
