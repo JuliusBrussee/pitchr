@@ -8,12 +8,13 @@ import {
   Clock,
   BarChart3,
   FolderOpen,
-
+  LogOut,
   Play,
   Sun,
   Moon,
 } from 'lucide-react';
 import { useTheme } from '@/views/components/ThemeProvider';
+import { useAuth } from '@/views/components/AuthProvider';
 import { StartSessionButton } from '@/views/components/StartSessionButton';
 
 interface AppSidebarProps {
@@ -34,6 +35,7 @@ const TOOL_ITEMS = [
 
 export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
   const { isDark, toggleTheme } = useTheme();
+  const { user, signOut } = useAuth();
   const pathname = usePathname();
 
   return (
@@ -114,6 +116,30 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* User section */}
+      {user && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg"
+          style={{ backgroundColor: 'var(--bg-surface-hover)' }}
+        >
+          <span
+            className="flex-1 text-xs truncate"
+            style={{ color: 'var(--text-secondary)' }}
+            title={user.email}
+          >
+            {user.email}
+          </span>
+          <button
+            onClick={signOut}
+            className="p-1 rounded transition-colors hover:opacity-80"
+            style={{ color: 'var(--text-muted)' }}
+            aria-label="Sign out"
+          >
+            <LogOut size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Legal links */}
       <div className="flex items-center gap-3 px-3 mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>

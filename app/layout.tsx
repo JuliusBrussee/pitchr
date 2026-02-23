@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/views/components/ThemeProvider';
+import { AuthProvider } from '@/views/components/AuthProvider';
 
 export const metadata: Metadata = {
   title: 'Pitchr',
@@ -23,7 +24,9 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
