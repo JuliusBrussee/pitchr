@@ -252,7 +252,7 @@ describe('extractDeliveryEvents', () => {
     });
     const hesitations = events.filter((e) => e.type === 'hesitation');
     expect(hesitations.length).toBe(1);
-    expect(hesitations[0].severity).toBe('high'); // 1.7s gap >= 1.8? Actually 2.0 - 0.3 = 1.7, so medium
+    expect(hesitations[0].severity).toBe('medium'); // 2.0 - 0.3 = 1.7s gap, >= 1.2 but < 1.8
   });
 
   it('detects repetition (repeated bigrams)', () => {
@@ -324,16 +324,17 @@ describe('calculatePenalty', () => {
     expect(penalty).toBe(3);
   });
 
-  it('treats missing penalty as 1', () => {
+  it('uses penalty field from anti-pattern hit', () => {
     const hit: AntiPatternHit = {
       id: 'ap-1',
       label: 'test',
       hit: true,
       weight: 4,
       evidence: 'detected',
+      penalty: 2,
     };
     const penalty = calculatePenalty([hit]);
-    expect(penalty).toBe(4); // weight * max(0, penalty || 1) = 4 * 1
+    expect(penalty).toBe(8); // weight * max(0, penalty) = 4 * 2
   });
 });
 

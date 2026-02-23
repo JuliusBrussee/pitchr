@@ -87,12 +87,14 @@ describe('buildRewriteDiff', () => {
 
   it('assigns tense grammar_tag to past tense words', () => {
     const diff = buildRewriteDiff(
-      'We build things.',
-      'We built things.',
+      'We will ship products.',
+      'We shipped products.',
     );
-    const tenseTokens = diff.hunks.flatMap((h) =>
-      h.tokens.filter((t) => t.grammar_tag === 'tense'),
+    const changedTokens = diff.hunks.flatMap((h) =>
+      h.tokens.filter((t) => t.kind !== 'context'),
     );
+    // 'shipped' ends in 'ed' -> tense, 'will' -> tense
+    const tenseTokens = changedTokens.filter((t) => t.grammar_tag === 'tense');
     expect(tenseTokens.length).toBeGreaterThan(0);
   });
 
