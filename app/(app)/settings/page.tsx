@@ -15,7 +15,7 @@ import {
   Monitor,
   Settings,
 } from 'lucide-react';
-import { useTheme } from '@/views/components/ThemeProvider';
+import { useTheme, type ThemePreference } from '@/views/components/ThemeProvider';
 import { useSettings } from '@/hooks/useSettings';
 import { useAchievements } from '@/hooks/useAchievements';
 import { AchievementGrid } from '@/views/components/achievements';
@@ -23,7 +23,6 @@ import type { ProgressRunRecord } from '@/lib/progress';
 
 /* ——— Types ——— */
 
-type ThemeChoice = 'system' | 'light' | 'dark';
 
 interface RawRunRecord {
   id: string;
@@ -122,7 +121,7 @@ function SettingRow({
 /* ——— Page ——— */
 
 export default function SettingsPage() {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, preference, setTheme } = useTheme();
   const { settings, adjustTimer, update } = useSettings();
   const achievements = useAchievements();
 
@@ -175,24 +174,11 @@ export default function SettingsPage() {
     }
   }, []);
 
-  // Theme state
-  const [themeChoice, setThemeChoice] = useState<ThemeChoice>('system');
-
-  useEffect(() => {
-    setThemeChoice(isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  const handleThemeChange = (choice: ThemeChoice) => {
-    setThemeChoice(choice);
-    if (choice === 'dark' && !isDark) toggleTheme();
-    if (choice === 'light' && isDark) toggleTheme();
-    if (choice === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark !== isDark) toggleTheme();
-    }
+  const handleThemeChange = (choice: ThemePreference) => {
+    setTheme(choice);
   };
 
-  const themeOptions: { key: ThemeChoice; label: string; icon: React.ReactNode }[] = [
+  const themeOptions: { key: ThemePreference; label: string; icon: React.ReactNode }[] = [
     { key: 'system', label: 'System', icon: <Monitor size={12} /> },
     { key: 'light', label: 'Light', icon: <Sun size={12} /> },
     { key: 'dark', label: 'Dark', icon: <Moon size={12} /> },
@@ -276,8 +262,8 @@ export default function SettingsPage() {
                     onClick={() => handleThemeChange(opt.key)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all duration-200"
                     style={{
-                      backgroundColor: themeChoice === opt.key ? 'rgba(255, 89, 65, 0.12)' : 'transparent',
-                      color: themeChoice === opt.key ? '#ff5941' : 'var(--text-muted)',
+                      backgroundColor: preference === opt.key ? 'rgba(255, 89, 65, 0.12)' : 'transparent',
+                      color: preference === opt.key ? '#ff5941' : 'var(--text-muted)',
                       borderRight: '1px solid var(--border-color)',
                     }}
                   >

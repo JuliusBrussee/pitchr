@@ -6,7 +6,7 @@ import { useTheme } from '@/views/components/ThemeProvider';
 import './landing.css';
 
 export default function LandingPage() {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, setTheme } = useTheme();
   const navRef = useRef<HTMLElement>(null);
   const radarPathRef = useRef<SVGPathElement>(null);
   const ctaContainerRef = useRef<HTMLElement>(null);
@@ -144,7 +144,7 @@ export default function LandingPage() {
             </a>
             <button
               className="theme-toggle"
-              onClick={toggleTheme}
+              onClick={() => setTheme(isDark ? 'light' : 'dark')}
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >

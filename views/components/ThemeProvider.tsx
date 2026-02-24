@@ -20,37 +20,76 @@ const DARK_AURA_COLORS: Record<OrbState, { primary: string; secondary: string }>
   neutral:  { primary: 'rgba(234,179,8,0.10)',   secondary: 'rgba(245,158,11,0.06)' },
 };
 
+const STORAGE_KEY = 'pitchr-theme';
+
+export type ThemePreference = 'light' | 'dark' | 'system';
+
 interface ThemeContextValue {
   isDark: boolean;
-  toggleTheme: () => void;
+  preference: ThemePreference;
+  setTheme: (pref: ThemePreference) => void;
   orbState: OrbState;
   setOrbState: (state: OrbState) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   isDark: false,
-  toggleTheme: () => {},
+  preference: 'system',
+  setTheme: () => {},
   orbState: 'idle',
   setOrbState: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
 
+function resolveIsDark(pref: ThemePreference): boolean {
+  if (pref === 'dark') return true;
+  if (pref === 'light') return false;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  // Start false to match server HTML — the inline <head> script handles
+  // .dark class before first paint, preventing flash.
+  const [preference, setPreference] = useState<ThemePreference>('system');
   const [isDark, setIsDark] = useState(false);
   const [orbState, setOrbState] = useState<OrbState>('idle');
 
-  const toggleTheme = useCallback(() => setIsDark(prev => !prev), []);
+  // Sync from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY) as ThemePreference | null;
+    const pref: ThemePreference = (stored === 'dark' || stored === 'light' || stored === 'system')
+      ? stored
+      : 'system';
+    setPreference(pref);
+    setIsDark(resolveIsDark(pref));
+  }, []);
 
+  // Listen for OS preference changes when set to "system"
+  useEffect(() => {
+    if (preference !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [preference]);
+
+  // Apply .dark class to <html> whenever isDark changes
   useEffect(() => {
     document.documentElement.classList.toggle('dark', isDark);
   }, [isDark]);
+
+  const setTheme = useCallback((pref: ThemePreference) => {
+    localStorage.setItem(STORAGE_KEY, pref);
+    setPreference(pref);
+    setIsDark(resolveIsDark(pref));
+  }, []);
 
   const auraMap = isDark ? DARK_AURA_COLORS : AURA_COLORS;
   const aura = auraMap[orbState];
 
   return (
-    <ThemeContext.Provider value={{ isDark, toggleTheme, orbState, setOrbState }}>
+    <ThemeContext.Provider value={{ isDark, preference, setTheme, orbState, setOrbState }}>
       <div
         className="min-h-screen transition-colors duration-700"
         style={{

@@ -38,7 +38,7 @@ const TOOL_ITEMS = [
 ];
 
 export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
-  const { isDark, toggleTheme } = useTheme();
+  const { isDark, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const pathname = usePathname();
 
@@ -58,7 +58,7 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
           Pitchr
         </span>
         <button
-          onClick={toggleTheme}
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
           className="p-1.5 rounded-lg transition-colors hover:opacity-80"
           style={{ color: 'var(--text-secondary)' }}
           aria-label="Toggle theme"
