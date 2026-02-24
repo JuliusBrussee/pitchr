@@ -89,7 +89,8 @@
 
 /* ═══ HERO ═══ */
 .landing .hero { position: relative; z-index: 2; min-height: 100vh; display: flex; align-items: center; padding: 120px 0 80px; overflow: hidden; }
-.landing .hero-bg { position: absolute; inset: 0; z-index: 0; background: url('/hero-bg.png') center right / cover no-repeat; opacity: 0.6; }
+.landing .hero-bg { position: absolute; inset: 0; z-index: 0; background: url('/hero-bg-light.png') center right / cover no-repeat; opacity: 0.6; }
+.dark .landing .hero-bg { background-image: url('/hero-bg.png'); }
 .landing .hero-bg::after {
   content: ''; position: absolute; inset: 0;
   background:

@@ -22,10 +22,20 @@ export default function LandingPage() {
 
     setWaitlistStatus('loading');
     try {
+      // Collect UTM params from current URL
+      const params = new URLSearchParams(window.location.search);
+
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: waitlistEmail.trim() }),
+        body: JSON.stringify({
+          email: waitlistEmail.trim(),
+          referrer: document.referrer || null,
+          utm_source: params.get('utm_source') || null,
+          utm_medium: params.get('utm_medium') || null,
+          utm_campaign: params.get('utm_campaign') || null,
+          landing_page: window.location.pathname,
+        }),
       });
       const data = await res.json();
 
@@ -455,19 +465,6 @@ export default function LandingPage() {
             </form>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
-            <a
-              href="https://github.com/JuliusBrussee/pitchr"
-              className="btn-secondary"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" />
-              </svg>
-              Star on GitHub
-            </a>
-          </div>
         </div>
       </section>
 
@@ -476,17 +473,9 @@ export default function LandingPage() {
         <div className="container footer-inner">
           <div className="footer-left">
             <div className="nav-logo-dot" style={{ width: '6px', height: '6px' }} />
-            Pitchr — Open Source AI Pitch Coach
+            Pitchr — AI Pitch Coach
           </div>
           <div className="footer-links">
-            <a
-              href="https://github.com/JuliusBrussee/pitchr"
-              className="footer-link"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              GitHub
-            </a>
             <a href="#delivery" className="footer-link" onClick={(e) => scrollToSection(e, 'delivery')}>
               Delivery
             </a>
