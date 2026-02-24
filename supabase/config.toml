@@ -1,5 +1,4 @@
-[project]
-id = "pitchr"
+project_id = "hpdiakiydkvrqplrsmea"
 
 [api]
 enabled = true
@@ -8,5 +7,47 @@ schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
-[functions]
+[functions.pitch-run]
+verify_jwt = true
+
+[functions.pitch-run-detail]
+verify_jwt = true
+
+[functions.pitch-run-stats]
+verify_jwt = true
+
+[functions.deck-list]
+verify_jwt = true
+
+[functions.deck-upload]
+verify_jwt = true
+
+[functions.deck-detail]
+verify_jwt = true
+
+[functions.deck-generate]
+verify_jwt = true
+
+[functions.miro-fix-board]
+verify_jwt = true
+
+[functions.miro-fix-board-markdown]
+verify_jwt = true
+
+[functions.miro-fix-board-sync]
+verify_jwt = true
+
+[functions.qna-session]
+verify_jwt = true
+
+[functions.qna-session-detail]
+verify_jwt = true
+
+[functions.qna-session-complete]
+verify_jwt = true
+
+[functions.qna-resources-refresh]
+verify_jwt = true
+
+[functions.settings]
 verify_jwt = true

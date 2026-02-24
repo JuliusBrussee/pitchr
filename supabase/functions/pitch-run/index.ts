@@ -7,11 +7,13 @@ import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.t
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import {
   insertRun,
+  updateRun,
   listRuns,
   computeRunStats,
   toRunResponse,
 } from '../_shared/run-service.ts';
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
+import { analyzePitch } from '../_shared/analysis-service.ts';
 import { SAMPLE_RESULT } from '../_shared/sample-result.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
 
@@ -127,13 +129,16 @@ async function handlePost(req: Request) {
 
   const { supabase, user } = await getAuthenticatedUser(req);
   const payload = validateRequest(body);
-  const queuedOutputs = JSON.parse(JSON.stringify(SAMPLE_RESULT.outputs));
+  const runId = crypto.randomUUID();
+  const startedAt = new Date().toISOString();
 
+  // Insert run as 'running' immediately
   const run = await insertRun(supabase, {
-    id: crypto.randomUUID(),
+    id: runId,
     user_id: user.id,
     mode: payload.mode,
-    status: 'queued',
+    status: 'running',
+    started_at: startedAt,
     input_type: payload.inputType,
     transcript: payload.transcript,
     audio_url: payload.audioUrl,
@@ -141,8 +146,8 @@ async function handlePost(req: Request) {
     overall_score: 0,
     analysis: {
       ...SAMPLE_RESULT,
-      outputs: queuedOutputs,
-      analysis: queuedOutputs.feedback,
+      outputs: JSON.parse(JSON.stringify(SAMPLE_RESULT.outputs)),
+      analysis: SAMPLE_RESULT.outputs.feedback,
       meta: {
         provider_used: 'none',
         fallback_used: false,
@@ -164,7 +169,61 @@ async function handlePost(req: Request) {
     is_fallback: false,
   });
 
-  return jsonResponse({ runId: run.id, status: 'queued' }, 202);
+  // Run analysis inline (edge functions have up to 150s wall clock)
+  try {
+    const { analysis, fallback } = await analyzePitch({
+      transcript: payload.transcript,
+      mode: payload.mode,
+      deckText: payload.deckText,
+    });
+
+    const overallScore = analysis.outputs?.feedback?.overall_score ?? 0;
+
+    const completedRun = await updateRun(supabase, runId, {
+      status: 'complete',
+      completed_at: new Date().toISOString(),
+      overall_score: overallScore,
+      analysis,
+      meta: analysis.meta,
+      is_fallback: fallback,
+      error_message: null,
+    });
+
+    return jsonResponse(
+      { runId: completedRun.id, status: 'complete', overallScore },
+      201,
+    );
+  } catch (analysisError) {
+    const message =
+      analysisError instanceof Error
+        ? analysisError.message
+        : 'Pitch analysis failed.';
+
+    console.error('[pitch-run] analysis failed', { runId, error: message });
+
+    await updateRun(supabase, runId, {
+      status: 'failed',
+      completed_at: new Date().toISOString(),
+      error_message: message,
+      meta: {
+        provider_used: 'none',
+        fallback_used: false,
+        cache_hit: false,
+        llm_calls_used: 0,
+        latency_ms: Date.now() - new Date(startedAt).getTime(),
+        attempt_count: 0,
+        error_details: {
+          message,
+          timeout: message.toLowerCase().includes('timed out'),
+        },
+      },
+    });
+
+    return jsonResponse(
+      { runId: run.id, status: 'failed', error: message },
+      201,
+    );
+  }
 }
 
 Deno.serve(async (req: Request) => {

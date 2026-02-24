@@ -166,7 +166,7 @@ export default function SettingsPage() {
   const [compactMode, setCompactMode] = useState(false);
 
   useEffect(() => {
-    fetch('/api/settings')
+    fetchEdge('settings')
       .then((r) => r.json())
       .then((data) => {
         if (data.error) return;
@@ -186,7 +186,7 @@ export default function SettingsPage() {
   }, []);
 
   function persistSetting(updates: Record<string, unknown>) {
-    fetch('/api/settings', {
+    fetchEdge('settings', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
