@@ -9,6 +9,7 @@ import {
   BarChart3,
   TrendingUp,
   FolderOpen,
+  Settings,
   LogOut,
   Play,
   Sun,
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
 
 const TOOL_ITEMS = [
   { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck' },
+  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
 
 export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {

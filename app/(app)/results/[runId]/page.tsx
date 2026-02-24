@@ -4,6 +4,9 @@ import { ArrowLeft, Check, Copy, MessageCircleQuestion } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useAchievements } from '@/hooks/useAchievements';
+import { AchievementToastContainer } from '@/views/components/achievements';
+import type { ProgressRunRecord } from '@/lib/progress';
 import type { FeedbackOutput, OneMinuteQAPack, PaidSyncMeta, RewriteDiff, RunEconomics } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
 import {
@@ -254,6 +257,38 @@ export default function ResultsPage() {
   const [miroCreateError, setMiroCreateError] = useState<string | null>(null);
   const [miroCreateMessage, setMiroCreateMessage] = useState<string | null>(null);
   const miroPollIntervalMs = useMemo(() => getMiroPollIntervalMs(), []);
+  const achievements = useAchievements();
+  const achievementCheckDone = useRef(false);
+
+  // When the run completes, fetch all runs and check achievements
+  useEffect(() => {
+    if (!run || run.status !== 'complete' || achievementCheckDone.current) return;
+    achievementCheckDone.current = true;
+
+    fetch('/api/pitch/run')
+      .then((r) => r.json())
+      .then((payload: { runs?: Array<{ id: string; mode: string; overallScore: number; createdAt: string; analysis: ProgressRunRecord['analysis'] }> }) => {
+        const data = Array.isArray(payload.runs) ? payload.runs : [];
+        const normalized: ProgressRunRecord[] = data.map((raw) => ({
+          id: raw.id,
+          createdAt: raw.createdAt,
+          overallScore: raw.overallScore,
+          mode: raw.mode,
+          analysis: {
+            one_line_verdict: raw.analysis?.one_line_verdict ?? '',
+            rubric_breakdown: raw.analysis?.rubric_breakdown ?? [],
+            delivery_metrics: {
+              duration_seconds: raw.analysis?.delivery_metrics?.duration_seconds ?? 0,
+              wpm: raw.analysis?.delivery_metrics?.wpm ?? 0,
+              filler_rate: raw.analysis?.delivery_metrics?.filler_rate ?? 0,
+            },
+            top_fixes: raw.analysis?.top_fixes ?? [],
+          },
+        }));
+        achievements.processRuns(normalized);
+      })
+      .catch(() => {});
+  }, [run?.status, achievements.processRuns]);
 
   const {
     snapshot: miroSnapshot,
@@ -643,6 +678,12 @@ export default function ResultsPage() {
 
   return (
     <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-4 pr-1">
+      {/* Achievement toast notifications */}
+      <AchievementToastContainer
+        unlocks={achievements.newUnlocks}
+        onDismiss={achievements.dismissUnlock}
+      />
+
       {/* ─── Header ─────────────────────────────────────────── */}
       <header className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3">

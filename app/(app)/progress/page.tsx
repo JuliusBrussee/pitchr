@@ -5,7 +5,6 @@ import {
   TrendingUp,
   Flame,
   Target,
-  Award,
   ArrowUp,
   ArrowDown,
   Minus,
@@ -22,8 +21,9 @@ import {
   CategoryProgressCard,
   FixTracker,
   ScoreTimeline,
-  StreakBadge,
 } from '@/views/components/progress';
+import { AchievementSummary } from '@/views/components/achievements';
+import { useAchievements } from '@/hooks/useAchievements';
 import { computeProgress } from '@/lib/progress';
 import type { ProgressRunRecord, ProgressSummary } from '@/lib/progress';
 import { getScoreBandLabel } from '@/views/components/ui/colors';
@@ -95,6 +95,12 @@ export default function ProgressPage() {
     () => computeProgress(runs),
     [runs],
   );
+
+  const achievements = useAchievements();
+
+  useEffect(() => {
+    if (runs.length > 0) achievements.processRuns(runs);
+  }, [runs, achievements.processRuns]);
 
   const latestScore =
     progress.overallTrend.length > 0
@@ -275,19 +281,12 @@ export default function ProgressPage() {
             </p>
           </GlassCard>
 
-          {/* ——— Milestones ——— */}
+          {/* ——— Achievements ——— */}
           <GlassCard animationDelay="780ms">
-            <div className="flex items-center gap-2 mb-4">
-              <Award size={16} style={{ color: '#eab308' }} />
-              <SectionHeader>Milestones</SectionHeader>
-            </div>
-            <StreakBadge milestones={progress.milestones} />
-            <p
-              className="text-[10px] mt-3 italic"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Milestones and streaks are computed from your session history.
-            </p>
+            <AchievementSummary
+              state={achievements.state}
+              progress={achievements.progress}
+            />
           </GlassCard>
 
           {/* Bottom spacer */}
