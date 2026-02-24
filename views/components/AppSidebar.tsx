@@ -7,6 +7,7 @@ import {
   Radio,
   Clock,
   BarChart3,
+  TrendingUp,
   FolderOpen,
   LogOut,
   Play,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { id: 'session', label: 'Live Session', icon: Radio, href: '/session' },
   { id: 'history', label: 'History', icon: Clock, href: '/history' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
+  { id: 'progress', label: 'Progress', icon: TrendingUp, href: '/progress' },
 ];
 
 const TOOL_ITEMS = [
