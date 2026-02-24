@@ -168,11 +168,11 @@ function LoginForm() {
       <p className="mt-6 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
         Don&apos;t have an account?{' '}
         <Link
-          href="/signup"
+          href="/#waitlist"
           className="font-medium no-underline hover:underline"
           style={{ color: '#ff5941' }}
         >
-          Sign up
+          Join the waitlist
         </Link>
       </p>
     </div>

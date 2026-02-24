@@ -14,7 +14,10 @@ const PROTECTED_ROUTES = [
   '/demo',
 ];
 
-const AUTH_ROUTES = ['/login', '/signup', '/auth'];
+const AUTH_ROUTES = ['/login', '/auth'];
+
+// Signup is disabled — redirect to waitlist on landing page
+const BLOCKED_ROUTES = ['/signup'];
 
 function isProtectedRoute(pathname: string): boolean {
   return PROTECTED_ROUTES.some(
@@ -57,6 +60,14 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  // Redirect blocked routes (signup) to waitlist
+  if (BLOCKED_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    url.hash = 'waitlist';
+    return NextResponse.redirect(url);
+  }
 
   // Redirect unauthenticated users away from protected routes
   if (!user && isProtectedRoute(pathname)) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/views/components/ThemeProvider';
 import './landing.css';
@@ -11,6 +11,42 @@ export default function LandingPage() {
   const radarPathRef = useRef<SVGPathElement>(null);
   const ctaContainerRef = useRef<HTMLElement>(null);
   const ctaGlowRef = useRef<HTMLDivElement>(null);
+
+  const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [waitlistMessage, setWaitlistMessage] = useState('');
+
+  async function handleWaitlistSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!waitlistEmail.trim()) return;
+
+    setWaitlistStatus('loading');
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: waitlistEmail.trim() }),
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        setWaitlistStatus('success');
+        setWaitlistMessage(data.message);
+        setWaitlistEmail('');
+      } else {
+        setWaitlistStatus('error');
+        setWaitlistMessage(data.error || 'Something went wrong.');
+      }
+    } catch {
+      setWaitlistStatus('error');
+      setWaitlistMessage('Something went wrong. Please try again.');
+    }
+  }
+
+  function scrollToWaitlist(e: React.MouseEvent) {
+    e.preventDefault();
+    document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
   const handleScroll = useCallback(() => {
     if (!navRef.current) return;
@@ -120,14 +156,13 @@ export default function LandingPage() {
                 </svg>
               )}
             </button>
-            <Link href="/dashboard" className="nav-cta">
+            <a href="#waitlist" className="nav-cta" onClick={scrollToWaitlist}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
-                <polyline points="10 17 15 12 10 7" />
-                <line x1="15" y1="12" x2="3" y2="12" />
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
               </svg>
-              Log In
-            </Link>
+              Join Waitlist
+            </a>
           </div>
         </div>
       </nav>
@@ -152,15 +187,15 @@ export default function LandingPage() {
           </p>
 
           <div className="hero-ctas">
-            <Link href="/dashboard" className="btn-primary">
-              Get Started
+            <a href="#waitlist" className="btn-primary" onClick={scrollToWaitlist}>
+              Join the Waitlist
               <span className="btn-icon">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
                 </svg>
               </span>
-            </Link>
+            </a>
             <a href="#delivery" className="btn-secondary" onClick={(e) => scrollToSection(e, 'delivery')}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -362,29 +397,65 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ CTA ═══ */}
-      <section className="cta-section" ref={ctaContainerRef}>
+      {/* ═══ WAITLIST ═══ */}
+      <section className="cta-section" id="waitlist" ref={ctaContainerRef}>
         <div className="cta-glow" ref={ctaGlowRef} />
         <div className="container cta-content reveal">
-          <div className="section-label" style={{ textAlign: 'center' }}>Ready?</div>
+          <div className="section-label" style={{ textAlign: 'center' }}>Early Access</div>
           <h2 className="section-title" style={{ textAlign: 'center', marginBottom: '20px' }}>
-            Stop guessing.<br />
-            <span className="accent">Start scoring.</span>
+            Be the first to<br />
+            <span className="accent">start scoring.</span>
           </h2>
-          <p className="section-desc" style={{ textAlign: 'center', margin: '0 auto 40px' }}>
-            Your next pitch meeting doesn&apos;t have to be a coin flip. Get AI-powered scoring,
-            fixes, and a rewritten script — free and open source.
+          <p className="section-desc" style={{ textAlign: 'center', margin: '0 auto 32px' }}>
+            Pitchr is launching soon. Join the waitlist to get early access to AI-powered
+            pitch scoring, ranked fixes, and rewritten scripts.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <Link href="/dashboard" className="btn-primary">
-              Get Started
-              <span className="btn-icon">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14" />
-                  <path d="m12 5 7 7-7 7" />
+
+          {waitlistStatus === 'success' ? (
+            <div className="waitlist-success">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <span>{waitlistMessage}</span>
+            </div>
+          ) : (
+            <form onSubmit={handleWaitlistSubmit} className="waitlist-form">
+              <div className="waitlist-input-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="waitlist-input-icon">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
                 </svg>
-              </span>
-            </Link>
+                <input
+                  type="email"
+                  placeholder="you@company.com"
+                  value={waitlistEmail}
+                  onChange={(e) => setWaitlistEmail(e.target.value)}
+                  required
+                  className="waitlist-input"
+                  disabled={waitlistStatus === 'loading'}
+                />
+                <button
+                  type="submit"
+                  className="btn-primary waitlist-btn"
+                  disabled={waitlistStatus === 'loading'}
+                >
+                  {waitlistStatus === 'loading' ? 'Joining...' : 'Join Waitlist'}
+                  <span className="btn-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="m12 5 7 7-7 7" />
+                    </svg>
+                  </span>
+                </button>
+              </div>
+              {waitlistStatus === 'error' && (
+                <p className="waitlist-error">{waitlistMessage}</p>
+              )}
+            </form>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: '24px' }}>
             <a
               href="https://github.com/JuliusBrussee/pitchr"
               className="btn-secondary"
