@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { AnalysisMeta, AnalysisOutputs } from '@/types/analysis-v2';
 import type {
   CreatePitchRunErrorResponse,
@@ -38,7 +39,7 @@ export function usePitchRun(): UsePitchRunReturn {
       setError(null);
 
       try {
-        const response = await fetch('/api/pitch/run', {
+        const response = await fetchEdge('pitch-run', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

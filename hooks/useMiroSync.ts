@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { MiroSyncSnapshot } from "@/services/miro/miroTypes";
 
 interface UseMiroSyncOptions {
@@ -44,9 +45,10 @@ export function useMiroSync({
       const params = new URLSearchParams({
         runId,
       });
-      const response = await fetch(`/api/miro/fix-board/sync?${params.toString()}`, {
+      const response = await fetchEdge('miro-fix-board-sync', {
         method: "GET",
         cache: "no-store",
+        params: { runId },
       });
       const json = (await response.json()) as MiroSyncSnapshot & { error?: string };
       if (!response.ok) {

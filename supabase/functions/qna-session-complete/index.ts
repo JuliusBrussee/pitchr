@@ -1,0 +1,147 @@
+// Edge Function: qna-session-complete
+// Replaces: app/api/qna/session/[qaSessionId]/complete/route.ts
+// Methods: POST (complete QA session with transcript/turns/evaluation)
+// URL pattern: /qna-session-complete?qaSessionId=<uuid>
+
+import { handleCors } from '../_shared/cors.ts';
+import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
+import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { completeQASession, getQASession } from '../_shared/qna-session-service.ts';
+import { getConversation } from '../_shared/elevenlabs-convai.ts';
+import type { QATurn } from '../_shared/types.ts';
+
+const QA_DURATION_LIMIT_SECONDS = 60;
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+}
+
+function normalizeTurns(value: unknown): QATurn[] {
+  if (!Array.isArray(value)) return [];
+  const turns: QATurn[] = [];
+  value.forEach((turn, index) => {
+    if (!turn || typeof turn !== 'object') return;
+    const row = turn as Record<string, unknown>;
+    const text = typeof row.text === 'string' ? row.text.trim() : '';
+    if (!text) return;
+    const speaker: QATurn['speaker'] =
+      row.speaker === 'investor' || row.speaker === 'founder' || row.speaker === 'system'
+        ? row.speaker
+        : 'system';
+    turns.push({
+      id: String(row.id ?? `turn-${index + 1}`),
+      speaker,
+      text,
+      start_sec:
+        typeof row.start_sec === 'number' && Number.isFinite(row.start_sec)
+          ? row.start_sec
+          : undefined,
+      end_sec:
+        typeof row.end_sec === 'number' && Number.isFinite(row.end_sec)
+          ? row.end_sec
+          : undefined,
+      latency_ms:
+        typeof row.latency_ms === 'number' && Number.isFinite(row.latency_ms)
+          ? row.latency_ms
+          : undefined,
+      created_at:
+        typeof row.created_at === 'string' && row.created_at
+          ? row.created_at
+          : new Date().toISOString(),
+    });
+  });
+  return turns;
+}
+
+Deno.serve(async (req: Request) => {
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
+
+  if (req.method !== 'POST') {
+    return errorResponse('Method not allowed', 405);
+  }
+
+  const url = new URL(req.url);
+  const qaSessionId = url.searchParams.get('qaSessionId') ?? '';
+  if (!isUuid(qaSessionId)) {
+    return errorResponse('qaSessionId must be a valid UUID.', 400);
+  }
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return errorResponse('Invalid JSON body.', 400);
+  }
+
+  // deno-lint-ignore no-explicit-any
+  const payload = body as any;
+
+  try {
+    const { supabase } = await getAuthenticatedUser(req);
+    const session = await getQASession(supabase, qaSessionId);
+    if (!session) {
+      return errorResponse('QA session not found.', 404);
+    }
+
+    const conversationId = payload.conversationId ?? session.conversationId;
+    let transcript = payload.transcript;
+    let turns = payload.turns ?? [];
+    let conversationMeta: Record<string, unknown> = {};
+
+    if (conversationId && (!transcript || turns.length === 0)) {
+      try {
+        const conversation = await getConversation(conversationId);
+        conversationMeta = {
+          ...(conversation.metadata ?? {}),
+          conversation_status: conversation.status,
+        };
+        if (!transcript && typeof conversation.transcript === 'string') {
+          transcript = conversation.transcript;
+        }
+        if (turns.length === 0 && Array.isArray(conversation.turns)) {
+          turns = normalizeTurns(conversation.turns);
+        }
+      } catch {
+        // Keep client-provided payload if upstream conversation fetch fails.
+      }
+    }
+
+    const normalizedTurns = normalizeTurns(turns);
+    const durationSeconds =
+      typeof payload.durationSeconds === 'number' && payload.durationSeconds >= 0
+        ? payload.durationSeconds
+        : Math.max(
+            0,
+            Math.round((Date.now() - Date.parse(session.startedAt)) / 1000),
+          );
+
+    const capCompliant = durationSeconds <= QA_DURATION_LIMIT_SECONDS;
+    const finalStatus = payload.status ?? (capCompliant ? 'completed' : 'expired');
+
+    const qaSession = await completeQASession(supabase, qaSessionId, {
+      status: finalStatus,
+      conversationId,
+      durationSeconds,
+      turns: normalizedTurns,
+      transcript,
+      evaluation: payload.evaluation,
+      meta: {
+        ...(session.meta ?? {}),
+        ...(payload.meta ?? {}),
+        ...conversationMeta,
+        qa_cap_compliant: capCompliant,
+      },
+    });
+
+    return jsonResponse({ qaSession }, 200);
+  } catch (error) {
+    if (error instanceof AuthenticationError) {
+      return errorResponse('Authentication required', 401);
+    }
+    return errorResponse(
+      error instanceof Error ? error.message : 'Failed to complete QA session.',
+      500,
+    );
+  }
+});

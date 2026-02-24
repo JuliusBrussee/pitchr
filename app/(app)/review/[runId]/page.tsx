@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import type { FeedbackOutput, OneMinuteQAPack } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 type ReviewTab = 'feedback' | 'qa';
 
@@ -55,7 +56,7 @@ export default function ReviewPage() {
       setLoading(false);
       return;
     }
-    fetch(`/api/pitch/run/${runId}`)
+    fetchEdge('pitch-run-detail', { params: { runId } })
       .then((res) => (res.ok ? res.json() : null))
       .then((payload) => {
         if (payload?.run) {

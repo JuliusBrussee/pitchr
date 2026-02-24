@@ -21,6 +21,7 @@ import {
 } from '@/views/components/RecordingPlayer';
 import { buildRewriteDiff } from '@/services/rewriteDiffService';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type {
   MiroFixBoardResponse,
   MiroFixPatchResponse,
@@ -289,10 +290,10 @@ export default function ResultsPage() {
 
     const loadMiroBoard = async () => {
       try {
-        const params = new URLSearchParams({ runId });
-        const response = await fetch(`/api/miro/fix-board?${params.toString()}`, {
+        const response = await fetchEdge('miro-fix-board', {
           method: 'GET',
           cache: 'no-store',
+          params: { runId },
         });
 
         if (cancelled) return;
@@ -357,7 +358,7 @@ export default function ResultsPage() {
       if (isFetching) return;
       isFetching = true;
       try {
-        const response = await fetch(`/api/pitch/run/${runId}`, { cache: 'no-store' });
+        const response = await fetchEdge('pitch-run-detail', { cache: 'no-store', params: { runId } });
         if (!response.ok) {
           if (cancelled) return;
           setRun(null);
@@ -476,7 +477,7 @@ export default function ResultsPage() {
     };
 
     try {
-      const response = await fetch('/api/miro/fix-board', {
+      const response = await fetchEdge('miro-fix-board', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -532,7 +533,7 @@ export default function ResultsPage() {
   }) {
     if (!runId) return;
 
-    const response = await fetch('/api/miro/fix-board', {
+    const response = await fetchEdge('miro-fix-board', {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

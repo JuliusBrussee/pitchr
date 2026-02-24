@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "lib": ["deno.ns", "deno.unstable", "dom", "dom.iterable", "dom.asynciterable", "es2021"]
+  },
+  "imports": {
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.97.0"
+  }
+}

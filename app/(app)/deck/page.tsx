@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { SearchInput, SectionHeader, EmptyState } from '@/views/components/ui';
 import { GenerateDeckModal } from '@/views/components/GenerateDeckModal';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { DeckRecord } from '@/services/deckService';
 
 /* --- Helpers --- */
@@ -82,7 +83,7 @@ export default function DeckPage() {
   // Fetch decks
   const fetchDecks = useCallback(async () => {
     try {
-      const res = await fetch('/api/deck');
+      const res = await fetchEdge('deck-list');
       if (!res.ok) throw new Error('Failed to load decks');
       const data = await res.json();
       setDecks(data);
@@ -119,7 +120,7 @@ export default function DeckPage() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/deck/upload', { method: 'POST', body: formData });
+      const res = await fetchEdge('deck-upload', { method: 'POST', body: formData });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Upload failed');
@@ -135,7 +136,7 @@ export default function DeckPage() {
   // Delete handler
   const handleDelete = async (deckId: string) => {
     try {
-      const res = await fetch(`/api/deck/${deckId}`, { method: 'DELETE' });
+      const res = await fetchEdge('deck-detail', { method: 'DELETE', params: { deckId } });
       if (!res.ok) throw new Error('Failed to delete deck');
       setDecks((prev) => prev.filter((d) => d.id !== deckId));
     } catch (e) {

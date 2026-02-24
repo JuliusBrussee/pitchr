@@ -11,6 +11,7 @@ import { useSTT } from '@/hooks/useSTT';
 import { useRecorder } from '@/hooks/useRecorder';
 import { createClient } from '@/lib/supabase/client';
 import { uploadRecording } from '@/services/recordingService';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
@@ -66,7 +67,7 @@ function SessionPageContent() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/deck');
+        const res = await fetchEdge('deck-list');
         if (!res.ok) throw new Error('Failed to load decks');
         const data = await res.json();
         setDecks(data);
@@ -87,7 +88,7 @@ function SessionPageContent() {
     if (deckTextCacheRef.current[deckId]) {
       return deckTextCacheRef.current[deckId];
     }
-    const response = await fetch(`/api/deck/${deckId}`);
+    const response = await fetchEdge('deck-detail', { params: { deckId } });
     if (!response.ok) {
       throw new Error('Failed to load selected deck text for analysis.');
     }

@@ -16,6 +16,7 @@ import {
   Plus,
   Minus,
 } from 'lucide-react';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 /* ——— Types ——— */
 type FeedbackIntensity = 'gentle' | 'balanced' | 'aggressive';
@@ -586,9 +587,9 @@ export default function SettingsPage() {
                 <button
                   onClick={async () => {
                     if (!confirm('Delete all pitch runs? This cannot be undone.')) return;
-                    const payload = await fetch('/api/pitch/run?includePending=true').then((r) => r.json());
+                    const payload = await fetchEdge('pitch-run', { params: { includePending: 'true' } }).then((r) => r.json());
                     const runs = Array.isArray(payload?.runs) ? payload.runs : [];
-                    await Promise.all(runs.map((r: { id: string }) => fetch(`/api/pitch/run/${r.id}`, { method: 'DELETE' })));
+                    await Promise.all(runs.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
                     alert('All data deleted.');
                   }}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"

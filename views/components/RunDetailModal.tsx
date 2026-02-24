@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 import { TagPill } from '@/views/components/ui/TagPill';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import {
   getScoreColor,
   getScoreBgColor,
@@ -125,7 +126,7 @@ export function RunDetailModal({ runId, onClose }: RunDetailModalProps) {
 
     (async () => {
       try {
-        const res = await fetch(`/api/pitch/run/${runId}`);
+        const res = await fetchEdge('pitch-run-detail', { params: { runId } });
         if (!res.ok) throw new Error('Failed to load run');
         const payload = (await res.json()) as { run?: Run };
         if (cancelled) return;

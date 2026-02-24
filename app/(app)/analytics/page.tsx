@@ -18,6 +18,7 @@ import {
 } from '@/views/components/ui';
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 /* ——— Types ——— */
 
@@ -540,7 +541,7 @@ export default function AnalyticsPage() {
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
 
   useEffect(() => {
-    fetch('/api/pitch/run')
+    fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
       .catch(() => setAllRuns([]));
