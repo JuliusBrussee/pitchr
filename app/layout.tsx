@@ -8,6 +8,13 @@ export const metadata: Metadata = {
   description: 'AI-powered pitch battle platform',
 };
 
+export const viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f0f0f3' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: {

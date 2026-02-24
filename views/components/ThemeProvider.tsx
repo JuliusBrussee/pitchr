@@ -91,7 +91,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <ThemeContext.Provider value={{ isDark, preference, setTheme, orbState, setOrbState }}>
       <div
-        className="min-h-screen transition-colors duration-700"
+        className="min-h-dvh transition-colors duration-700"
         style={{
           backgroundColor: isDark ? '#0a0a0a' : '#f0f0f3',
           backgroundImage: `
