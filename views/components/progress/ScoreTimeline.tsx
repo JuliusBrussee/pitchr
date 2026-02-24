@@ -26,30 +26,29 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
   }
 
   const maxScore = 100;
-  const width = 100; // percentage based
-  const height = 180;
-  const padding = { top: 10, right: 10, bottom: 30, left: 36 };
-  const chartWidth = width;
-  const chartHeight = height - padding.top - padding.bottom;
+  const svgWidth = 600;
+  const svgHeight = 180;
+  const padding = { top: 10, right: 20, bottom: 30, left: 40 };
+  const chartWidth = svgWidth - padding.left - padding.right;
+  const chartHeight = svgHeight - padding.top - padding.bottom;
 
-  // SVG points
+  // Compute points in pure pixel coordinates
   const points = data.map((d, i) => {
     const x =
       data.length === 1
-        ? 50
-        : padding.left +
-          (i / (data.length - 1)) * (chartWidth - padding.left - padding.right);
+        ? padding.left + chartWidth / 2
+        : padding.left + (i / (data.length - 1)) * chartWidth;
     const y = padding.top + (1 - d.score / maxScore) * chartHeight;
     return { x, y, score: d.score, date: d.date };
   });
 
-  // SVG path
+  // SVG path (all pixel values)
   const pathD = points
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x}% ${p.y}`)
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
     .join(' ');
 
   // Area path
-  const areaD = `${pathD} L ${points[points.length - 1].x}% ${padding.top + chartHeight} L ${points[0].x}% ${padding.top + chartHeight} Z`;
+  const areaD = `${pathD} L ${points[points.length - 1].x} ${padding.top + chartHeight} L ${points[0].x} ${padding.top + chartHeight} Z`;
 
   // Y-axis labels
   const yLabels = [0, 25, 50, 75, 100];
@@ -71,10 +70,10 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
   return (
     <div>
       <svg
-        viewBox={`0 0 ${chartWidth} ${height}`}
-        preserveAspectRatio="none"
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        preserveAspectRatio="xMidYMid meet"
         className="w-full"
-        style={{ height }}
+        style={{ height: svgHeight, maxHeight: svgHeight }}
       >
         {/* Score band background zones */}
         {bands.map((band) => {
@@ -83,9 +82,9 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
           return (
             <rect
               key={band.min}
-              x={`${padding.left}%`}
+              x={padding.left}
               y={y1}
-              width={`${chartWidth - padding.left - padding.right}%`}
+              width={chartWidth}
               height={y2 - y1}
               fill={band.color}
             />
@@ -96,9 +95,9 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
         {gridLines.map((line) => (
           <line
             key={line.label}
-            x1={`${padding.left}%`}
+            x1={padding.left}
             y1={line.y}
-            x2={`${chartWidth - padding.right}%`}
+            x2={padding.left + chartWidth}
             y2={line.y}
             stroke="var(--border-color)"
             strokeWidth={0.5}
@@ -112,7 +111,7 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
           return (
             <text
               key={val}
-              x={`${padding.left - 2}%`}
+              x={padding.left - 6}
               y={y + 3}
               textAnchor="end"
               fontSize={9}
@@ -147,7 +146,7 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
         {points.map((p, i) => (
           <g key={i}>
             <circle
-              cx={`${p.x}%`}
+              cx={p.x}
               cy={p.y}
               r={4}
               fill={getScoreColor(p.score)}
@@ -157,8 +156,8 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
             {/* X-axis date labels (sparse) */}
             {(i === 0 || i === points.length - 1 || (data.length <= 10) || i % Math.ceil(data.length / 8) === 0) && (
               <text
-                x={`${p.x}%`}
-                y={height - 5}
+                x={p.x}
+                y={svgHeight - 5}
                 textAnchor="middle"
                 fontSize={8}
                 fill="var(--text-muted)"

@@ -267,6 +267,12 @@ export default function ProgressPage() {
           {/* ——— Fix Tracker ——— */}
           <GlassCard animationDelay="720ms">
             <FixTracker fixes={progress.fixes} />
+            <p
+              className="text-[10px] mt-3 italic"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Fix status is inferred: issues not seen in the last 2 sessions are marked resolved.
+            </p>
           </GlassCard>
 
           {/* ——— Milestones ——— */}
@@ -276,6 +282,12 @@ export default function ProgressPage() {
               <SectionHeader>Milestones</SectionHeader>
             </div>
             <StreakBadge milestones={progress.milestones} />
+            <p
+              className="text-[10px] mt-3 italic"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Milestones and streaks are computed from your session history.
+            </p>
           </GlassCard>
 
           {/* Bottom spacer */}
