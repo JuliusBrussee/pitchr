@@ -255,6 +255,7 @@ describe('analyzePitch', () => {
 
   it('returns v2 analysis result with correct structure', async () => {
     const result = await analyzePitch({
+      supabase: {} as any,
       transcript: 'We build tools for teams.',
       mode: 'vc_pitch',
     });
@@ -268,6 +269,7 @@ describe('analyzePitch', () => {
 
   it('includes deterministic delivery score overriding LLM delivery', async () => {
     const result = await analyzePitch({
+      supabase: {} as any,
       transcript: 'We build tools for teams.',
       mode: 'vc_pitch',
     });
@@ -282,6 +284,7 @@ describe('analyzePitch', () => {
 
   it('produces a QA pack even when judge returns null', async () => {
     const result = await analyzePitch({
+      supabase: {} as any,
       transcript: 'We build tools for teams.',
       mode: 'vc_pitch',
     });
@@ -295,6 +298,7 @@ describe('analyzePitch', () => {
 
   it('includes vocabulary metrics in output', async () => {
     const result = await analyzePitch({
+      supabase: {} as any,
       transcript: 'We build tools for teams.',
       mode: 'vc_pitch',
     });
@@ -305,6 +309,7 @@ describe('analyzePitch', () => {
 
   it('includes advanced reasoning', async () => {
     const result = await analyzePitch({
+      supabase: {} as any,
       transcript: 'We build tools for teams.',
       mode: 'vc_pitch',
     });
@@ -325,6 +330,7 @@ describe('analyzePitch', () => {
     );
 
     const result = await analyzePitch({
+      supabase: {} as any,
       transcript: 'We build tools for teams.',
       mode: 'vc_pitch',
     });
@@ -354,6 +360,7 @@ describe('analyzePitch', () => {
     (getCachedAnalysis as ReturnType<typeof vi.fn>).mockResolvedValueOnce(cachedAnalysis);
 
     const result = await analyzePitch({
+      supabase: {} as any,
       transcript: 'We build tools for teams.',
       mode: 'vc_pitch',
     });

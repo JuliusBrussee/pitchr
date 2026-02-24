@@ -31,6 +31,7 @@ async function processRun(payload: QueuePayload): Promise<void> {
 
   try {
     const { analysis, fallback } = await analyzePitch({
+      supabase,
       runId: payload.runId,
       transcript: payload.transcript,
       mode: payload.mode,

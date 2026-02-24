@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { getDeckWithSlides } from '@/services/deckService';
 import type { SectionFeedback } from '@/types/analysis-v2';
 
@@ -22,6 +23,7 @@ function overlapScore(left: string[], right: string[]): { score: number; matches
 }
 
 export async function linkSectionFeedbackToDeck(
+  supabase: SupabaseClient,
   sections: SectionFeedback[],
   deckId?: string,
 ): Promise<{ sections: SectionFeedback[]; averageConfidence: number }> {
@@ -30,7 +32,7 @@ export async function linkSectionFeedbackToDeck(
   }
 
   try {
-    const { slides } = await getDeckWithSlides(deckId);
+    const { slides } = await getDeckWithSlides(supabase, deckId);
     const linked = sections.map((section) => {
       const sectionTokens = normalizeWords(`${section.evidence} ${section.good} ${section.bad}`);
       const scoredSlides = slides

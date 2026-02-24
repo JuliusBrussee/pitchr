@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { listRuns } from '@/services/runService';
 import type { FeedbackOutput, HistoricalLink, HistoricalScoreDelta } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
@@ -10,12 +11,12 @@ function summarizeDelta(delta: number): string {
   return 'Flat vs prior run.';
 }
 
-export async function buildHistoricalLinks(input: {
+export async function buildHistoricalLinks(supabase: SupabaseClient, input: {
   mode: PitchMode;
   currentFeedback: FeedbackOutput;
   currentRunId?: string;
 }): Promise<HistoricalLink[]> {
-  const runs = await listRuns({ mode: input.mode, limit: 12 });
+  const runs = await listRuns(supabase, { mode: input.mode, limit: 12 });
   const candidates = runs
     .filter((run) => run.status === 'complete')
     .filter((run) => run.id !== input.currentRunId)

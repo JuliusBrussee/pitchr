@@ -37,3 +37,4 @@ Thumbs.db
 /.playwright-mcp
 .cache/
 /transcript
+/supabase/.temp

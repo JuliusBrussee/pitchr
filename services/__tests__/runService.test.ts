@@ -12,6 +12,7 @@ import type { RunRecord } from '@/services/runService';
 function makeRunRecord(overrides: Partial<RunRecord> = {}): RunRecord {
   return {
     id: 'run-1',
+    user_id: 'test-user-id',
     mode: 'vc_pitch',
     status: 'complete',
     error_message: null,

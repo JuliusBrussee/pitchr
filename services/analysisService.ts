@@ -31,6 +31,7 @@ import type {
 import type { PitchMode } from '@/types/pitch';
 
 interface AnalyzePitchInput {
+  supabase: import('@supabase/supabase-js').SupabaseClient;
   transcript: string;
   mode: PitchMode;
   runId?: string;
@@ -403,7 +404,7 @@ async function analyzeWithContext(
         let sectionFeedback = sectionResult.sections;
         sectioningConfidence = 0.8;
         if (input.deckId) {
-          const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
+          const linked = await linkSectionFeedbackToDeck(input.supabase, sectionFeedback, input.deckId);
           sectionFeedback = linked.sections;
           deckLinkConfidence = linked.averageConfidence;
         }
@@ -423,7 +424,7 @@ async function analyzeWithContext(
             : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
         let sectionFeedback = buildSectionFeedback(slices, feedback);
         if (input.deckId) {
-          const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
+          const linked = await linkSectionFeedbackToDeck(input.supabase, sectionFeedback, input.deckId);
           sectionFeedback = linked.sections;
           deckLinkConfidence = linked.averageConfidence;
         }
@@ -436,7 +437,7 @@ async function analyzeWithContext(
     }
 
     try {
-      feedback.historical_links = await buildHistoricalLinks({
+      feedback.historical_links = await buildHistoricalLinks(input.supabase, {
         mode: input.mode,
         currentFeedback: feedback,
         currentRunId: input.runId,
@@ -544,7 +545,7 @@ async function analyzeWithContext(
           : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
       let sectionFeedback = buildSectionFeedback(slices, fallback.outputs.feedback);
       if (input.deckId) {
-        const linked = await linkSectionFeedbackToDeck(sectionFeedback, input.deckId);
+        const linked = await linkSectionFeedbackToDeck(input.supabase, sectionFeedback, input.deckId);
         sectionFeedback = linked.sections;
         deckLinkConfidence = linked.averageConfidence;
       }
@@ -559,7 +560,7 @@ async function analyzeWithContext(
     }
 
     try {
-      fallback.outputs.feedback.historical_links = await buildHistoricalLinks({
+      fallback.outputs.feedback.historical_links = await buildHistoricalLinks(input.supabase, {
         mode: input.mode,
         currentFeedback: fallback.outputs.feedback,
         currentRunId: input.runId,
