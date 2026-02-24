@@ -26,6 +26,7 @@ import {
 import type { PitchMode } from '@/views/components/ui';
 import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 import { RunDetailModal } from '@/views/components/RunDetailModal';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 /* ——— Types ——— */
 
@@ -112,7 +113,7 @@ export default function HistoryPage() {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/pitch/run')
+    fetchEdge('pitch-run')
       .then((res) => res.json())
       .then((payload: { runs?: RunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
@@ -167,7 +168,7 @@ export default function HistoryPage() {
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     try {
-      await fetch(`/api/pitch/run/${id}`, { method: 'DELETE' });
+      await fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: id } });
       setRuns((prev) => prev.filter((r) => r.id !== id));
     } finally {
       setDeletingId(null);

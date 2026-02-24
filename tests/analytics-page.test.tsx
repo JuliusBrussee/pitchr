@@ -1,6 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsPage from '@/app/(app)/analytics/page';
+
+const mockFetchEdge = vi.fn();
+vi.mock('@/lib/supabase/fetch-edge', () => ({
+  fetchEdge: (...args: unknown[]) => mockFetchEdge(...args),
+  edgeFunctionUrl: vi.fn(),
+  getEdgeHeaders: vi.fn(),
+}));
 
 function getStatValue(label: string): string {
   const labelNode = screen.getByText(label);
@@ -23,7 +30,7 @@ function countVisibleBars(testId: string): number {
 
 describe('AnalyticsPage', () => {
   afterEach(() => {
-    vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   it('renders score and rubric trends for mixed run payload shapes', async () => {
@@ -31,7 +38,7 @@ describe('AnalyticsPage', () => {
     const oneDay = 24 * 60 * 60 * 1000;
     const dayA = new Date(now - 2 * oneDay).toISOString();
     const dayB = new Date(now - oneDay).toISOString();
-    const fetchMock = vi.fn().mockResolvedValue({
+    mockFetchEdge.mockResolvedValue({
       json: async () => ({
         runs: [
           {
@@ -75,7 +82,6 @@ describe('AnalyticsPage', () => {
         ],
       }),
     });
-    vi.stubGlobal('fetch', fetchMock);
 
     render(<AnalyticsPage />);
 
@@ -84,7 +90,7 @@ describe('AnalyticsPage', () => {
       expect(screen.queryByText('No sessions to show rubric trends')).toBeNull();
     });
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/pitch/run');
+    expect(mockFetchEdge).toHaveBeenCalledWith('pitch-run');
     expect(screen.getByText('Score Trend')).toBeTruthy();
     expect(screen.getByText('Rubric Category Trend')).toBeTruthy();
     expect(screen.queryByText('Sessions This Period')).toBeTruthy();
@@ -101,49 +107,46 @@ describe('AnalyticsPage', () => {
     const recent = new Date(now - 2 * oneDay).toISOString();
     const older = new Date(now - 45 * oneDay).toISOString();
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        json: async () => ({
-          runs: [
-            {
-              id: 'recent-run',
-              createdAt: recent,
-              overallScore: 80,
-              analysis: {
-                rubric_breakdown: [
-                  { category: 'structure', score: 16, max_score: 20 },
-                ],
-                delivery_metrics: {
-                  wpm: 145,
-                  duration_seconds: 60,
-                  filler_words: [],
-                  repeated_phrases: [],
-                  within_time_limit: true,
-                },
+    mockFetchEdge.mockResolvedValue({
+      json: async () => ({
+        runs: [
+          {
+            id: 'recent-run',
+            createdAt: recent,
+            overallScore: 80,
+            analysis: {
+              rubric_breakdown: [
+                { category: 'structure', score: 16, max_score: 20 },
+              ],
+              delivery_metrics: {
+                wpm: 145,
+                duration_seconds: 60,
+                filler_words: [],
+                repeated_phrases: [],
+                within_time_limit: true,
               },
             },
-            {
-              id: 'older-run',
-              createdAt: older,
-              overallScore: 66,
-              analysis: {
-                rubric_breakdown: [
-                  { category: 'structure', score: 12, max_score: 20 },
-                ],
-                delivery_metrics: {
-                  wpm: 132,
-                  duration_seconds: 68,
-                  filler_words: [],
-                  repeated_phrases: [],
-                  within_time_limit: true,
-                },
+          },
+          {
+            id: 'older-run',
+            createdAt: older,
+            overallScore: 66,
+            analysis: {
+              rubric_breakdown: [
+                { category: 'structure', score: 12, max_score: 20 },
+              ],
+              delivery_metrics: {
+                wpm: 132,
+                duration_seconds: 68,
+                filler_words: [],
+                repeated_phrases: [],
+                within_time_limit: true,
               },
             },
-          ],
-        }),
+          },
+        ],
       }),
-    );
+    });
 
     render(<AnalyticsPage />);
 

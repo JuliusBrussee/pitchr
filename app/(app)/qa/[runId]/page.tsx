@@ -16,6 +16,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useLiveQaAgent } from '@/hooks/useLiveQaAgent';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { CreateQASessionResponse } from '@/types/qna';
 import type { QATurn } from '@/types/qna';
 
@@ -305,7 +306,7 @@ export default function LiveQaPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch('/api/qna/session', {
+        const response = await fetchEdge('qna-session', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
@@ -351,9 +352,10 @@ export default function LiveQaPage() {
     void (async () => {
       try {
         setPersistError(null);
-        const response = await fetch(`/api/qna/session/${bootstrap.qaSessionId}/complete`, {
+        const response = await fetchEdge('qna-session-complete', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          params: { qaSessionId: bootstrap.qaSessionId },
           body: JSON.stringify({
             status: finalStatus,
             conversationId: bootstrap.conversationId,

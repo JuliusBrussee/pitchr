@@ -34,6 +34,7 @@ import {
   computeRecommendations,
 } from '@/lib/analytics';
 import type { RunEconomics } from '@/types/analysis-v2';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 /* ——— Types ——— */
 
@@ -105,7 +106,7 @@ export default function DashboardPage() {
     setGreeting(getGreeting());
     setFormattedDate(getFormattedDate());
 
-    fetch('/api/pitch/run')
+    fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: RunRecord[] }) =>
         setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),

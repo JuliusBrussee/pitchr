@@ -15,11 +15,15 @@ import {
   Monitor,
   Settings,
 } from 'lucide-react';
+<<<<<<< HEAD
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useSettings } from '@/hooks/useSettings';
 import { useAchievements } from '@/hooks/useAchievements';
 import { AchievementGrid } from '@/views/components/achievements';
 import type { ProgressRunRecord } from '@/lib/progress';
+=======
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
+>>>>>>> claude/migrate-api-to-edge-functions-e9NmC
 
 /* ——— Types ——— */
 
@@ -130,7 +134,11 @@ export default function SettingsPage() {
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
 
   useEffect(() => {
+<<<<<<< HEAD
     fetch('/api/pitch/run')
+=======
+    fetchEdge('settings')
+>>>>>>> claude/migrate-api-to-edge-functions-e9NmC
       .then((r) => r.json())
       .then((payload: { runs?: RawRunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
@@ -155,9 +163,19 @@ export default function SettingsPage() {
       .catch(() => setRuns([]));
   }, []);
 
+<<<<<<< HEAD
   useEffect(() => {
     if (runs.length > 0) achievements.processRuns(runs);
   }, [runs, achievements.processRuns]);
+=======
+  function persistSetting(updates: Record<string, unknown>) {
+    fetchEdge('settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    }).catch(() => {});
+  }
+>>>>>>> claude/migrate-api-to-edge-functions-e9NmC
 
   // Scroll to hash on mount
   useEffect(() => {
@@ -312,7 +330,208 @@ export default function SettingsPage() {
                     border: '1px solid var(--border-color)',
                   }}
                 >
+<<<<<<< HEAD
                   <Plus size={12} />
+=======
+                  <Camera size={12} />
+                  FaceTime HD Camera
+                  <ChevronRight size={10} style={{ color: 'var(--text-muted)' }} />
+                </div>
+              </SettingRow>
+
+              <div
+                className="h-px my-1"
+                style={{ backgroundColor: 'var(--border-color)' }}
+              />
+
+              {/* Default Mic */}
+              <SettingRow label="Default Mic">
+                <div
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-hover)',
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <Mic size={12} />
+                  MacBook Pro Microphone
+                  <ChevronRight size={10} style={{ color: 'var(--text-muted)' }} />
+                </div>
+              </SettingRow>
+
+              <div
+                className="h-px my-1"
+                style={{ backgroundColor: 'var(--border-color)' }}
+              />
+
+              {/* Auto-record */}
+              <SettingRow
+                label="Auto-record"
+                description="Automatically record every session"
+              >
+                <ToggleSwitch
+                  enabled={autoRecord}
+                  onToggle={() => setAutoRecord((p) => { persistSetting({ auto_record: !p }); return !p; })}
+                />
+              </SettingRow>
+
+              <div
+                className="h-px my-1"
+                style={{ backgroundColor: 'var(--border-color)' }}
+              />
+
+              {/* Timer Duration */}
+              <SettingRow
+                label="Timer Duration"
+                description="Default practice timer length"
+              >
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => adjustTimer(-30)}
+                    className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-hover)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span
+                    className="w-12 text-center text-sm font-mono font-semibold"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {formattedTimer}
+                  </span>
+                  <button
+                    onClick={() => adjustTimer(30)}
+                    className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-hover)',
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+              </SettingRow>
+            </SectionCard>
+
+            {/* ——— Appearance ——— */}
+            <SectionCard icon={Palette} title="Appearance" delay={240}>
+              {/* Theme */}
+              <SettingRow label="Theme" description="Choose your preferred color mode">
+                <div
+                  className="inline-flex rounded-lg overflow-hidden"
+                  style={{ border: '1px solid var(--border-color)' }}
+                >
+                  {themeOptions.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => { setTheme(opt.key); persistSetting({ theme: opt.key }); }}
+                      className="px-3 py-1.5 text-xs font-medium transition-all duration-200"
+                      style={{
+                        backgroundColor:
+                          theme === opt.key
+                            ? 'rgba(255, 89, 65, 0.12)'
+                            : 'transparent',
+                        color:
+                          theme === opt.key
+                            ? '#ff5941'
+                            : 'var(--text-muted)',
+                        borderRight: '1px solid var(--border-color)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </SettingRow>
+
+              <div
+                className="h-px my-1"
+                style={{ backgroundColor: 'var(--border-color)' }}
+              />
+
+              {/* Compact Mode */}
+              <SettingRow
+                label="Compact Mode"
+                description="Reduce spacing for denser layouts"
+              >
+                <ToggleSwitch
+                  enabled={compactMode}
+                  onToggle={() => setCompactMode((p) => { persistSetting({ compact_mode: !p }); return !p; })}
+                />
+              </SettingRow>
+            </SectionCard>
+
+            {/* ——— Danger Zone ——— */}
+            <div
+              className="rounded-2xl border p-6 animate-fade-in-up"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                backdropFilter: 'blur(var(--blur-strength))',
+                WebkitBackdropFilter: 'blur(var(--blur-strength))',
+                borderColor: 'rgba(239, 68, 68, 0.15)',
+                animationDelay: '300ms',
+                animationFillMode: 'backwards',
+              }}
+            >
+              <div className="flex items-center gap-3 mb-5">
+                <div
+                  className="flex items-center justify-center w-8 h-8 rounded-lg"
+                  style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                >
+                  <Shield size={16} style={{ color: '#ef4444' }} />
+                </div>
+                <h2
+                  className="text-sm font-semibold tracking-wide uppercase"
+                  style={{ color: '#ef4444' }}
+                >
+                  Danger Zone
+                </h2>
+              </div>
+
+              <p
+                className="text-xs mb-4"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                Irreversible actions. Proceed with caution.
+              </p>
+
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    if (!confirm('Delete all pitch runs? This cannot be undone.')) return;
+                    const payload = await fetchEdge('pitch-run', { params: { includePending: 'true' } }).then((r) => r.json());
+                    const runs = Array.isArray(payload?.runs) ? payload.runs : [];
+                    await Promise.all(runs.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
+                    alert('All data deleted.');
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                  style={{
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.25)',
+                    backgroundColor: 'transparent',
+                  }}
+                >
+                  <Trash2 size={13} />
+                  Delete All Data
+                </button>
+
+                <button
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                  style={{
+                    color: 'var(--text-secondary)',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'transparent',
+                  }}
+                >
+                  <Download size={13} />
+                  Export Data
+>>>>>>> claude/migrate-api-to-edge-functions-e9NmC
                 </button>
               </div>
             </SettingRow>

@@ -2,9 +2,13 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePitchRun } from '@/hooks/usePitchRun';
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+// Mock fetchEdge instead of global fetch
+const mockFetchEdge = vi.fn();
+vi.mock('@/lib/supabase/fetch-edge', () => ({
+  fetchEdge: (...args: unknown[]) => mockFetchEdge(...args),
+  edgeFunctionUrl: vi.fn(),
+  getEdgeHeaders: vi.fn(),
+}));
 
 describe('usePitchRun', () => {
   beforeEach(() => {
@@ -19,7 +23,7 @@ describe('usePitchRun', () => {
 
   it('sets isAnalyzing to true during analysis', async () => {
     let resolveResponse!: (value: Response) => void;
-    mockFetch.mockReturnValue(
+    mockFetchEdge.mockReturnValue(
       new Promise<Response>((resolve) => {
         resolveResponse = resolve;
       }),
@@ -52,7 +56,7 @@ describe('usePitchRun', () => {
   });
 
   it('returns run data on successful response', async () => {
-    mockFetch.mockResolvedValue(
+    mockFetchEdge.mockResolvedValue(
       new Response(
         JSON.stringify({
           runId: 'run-1',
@@ -82,7 +86,7 @@ describe('usePitchRun', () => {
   });
 
   it('sets error on non-ok response', async () => {
-    mockFetch.mockResolvedValue(
+    mockFetchEdge.mockResolvedValue(
       new Response(
         JSON.stringify({ error: 'Transcript is required.' }),
         { status: 400, headers: { 'content-type': 'application/json' } },
@@ -108,7 +112,7 @@ describe('usePitchRun', () => {
   });
 
   it('sets error on network failure', async () => {
-    mockFetch.mockRejectedValue(new Error('Network error'));
+    mockFetchEdge.mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => usePitchRun());
 
@@ -128,8 +132,8 @@ describe('usePitchRun', () => {
     expect(result.current.isAnalyzing).toBe(false);
   });
 
-  it('calls fetch with correct URL, method, and body', async () => {
-    mockFetch.mockResolvedValue(
+  it('calls fetchEdge with correct function name, method, and body', async () => {
+    mockFetchEdge.mockResolvedValue(
       new Response(
         JSON.stringify({ runId: 'run-1', status: 'queued' }),
         { status: 202, headers: { 'content-type': 'application/json' } },
@@ -147,7 +151,7 @@ describe('usePitchRun', () => {
       });
     });
 
-    expect(mockFetch).toHaveBeenCalledWith('/api/pitch/run', {
+    expect(mockFetchEdge).toHaveBeenCalledWith('pitch-run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
