@@ -42,6 +42,7 @@ Data flows: Page -> Hook -> API route -> Controller -> Service -> LLM/Storage
 ## Project Structure
 
 ```
+.planning (put all plans here)
 app/(app)/           # Route pages: dashboard, session, results/[runId], history
 app/api/pitch/       # API endpoints: run/ (POST, GET), run/[runId]/ (GET, DELETE)
 app/api/deck/        # API endpoints: upload (POST), list (GET), [deckId] (GET, DELETE)
