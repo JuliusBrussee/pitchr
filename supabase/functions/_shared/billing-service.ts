@@ -26,6 +26,18 @@ const PLAN_LIMITS: Record<BillingPlanId, PlanLimits> = {
   pro: { runsPerPeriod: 50, decksPerPeriod: 20, qaSessionsPerPeriod: 30 },
 };
 
+/** Dev user IDs that bypass all billing limits. */
+const DEV_USER_IDS: Set<string> = new Set(
+  (Deno.env.get('BILLING_DEV_USER_IDS') ?? '')
+    .split(',')
+    .map((id: string) => id.trim())
+    .filter(Boolean),
+);
+
+function isDevUser(userId: string): boolean {
+  return DEV_USER_IDS.has(userId);
+}
+
 function isValidPlan(value: string): value is BillingPlanId {
   return value === 'free' || value === 'pro';
 }
@@ -62,6 +74,11 @@ export async function checkUsageLimit(
   userId: string,
   resource: 'run' | 'deck' | 'qa_session',
 ): Promise<UsageLimitResult> {
+  // Dev accounts bypass all usage limits
+  if (isDevUser(userId)) {
+    return { allowed: true, planId: 'pro', used: 0, limit: null, remaining: null };
+  }
+
   // 1. Get subscription (or default to free)
   const { data: sub } = await supabase
     .from('subscriptions')

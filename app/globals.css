@@ -22,6 +22,7 @@ html.dark body {
   --blur-strength: 20px;
   --aura-color: rgba(255, 89, 65, 0.05);
   --aura-secondary: rgba(255, 170, 51, 0.03);
+  --pricing-pro-bg: rgba(255, 89, 65, 0.03);
 }
 
 .dark {
@@ -36,6 +37,7 @@ html.dark body {
   --blur-strength: 16px;
   --aura-color: rgba(255, 89, 65, 0.08);
   --aura-secondary: rgba(255, 170, 51, 0.05);
+  --pricing-pro-bg: rgba(255, 89, 65, 0.06);
 }
 
 @keyframes fadeInUp {
@@ -45,6 +47,85 @@ html.dark body {
 
 .animate-fade-in-up {
   animation: fadeInUp 0.3s ease-out;
+}
+
+/* ——— Pricing Grid & Card Styles ——— */
+
+.pricing-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 768px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.pricing-card {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pricing-card:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.pricing-card:has(.pricing-glow):hover {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.pricing-cta:not(:disabled):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.pricing-cta:not(:disabled):active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+@keyframes pricingGlowPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.pricing-glow {
+  animation: pricingGlowPulse 3s ease-in-out infinite;
+}
+
+/* ——— Achievement Animations ——— */
+
+@keyframes achRingFill {
+  from { stroke-dashoffset: 125.66; }
+}
+.ach-ring-fill {
+  animation: achRingFill 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes achBarGrow {
+  from { width: 0%; }
+}
+.ach-bar-grow {
+  animation: achBarGrow 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards;
+}
+
+@keyframes achCardIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ach-stagger .ach-card {
+  animation: achCardIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+@keyframes achBadgeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.ach-compact-badge {
+  animation: achBadgeIn 0.25s ease-out backwards;
 }
 
 /* ——— Start Session Button ——— */

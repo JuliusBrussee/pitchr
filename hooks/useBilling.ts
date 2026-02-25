@@ -81,7 +81,13 @@ export function useBilling() {
 
   const startCheckout = useCallback(
     async (planId: BillingPlanId, interval: BillingInterval) => {
-      const res = await fetch('/api/billing/checkout', {
+      // Day pass uses a separate one-time payment endpoint
+      const endpoint =
+        planId === 'day_pass'
+          ? '/api/billing/day-pass'
+          : '/api/billing/checkout';
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId, interval }),

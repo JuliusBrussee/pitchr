@@ -142,3 +142,20 @@ export const TRIAL_PERIOD_DAYS = 7;
 
 /** Grace period after subscription expiry before downgrading (hours) */
 export const GRACE_PERIOD_HOURS = 48;
+
+/* ——— Dev Bypass ——— */
+
+/**
+ * Comma-separated list of user IDs that get unlimited usage
+ * and all features unlocked (no paywall). Set via env var.
+ */
+const DEV_USER_IDS_RAW = process.env.BILLING_DEV_USER_IDS ?? '';
+
+const DEV_USER_IDS: Set<string> = new Set(
+  DEV_USER_IDS_RAW.split(',').map((id) => id.trim()).filter(Boolean),
+);
+
+/** Returns true if the user has dev-level billing bypass. */
+export function isDevUser(userId: string): boolean {
+  return DEV_USER_IDS.has(userId);
+}

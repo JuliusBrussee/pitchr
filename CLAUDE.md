@@ -183,6 +183,7 @@ ANTHROPIC_API_KEY=     # Claude API (required for LLM scoring)
 GOOGLE_AI_API_KEY=     # Gemini fallback (optional)
 ELEVENLABS_API_KEY_STT=    # STT realtime (required for speech-to-text)
 MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
+BILLING_DEV_USER_IDS=  # Comma-separated user IDs with unlimited usage (dev bypass)
 STRIPE_SECRET_KEY=     # Stripe secret key (required for billing)
 STRIPE_WEBHOOK_SECRET= # Stripe webhook signing secret
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY= # Stripe publishable key (client-side)

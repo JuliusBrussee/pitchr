@@ -11,6 +11,7 @@ import type {
 import {
   DAY_PASS_DURATION_HOURS,
   getPlanLimits,
+  isDevUser,
   planIdFromStripePriceId,
   TRIAL_PERIOD_DAYS,
 } from '@/config/billing';
@@ -412,6 +413,11 @@ export async function checkUsageLimit(
   userId: string,
   resource: 'runs' | 'decks' | 'qa_sessions',
 ): Promise<UsageCheckResult> {
+  // Dev accounts bypass all usage limits
+  if (isDevUser(userId)) {
+    return { allowed: true, resource, used: 0, limit: null, remaining: null, planId: 'pro' };
+  }
+
   // Check active day pass first — it takes priority over subscription limits
   const dayPassResult = await checkDayPassUsage(supabase, userId, resource);
   if (dayPassResult?.allowed) return dayPassResult;
@@ -448,6 +454,8 @@ export async function checkFeatureAccess(
   userId: string,
   feature: 'sectionFeedback' | 'vocabularyMetrics' | 'historicalLinks' | 'deckGeneration',
 ): Promise<boolean> {
+  if (isDevUser(userId)) return true;
+
   const sub = await getOrCreateSubscription(supabase, userId);
   const limits = getPlanLimits(sub.planId);
   return limits[feature];

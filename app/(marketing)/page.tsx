@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import Link from 'next/link';
 import { useTheme } from '@/views/components/ThemeProvider';
+import { LandingPricing } from '@/views/components/landing/LandingPricing';
 import './landing.css';
 
 export default function LandingPage() {
@@ -141,6 +142,9 @@ export default function LandingPage() {
             </a>
             <a href="#growth" className="nav-link" onClick={(e) => scrollToSection(e, 'growth')}>
               Growth
+            </a>
+            <a href="#pricing" className="nav-link" onClick={(e) => scrollToSection(e, 'pricing')}>
+              Pricing
             </a>
             <button
               className="theme-toggle"
@@ -407,6 +411,9 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ═══ PRICING ═══ */}
+      <LandingPricing />
+
       {/* ═══ WAITLIST ═══ */}
       <section className="cta-section" id="waitlist" ref={ctaContainerRef}>
         <div className="cta-glow" ref={ctaGlowRef} />
@@ -481,6 +488,9 @@ export default function LandingPage() {
             </a>
             <a href="#rubric" className="footer-link" onClick={(e) => scrollToSection(e, 'rubric')}>
               Rubric
+            </a>
+            <a href="#pricing" className="footer-link" onClick={(e) => scrollToSection(e, 'pricing')}>
+              Pricing
             </a>
           </div>
         </div>

@@ -262,20 +262,35 @@ export default function SettingsPage() {
           {/* ——— Billing & Subscription ——— */}
           <SectionCard icon={CreditCard} title="Plan & Billing" delay={90} id="billing" iconColor="#ff5941">
             {billing.isLoading ? (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Loading billing...</p>
+              <div className="flex items-center gap-3 py-8 justify-center">
+                <div
+                  className="w-4 h-4 rounded-full animate-pulse"
+                  style={{ backgroundColor: 'rgba(255, 89, 65, 0.3)' }}
+                />
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading your plan...</p>
+              </div>
             ) : billing.subscription ? (
-              <div className="space-y-4">
-                {/* Current plan badge + manage button */}
+              <div className="space-y-6">
+                {/* Current plan header row */}
                 <div className="flex items-center justify-between">
-                  <SubscriptionBadge
-                    planId={billing.subscription.planId as BillingPlanId}
-                    status={billing.subscription.status}
-                    cancelAtPeriodEnd={billing.subscription.cancelAtPeriodEnd}
-                  />
+                  <div className="flex items-center gap-3">
+                    <SubscriptionBadge
+                      planId={billing.subscription.planId as BillingPlanId}
+                      status={billing.subscription.status}
+                      cancelAtPeriodEnd={billing.subscription.cancelAtPeriodEnd}
+                    />
+                    {billing.usage && (
+                      <span className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                        {new Date(billing.usage.periodStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {' \u2014 '}
+                        {new Date(billing.usage.periodEnd).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    )}
+                  </div>
                   {billing.subscription.hasStripeSubscription && (
                     <button
                       onClick={() => billing.openPortal()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-[1.02]"
                       style={{
                         color: 'var(--text-secondary)',
                         border: '1px solid var(--border-color)',
@@ -290,54 +305,80 @@ export default function SettingsPage() {
 
                 {/* Usage bars */}
                 {billing.usage && (
-                  <div>
+                  <div
+                    className="rounded-xl p-4"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-hover)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                      Usage This Period
+                    </p>
                     <UsageBar label="Pitch Analyses" used={billing.usage.runsUsed} limit={billing.usage.runsLimit} />
                     <UsageBar label="Deck Uploads" used={billing.usage.decksUsed} limit={billing.usage.decksLimit} />
                     <UsageBar label="Q&A Sessions" used={billing.usage.qaSessionsUsed} limit={billing.usage.qaSessionsLimit} />
-                    <p className="text-[10px] mt-2" style={{ color: 'var(--text-muted)' }}>
-                      Period: {new Date(billing.usage.periodStart).toLocaleDateString()} — {new Date(billing.usage.periodEnd).toLocaleDateString()}
-                    </p>
                   </div>
                 )}
 
-                {/* Interval toggle */}
-                <div className="flex items-center justify-center gap-2 pt-2">
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: billingInterval === 'month' ? '#ff5941' : 'var(--text-muted)' }}
+                {/* Pricing section header */}
+                <div className="text-center pt-2">
+                  <h3
+                    className="text-lg font-bold tracking-tight"
+                    style={{ color: 'var(--text-primary)' }}
                   >
-                    Monthly
-                  </span>
-                  <button
-                    onClick={() => setBillingInterval((prev) => (prev === 'month' ? 'year' : 'month'))}
-                    className="relative w-10 h-5 rounded-full transition-colors"
-                    style={{
-                      backgroundColor: billingInterval === 'year' ? '#ff5941' : 'var(--bg-surface-hover)',
-                    }}
+                    Choose Your Plan
+                  </h3>
+                  <p
+                    className="text-[13px] mt-1"
+                    style={{ color: 'var(--text-secondary)' }}
                   >
-                    <div
-                      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                      style={{ left: billingInterval === 'year' ? '22px' : '2px' }}
-                    />
-                  </button>
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: billingInterval === 'year' ? '#ff5941' : 'var(--text-muted)' }}
-                  >
-                    Yearly
-                  </span>
-                  {billingInterval === 'year' && (
-                    <span
-                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' }}
-                    >
-                      Save ~17%
-                    </span>
-                  )}
+                    Scale your pitch coaching as you grow
+                  </p>
                 </div>
 
-                {/* Plan cards */}
-                <div className="grid grid-cols-3 gap-3">
+                {/* Interval toggle - pill style */}
+                <div className="flex items-center justify-center gap-1 pt-1">
+                  <div
+                    className="inline-flex items-center rounded-full p-1 gap-0.5"
+                    style={{
+                      backgroundColor: 'var(--bg-surface-hover)',
+                      border: '1px solid var(--border-color)',
+                    }}
+                  >
+                    <button
+                      onClick={() => setBillingInterval('month')}
+                      className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200"
+                      style={{
+                        backgroundColor: billingInterval === 'month' ? 'var(--bg-primary)' : 'transparent',
+                        color: billingInterval === 'month' ? 'var(--text-primary)' : 'var(--text-muted)',
+                        boxShadow: billingInterval === 'month' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setBillingInterval('year')}
+                      className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 flex items-center gap-1.5"
+                      style={{
+                        backgroundColor: billingInterval === 'year' ? 'var(--bg-primary)' : 'transparent',
+                        color: billingInterval === 'year' ? 'var(--text-primary)' : 'var(--text-muted)',
+                        boxShadow: billingInterval === 'year' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      }}
+                    >
+                      Yearly
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' }}
+                      >
+                        -17%
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Plan cards grid */}
+                <div className="pricing-grid grid gap-4 items-stretch pt-1">
                   {getAllPlans().map((plan) => (
                     <PlanCard
                       key={plan.id}
@@ -358,11 +399,36 @@ export default function SettingsPage() {
                     />
                   ))}
                 </div>
+
+                {/* Trust signals */}
+                <div className="flex items-center justify-center gap-6 pt-2 pb-1">
+                  <span className="text-[11px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    Secure checkout
+                  </span>
+                  <span className="text-[11px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Powered by Stripe
+                  </span>
+                  <span className="text-[11px] flex items-center gap-1.5" style={{ color: 'var(--text-muted)' }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+                    Cancel anytime
+                  </span>
+                </div>
               </div>
             ) : (
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                Unable to load billing information.
-              </p>
+              <div className="text-center py-6">
+                <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  Unable to load billing information.
+                </p>
+                <button
+                  onClick={() => billing.refresh()}
+                  className="mt-2 text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
+                  style={{ color: '#ff5941', backgroundColor: 'rgba(255, 89, 65, 0.08)' }}
+                >
+                  Retry
+                </button>
+              </div>
             )}
           </SectionCard>
 
