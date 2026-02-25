@@ -47,6 +47,7 @@ function SessionPageContent() {
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
@@ -192,6 +193,7 @@ function SessionPageContent() {
 
   const handleStartSession = useCallback(() => {
     setAnalysisError(null);
+    setAnalysisWarning(null);
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
     session.startSession(pitchMode);
@@ -274,6 +276,15 @@ function SessionPageContent() {
           deckText,
           transcriptSegments: stt.transcriptSegments,
         });
+        if (result.fallback) {
+          setAnalysisWarning(
+            result.warning ??
+              'Live model calls failed. Result will use cached fallback analysis.',
+          );
+          await new Promise((resolve) => {
+            setTimeout(resolve, 900);
+          });
+        }
         router.push(`/results/${result.runId}`);
       } catch (error) {
         autoSubmitLockRef.current = false;
@@ -350,7 +361,7 @@ function SessionPageContent() {
         className="sr-only"
         aria-hidden="true"
       />
-      <AnalyzingOverlay isVisible={showAnalyzing} />
+      <AnalyzingOverlay isVisible={showAnalyzing} warning={analysisWarning} />
     </>
   );
 }

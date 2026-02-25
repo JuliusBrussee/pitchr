@@ -27,6 +27,7 @@ import { useAchievements } from '@/hooks/useAchievements';
 import { computeProgress } from '@/lib/progress';
 import type { ProgressRunRecord, ProgressSummary } from '@/lib/progress';
 import { getScoreBandLabel } from '@/views/components/ui/colors';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 /* ——— Types ——— */
 
@@ -81,8 +82,11 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/pitch/run')
-      .then((r) => r.json())
+    fetchEdge('pitch-run')
+      .then((r) => {
+        if (!r.ok) throw new Error('Failed to fetch runs');
+        return r.json();
+      })
       .then((payload: { runs?: RawRunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
         setRuns(data.map(normalizeRunToProgress));

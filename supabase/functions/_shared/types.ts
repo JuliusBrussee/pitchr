@@ -44,6 +44,31 @@ export interface ListPitchRunsResponse {
   stats: RunStats;
 }
 
+export interface CreatePitchRunResponse {
+  runId: string;
+  status: RunStatus;
+  overallScore?: number;
+  fallback?: boolean;
+  provider_used?: 'openrouter' | 'anthropic' | 'gemini' | 'none';
+  warning?: string;
+  error?: string;
+}
+
+export interface IntegrationHealthResponse {
+  runtime: 'supabase-edge';
+  analysis: {
+    anthropic_ready: boolean;
+    gemini_ready: boolean;
+  };
+  live_qa: {
+    enabled: boolean;
+    elevenlabs_key_ready: boolean;
+    agent_id_ready: boolean;
+    ready: boolean;
+  };
+  warnings: string[];
+}
+
 export interface TranscriptWord {
   text: string;
   start: number;

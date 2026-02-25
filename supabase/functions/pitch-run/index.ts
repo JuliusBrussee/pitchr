@@ -15,7 +15,13 @@ import {
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
 import { analyzePitch } from '../_shared/analysis-service.ts';
 import { SAMPLE_RESULT } from '../_shared/sample-result.ts';
-import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
+import type {
+  PitchMode,
+  InputType,
+  Run,
+  ListPitchRunsResponse,
+  CreatePitchRunResponse,
+} from '../_shared/types.ts';
 
 class PitchValidationError extends Error {}
 
@@ -189,10 +195,20 @@ async function handlePost(req: Request) {
       error_message: null,
     });
 
-    return jsonResponse(
-      { runId: completedRun.id, status: 'complete', overallScore },
-      201,
-    );
+    const providerUsed = analysis.meta?.provider_used ?? 'none';
+    const warning = fallback
+      ? 'Analysis completed with cached fallback content because live model calls failed.'
+      : undefined;
+    const response: CreatePitchRunResponse = {
+      runId: completedRun.id,
+      status: 'complete',
+      overallScore,
+      fallback,
+      provider_used: providerUsed,
+      warning,
+    };
+
+    return jsonResponse(response, 201);
   } catch (analysisError) {
     const message =
       analysisError instanceof Error

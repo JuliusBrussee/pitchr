@@ -21,9 +21,10 @@ const ANALYSIS_STEPS = [
 
 interface AnalyzingOverlayProps {
   isVisible: boolean;
+  warning?: string | null;
 }
 
-export function AnalyzingOverlay({ isVisible }: AnalyzingOverlayProps) {
+export function AnalyzingOverlay({ isVisible, warning }: AnalyzingOverlayProps) {
   const [step, setStep] = useState(0);
   const [entered, setEntered] = useState(false);
   const [stepProgress, setStepProgress] = useState(0);
@@ -166,6 +167,18 @@ export function AnalyzingOverlay({ isVisible }: AnalyzingOverlayProps) {
             This usually takes 15-25 seconds
           </p>
         </div>
+        {warning ? (
+          <div
+            className="w-full rounded-lg px-3 py-2 mb-6 text-[11px]"
+            style={{
+              color: '#ffaa33',
+              backgroundColor: 'rgba(255, 170, 51, 0.12)',
+              border: '1px solid rgba(255, 170, 51, 0.3)',
+            }}
+          >
+            {warning}
+          </div>
+        ) : null}
 
         {/* Steps */}
         <div className="w-full flex flex-col gap-1.5 mb-8">

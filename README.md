@@ -7,8 +7,8 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - Frontend: Next.js App Router (`app/`) + React 19 + Tailwind 4
 - Analysis: queued async runs (`queued -> running -> complete|failed`) with polling UI
 - Persistence: Supabase Postgres (`runs`, `decks`, `slides`) + Supabase Storage (`decks`, `recordings`)
-- STT: ElevenLabs realtime via local WebSocket proxy (`server.ts`)
-- LLM routing: Anthropic (default) or OpenRouter (env-selected)
+- STT: ElevenLabs realtime via sidecar WebSocket proxy (`server.ts`)
+- LLM routing: Supabase Edge Functions use Anthropic (primary) with Gemini fallback
 - Paid AI: optional value-proof signal sync on completed runs (`services/paidService.ts`)
 - Fallback: deterministic/sample analysis payload if model calls fail
 - Planning files currently present in `.planning/codebase/` (stack, architecture, structure, conventions, integrations, concerns)
@@ -42,11 +42,20 @@ cp .env.example .env.local
 Fill required values in `.env.local`:
 
 ```env
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=
 ELEVENLABS_API_KEY_STT=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_WS_URL=http://localhost:3001
+```
+
+Set Supabase Edge secrets separately (Supabase dashboard), not in `.env.local`:
+
+```env
+ANTHROPIC_API_KEY=
+GOOGLE_AI_API_KEY=
+ELEVENLABS_API_KEY_CONVAI=
+ELEVENLABS_CONVAI_AGENT_ID=
+NEXT_PUBLIC_ENABLE_LIVE_QA=true
 ```
 
 Run locally:
@@ -59,6 +68,8 @@ This starts:
 
 - Next.js app at `http://localhost:3000`
 - STT proxy at `http://localhost:3001`
+
+Runtime/env mapping reference: `docs/runtime-env-matrix.md`.
 
 ## Database and Storage Setup (Supabase)
 
@@ -84,29 +95,28 @@ Detailed guide: `docs/SUPABASE_SETUP.md`
 
 ## Environment Variables
 
-Required for core flow:
+Use runtime-specific env placement:
 
-- `LLM_PROVIDER` (`anthropic` or `openrouter`)
-- `ANTHROPIC_API_KEY` (if Anthropic selected)
-- `OPENROUTER_API_KEY` (if OpenRouter selected)
-- `ELEVENLABS_API_KEY_STT`
-- `ELEVENLABS_API_KEY_CONVAI` (for live VC Q&A)
-- `ELEVENLABS_CONVAI_AGENT_ID` (for signed URL generation)
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Local web + sidecar (`.env.local`):
+  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `NEXT_PUBLIC_WS_URL`
+  - `ELEVENLABS_API_KEY_STT` (or `ELEVENLABS_API_KEY`)
+  - `ELEVENLABS_API_KEY_TTS`, `ELEVENLABS_VOICE_ID`
+  - `ALLOWED_ORIGINS` (sidecar CORS allow-list)
+- Supabase Edge secrets (project settings):
+  - `ANTHROPIC_API_KEY` (analysis primary)
+  - `GOOGLE_AI_API_KEY` (analysis fallback)
+  - `ELEVENLABS_API_KEY_CONVAI`, `ELEVENLABS_CONVAI_AGENT_ID` (live VC Q&A)
+  - `NEXT_PUBLIC_ENABLE_LIVE_QA` (`true`/`false`)
+  - `PITCHR_DIAGNOSTIC_LOGS` (`true` only for local diagnostics)
 
 Optional:
 
-- `ANTHROPIC_MODEL` (default: `claude-sonnet-4-6`)
-- `OPENROUTER_MODEL`
-- `ELEVENLABS_API_KEY_TTS`
-- `ELEVENLABS_VOICE_ID`
-- `NEXT_PUBLIC_ENABLE_LIVE_QA` (`true`/`false`)
+- `LLM_PROVIDER`, `ANTHROPIC_MODEL`, `OPENROUTER_API_KEY`, `OPENROUTER_MODEL`
 - `ENABLE_SECTION_FEEDBACK` (`true`/`false`)
 - `ENABLE_REWRITE_DIFF` (`true`/`false`)
 - `PLACE_HOLDER_PITCH`
 - `PORT` (STT backend)
-- `NEXT_PUBLIC_WS_URL`
 - `MIRO_ENABLED`, `MIRO_PROVIDER`, `MIRO_ACCESS_TOKEN`, `MIRO_TEAM_ID`
 - `MIRO_HYBRID_VISUAL_MODE` (`true` by default; set `false` to disable second visual pass)
 - `PAID_ENABLED` (`true` to enable Paid AI sync)
@@ -127,25 +137,26 @@ Optional:
 
 Pitch runs:
 
-- `POST /api/pitch/run` -> create queued analysis run
-- `GET /api/pitch/run` -> list runs + aggregate stats
-- `GET /api/pitch/run/[runId]` -> fetch single run
-- `DELETE /api/pitch/run/[runId]` -> delete run (+ best-effort recording cleanup)
-- `GET /api/pitch/run/stats` -> aggregate stats only
+- `POST /functions/v1/pitch-run` -> create analysis run
+- `GET /functions/v1/pitch-run` -> list runs + aggregate stats
+- `GET /functions/v1/pitch-run-detail?runId=...` -> fetch single run
+- `DELETE /functions/v1/pitch-run-detail?runId=...` -> delete run (+ best-effort recording cleanup)
+- `GET /functions/v1/pitch-run-stats` -> aggregate stats only
+- `GET /functions/v1/integration-health` -> authenticated provider readiness checks
 
 Decks:
 
-- `POST /api/deck/upload` -> upload PDF/PPTX and extract slides
-- `GET /api/deck` -> list decks
-- `GET /api/deck/[deckId]` -> deck + slide text
-- `DELETE /api/deck/[deckId]` -> delete deck + assets
-- `POST /api/deck/generate` -> generate a deck PDF via LLM
+- `POST /functions/v1/deck-upload` -> upload PDF/PPTX and extract slides
+- `GET /functions/v1/deck-list` -> list decks
+- `GET /functions/v1/deck-detail?deckId=...` -> deck + slide text
+- `DELETE /functions/v1/deck-detail?deckId=...` -> delete deck + assets
+- `POST /functions/v1/deck-generate` -> generate a deck PDF via LLM
 
 Miro:
 
-- `POST /api/miro/fix-board` (supports optional `transcript`; LLM copy generation)
-- `GET /api/miro/fix-board/sync`
-- `POST /api/miro/fix-board/markdown`
+- `POST /functions/v1/miro-fix-board` (supports optional `transcript`; LLM copy generation)
+- `GET /functions/v1/miro-fix-board-sync`
+- `POST /functions/v1/miro-fix-board-markdown`
 
 Miro content generation behavior:
 - On create/recreate only, board copy is generated via OpenRouter first.
@@ -155,10 +166,16 @@ Miro content generation behavior:
 
 Live VC Q&A:
 
-- `POST /api/qna/session` -> create session, signed URL, and starter context
-- `GET /api/qna/session/[qaSessionId]` -> fetch persisted QA session state/summary
-- `POST /api/qna/session/[qaSessionId]/complete` -> persist turns/transcript/evaluation
-- `POST /api/qna/resources/refresh` -> process queued knowledge gaps asynchronously
+- `POST /functions/v1/qna-session` -> create session, signed URL, and starter context
+- `GET /functions/v1/qna-session-detail?qaSessionId=...` -> fetch persisted QA session state/summary
+- `POST /functions/v1/qna-session-complete?qaSessionId=...` -> persist turns/transcript/evaluation
+- `POST /functions/v1/qna-resources-refresh` -> process queued knowledge gaps asynchronously
+
+Sidecar (separate runtime):
+
+- `WS /ws` -> realtime STT stream
+- `POST /api/coach-answer` -> LLM + TTS coach response
+- `GET /healthz` -> sidecar readiness/diagnostics
 
 ## Paid AI Integration (Optional)
 
@@ -179,12 +196,12 @@ Detailed setup and payload behavior: `docs/integrations/paid-ai.md`
 ## Analysis Flow
 
 1. Session captures transcript (realtime STT through `server.ts`).
-2. Client submits to `POST /api/pitch/run`.
-3. Controller inserts run with `status: queued`.
-4. Queue service marks run `running`, then executes analysis service.
-5. Analysis service builds scoring context, runs judge prompt, applies deterministic delivery scoring, and enriches vocabulary, section feedback, rewrite diff, and historical links.
+2. Client submits to `POST /functions/v1/pitch-run` via `fetchEdge(...)`.
+3. Edge function writes run with `status: running`.
+4. Edge analysis service calls Anthropic first, then Gemini fallback if needed.
+5. If all providers fail, deterministic sample fallback is returned (`fallback=true` + warning).
 6. Run is updated to `complete` (or `failed` with error metadata).
-7. Results page polls run endpoint until terminal state.
+7. Results page polls `pitch-run-detail` until terminal state and shows fallback diagnostics when present.
 
 ## Scripts
 
@@ -196,6 +213,7 @@ Detailed setup and payload behavior: `docs/integrations/paid-ai.md`
 | `yarn dev:standalone` | Start `server.ts` directly |
 | `yarn build` | Production build |
 | `yarn start` | Start production Next.js server |
+| `yarn validate:env` | Warn on duplicate/unknown env keys and known typos |
 | `yarn typecheck` | TypeScript checks (`tsc --noEmit`) |
 | `yarn stt` | CLI STT recorder script |
 | `yarn knowledge:snapshot` | Capture curated knowledge snapshots |

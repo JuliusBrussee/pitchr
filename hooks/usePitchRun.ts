@@ -18,6 +18,8 @@ export interface RunPitchAnalysisResult {
   coverage?: 'spoken_only' | 'spoken+deck';
   analysisVersion?: 'v2';
   fallback?: boolean;
+  providerUsed?: AnalysisMeta['provider_used'];
+  warning?: string;
   error?: string;
 }
 
@@ -68,6 +70,8 @@ export function usePitchRun(): UsePitchRunReturn {
           coverage: success.coverage,
           analysisVersion: success.analysisVersion,
           fallback: success.fallback,
+          providerUsed: success.provider_used,
+          warning: success.warning,
           error: success.error,
         };
       } catch (caughtError) {

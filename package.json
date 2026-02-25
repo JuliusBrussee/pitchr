@@ -4,8 +4,9 @@
   "description": "CLI: record mic, stream to ElevenLabs Realtime STT, save transcript",
   "type": "module",
   "scripts": {
-    "predev": "yarn check:encoding",
-    "prebuild": "yarn check:encoding",
+    "predev": "yarn validate:env && yarn check:encoding",
+    "prebuild": "yarn validate:env && yarn check:encoding",
+    "validate:env": "node scripts/validate-env.mjs",
     "prepare:next-cache": "node scripts/prepare-next-cache.mjs",
     "fix:encoding": "node scripts/normalize-encoding.mjs",
     "check:encoding": "node scripts/check-encoding.mjs",

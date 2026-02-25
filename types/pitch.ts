@@ -57,6 +57,8 @@ export interface CreatePitchRunResponse {
   meta?: AnalysisMeta;
   analysis?: AnalysisResult;
   fallback?: boolean;
+  provider_used?: AnalysisMeta['provider_used'];
+  warning?: string;
   error?: string;
 }
 

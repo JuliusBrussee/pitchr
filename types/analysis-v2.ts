@@ -297,7 +297,7 @@ export interface OneMinuteQAPack {
 }
 
 export interface AnalysisMeta {
-  provider_used: 'openrouter' | 'anthropic' | 'none';
+  provider_used: 'openrouter' | 'anthropic' | 'gemini' | 'none';
   fallback_used: boolean;
   cache_hit: boolean;
   llm_calls_used: number;
@@ -318,7 +318,7 @@ export interface AnalysisMeta {
     message: string;
     timeout?: boolean;
     provider_attempts?: Array<{
-      provider: 'openrouter' | 'anthropic';
+      provider: 'openrouter' | 'anthropic' | 'gemini';
       message: string;
     }>;
   };

@@ -223,14 +223,17 @@ export const edgeFunctions = {
         body,
       }),
   },
-
   qnaResourcesRefresh: {
-    /** POST /qna-resources-refresh — Refresh knowledge resources */
+    /** POST /qna-resources-refresh - Refresh knowledge resources */
     refresh: <T>(body?: unknown) =>
       invokeEdgeFunction<T>('qna-resources-refresh', {
         method: 'POST',
         body: body ?? {},
       }),
+  },
+  integrationHealth: {
+    /** GET /integration-health — Check edge integration readiness */
+    get: <T>() => invokeEdgeFunction<T>('integration-health'),
   },
 };
 
@@ -253,3 +256,4 @@ export function getEdgeFunctionUrl(functionName: string, params?: Record<string,
 
   return url.toString();
 }
+

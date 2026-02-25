@@ -129,6 +129,23 @@ interface AnalyzePitchInput {
   deckText?: string;
 }
 
+const DIAGNOSTIC_LOGS_ENABLED =
+  Deno.env.get('PITCHR_DIAGNOSTIC_LOGS') === 'true' &&
+  Deno.env.get('NODE_ENV') !== 'production';
+
+function logDiagnostic(
+  level: 'log' | 'warn' | 'error',
+  message: string,
+  details?: Record<string, unknown>,
+): void {
+  if (!DIAGNOSTIC_LOGS_ENABLED) return;
+  if (details) {
+    console[level](message, details);
+    return;
+  }
+  console[level](message);
+}
+
 // ---------------------------------------------------------------------------
 // Prompt constants (adapted from lib/prompts/)
 // ---------------------------------------------------------------------------
@@ -597,7 +614,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
   try {
     attemptCount += 1;
     llmCallsUsed += 1;
-    console.log('[analysis] calling Claude API...');
+    logDiagnostic('log', '[analysis] calling Claude API...');
     const rawText = await callClaude(SYSTEM_PROMPT, userPrompt);
     const jsonText = extractJson(rawText);
     const parsed = JSON.parse(jsonText);
@@ -619,7 +636,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       fallback: false,
     };
 
-    console.log('[analysis] Claude succeeded', {
+    logDiagnostic('log', '[analysis] Claude succeeded', {
       overall_score: feedback.overall_score,
       latency_ms: analysis.meta.latency_ms,
     });
@@ -627,14 +644,16 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     return { analysis, fallback: false };
   } catch (claudeError) {
     const claudeMsg = claudeError instanceof Error ? claudeError.message : String(claudeError);
-    console.warn('[analysis] Claude failed, trying Gemini fallback...', { error: claudeMsg });
+    logDiagnostic('warn', '[analysis] Claude failed, trying Gemini fallback...', {
+      error: claudeMsg,
+    });
 
     // Try Gemini fallback
     try {
       providerUsed = 'gemini';
       attemptCount += 1;
       llmCallsUsed += 1;
-      console.log('[analysis] calling Gemini API...');
+      logDiagnostic('log', '[analysis] calling Gemini API...');
       const rawText = await callGemini(SYSTEM_PROMPT, userPrompt);
       const jsonText = extractJson(rawText);
       const parsed = JSON.parse(jsonText);
@@ -656,7 +675,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
         fallback: false,
       };
 
-      console.log('[analysis] Gemini succeeded', {
+      logDiagnostic('log', '[analysis] Gemini succeeded', {
         overall_score: feedback.overall_score,
         latency_ms: analysis.meta.latency_ms,
       });
@@ -664,7 +683,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       return { analysis, fallback: false };
     } catch (geminiError) {
       const geminiMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
-      console.error('[analysis] Both LLMs failed, returning sample fallback', {
+      logDiagnostic('error', '[analysis] Both LLMs failed, returning sample fallback', {
         claude_error: claudeMsg,
         gemini_error: geminiMsg,
       });

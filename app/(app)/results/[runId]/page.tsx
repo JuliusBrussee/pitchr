@@ -266,7 +266,7 @@ export default function ResultsPage() {
     if (!run || run.status !== 'complete' || achievementCheckDone.current) return;
     achievementCheckDone.current = true;
 
-    fetch('/api/pitch/run')
+    fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: Array<{ id: string; mode: string; overallScore: number; createdAt: string; analysis: ProgressRunRecord['analysis'] }> }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
@@ -475,6 +475,23 @@ export default function ResultsPage() {
     () => run?.meta?.economics ?? null,
     [run],
   );
+  const fallbackWarning = useMemo(() => {
+    if (!run?.fallback) return null;
+    const reason =
+      typeof run.meta?.error_details?.message === 'string'
+        ? run.meta.error_details.message
+        : null;
+    const provider =
+      typeof run.meta?.provider_used === 'string' &&
+        run.meta.provider_used !== 'none'
+        ? run.meta.provider_used
+        : null;
+    const providerNote = provider ? ` Last provider attempt: ${provider}.` : '';
+    if (reason) {
+      return `Live provider calls failed (${reason}). Displaying cached fallback analysis.${providerNote}`;
+    }
+    return `Live provider calls failed. Displaying cached fallback analysis.${providerNote}`;
+  }, [run]);
 
   const onCopy = () => {
     if (!feedback) return;
@@ -629,7 +646,10 @@ export default function ResultsPage() {
             Analysis Failed
           </h1>
           <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-            {run.error ?? runError ?? 'The analysis job failed before completion.'}
+            {run.error ??
+              run.meta?.error_details?.message ??
+              runError ??
+              'The analysis job failed before completion.'}
           </p>
           <Link
             href="/session"
@@ -737,6 +757,18 @@ export default function ResultsPage() {
           </Link>
         </div>
       </header>
+      {fallbackWarning ? (
+        <div
+          className="rounded-xl border px-3 py-2 text-xs"
+          style={{
+            color: '#ffaa33',
+            backgroundColor: 'rgba(255,170,51,0.12)',
+            borderColor: 'rgba(255,170,51,0.35)',
+          }}
+        >
+          {fallbackWarning}
+        </div>
+      ) : null}
 
       {/* ─── Recording ──────────────────────────────────────── */}
       <RecordingPlayer ref={recordingRef} recordingUrl={run.audioUrl} seekToSec={seekToSec} />
