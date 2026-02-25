@@ -23,7 +23,15 @@ export async function POST(request: NextRequest) {
 
     if (!planId || !isValidPlanId(planId) || planId === 'free') {
       return NextResponse.json(
-        { error: 'Invalid planId. Must be "pro" or "team".' },
+        { error: 'Invalid planId. Must be "day_pass", "pro", or "team".' },
+        { status: 400 },
+      );
+    }
+
+    // Day pass uses its own one-time payment route
+    if (planId === 'day_pass') {
+      return NextResponse.json(
+        { error: 'Use POST /api/billing/day-pass for day pass purchases.' },
         { status: 400 },
       );
     }

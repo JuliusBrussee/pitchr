@@ -2,12 +2,18 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   BillingPlanId,
   BillingInterval,
+  DayPass,
   Subscription,
   SubscriptionStatus,
   UsageCheckResult,
   UsagePeriod,
 } from '@/types/billing';
-import { getPlanLimits, planIdFromStripePriceId, TRIAL_PERIOD_DAYS } from '@/config/billing';
+import {
+  DAY_PASS_DURATION_HOURS,
+  getPlanLimits,
+  planIdFromStripePriceId,
+  TRIAL_PERIOD_DAYS,
+} from '@/config/billing';
 import {
   createCustomer,
   createCheckoutSession,
@@ -214,6 +220,149 @@ export async function startPortalSession(
   return { url: portal.url };
 }
 
+/* ——— Day Pass ——— */
+
+export async function getActiveDayPass(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<DayPass | null> {
+  const { data, error } = await supabase
+    .from('day_passes')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
+    .order('purchased_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) return null;
+
+  return mapDayPassRow(data);
+}
+
+export async function purchaseDayPass(
+  supabase: SupabaseClient,
+  userId: string,
+  stripePaymentIntentId: string | null,
+): Promise<DayPass> {
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + DAY_PASS_DURATION_HOURS * 60 * 60 * 1000);
+  const limits = getPlanLimits('day_pass');
+
+  const { data, error } = await supabase
+    .from('day_passes')
+    .insert({
+      user_id: userId,
+      purchased_at: now.toISOString(),
+      expires_at: expiresAt.toISOString(),
+      runs_used: 0,
+      runs_limit: limits.runsPerPeriod ?? 15,
+      decks_used: 0,
+      decks_limit: limits.decksPerPeriod ?? 5,
+      qa_sessions_used: 0,
+      qa_sessions_limit: limits.qaSessionsPerPeriod ?? 5,
+      stripe_payment_intent_id: stripePaymentIntentId,
+      status: 'active',
+    })
+    .select()
+    .single();
+
+  if (error || !data) {
+    throw new Error(`Failed to create day pass: ${error?.message}`);
+  }
+
+  return mapDayPassRow(data);
+}
+
+export async function recordDayPassUsage(
+  supabase: SupabaseClient,
+  dayPassId: string,
+  resource: 'run' | 'deck' | 'qa_session',
+): Promise<void> {
+  const column = resource === 'run'
+    ? 'runs_used'
+    : resource === 'deck'
+      ? 'decks_used'
+      : 'qa_sessions_used';
+
+  // Increment the usage counter
+  const { data, error } = await supabase.rpc('increment_day_pass_usage', {
+    pass_id: dayPassId,
+    usage_column: column,
+  });
+
+  // Fallback if RPC doesn't exist: read-then-write
+  if (error) {
+    const { data: pass } = await supabase
+      .from('day_passes')
+      .select(column)
+      .eq('id', dayPassId)
+      .single();
+
+    if (pass) {
+      await supabase
+        .from('day_passes')
+        .update({ [column]: (pass[column] as number) + 1, updated_at: new Date().toISOString() })
+        .eq('id', dayPassId);
+    }
+  }
+}
+
+export async function expireDayPass(
+  supabase: SupabaseClient,
+  dayPassId: string,
+  reason: 'expired' | 'exhausted' = 'expired',
+): Promise<void> {
+  await supabase
+    .from('day_passes')
+    .update({ status: reason, updated_at: new Date().toISOString() })
+    .eq('id', dayPassId);
+}
+
+/**
+ * Check day pass usage for a given resource.
+ * Returns null if user has no active day pass.
+ */
+export async function checkDayPassUsage(
+  supabase: SupabaseClient,
+  userId: string,
+  resource: 'runs' | 'decks' | 'qa_sessions',
+): Promise<UsageCheckResult | null> {
+  const pass = await getActiveDayPass(supabase, userId);
+  if (!pass) return null;
+
+  // Check if pass has expired by time
+  if (new Date(pass.expiresAt) <= new Date()) {
+    await expireDayPass(supabase, pass.id, 'expired');
+    return null;
+  }
+
+  const resourceMap = {
+    runs: { used: pass.runsUsed, limit: pass.runsLimit },
+    decks: { used: pass.decksUsed, limit: pass.decksLimit },
+    qa_sessions: { used: pass.qaSessionsUsed, limit: pass.qaSessionsLimit },
+  };
+
+  const { used, limit } = resourceMap[resource];
+  const allowed = used < limit;
+  const remaining = Math.max(0, limit - used);
+
+  // If all resources are exhausted, mark the pass
+  if (!allowed && resource === 'runs') {
+    await expireDayPass(supabase, pass.id, 'exhausted');
+  }
+
+  return {
+    allowed,
+    resource,
+    used,
+    limit,
+    remaining,
+    planId: 'day_pass',
+  };
+}
+
 /* ——— Usage Tracking ——— */
 
 export async function recordUsage(
@@ -263,6 +412,10 @@ export async function checkUsageLimit(
   userId: string,
   resource: 'runs' | 'decks' | 'qa_sessions',
 ): Promise<UsageCheckResult> {
+  // Check active day pass first — it takes priority over subscription limits
+  const dayPassResult = await checkDayPassUsage(supabase, userId, resource);
+  if (dayPassResult?.allowed) return dayPassResult;
+
   const sub = await getOrCreateSubscription(supabase, userId);
   const usage = await getUsage(supabase, userId);
   const limits = getPlanLimits(sub.planId);
@@ -355,5 +508,23 @@ function mapSubscriptionRow(row: any): Subscription {
     cancelAtPeriodEnd: row.cancel_at_period_end ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDayPassRow(row: any): DayPass {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    purchasedAt: row.purchased_at,
+    expiresAt: row.expires_at,
+    runsUsed: row.runs_used,
+    runsLimit: row.runs_limit,
+    decksUsed: row.decks_used,
+    decksLimit: row.decks_limit,
+    qaSessionsUsed: row.qa_sessions_used,
+    qaSessionsLimit: row.qa_sessions_limit,
+    stripePaymentIntentId: row.stripe_payment_intent_id ?? null,
+    status: row.status,
   };
 }

@@ -22,6 +22,18 @@ const FREE_LIMITS: PlanLimits = {
   queuePriority: 100,
 };
 
+const DAY_PASS_LIMITS: PlanLimits = {
+  runsPerPeriod: 15,
+  decksPerPeriod: 5,
+  qaSessionsPerPeriod: 5,
+  maxConcurrentRuns: 3,
+  sectionFeedback: true,
+  vocabularyMetrics: true,
+  historicalLinks: true,
+  deckGeneration: true,
+  queuePriority: 10,
+};
+
 const PRO_LIMITS: PlanLimits = {
   runsPerPeriod: 50,
   decksPerPeriod: 20,
@@ -55,6 +67,13 @@ const FREE_PRICING: PlanPricing = {
   stripePriceIdYearly: null,
 };
 
+const DAY_PASS_PRICING: PlanPricing = {
+  monthly: 9,
+  yearly: 9, // same — one-time purchase, not recurring
+  stripePriceIdMonthly: process.env.STRIPE_DAY_PASS_PRICE_ID ?? null,
+  stripePriceIdYearly: null,
+};
+
 const PRO_PRICING: PlanPricing = {
   monthly: 29,
   yearly: 290,
@@ -69,6 +88,9 @@ const TEAM_PRICING: PlanPricing = {
   stripePriceIdYearly: process.env.STRIPE_TEAM_YEARLY_PRICE_ID ?? null,
 };
 
+/** Duration of a day pass in hours */
+export const DAY_PASS_DURATION_HOURS = 24;
+
 /* ——— Plan Definitions ——— */
 
 export const BILLING_PLANS: Record<BillingPlanId, BillingPlan> = {
@@ -79,6 +101,16 @@ export const BILLING_PLANS: Record<BillingPlanId, BillingPlan> = {
     limits: FREE_LIMITS,
     pricing: FREE_PRICING,
     featured: false,
+  },
+  day_pass: {
+    id: 'day_pass',
+    name: 'Day Pass',
+    description: 'Full Pro access for 24 hours — perfect before a pitch',
+    limits: DAY_PASS_LIMITS,
+    pricing: DAY_PASS_PRICING,
+    featured: false,
+    oneTime: true,
+    durationHours: DAY_PASS_DURATION_HOURS,
   },
   pro: {
     id: 'pro',
@@ -113,7 +145,7 @@ export function getAllPlans(): BillingPlan[] {
 }
 
 export function isValidPlanId(value: string): value is BillingPlanId {
-  return value === 'free' || value === 'pro' || value === 'team';
+  return value === 'free' || value === 'day_pass' || value === 'pro' || value === 'team';
 }
 
 /**

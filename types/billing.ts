@@ -1,6 +1,6 @@
 /* ——— Billing & Subscription Types ——— */
 
-export type BillingPlanId = 'free' | 'pro' | 'team';
+export type BillingPlanId = 'free' | 'day_pass' | 'pro' | 'team';
 
 export type BillingInterval = 'month' | 'year';
 
@@ -50,6 +50,25 @@ export interface BillingPlan {
   pricing: PlanPricing;
   /** If true, this plan is the highlighted/recommended one */
   featured: boolean;
+  /** If true, this plan is a one-time purchase (not a subscription) */
+  oneTime?: boolean;
+  /** Duration in hours for time-limited plans (e.g. day pass = 24) */
+  durationHours?: number;
+}
+
+export interface DayPass {
+  id: string;
+  userId: string;
+  purchasedAt: string;
+  expiresAt: string;
+  runsUsed: number;
+  runsLimit: number;
+  decksUsed: number;
+  decksLimit: number;
+  qaSessionsUsed: number;
+  qaSessionsLimit: number;
+  stripePaymentIntentId: string | null;
+  status: 'active' | 'expired' | 'exhausted';
 }
 
 export interface Subscription {
