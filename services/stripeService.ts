@@ -75,6 +75,29 @@ export async function createCheckoutSession(params: {
   });
 }
 
+/**
+ * Create a one-time payment checkout session (e.g. for day passes).
+ * Uses Stripe `mode: 'payment'` instead of `mode: 'subscription'`.
+ */
+export async function createPaymentCheckoutSession(params: {
+  customerId: string;
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
+  metadata?: Record<string, string>;
+}): Promise<Stripe.Checkout.Session> {
+  const stripe = getStripe();
+  return stripe.checkout.sessions.create({
+    customer: params.customerId,
+    mode: 'payment',
+    line_items: [{ price: params.priceId, quantity: 1 }],
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+    metadata: params.metadata,
+    allow_promotion_codes: true,
+  });
+}
+
 /* ——— Billing Portal ——— */
 
 export async function createPortalSession(params: {

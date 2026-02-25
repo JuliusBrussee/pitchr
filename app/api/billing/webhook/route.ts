@@ -7,6 +7,7 @@ import {
   downgradeToFree,
   recordBillingEvent,
   resolveSubscriptionPlan,
+  purchaseDayPass,
 } from '@/services/billingService';
 import type { SubscriptionStatus } from '@/types/billing';
 
@@ -107,8 +108,24 @@ export async function POST(request: NextRequest) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleCheckoutCompleted(admin: ReturnType<typeof createAdminClient>, session: any) {
   const customerId = session.customer as string;
-  const subscriptionId = session.subscription as string;
 
+  // Handle day pass one-time payments
+  if (session.mode === 'payment' && session.metadata?.product_type === 'day_pass') {
+    const userId = session.metadata?.user_id ?? await getUserIdByStripeCustomerId(admin, customerId);
+    if (!userId) {
+      console.error('[billing/webhook] no user found for day pass payment:', customerId);
+      return;
+    }
+
+    const paymentIntentId = session.payment_intent as string | null;
+    await purchaseDayPass(admin, userId, paymentIntentId);
+
+    console.log('[billing/webhook] day pass activated', { userId });
+    return;
+  }
+
+  // Handle subscription checkout
+  const subscriptionId = session.subscription as string;
   if (!customerId || !subscriptionId) return;
 
   const userId = await getUserIdByStripeCustomerId(admin, customerId);
