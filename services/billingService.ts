@@ -468,6 +468,26 @@ export async function getUserIdByStripeCustomerId(
   return data?.user_id ?? null;
 }
 
+/**
+ * Check if a Stripe webhook event has already been processed.
+ * Returns true if a record with the given stripe_event_id exists.
+ */
+export async function isBillingEventProcessed(
+  supabase: SupabaseClient,
+  stripeEventId: string,
+): Promise<boolean> {
+  const { count } = await supabase
+    .from('billing_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('stripe_event_id', stripeEventId);
+  return (count ?? 0) > 0;
+}
+
+/**
+ * Record a billing event after successful handling.
+ * Should be called only after the event handler succeeds.
+ * Returns true if the record was inserted, false if duplicate.
+ */
 export async function recordBillingEvent(
   supabase: SupabaseClient,
   stripeEventId: string,

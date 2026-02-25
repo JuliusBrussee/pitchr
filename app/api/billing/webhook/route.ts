@@ -5,6 +5,7 @@ import {
   getUserIdByStripeCustomerId,
   upsertSubscription,
   downgradeToFree,
+  isBillingEventProcessed,
   recordBillingEvent,
   resolveSubscriptionPlan,
   purchaseDayPass,
@@ -62,14 +63,8 @@ export async function POST(request: NextRequest) {
   const admin = createAdminClient();
 
   // Idempotency: skip if already processed
-  const isNew = await recordBillingEvent(
-    admin,
-    event.id,
-    event.type,
-    event.data.object as Record<string, unknown>,
-  );
-
-  if (!isNew) {
+  const alreadyProcessed = await isBillingEventProcessed(admin, event.id);
+  if (alreadyProcessed) {
     return NextResponse.json({ received: true, duplicate: true });
   }
 
@@ -95,9 +90,22 @@ export async function POST(request: NextRequest) {
       default:
         break;
     }
+
+    // Record only after successful handling so Stripe retries
+    // are not blocked if the handler threw.
+    await recordBillingEvent(
+      admin,
+      event.id,
+      event.type,
+      event.data.object as unknown as Record<string, unknown>,
+    );
   } catch (err) {
     console.error(`[billing/webhook] error processing ${event.type}:`, err);
-    // Return 200 anyway to prevent Stripe retries on app-level errors
+    // Return 500 so Stripe will retry this event
+    return NextResponse.json(
+      { error: 'Webhook handler failed' },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ received: true });

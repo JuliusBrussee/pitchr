@@ -47,9 +47,17 @@ export interface UsageLimitResult {
 }
 
 /**
- * Check if a user is within their usage limit for a given resource.
- * Uses the admin (service role) Supabase client to bypass RLS.
+ * Compute stable calendar-month period bounds for free-tier users
+ * who have no subscription row. Uses the 1st of the current month
+ * so that every call within a month returns the same window.
  */
+function getDefaultPeriodBounds(): { start: string; end: string } {
+  const now = new Date();
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
@@ -81,8 +89,9 @@ export async function checkUsageLimit(
   }
 
   // 2. Count usage events in the current period
-  const periodStart = sub?.current_period_start ?? new Date().toISOString();
-  const periodEnd = sub?.current_period_end ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const defaultBounds = getDefaultPeriodBounds();
+  const periodStart = sub?.current_period_start ?? defaultBounds.start;
+  const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
   const { count } = await supabase
     .from('usage_events')
@@ -118,8 +127,9 @@ export async function recordUsageEvent(
     .eq('user_id', userId)
     .single();
 
-  const periodStart = sub?.current_period_start ?? new Date().toISOString();
-  const periodEnd = sub?.current_period_end ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const defaultBounds = getDefaultPeriodBounds();
+  const periodStart = sub?.current_period_start ?? defaultBounds.start;
+  const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
   await supabase.from('usage_events').insert({
     user_id: userId,
