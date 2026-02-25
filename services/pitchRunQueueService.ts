@@ -1,13 +1,14 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { analyzePitch } from '@/services/analysisService';
 import { buildRunEconomics } from '@/services/economicsService';
-import { syncRunToPaid } from '@/services/paidService';
+import { recordUsage } from '@/services/billingService';
 import { listRuns, updateRun } from '@/services/runService';
 import type { PitchStage, TranscriptSegment } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
 
 interface QueuePayload {
   runId: string;
+  userId?: string;
   mode: PitchMode;
   transcript: string;
   deckId?: string;
@@ -91,38 +92,18 @@ async function processRun(payload: QueuePayload): Promise<void> {
       error_message: null,
     });
 
+    // Record usage for billing
     try {
-      const paidSync = await syncRunToPaid({
-        runId: payload.runId,
-        mode: payload.mode,
-        overallScore,
-        latencyMs: analysisWithEconomics.meta.latency_ms,
-        fallbackUsed: fallback,
-        economics,
-      });
-
-      const finalAnalysis = {
-        ...analysisWithEconomics,
-        meta: {
-          ...analysisWithEconomics.meta,
-          economics: {
-            ...economics,
-            paid_sync: paidSync,
-          },
-        },
-      };
-
-      await updateRun(supabase, payload.runId, {
-        analysis: finalAnalysis,
-        meta: finalAnalysis.meta,
-      });
-    } catch (paidSyncError) {
-      console.error('[paid-sync] failed to persist Paid sync status', {
+      if (payload.userId) {
+        await recordUsage(supabase, payload.userId, 'run');
+      }
+    } catch (usageError) {
+      console.error('[billing] failed to record usage', {
         runId: payload.runId,
         message:
-          paidSyncError instanceof Error
-            ? paidSyncError.message
-            : String(paidSyncError),
+          usageError instanceof Error
+            ? usageError.message
+            : String(usageError),
       });
     }
   } catch (error) {

@@ -53,7 +53,7 @@ models/              # Data schemas + localStorage CRUD
 lib/llm/             # Claude/Gemini API clients
 lib/supabase.ts      # Supabase client singleton
 lib/prompts/         # LLM prompt templates (system, rubric, rewrite)
-config/              # Rubric definitions, pitch mode configs
+config/              # Rubric definitions, pitch mode configs, billing plans
 types/               # Shared TypeScript types
 store/               # Client-side state management
 migrations/          # Supabase SQL migrations (decks, slides, storage bucket, policies)
@@ -161,6 +161,19 @@ Score bands: 0-39 Needs Work, 40-59 Getting There, 60-79 Solid, 80-100 Investor-
 - **Setup guide:** `docs/SUPABASE_SETUP.md`
 - No RLS or auth — MVP uses anonymous public access
 
+## Billing & Stripe
+
+- **Payments:** Stripe Checkout + Billing Portal via `stripe` SDK
+- **Config:** `config/billing.ts` — single source of truth for plans, limits, pricing, Stripe Price IDs
+- **Plans:** Free (3 runs/mo), Pro ($29/mo, 50 runs), Team ($79/mo, unlimited)
+- **Services:** `services/stripeService.ts` (Stripe SDK wrapper), `services/billingService.ts` (subscription CRUD, usage tracking, rate limits)
+- **API routes:** `app/api/billing/` — checkout, webhook, portal, subscription, usage
+- **Edge Functions:** `supabase/functions/_shared/billing-service.ts` (rate limit checks in Deno)
+- **DB tables:** `subscriptions`, `usage_events`, `billing_events` (migrations 18-20)
+- **UI:** `views/components/billing/` (PlanCard, UsageBar, SubscriptionBadge), `hooks/useBilling.ts`
+- **Rate limiting:** Enforced in pitch-run edge function + pitchRunQueueService before analysis
+- **Modularity:** To change costs/limits, edit only `config/billing.ts`. Stripe Price IDs are env vars.
+
 ## Environment Variables
 
 ```env
@@ -170,16 +183,13 @@ ANTHROPIC_API_KEY=     # Claude API (required for LLM scoring)
 GOOGLE_AI_API_KEY=     # Gemini fallback (optional)
 ELEVENLABS_API_KEY_STT=    # STT realtime (required for speech-to-text)
 MIRO_API_TOKEN=        # Fix board generation (Tier 1, optional)
-PAID_ENABLED=          # Optional Paid AI signal sync toggle (true/false)
-PAID_API_KEY=          # Paid AI API key (required when PAID_ENABLED=true)
-PAID_API_BASE_URL=     # Optional override (default: https://api.paid.ai)
-PAID_PRODUCT_ID=       # Optional internal product ID (use this OR PAID_EXTERNAL_PRODUCT_ID)
-PAID_EXTERNAL_PRODUCT_ID= # Optional external product ID (use this OR PAID_PRODUCT_ID)
-PAID_CUSTOMER_ID=      # Optional internal customer ID (use this OR PAID_EXTERNAL_CUSTOMER_ID)
-PAID_EXTERNAL_CUSTOMER_ID= # Optional external customer ID (use this OR PAID_CUSTOMER_ID)
-PAID_ORDER_ID=         # Optional metadata field
-PAID_SIGNAL_EVENT_COMPLETED= # Optional override (default pitch_analysis_completed)
-PAID_SIGNAL_EVENT_INVESTOR_READY= # Optional override (default investor_ready_achieved)
+STRIPE_SECRET_KEY=     # Stripe secret key (required for billing)
+STRIPE_WEBHOOK_SECRET= # Stripe webhook signing secret
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY= # Stripe publishable key (client-side)
+STRIPE_PRO_MONTHLY_PRICE_ID=   # Stripe Price ID for Pro monthly
+STRIPE_PRO_YEARLY_PRICE_ID=    # Stripe Price ID for Pro yearly
+STRIPE_TEAM_MONTHLY_PRICE_ID=  # Stripe Price ID for Team monthly
+STRIPE_TEAM_YEARLY_PRICE_ID=   # Stripe Price ID for Team yearly
 ```
 
 ## Implementation Phases (from PRD Section 16)

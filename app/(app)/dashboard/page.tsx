@@ -209,21 +209,21 @@ export default function DashboardPage() {
             value={formatUsd(totalMoneySavedUsd)}
             icon={<Zap size={16} />}
             animationDelay="0.24s"
-            poweredByPaid
+
           />
           <StatCard
             label="Total AI Spend"
             value={formatUsd(totalAiSpendUsd)}
             icon={<Timer size={16} />}
             animationDelay="0.28s"
-            poweredByPaid
+
           />
           <StatCard
             label="Net Savings (Est.)"
             value={formatUsd(netSavingsUsd)}
             icon={<TrendingUp size={16} />}
             animationDelay="0.32s"
-            poweredByPaid
+
           />
         </div>
 

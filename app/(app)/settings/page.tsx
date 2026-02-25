@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import {
   Award,
+  CreditCard,
+  ExternalLink,
   Palette,
   Shield,
   Trash2,
@@ -18,7 +20,11 @@ import {
 import { useTheme, type ThemePreference } from '@/views/components/ThemeProvider';
 import { useSettings } from '@/hooks/useSettings';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useBilling } from '@/hooks/useBilling';
 import { AchievementGrid } from '@/views/components/achievements';
+import { SubscriptionBadge, UsageBar, PlanCard } from '@/views/components/billing';
+import { getAllPlans } from '@/config/billing';
+import type { BillingPlanId, BillingInterval } from '@/types/billing';
 import type { ProgressRunRecord } from '@/lib/progress';
 
 /* ——— Types ——— */
@@ -124,6 +130,10 @@ export default function SettingsPage() {
   const { isDark, preference, setTheme } = useTheme();
   const { settings, adjustTimer, update } = useSettings();
   const achievements = useAchievements();
+  const billing = useBilling();
+
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('month');
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
   // Fetch runs for achievement computation
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
@@ -247,6 +257,113 @@ export default function SettingsPage() {
           {/* ——— Achievements Showcase ——— */}
           <SectionCard icon={Award} title="Achievements" delay={60} id="achievements" iconColor="#eab308">
             <AchievementGrid state={achievements.state} />
+          </SectionCard>
+
+          {/* ——— Billing & Subscription ——— */}
+          <SectionCard icon={CreditCard} title="Plan & Billing" delay={90} id="billing" iconColor="#ff5941">
+            {billing.isLoading ? (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Loading billing...</p>
+            ) : billing.subscription ? (
+              <div className="space-y-4">
+                {/* Current plan badge + manage button */}
+                <div className="flex items-center justify-between">
+                  <SubscriptionBadge
+                    planId={billing.subscription.planId as BillingPlanId}
+                    status={billing.subscription.status}
+                    cancelAtPeriodEnd={billing.subscription.cancelAtPeriodEnd}
+                  />
+                  {billing.subscription.hasStripeSubscription && (
+                    <button
+                      onClick={() => billing.openPortal()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                      style={{
+                        color: 'var(--text-secondary)',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'transparent',
+                      }}
+                    >
+                      <ExternalLink size={12} />
+                      Manage Billing
+                    </button>
+                  )}
+                </div>
+
+                {/* Usage bars */}
+                {billing.usage && (
+                  <div>
+                    <UsageBar label="Pitch Analyses" used={billing.usage.runsUsed} limit={billing.usage.runsLimit} />
+                    <UsageBar label="Deck Uploads" used={billing.usage.decksUsed} limit={billing.usage.decksLimit} />
+                    <UsageBar label="Q&A Sessions" used={billing.usage.qaSessionsUsed} limit={billing.usage.qaSessionsLimit} />
+                    <p className="text-[10px] mt-2" style={{ color: 'var(--text-muted)' }}>
+                      Period: {new Date(billing.usage.periodStart).toLocaleDateString()} — {new Date(billing.usage.periodEnd).toLocaleDateString()}
+                    </p>
+                  </div>
+                )}
+
+                {/* Interval toggle */}
+                <div className="flex items-center justify-center gap-2 pt-2">
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: billingInterval === 'month' ? '#ff5941' : 'var(--text-muted)' }}
+                  >
+                    Monthly
+                  </span>
+                  <button
+                    onClick={() => setBillingInterval((prev) => (prev === 'month' ? 'year' : 'month'))}
+                    className="relative w-10 h-5 rounded-full transition-colors"
+                    style={{
+                      backgroundColor: billingInterval === 'year' ? '#ff5941' : 'var(--bg-surface-hover)',
+                    }}
+                  >
+                    <div
+                      className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                      style={{ left: billingInterval === 'year' ? '22px' : '2px' }}
+                    />
+                  </button>
+                  <span
+                    className="text-xs font-medium"
+                    style={{ color: billingInterval === 'year' ? '#ff5941' : 'var(--text-muted)' }}
+                  >
+                    Yearly
+                  </span>
+                  {billingInterval === 'year' && (
+                    <span
+                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' }}
+                    >
+                      Save ~17%
+                    </span>
+                  )}
+                </div>
+
+                {/* Plan cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  {getAllPlans().map((plan) => (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      interval={billingInterval}
+                      currentPlanId={billing.subscription!.planId as BillingPlanId}
+                      isLoading={isCheckoutLoading}
+                      onSelect={async (planId, interval) => {
+                        try {
+                          setIsCheckoutLoading(true);
+                          await billing.startCheckout(planId, interval);
+                        } catch (err) {
+                          alert(err instanceof Error ? err.message : 'Checkout failed');
+                        } finally {
+                          setIsCheckoutLoading(false);
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Unable to load billing information.
+              </p>
+            )}
           </SectionCard>
 
           {/* ——— Appearance ——— */}

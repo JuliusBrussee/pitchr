@@ -1,0 +1,131 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import type { BillingPlanId, BillingInterval } from '@/types/billing';
+
+interface SubscriptionInfo {
+  planId: BillingPlanId;
+  planName: string;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  hasStripeSubscription: boolean;
+}
+
+interface UsageInfo {
+  runsUsed: number;
+  runsLimit: number | null;
+  decksUsed: number;
+  decksLimit: number | null;
+  qaSessionsUsed: number;
+  qaSessionsLimit: number | null;
+  periodStart: string;
+  periodEnd: string;
+}
+
+interface PlanLimitsInfo {
+  runsPerPeriod: number | null;
+  decksPerPeriod: number | null;
+  qaSessionsPerPeriod: number | null;
+  maxConcurrentRuns: number;
+  sectionFeedback: boolean;
+  vocabularyMetrics: boolean;
+  historicalLinks: boolean;
+  deckGeneration: boolean;
+  queuePriority: number;
+}
+
+interface BillingState {
+  subscription: SubscriptionInfo | null;
+  usage: UsageInfo | null;
+  limits: PlanLimitsInfo | null;
+  isLoading: boolean;
+  error: string | null;
+}
+
+export function useBilling() {
+  const [state, setState] = useState<BillingState>({
+    subscription: null,
+    usage: null,
+    limits: null,
+    isLoading: true,
+    error: null,
+  });
+
+  const fetchBilling = useCallback(async () => {
+    try {
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+      const res = await fetch('/api/billing/subscription');
+      if (!res.ok) throw new Error('Failed to fetch billing');
+      const data = await res.json();
+      setState({
+        subscription: data.subscription,
+        usage: data.usage,
+        limits: data.limits,
+        isLoading: false,
+        error: null,
+      });
+    } catch (err) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBilling();
+  }, [fetchBilling]);
+
+  const startCheckout = useCallback(
+    async (planId: BillingPlanId, interval: BillingInterval) => {
+      const res = await fetch('/api/billing/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId, interval }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Checkout failed');
+      }
+
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    },
+    [],
+  );
+
+  const openPortal = useCallback(async () => {
+    const res = await fetch('/api/billing/portal', {
+      method: 'POST',
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Portal session failed');
+    }
+
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+  }, []);
+
+  const checkUsage = useCallback(
+    async (resource: 'runs' | 'decks' | 'qa_sessions') => {
+      const res = await fetch(`/api/billing/usage?resource=${resource}`);
+      if (!res.ok) throw new Error('Usage check failed');
+      return res.json();
+    },
+    [],
+  );
+
+  return {
+    ...state,
+    refresh: fetchBilling,
+    startCheckout,
+    openPortal,
+    checkUsage,
+  };
+}

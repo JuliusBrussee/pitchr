@@ -1,6 +1,6 @@
 import { SAMPLE_RESULT } from '@/config/sampleResult';
 import type { AnalysisResult } from '@/types/analysis';
-import type { AnalysisResultV2, PaidSyncMeta, RunEconomics } from '@/types/analysis-v2';
+import type { AnalysisResultV2, RunEconomics } from '@/types/analysis-v2';
 
 function cloneSample(): AnalysisResultV2 {
   return JSON.parse(JSON.stringify(SAMPLE_RESULT)) as AnalysisResultV2;
@@ -21,24 +21,6 @@ function asNumber(value: unknown): number | null {
 function round(value: number, precision = 2): number {
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;
-}
-
-function asPaidSync(value: unknown): PaidSyncMeta | undefined {
-  if (!value || typeof value !== 'object') return undefined;
-  const sync = value as Record<string, unknown>;
-  const status = sync.status;
-  const sentAt = sync.sent_at;
-  if (
-    (status === 'sent' || status === 'skipped' || status === 'failed') &&
-    typeof sentAt === 'string'
-  ) {
-    return {
-      status,
-      sent_at: sentAt,
-      error: typeof sync.error === 'string' ? sync.error : undefined,
-    };
-  }
-  return undefined;
 }
 
 function normalizeEconomics(value: unknown): RunEconomics | undefined {
@@ -101,7 +83,6 @@ function normalizeEconomics(value: unknown): RunEconomics | undefined {
     estimated_value_usd: round(estimatedValue, 2),
     roi_multiple: round(roi, 2),
     gross_margin_usd: round(grossMargin, 2),
-    paid_sync: asPaidSync(economics.paid_sync),
   };
 }
 

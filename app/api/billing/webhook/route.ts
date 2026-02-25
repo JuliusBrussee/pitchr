@@ -1,0 +1,214 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { constructWebhookEvent } from '@/services/stripeService';
+import {
+  getUserIdByStripeCustomerId,
+  upsertSubscription,
+  downgradeToFree,
+  recordBillingEvent,
+  resolveSubscriptionPlan,
+} from '@/services/billingService';
+import type { SubscriptionStatus } from '@/types/billing';
+
+/**
+ * POST /api/billing/webhook
+ * Stripe webhook endpoint. Handles subscription lifecycle events.
+ *
+ * Must be excluded from body parsing — we need the raw body for
+ * signature verification.
+ */
+export const runtime = 'nodejs';
+
+// Disable Next.js body parsing so we get the raw body
+export const dynamic = 'force-dynamic';
+
+const HANDLED_EVENTS = new Set([
+  'checkout.session.completed',
+  'customer.subscription.created',
+  'customer.subscription.updated',
+  'customer.subscription.deleted',
+  'invoice.payment_succeeded',
+  'invoice.payment_failed',
+]);
+
+export async function POST(request: NextRequest) {
+  const body = await request.text();
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    return NextResponse.json(
+      { error: 'Missing stripe-signature header' },
+      { status: 400 },
+    );
+  }
+
+  let event;
+  try {
+    event = constructWebhookEvent(body, signature);
+  } catch (err) {
+    console.error('[billing/webhook] signature verification failed:', err);
+    return NextResponse.json(
+      { error: 'Invalid signature' },
+      { status: 400 },
+    );
+  }
+
+  // Skip events we don't handle
+  if (!HANDLED_EVENTS.has(event.type)) {
+    return NextResponse.json({ received: true });
+  }
+
+  const admin = createAdminClient();
+
+  // Idempotency: skip if already processed
+  const isNew = await recordBillingEvent(
+    admin,
+    event.id,
+    event.type,
+    event.data.object as Record<string, unknown>,
+  );
+
+  if (!isNew) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(admin, event.data.object);
+        break;
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await handleSubscriptionChange(admin, event.data.object);
+        break;
+
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(admin, event.data.object);
+        break;
+
+      case 'invoice.payment_failed':
+        await handlePaymentFailed(admin, event.data.object);
+        break;
+
+      default:
+        break;
+    }
+  } catch (err) {
+    console.error(`[billing/webhook] error processing ${event.type}:`, err);
+    // Return 200 anyway to prevent Stripe retries on app-level errors
+  }
+
+  return NextResponse.json({ received: true });
+}
+
+/* ——— Event Handlers ——— */
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleCheckoutCompleted(admin: ReturnType<typeof createAdminClient>, session: any) {
+  const customerId = session.customer as string;
+  const subscriptionId = session.subscription as string;
+
+  if (!customerId || !subscriptionId) return;
+
+  const userId = await getUserIdByStripeCustomerId(admin, customerId);
+  if (!userId) {
+    console.error('[billing/webhook] no user found for customer:', customerId);
+    return;
+  }
+
+  // The subscription.created/updated event will handle the actual upsert.
+  // Checkout completion is mainly for logging.
+  console.log('[billing/webhook] checkout completed', {
+    userId,
+    subscriptionId,
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleSubscriptionChange(admin: ReturnType<typeof createAdminClient>, sub: any) {
+  const customerId = sub.customer as string;
+  if (!customerId) return;
+
+  const userId = await getUserIdByStripeCustomerId(admin, customerId);
+  if (!userId) {
+    console.error('[billing/webhook] no user found for customer:', customerId);
+    return;
+  }
+
+  const priceId = sub.items?.data?.[0]?.price?.id ?? null;
+  const planId = resolveSubscriptionPlan(priceId);
+
+  const statusMap: Record<string, SubscriptionStatus> = {
+    active: 'active',
+    trialing: 'trialing',
+    past_due: 'past_due',
+    canceled: 'canceled',
+    unpaid: 'unpaid',
+    incomplete: 'incomplete',
+    incomplete_expired: 'incomplete_expired',
+  };
+
+  const status: SubscriptionStatus = statusMap[sub.status] ?? 'active';
+
+  await upsertSubscription(admin, {
+    userId,
+    planId,
+    status,
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: sub.id,
+    stripePriceId: priceId,
+    currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
+    currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+    cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
+    trialEnd: sub.trial_end
+      ? new Date(sub.trial_end * 1000).toISOString()
+      : null,
+  });
+
+  console.log('[billing/webhook] subscription updated', {
+    userId,
+    planId,
+    status,
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handleSubscriptionDeleted(admin: ReturnType<typeof createAdminClient>, sub: any) {
+  const customerId = sub.customer as string;
+  if (!customerId) return;
+
+  const userId = await getUserIdByStripeCustomerId(admin, customerId);
+  if (!userId) return;
+
+  await downgradeToFree(admin, userId);
+
+  console.log('[billing/webhook] subscription deleted, downgraded to free', {
+    userId,
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function handlePaymentFailed(admin: ReturnType<typeof createAdminClient>, invoice: any) {
+  const customerId = invoice.customer as string;
+  if (!customerId) return;
+
+  const userId = await getUserIdByStripeCustomerId(admin, customerId);
+  if (!userId) return;
+
+  // Mark as past_due — the subscription.updated event may also fire
+  const sub = await admin
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (sub.data) {
+    await admin
+      .from('subscriptions')
+      .update({ status: 'past_due', updated_at: new Date().toISOString() })
+      .eq('user_id', userId);
+  }
+
+  console.log('[billing/webhook] payment failed', { userId });
+}
