@@ -8,7 +8,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
  * the Deno runtime and shared Supabase client.
  * —————————————————————————————————————————————————————————— */
 
-export type BillingPlanId = 'free' | 'pro' | 'team';
+export type BillingPlanId = 'free' | 'pro';
 
 interface PlanLimits {
   runsPerPeriod: number | null;
@@ -24,11 +24,10 @@ interface PlanLimits {
 const PLAN_LIMITS: Record<BillingPlanId, PlanLimits> = {
   free: { runsPerPeriod: 3, decksPerPeriod: 1, qaSessionsPerPeriod: 1 },
   pro: { runsPerPeriod: 50, decksPerPeriod: 20, qaSessionsPerPeriod: 30 },
-  team: { runsPerPeriod: null, decksPerPeriod: null, qaSessionsPerPeriod: null },
 };
 
 function isValidPlan(value: string): value is BillingPlanId {
-  return value === 'free' || value === 'pro' || value === 'team';
+  return value === 'free' || value === 'pro';
 }
 
 interface SubscriptionRow {

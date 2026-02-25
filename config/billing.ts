@@ -46,18 +46,6 @@ const PRO_LIMITS: PlanLimits = {
   queuePriority: 10,
 };
 
-const TEAM_LIMITS: PlanLimits = {
-  runsPerPeriod: null, // unlimited
-  decksPerPeriod: null,
-  qaSessionsPerPeriod: null,
-  maxConcurrentRuns: 10,
-  sectionFeedback: true,
-  vocabularyMetrics: true,
-  historicalLinks: true,
-  deckGeneration: true,
-  queuePriority: 1,
-};
-
 /* ——— Plan Pricing (USD) ——— */
 
 const FREE_PRICING: PlanPricing = {
@@ -79,13 +67,6 @@ const PRO_PRICING: PlanPricing = {
   yearly: 290,
   stripePriceIdMonthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID ?? null,
   stripePriceIdYearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID ?? null,
-};
-
-const TEAM_PRICING: PlanPricing = {
-  monthly: 79,
-  yearly: 790,
-  stripePriceIdMonthly: process.env.STRIPE_TEAM_MONTHLY_PRICE_ID ?? null,
-  stripePriceIdYearly: process.env.STRIPE_TEAM_YEARLY_PRICE_ID ?? null,
 };
 
 /** Duration of a day pass in hours */
@@ -120,14 +101,6 @@ export const BILLING_PLANS: Record<BillingPlanId, BillingPlan> = {
     pricing: PRO_PRICING,
     featured: true,
   },
-  team: {
-    id: 'team',
-    name: 'Team',
-    description: 'Unlimited access for accelerators and teams',
-    limits: TEAM_LIMITS,
-    pricing: TEAM_PRICING,
-    featured: false,
-  },
 };
 
 /* ——— Helpers ——— */
@@ -145,7 +118,7 @@ export function getAllPlans(): BillingPlan[] {
 }
 
 export function isValidPlanId(value: string): value is BillingPlanId {
-  return value === 'free' || value === 'day_pass' || value === 'pro' || value === 'team';
+  return value === 'free' || value === 'day_pass' || value === 'pro';
 }
 
 /**

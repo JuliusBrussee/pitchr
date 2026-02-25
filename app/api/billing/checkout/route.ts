@@ -9,7 +9,7 @@ import type { BillingInterval } from '@/types/billing';
  * POST /api/billing/checkout
  * Creates a Stripe Checkout Session and returns the URL.
  *
- * Body: { planId: 'pro' | 'team', interval: 'month' | 'year' }
+ * Body: { planId: 'day_pass' | 'pro', interval: 'month' | 'year' }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!planId || !isValidPlanId(planId) || planId === 'free') {
       return NextResponse.json(
-        { error: 'Invalid planId. Must be "day_pass", "pro", or "team".' },
+        { error: 'Invalid planId. Must be "day_pass" or "pro".' },
         { status: 400 },
       );
     }

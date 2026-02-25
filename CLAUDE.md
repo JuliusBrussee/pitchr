@@ -165,7 +165,7 @@ Score bands: 0-39 Needs Work, 40-59 Getting There, 60-79 Solid, 80-100 Investor-
 
 - **Payments:** Stripe Checkout + Billing Portal via `stripe` SDK
 - **Config:** `config/billing.ts` — single source of truth for plans, limits, pricing, Stripe Price IDs
-- **Plans:** Free (3 runs/mo), Day Pass ($9/24h, 15 runs), Pro ($29/mo, 50 runs), Team ($79/mo, unlimited)
+- **Plans:** Free (3 runs/mo), Day Pass ($9/24h, 15 runs), Pro ($29/mo, 50 runs)
 - **Services:** `services/stripeService.ts` (Stripe SDK wrapper), `services/billingService.ts` (subscription CRUD, usage tracking, rate limits)
 - **API routes:** `app/api/billing/` — checkout, webhook, portal, subscription, usage
 - **Edge Functions:** `supabase/functions/_shared/billing-service.ts` (rate limit checks in Deno)
@@ -189,8 +189,6 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY= # Stripe publishable key (client-side)
 STRIPE_DAY_PASS_PRICE_ID=     # Stripe Price ID for Day Pass (one-time $9)
 STRIPE_PRO_MONTHLY_PRICE_ID=   # Stripe Price ID for Pro monthly
 STRIPE_PRO_YEARLY_PRICE_ID=    # Stripe Price ID for Pro yearly
-STRIPE_TEAM_MONTHLY_PRICE_ID=  # Stripe Price ID for Team monthly
-STRIPE_TEAM_YEARLY_PRICE_ID=   # Stripe Price ID for Team yearly
 ```
 
 ## Implementation Phases (from PRD Section 16)

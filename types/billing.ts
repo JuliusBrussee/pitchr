@@ -1,6 +1,6 @@
 /* ——— Billing & Subscription Types ——— */
 
-export type BillingPlanId = 'free' | 'day_pass' | 'pro' | 'team';
+export type BillingPlanId = 'free' | 'day_pass' | 'pro';
 
 export type BillingInterval = 'month' | 'year';
 

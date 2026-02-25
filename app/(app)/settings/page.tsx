@@ -239,7 +239,7 @@ export default function SettingsPage() {
 
   return (
     <main className="flex-1 overflow-y-auto pr-1">
-      <div className="max-w-2xl mx-auto py-8 px-2">
+      <div className="max-w-5xl mx-auto py-8 px-4">
         {/* Header */}
         <div className="flex items-center gap-3 mb-8 animate-fade-in-up" style={{ animationFillMode: 'backwards' }}>
           <Settings size={24} style={{ color: 'var(--text-primary)' }} />

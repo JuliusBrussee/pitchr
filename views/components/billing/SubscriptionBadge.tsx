@@ -10,8 +10,8 @@ interface SubscriptionBadgeProps {
 
 const PLAN_COLORS: Record<BillingPlanId, { bg: string; text: string }> = {
   free: { bg: 'rgba(156, 163, 175, 0.15)', text: '#9ca3af' },
+  day_pass: { bg: 'rgba(245, 158, 11, 0.12)', text: '#f59e0b' },
   pro: { bg: 'rgba(255, 89, 65, 0.12)', text: '#ff5941' },
-  team: { bg: 'rgba(139, 92, 246, 0.12)', text: '#8b5cf6' },
 };
 
 export function SubscriptionBadge({
