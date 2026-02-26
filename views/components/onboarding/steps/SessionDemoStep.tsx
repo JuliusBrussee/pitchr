@@ -18,12 +18,12 @@ export function SessionDemoStep({ onNext }: SessionDemoStepProps) {
   const animationRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const cycleRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const wpmRef = useRef(90);
 
   const CYCLE_DURATION = 8000;
 
   const startAnimations = useCallback(() => {
-    // Reset state
-    setWpm(90);
+    // Reset state (wpm is already at 90 from drop animation on loops, or starts at 90 on mount)
     setDuration(0);
     setFillers(0);
     setFillerFlash(false);
@@ -36,7 +36,9 @@ export function SessionDemoStep({ onNext }: SessionDemoStepProps) {
       const elapsed = now - startTimeRef.current;
       const progress = Math.min(elapsed / 4000, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setWpm(Math.round(90 + (142 - 90) * eased));
+      const newWpm = Math.round(90 + (142 - 90) * eased);
+      wpmRef.current = newWpm;
+      setWpm(newWpm);
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animateWpm);
       }
@@ -64,6 +66,33 @@ export function SessionDemoStep({ onNext }: SessionDemoStepProps) {
     cycleRef.current = durationTimers;
   }, []);
 
+  const animateWpmDrop = useCallback((onComplete: () => void) => {
+    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    const fromWpm = wpmRef.current;
+
+    // Brief pause before drop starts, then ease-in-out over 1800ms
+    const pauseTimer = setTimeout(() => {
+      const dropStart = performance.now();
+
+      const animateDrop = (now: number) => {
+        const t = Math.min((now - dropStart) / 1800, 1);
+        // Cubic ease-in-out: slow start, fast middle, slow landing
+        const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        const newWpm = Math.round(fromWpm - (fromWpm - 90) * eased);
+        wpmRef.current = newWpm;
+        setWpm(newWpm);
+        if (t < 1) {
+          animationRef.current = requestAnimationFrame(animateDrop);
+        } else {
+          onComplete();
+        }
+      };
+      animationRef.current = requestAnimationFrame(animateDrop);
+    }, 400);
+
+    cycleRef.current.push(pauseTimer);
+  }, []);
+
   useEffect(() => {
     startAnimations();
 
@@ -72,11 +101,10 @@ export function SessionDemoStep({ onNext }: SessionDemoStepProps) {
     const c2 = setTimeout(() => setCalloutVisible([true, true, false]), 1200);
     const c3 = setTimeout(() => setCalloutVisible([true, true, true]), 1800);
 
-    // Loop every 8s
+    // Loop every 8s: smoothly drop WPM back to 90, then restart
     const loopInterval = setInterval(() => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
       cycleRef.current.forEach(clearTimeout);
-      startAnimations();
+      animateWpmDrop(() => startAnimations());
     }, CYCLE_DURATION);
 
     return () => {
@@ -87,7 +115,7 @@ export function SessionDemoStep({ onNext }: SessionDemoStepProps) {
       clearTimeout(c3);
       clearInterval(loopInterval);
     };
-  }, [startAnimations]);
+  }, [startAnimations, animateWpmDrop]);
 
   const formatDuration = (s: number) => `0:${String(s).padStart(2, '0')}`;
 

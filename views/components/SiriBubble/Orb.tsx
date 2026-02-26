@@ -12,9 +12,17 @@ interface OrbProps {
   state: OrbState;
   intensity: number;
   opacity: number;
+  fresnelPower?: number;
+  filmThickness?: number;
 }
 
-export function Orb({ state, intensity, opacity }: OrbProps) {
+export function Orb({
+  state,
+  intensity,
+  opacity,
+  fresnelPower = 2.5,
+  filmThickness = 0.6,
+}: OrbProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);
 
@@ -26,6 +34,8 @@ export function Orb({ state, intensity, opacity }: OrbProps) {
     displacement: ANIMATION_MAP[state].displacement,
     intensity,
     opacity,
+    fresnelPower,
+    filmThickness,
   });
 
   // Update targets when props change
@@ -35,6 +45,8 @@ export function Orb({ state, intensity, opacity }: OrbProps) {
   targets.current.displacement = ANIMATION_MAP[state].displacement;
   targets.current.intensity = intensity;
   targets.current.opacity = opacity;
+  targets.current.fresnelPower = fresnelPower;
+  targets.current.filmThickness = filmThickness;
 
   const uniforms = useMemo(
     () => ({
@@ -45,6 +57,8 @@ export function Orb({ state, intensity, opacity }: OrbProps) {
       uColorPrimary: { value: new THREE.Color(COLOR_MAP[state].primary) },
       uColorSecondary: { value: new THREE.Color(COLOR_MAP[state].secondary) },
       uOpacity: { value: opacity },
+      uFresnelPower: { value: fresnelPower },
+      uFilmThickness: { value: filmThickness },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [] // Intentionally empty — uniforms are mutated in useFrame
@@ -65,6 +79,8 @@ export function Orb({ state, intensity, opacity }: OrbProps) {
     u.uDisplacement.value += (t.displacement - u.uDisplacement.value) * lerp;
     u.uIntensity.value += (t.intensity - u.uIntensity.value) * lerp;
     u.uOpacity.value += (t.opacity - u.uOpacity.value) * lerp;
+    u.uFresnelPower.value += (t.fresnelPower - u.uFresnelPower.value) * lerp;
+    u.uFilmThickness.value += (t.filmThickness - u.uFilmThickness.value) * lerp;
     u.uColorPrimary.value.lerp(t.colorPrimary, lerp);
     u.uColorSecondary.value.lerp(t.colorSecondary, lerp);
 
@@ -88,7 +104,7 @@ export function Orb({ state, intensity, opacity }: OrbProps) {
         uniforms={uniforms}
         transparent
         depthWrite={false}
-        side={THREE.DoubleSide}
+        side={THREE.FrontSide}
       />
     </mesh>
   );

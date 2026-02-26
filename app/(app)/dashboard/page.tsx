@@ -29,6 +29,7 @@ import {
   SkeletonStatRow,
   SkeletonCard,
   SkeletonListRow,
+  useDelayedLoading,
   getModeColor,
   getModeBgColor,
   getModeLabel,
@@ -114,6 +115,8 @@ export default function DashboardPage() {
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('dashboard');
   const statsRef = useRef<HTMLDivElement | null>(null);
+
+  const showSkeleton = useDelayedLoading(loading);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -212,20 +215,22 @@ export default function DashboardPage() {
 
         {/* ——— Stat Cards Row ——— */}
         {loading ? (
-          <>
-            <SkeletonStatRow />
-            <SkeletonStatRow />
-            <div className="grid grid-cols-2 gap-4">
-              <SkeletonCard />
-              <SkeletonCard />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Skeleton className="h-5 w-28 mb-2" />
-              <SkeletonListRow />
-              <SkeletonListRow />
-              <SkeletonListRow />
-            </div>
-          </>
+          showSkeleton ? (
+            <>
+              <SkeletonStatRow />
+              <SkeletonStatRow />
+              <div className="grid grid-cols-2 gap-4">
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-5 w-28 mb-2" />
+                <SkeletonListRow />
+                <SkeletonListRow />
+                <SkeletonListRow />
+              </div>
+            </>
+          ) : null
         ) : totalRuns === 0 ? (
           <GlassCard animationDelay="0.26s">
             <EmptyState

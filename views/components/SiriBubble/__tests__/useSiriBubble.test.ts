@@ -6,7 +6,7 @@ describe('useSiriBubble', () => {
   it('returns idle state and default intensity by default', () => {
     const { result } = renderHook(() => useSiriBubble());
     expect(result.current.props.state).toBe('idle');
-    expect(result.current.props.intensity).toBe(0.5);
+    expect(result.current.props.intensity).toBe(0.35);
   });
 
   it('accepts custom initial state and intensity', () => {

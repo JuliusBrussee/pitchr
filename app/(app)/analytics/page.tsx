@@ -18,6 +18,7 @@ import {
   Skeleton,
   SkeletonStatRow,
   SkeletonCard,
+  useDelayedLoading,
 } from '@/views/components/ui';
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
@@ -547,6 +548,7 @@ export default function AnalyticsPage() {
   const [fetchError, setFetchError] = useState(false);
   const { showTooltip } = useSmartTooltip();
   const analyticsRef = useRef<HTMLDivElement | null>(null);
+  const showSkeleton = useDelayedLoading(loading);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -607,25 +609,27 @@ export default function AnalyticsPage() {
       </div>
 
       {loading ? (
-        <>
-          <div className="grid grid-cols-4 gap-4">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className="rounded-2xl border p-4"
-                style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-              >
-                <Skeleton className="h-3 w-16 mb-2" />
-                <Skeleton className="h-6 w-20" />
-              </div>
-            ))}
-          </div>
-          <SkeletonCard />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        showSkeleton ? (
+          <>
+            <div className="grid grid-cols-4 gap-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border p-4"
+                  style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+                >
+                  <Skeleton className="h-3 w-16 mb-2" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
+              ))}
+            </div>
             <SkeletonCard />
-            <SkeletonCard />
-          </div>
-        </>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          </>
+        ) : null
       ) : (
       <>
       {/* Top Stats Row */}

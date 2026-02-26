@@ -20,6 +20,7 @@ import {
   SearchInput,
   EmptyState,
   SkeletonListRow,
+  useDelayedLoading,
   getModeColor,
   getModeBgColor,
   getModeLabel,
@@ -118,6 +119,7 @@ export default function HistoryPage() {
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('history');
   const runListRef = useRef<HTMLDivElement | null>(null);
+  const showSkeleton = useDelayedLoading(loading);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -309,11 +311,13 @@ export default function HistoryPage() {
       {/* ——— Session List / Grid ——— */}
       <GlassCard ref={runListRef} data-tour="tour-history-runs" className="flex-1 overflow-y-auto" animate={false}>
         {loading ? (
-          <div className="flex flex-col gap-2">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <SkeletonListRow key={i} />
-            ))}
-          </div>
+          showSkeleton ? (
+            <div className="flex flex-col gap-2">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <SkeletonListRow key={i} />
+              ))}
+            </div>
+          ) : null
         ) : Object.keys(groupedVisible).length === 0 ? (
           <>
             <EmptyState

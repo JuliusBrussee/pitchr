@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'pitchr_onboarding';
 const TOUR_PREFIX = 'pitchr-tour-seen:';
@@ -36,13 +36,10 @@ function persistState(state: OnboardingState): void {
 }
 
 export function useOnboarding() {
-  const [state, setState] = useState<OnboardingState>(DEFAULTS);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    setState(loadState());
-    setLoaded(true);
-  }, []);
+  // Load synchronously from localStorage to avoid an extra render cycle.
+  // loadState() returns DEFAULTS during SSR (typeof window === 'undefined').
+  const [state, setState] = useState<OnboardingState>(() => loadState());
+  const loaded = true;
 
   const complete = useCallback((name: string, mode: 'elevator' | 'vc_pitch') => {
     const next: OnboardingState = {

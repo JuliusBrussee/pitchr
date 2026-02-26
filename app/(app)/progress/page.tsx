@@ -21,6 +21,7 @@ import {
   Skeleton,
   SkeletonStatRow,
   SkeletonCard,
+  useDelayedLoading,
 } from '@/views/components/ui';
 import {
   ProgressKanban,
@@ -128,12 +129,15 @@ export default function ProgressPage() {
     if (runs.length > 0) achievements.processRuns(runs);
   }, [runs, achievements.processRuns]);
 
+  const showSkeleton = useDelayedLoading(loading);
+
   const latestScore =
     progress.overallTrend.length > 0
       ? progress.overallTrend[progress.overallTrend.length - 1].score
       : 0;
 
   if (loading) {
+    if (!showSkeleton) return <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1" />;
     return (
       <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
         <Skeleton className="h-8 w-40" />

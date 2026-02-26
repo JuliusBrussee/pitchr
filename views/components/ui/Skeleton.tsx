@@ -1,7 +1,28 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+
 interface SkeletonProps {
   className?: string;
+}
+
+/**
+ * Delays rendering of skeleton UI to prevent flicker on fast loads.
+ * If data arrives within the delay window, skeletons are never shown.
+ */
+export function useDelayedLoading(loading: boolean, delayMs = 150): boolean {
+  const [showSkeleton, setShowSkeleton] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      setShowSkeleton(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowSkeleton(true), delayMs);
+    return () => clearTimeout(timer);
+  }, [loading, delayMs]);
+
+  return showSkeleton;
 }
 
 export function Skeleton({ className = '' }: SkeletonProps) {

@@ -8,27 +8,27 @@ export const SIZE_MAP: Record<string, number> = {
 };
 
 export const COLOR_MAP: Record<OrbState, OrbColors> = {
-  idle:     { primary: '#6B21A8', secondary: '#2563EB' },
-  active:   { primary: '#06B6D4', secondary: '#3B82F6' },
-  positive: { primary: '#22C55E', secondary: '#10B981' },
-  negative: { primary: '#EF4444', secondary: '#F97316' },
-  neutral:  { primary: '#EAB308', secondary: '#F59E0B' },
+  idle:     { primary: '#FF8C42', secondary: '#FFB347' },   // orange
+  active:   { primary: '#FF6B2B', secondary: '#FFA040' },   // warm orange
+  positive: { primary: '#34D399', secondary: '#6EE7B7' },   // green
+  negative: { primary: '#F87171', secondary: '#FCA5A5' },   // red (soft)
+  neutral:  { primary: '#FBBF24', secondary: '#FCD34D' },   // amber
 };
 
 export const ANIMATION_MAP: Record<OrbState, OrbAnimationConfig> = {
-  idle:     { speed: 0.3,  displacement: 0.15 },
-  active:   { speed: 0.5,  displacement: 0.25 },
-  positive: { speed: 0.7,  displacement: 0.35 },
-  negative: { speed: 0.6,  displacement: 0.20 },
-  neutral:  { speed: 0.4,  displacement: 0.20 },
+  idle:     { speed: 0.2,  displacement: 0.08 },
+  active:   { speed: 0.35, displacement: 0.12 },
+  positive: { speed: 0.4,  displacement: 0.15 },
+  negative: { speed: 0.35, displacement: 0.10 },
+  neutral:  { speed: 0.25, displacement: 0.10 },
 };
 
 export const DEFAULTS = {
-  intensity: 0.5,
+  intensity: 0.20,
   size: 'md' as const,
-  opacity: 0.85,
+  opacity: 0.75,
   lerpSpeed: 0.03,
-  breatheAmplitude: 0.02,
-  breathePeriod: 3.0,
+  breatheAmplitude: 0.015,
+  breathePeriod: 4.0,
   sphereDetail: 64,
 };
