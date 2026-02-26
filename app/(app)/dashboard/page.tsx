@@ -13,6 +13,7 @@ import {
   Mic,
 } from 'lucide-react';
 import { useToast } from '@/views/components/Toast';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import {
   GlassCard,
   StatCard,
@@ -107,6 +108,7 @@ export default function DashboardPage() {
   const [formattedDate, setFormattedDate] = useState('');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const { state: onboardingState } = useOnboarding();
   const [fetchError, setFetchError] = useState(false);
   const { toast } = useToast();
 
@@ -173,7 +175,7 @@ export default function DashboardPage() {
               className="text-2xl font-bold mb-1"
               style={{ color: 'var(--text-primary)' }}
             >
-              {greeting}, Founder
+              {greeting}{onboardingState.displayName ? `, ${onboardingState.displayName}` : ', Founder'}
             </h1>
             <p
               className="text-sm flex items-center gap-1.5"

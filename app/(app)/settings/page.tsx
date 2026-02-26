@@ -16,13 +16,17 @@ import {
   Moon,
   Monitor,
   Settings,
+  RotateCcw,
+  MessageCircle,
 } from 'lucide-react';
 import { useTheme, type ThemePreference } from '@/views/components/ThemeProvider';
 import { useSettings } from '@/hooks/useSettings';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useBilling } from '@/hooks/useBilling';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { AchievementGrid } from '@/views/components/achievements';
 import { SubscriptionBadge, UsageBar, PlanCard } from '@/views/components/billing';
+import { useRouter } from 'next/navigation';
 import { getAllPlans } from '@/config/billing';
 import type { BillingPlanId, BillingInterval } from '@/types/billing';
 import type { ProgressRunRecord } from '@/lib/progress';
@@ -128,10 +132,12 @@ function SettingRow({
 /* ——— Page ——— */
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { isDark, preference, setTheme } = useTheme();
   const { settings, adjustTimer, update } = useSettings();
   const achievements = useAchievements();
   const billing = useBilling();
+  const onboarding = useOnboarding();
 
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
@@ -260,6 +266,50 @@ export default function SettingsPage() {
           {/* ——— Achievements Showcase ——— */}
           <SectionCard icon={Award} title="Achievements" delay={60} id="achievements" iconColor="#eab308">
             <AchievementGrid state={achievements.state} />
+          </SectionCard>
+
+          {/* ——— Onboarding & Tips ——— */}
+          <SectionCard icon={RotateCcw} title="Onboarding & Tips" delay={75} iconColor="#3b82f6">
+            <SettingRow label="Replay onboarding" description="Walk through the product introduction again">
+              <button
+                onClick={() => {
+                  onboarding.reset();
+                  router.push('/setup');
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                style={{
+                  color: '#3b82f6',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  backgroundColor: 'transparent',
+                }}
+              >
+                <RotateCcw size={13} />
+                Replay
+              </button>
+            </SettingRow>
+
+            <div className="h-px my-1" style={{ backgroundColor: 'var(--border-color)' }} />
+
+            <SettingRow label="Reset page tips" description="Show coach tips again on each page">
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    const keys = Object.keys(localStorage).filter((k) => k.startsWith('pitchr-toast-seen:'));
+                    keys.forEach((k) => localStorage.removeItem(k));
+                  }
+                  alert('Page tips have been reset.');
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
+                style={{
+                  color: '#3b82f6',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  backgroundColor: 'transparent',
+                }}
+              >
+                <MessageCircle size={13} />
+                Reset Tips
+              </button>
+            </SettingRow>
           </SectionCard>
 
           {/* ——— Billing & Subscription ——— */}
