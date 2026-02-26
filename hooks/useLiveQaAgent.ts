@@ -382,6 +382,11 @@ export function useLiveQaAgent({
 
         const elapsed = (Date.now() - startedAt) / 1000;
         setElapsedSeconds(elapsed);
+
+        // Hard stop at duration limit — no overtime allowed
+        if (elapsed >= durationLimitSeconds) {
+          stopSession('completed');
+        }
       }, 200);
 
       const initPayload = {

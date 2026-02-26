@@ -4,13 +4,12 @@
 // URL pattern: /qna-session-complete?qaSessionId=<uuid>
 
 import { handleCors } from '../_shared/cors.ts';
-import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
+import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { completeQASession, getQASession } from '../_shared/qna-session-service.ts';
 import { getConversation } from '../_shared/elevenlabs-convai.ts';
+import { recordQaSecondsUsage } from '../_shared/billing-service.ts';
 import type { QATurn } from '../_shared/types.ts';
-
-const QA_DURATION_LIMIT_SECONDS = 60;
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
@@ -78,7 +77,7 @@ Deno.serve(async (req: Request) => {
   const payload = body as any;
 
   try {
-    const { supabase } = await getAuthenticatedUser(req);
+    const { supabase, user } = await getAuthenticatedUser(req);
     const session = await getQASession(supabase, qaSessionId);
     if (!session) {
       return errorResponse('QA session not found.', 404);
@@ -116,8 +115,28 @@ Deno.serve(async (req: Request) => {
             Math.round((Date.now() - Date.parse(session.startedAt)) / 1000),
           );
 
-    const capCompliant = durationSeconds <= QA_DURATION_LIMIT_SECONDS;
-    const finalStatus = payload.status ?? (capCompliant ? 'completed' : 'expired');
+    // Read grace period from session meta (set during creation)
+    const gracePeriodSeconds =
+      typeof (session.meta as Record<string, unknown>)?.grace_period_seconds === 'number'
+        ? (session.meta as Record<string, unknown>).grace_period_seconds as number
+        : 10;
+
+    const durationLimitSeconds =
+      typeof (session.meta as Record<string, unknown>)?.duration_limit_seconds === 'number'
+        ? (session.meta as Record<string, unknown>).duration_limit_seconds as number
+        : 60;
+
+    const withinBudget = durationSeconds <= durationLimitSeconds;
+    const isGracePeriod = durationSeconds <= gracePeriodSeconds;
+    const finalStatus = payload.status ?? 'completed';
+
+    // Deduct actual seconds used from budget (skip grace period sessions)
+    const adminClient = createAdminClient();
+    const billableSeconds = isGracePeriod ? 0 : Math.round(durationSeconds);
+
+    if (billableSeconds > 0) {
+      await recordQaSecondsUsage(adminClient, user.id, billableSeconds);
+    }
 
     const qaSession = await completeQASession(supabase, qaSessionId, {
       status: finalStatus,
@@ -130,7 +149,9 @@ Deno.serve(async (req: Request) => {
         ...(session.meta ?? {}),
         ...(payload.meta ?? {}),
         ...conversationMeta,
-        qa_cap_compliant: capCompliant,
+        qa_within_budget: withinBudget,
+        billable_seconds: billableSeconds,
+        grace_period_applied: isGracePeriod,
       },
     });
 

@@ -318,7 +318,7 @@ export default function SettingsPage() {
                     </p>
                     <UsageBar label="Pitch Analyses" used={billing.usage.runsUsed} limit={billing.usage.runsLimit} />
                     <UsageBar label="Deck Uploads" used={billing.usage.decksUsed} limit={billing.usage.decksLimit} />
-                    <UsageBar label="Q&A Sessions" used={billing.usage.qaSessionsUsed} limit={billing.usage.qaSessionsLimit} />
+                    <UsageBar label="Q&A Time (seconds)" used={billing.usage.qaSecondsUsed} limit={billing.usage.qaSecondsLimit} />
                   </div>
                 )}
 

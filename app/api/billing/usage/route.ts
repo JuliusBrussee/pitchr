@@ -13,9 +13,9 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const resource = url.searchParams.get('resource');
 
-    if (resource !== 'runs' && resource !== 'decks' && resource !== 'qa_sessions') {
+    if (resource !== 'runs' && resource !== 'decks' && resource !== 'qa_seconds') {
       return NextResponse.json(
-        { error: 'Invalid resource. Must be "runs", "decks", or "qa_sessions".' },
+        { error: 'Invalid resource. Must be "runs", "decks", or "qa_seconds".' },
         { status: 400 },
       );
     }

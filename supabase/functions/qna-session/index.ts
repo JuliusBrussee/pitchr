@@ -8,9 +8,7 @@ import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { createQASession } from '../_shared/qna-session-service.ts';
 import { getSignedUrl, ElevenLabsConvaiError } from '../_shared/elevenlabs-convai.ts';
 import { getRun } from '../_shared/run-service.ts';
-import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
-
-const QA_DURATION_LIMIT_SECONDS = 60;
+import { getQaBudget } from '../_shared/billing-service.ts';
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
@@ -33,7 +31,7 @@ function buildQaAgentSystemPrompt(input: {
     : '';
 
   return [
-    'You are a venture investor conducting a 1-minute rapid-fire Q&A.',
+    'You are a venture investor conducting a rapid-fire Q&A.',
     `Time limit: ${timeLimit} seconds. Be concise.`,
     weakCats,
     '',
@@ -57,7 +55,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse('Invalid JSON body.', 400);
   }
 
-  const payload = body as { runId?: string };
+  const payload = body as { runId?: string; selectedDurationSeconds?: number };
   const runId = typeof payload.runId === 'string' ? payload.runId.trim() : '';
   if (!runId || !isUuid(runId)) {
     return errorResponse('runId must be a valid UUID.', 400);
@@ -71,15 +69,29 @@ Deno.serve(async (req: Request) => {
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
 
-    // Rate limit check
+    // Get Q&A budget info for this user
     const adminClient = createAdminClient();
-    const usageCheck = await checkUsageLimit(adminClient, user.id, 'qa_session');
-    if (!usageCheck.allowed) {
+    const budget = await getQaBudget(adminClient, user.id);
+
+    if (!budget.allowed) {
       return errorResponse(
-        `QA session limit reached (${usageCheck.used}/${usageCheck.limit}). Upgrade your plan for more sessions.`,
+        `Q&A time budget exhausted (${Math.floor(budget.usedSeconds / 60)}m ${budget.usedSeconds % 60}s / ${budget.budgetSeconds ? `${Math.floor(budget.budgetSeconds / 60)}m` : '\u221e'}). Upgrade your plan for more Q&A time.`,
         429,
       );
     }
+
+    // Validate and clamp selected duration against plan limits
+    const requestedDuration =
+      typeof payload.selectedDurationSeconds === 'number' && payload.selectedDurationSeconds > 0
+        ? Math.round(payload.selectedDurationSeconds)
+        : budget.defaultDurationSeconds;
+
+    const durationLimitSeconds = Math.min(
+      requestedDuration,
+      budget.maxSessionSeconds,
+      // Don't exceed remaining budget
+      budget.remainingSeconds !== null ? budget.remainingSeconds : Infinity,
+    );
 
     // Build context from the run
     const run = await getRun(supabase, runId);
@@ -96,7 +108,7 @@ Deno.serve(async (req: Request) => {
     const qaSystemPrompt = buildQaAgentSystemPrompt({
       starterContext,
       weakestCategories,
-      timeLimitSeconds: QA_DURATION_LIMIT_SECONDS,
+      timeLimitSeconds: durationLimitSeconds,
     });
 
     const signed = await getSignedUrl(agentId, true);
@@ -105,21 +117,28 @@ Deno.serve(async (req: Request) => {
       userId: user.id,
       status: 'active',
       conversationId: signed.conversationId,
-      durationLimitSeconds: QA_DURATION_LIMIT_SECONDS,
+      durationLimitSeconds,
       meta: {
         starter_context: qaSystemPrompt,
+        requested_duration_seconds: requestedDuration,
+        plan_max_session_seconds: budget.maxSessionSeconds,
+        grace_period_seconds: budget.gracePeriodSeconds,
       },
     });
-
-    // Record usage after successful creation
-    await recordUsageEvent(adminClient, user.id, 'qa_session');
 
     return jsonResponse({
       qaSessionId: qaSession.id,
       signedUrl: signed.signedUrl,
       conversationId: signed.conversationId,
-      durationLimitSeconds: QA_DURATION_LIMIT_SECONDS,
+      durationLimitSeconds,
       starterContext: qaSystemPrompt,
+      qaBudget: {
+        budgetSeconds: budget.budgetSeconds,
+        usedSeconds: budget.usedSeconds,
+        remainingSeconds: budget.remainingSeconds,
+        maxSessionSeconds: budget.maxSessionSeconds,
+        gracePeriodSeconds: budget.gracePeriodSeconds,
+      },
     }, 201);
   } catch (error) {
     if (error instanceof ElevenLabsConvaiError) {
