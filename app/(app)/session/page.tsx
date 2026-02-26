@@ -247,6 +247,13 @@ function SessionPageContent() {
       setAnalysisError('Transcript was saved but no text was captured for analysis.');
       return;
     }
+    const MAX_TRANSCRIPT_CHARS = 50_000;
+    if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+      autoSubmitLockRef.current = true;
+      setShowAnalyzing(false);
+      setAnalysisError(`Transcript is too long (${transcript.length.toLocaleString()} chars). Maximum is ${MAX_TRANSCRIPT_CHARS.toLocaleString()} characters.`);
+      return;
+    }
 
     autoSubmitLockRef.current = true;
     session.setOrbState('active');

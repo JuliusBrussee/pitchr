@@ -10,28 +10,32 @@
 - [x] **Retry UX** — "Try Again" buttons on all data pages when fetch fails
 - [x] **Sentry error monitoring** — `@sentry/nextjs` integrated, opt-in via `NEXT_PUBLIC_SENTRY_DSN` env var
 - [x] **Global error boundary** — `app/global-error.tsx` catches unhandled errors, reports to Sentry, shows retry
+- [x] **GA4 analytics** — Google Analytics 4 script added to `app/layout.tsx`, opt-in via `NEXT_PUBLIC_GA_MEASUREMENT_ID` env var
+- [x] **WebSocket disconnect handling** — STT WebSocket `onclose` now detects unclean disconnects mid-recording and surfaces error message
+- [x] **Browser back during analysis** — `beforeunload` event prevents accidental navigation during pitch analysis
+- [x] **Skeleton loading states** — Shimmer skeleton components on Dashboard, History, Analytics, Progress pages
+- [x] **Delete confirmation** — `window.confirm` dialog before deleting pitch runs on History page
+- [x] **Camera/mic permission denied** — Human-readable error messages for NotAllowedError, NotFoundError, NotReadableError
+- [x] **Lazy load Three.js orb** — `next/dynamic` with `ssr: false` for SiriBubble on demo page
+- [x] **Debounce rapid form submissions** — 1s debounce guard on StartSessionButton prevents double-clicks
+- [x] **Max transcript length** — 50,000 character limit prevents extremely long pitches from hitting LLM token limits
+- [x] **RecordingPlayer autoplay catch** — Comment added explaining browser autoplay policy
+- [x] **InvestorDrill billing catch** — Comment added explaining best-effort budget fetch
+- [x] **Structured data (JSON-LD)** — SoftwareApplication schema.org markup in `app/layout.tsx`
+- [x] **Canonical tags** — `alternates.canonical` added to metadata in `app/layout.tsx`
+- [x] **MediaStream cleanup** — Extra cleanup effect ensures all tracks are stopped on stream change / unmount
 
 ## High Priority
 
 - [ ] **Set up Sentry project** — Create account at sentry.io, add `NEXT_PUBLIC_SENTRY_DSN` to production env
-- [ ] **GA4 analytics** — Add Google Analytics for funnel tracking (landing → signup → first pitch → results)
 - [ ] **OG image** — Design and add `og:image` for social sharing previews (1200x630px)
-- [ ] **WebSocket disconnect handling** — Surface warning in UI when STT WebSocket drops mid-recording, add reconnection logic
-- [ ] **Browser back during analysis** — Add `beforeunload` warning when pitch is being analyzed
-- [ ] **Skeleton loading states** — Replace "Loading..." text with skeleton shimmer on Dashboard, History, Analytics, Progress
-- [ ] **Delete confirmation** — Add confirm dialog before deleting pitch runs (History page)
-- [ ] **Camera/mic permission denied** — Show clear UI guidance when `getUserMedia` fails (currently shows error string)
+- [ ] **Favicon** — No favicon in `/public` — design and add `favicon.ico` + `apple-touch-icon.png`
 
 ## Medium Priority
 
-- [ ] **Lazy load Three.js orb** — Dynamic import for `SiriBubble` to reduce initial bundle (~224 KB on /demo)
 - [ ] **Pagination on analytics/dashboard** — Currently loads all runs at once; add server-side pagination
-- [ ] **Debounce rapid form submissions** — Prevent double-clicks on "Start Session", deck upload, etc.
-- [ ] **Empty transcript guard** — Validate transcript is non-empty before submitting for analysis
-- [ ] **Max transcript length** — Add character limit to prevent extremely long pitches from hitting LLM token limits
+- [ ] **Empty transcript guard** — Validate transcript is non-empty before submitting for analysis (partially covered — empty check exists, but no UI guard for text input mode)
 - [ ] **Session resume on reload** — Persist session state so page refresh doesn't lose in-progress recording
-- [ ] **RecordingPlayer autoplay catch** — `videoRef.current.play().catch(() => {})` in RecordingPlayer needs comment
-- [ ] **InvestorDrill billing catch** — Silent catch on `/api/billing/usage` fetch (low impact, optional feature)
 - [ ] **Orb state deduplication** — `orbState` is duplicated between `useSessionState` and `ThemeProvider` context
 
 ## Low Priority / Post-Launch
@@ -42,9 +46,5 @@
 - [ ] **Service worker / offline detection** — Graceful degradation when network is unavailable
 - [ ] **Lighthouse audit** — Run performance audit, optimize Core Web Vitals
 - [ ] **Bundle analysis** — `@react-pdf/renderer` is heavy; evaluate lazy loading or code splitting
-- [ ] **Structured data (JSON-LD)** — Add schema.org markup for better SEO
-- [ ] **Canonical tags** — Add canonical URLs to prevent duplicate content issues
-- [ ] **Favicon** — Verify favicon is present in `/public` directory
-- [ ] **MediaStream cleanup** — Known issue: stream not fully released on unmount (memory leak on nav away)
 - [ ] **Speech bubbles overflow** — Grow indefinitely in long sessions
 - [ ] **ElevenLabs TTS** — `services/elevenlabs/` is empty; implement coach voice (Tier 1 feature)

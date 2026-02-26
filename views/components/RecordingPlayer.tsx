@@ -26,6 +26,7 @@ export const RecordingPlayer = forwardRef<RecordingPlayerHandle, RecordingPlayer
     const seekTo = (seconds: number) => {
       if (!videoRef.current || !Number.isFinite(seconds) || seconds < 0) return;
       videoRef.current.currentTime = seconds;
+      // Autoplay may be blocked by browser policy — safe to ignore
       videoRef.current.play().catch(() => {});
     };
 

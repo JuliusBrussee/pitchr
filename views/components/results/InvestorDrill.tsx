@@ -31,7 +31,9 @@ export function InvestorDrill({ qaPack, runId }: InvestorDrillProps) {
         setIsExhausted(remaining !== null && remaining <= 0);
         setIsLow(remaining !== null && remaining > 0 && remaining < 120);
       })
-      .catch(() => {});
+      .catch(() => {
+        // Budget fetch is best-effort — Q&A drill still works without it
+      });
   }, []);
 
   return (

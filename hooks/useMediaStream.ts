@@ -63,9 +63,20 @@ export function useMediaStream(): UseMediaStreamReturn {
 
     return () => {
       active = false;
-      currentStream?.getTracks().forEach(t => t.stop());
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+      }
     };
   }, []);
+
+  // Ensure all tracks are stopped on unmount (covers stream updates after init)
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, [stream]);
 
   // Sync video element when stream changes
   useEffect(() => {
