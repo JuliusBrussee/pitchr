@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/views/components/AuthProvider';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { OnboardingFlow } from '@/views/components/onboarding';
 
-export default function SetupPage() {
+function SetupPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
@@ -46,5 +46,13 @@ export default function SetupPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function SetupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SetupPageInner />
+    </Suspense>
   );
 }
