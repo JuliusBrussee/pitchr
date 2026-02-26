@@ -21,10 +21,14 @@ function buildFeatureList(plan: BillingPlan): string[] {
       ? 'Unlimited deck uploads'
       : `${limits.decksPerPeriod} deck upload${limits.decksPerPeriod !== 1 ? 's' : ''}${periodLabel}`,
   );
+  const qaMinutes = limits.qaSecondsPerPeriod !== null ? Math.floor(limits.qaSecondsPerPeriod / 60) : null;
   features.push(
-    limits.qaSessionsPerPeriod === null
-      ? 'Unlimited Q&A sessions'
-      : `${limits.qaSessionsPerPeriod} Q&A session${limits.qaSessionsPerPeriod !== 1 ? 's' : ''}${periodLabel}`,
+    qaMinutes === null
+      ? 'Unlimited Q&A time'
+      : `${qaMinutes} min Q&A time${periodLabel}`,
+  );
+  features.push(
+    `Up to ${Math.floor(limits.maxQaSessionSeconds / 60)}:${String(limits.maxQaSessionSeconds % 60).padStart(2, '0')} per session`,
   );
   if (limits.sectionFeedback) features.push('Section-level feedback');
   if (limits.vocabularyMetrics) features.push('Vocabulary analytics');

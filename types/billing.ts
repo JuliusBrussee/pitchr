@@ -18,8 +18,12 @@ export interface PlanLimits {
   runsPerPeriod: number | null;
   /** Max deck uploads per billing period (null = unlimited) */
   decksPerPeriod: number | null;
-  /** Max Q&A sessions per billing period (null = unlimited) */
-  qaSessionsPerPeriod: number | null;
+  /** Total Q&A seconds budget per billing period (null = unlimited) */
+  qaSecondsPerPeriod: number | null;
+  /** Max duration of a single Q&A session in seconds */
+  maxQaSessionSeconds: number;
+  /** Sessions shorter than this are free (handles disconnects/mic failures) */
+  qaGracePeriodSeconds: number;
   /** Max concurrent in-flight runs */
   maxConcurrentRuns: number;
   /** Whether section-level feedback is available */
@@ -65,8 +69,8 @@ export interface DayPass {
   runsLimit: number;
   decksUsed: number;
   decksLimit: number;
-  qaSessionsUsed: number;
-  qaSessionsLimit: number;
+  qaSecondsUsed: number;
+  qaSecondsLimit: number;
   stripePaymentIntentId: string | null;
   status: 'active' | 'expired' | 'exhausted';
 }
@@ -92,15 +96,34 @@ export interface UsagePeriod {
   periodEnd: string;
   runsUsed: number;
   decksUsed: number;
-  qaSessionsUsed: number;
+  qaSecondsUsed: number;
 }
 
 export interface UsageCheckResult {
   allowed: boolean;
-  resource: 'runs' | 'decks' | 'qa_sessions';
+  resource: 'runs' | 'decks' | 'qa_seconds';
   used: number;
   limit: number | null;
   remaining: number | null;
+  planId: BillingPlanId;
+}
+
+export interface QaBudgetInfo {
+  /** Total seconds budget for the current period */
+  budgetSeconds: number | null;
+  /** Seconds already used this period */
+  usedSeconds: number;
+  /** Seconds remaining (null = unlimited) */
+  remainingSeconds: number | null;
+  /** Max duration for a single session (seconds) */
+  maxSessionSeconds: number;
+  /** Sessions shorter than this are free */
+  gracePeriodSeconds: number;
+  /** Duration options available for session selection */
+  durationOptions: number[];
+  /** Default/recommended session duration */
+  defaultDurationSeconds: number;
+  /** Current plan ID */
   planId: BillingPlanId;
 }
 

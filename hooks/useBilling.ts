@@ -18,8 +18,8 @@ interface UsageInfo {
   runsLimit: number | null;
   decksUsed: number;
   decksLimit: number | null;
-  qaSessionsUsed: number;
-  qaSessionsLimit: number | null;
+  qaSecondsUsed: number;
+  qaSecondsLimit: number | null;
   periodStart: string;
   periodEnd: string;
 }
@@ -27,7 +27,9 @@ interface UsageInfo {
 interface PlanLimitsInfo {
   runsPerPeriod: number | null;
   decksPerPeriod: number | null;
-  qaSessionsPerPeriod: number | null;
+  qaSecondsPerPeriod: number | null;
+  maxQaSessionSeconds: number;
+  qaGracePeriodSeconds: number;
   maxConcurrentRuns: number;
   sectionFeedback: boolean;
   vocabularyMetrics: boolean;
@@ -129,7 +131,7 @@ export function useBilling() {
   }, []);
 
   const checkUsage = useCallback(
-    async (resource: 'runs' | 'decks' | 'qa_sessions') => {
+    async (resource: 'runs' | 'decks' | 'qa_seconds') => {
       const res = await fetch(`/api/billing/usage?resource=${resource}`);
       if (!res.ok) throw new Error('Usage check failed');
       return res.json();

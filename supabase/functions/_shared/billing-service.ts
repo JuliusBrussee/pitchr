@@ -13,7 +13,9 @@ export type BillingPlanId = 'free' | 'day_pass' | 'pro';
 interface PlanLimits {
   runsPerPeriod: number | null;
   decksPerPeriod: number | null;
-  qaSessionsPerPeriod: number | null;
+  qaSecondsPerPeriod: number | null;
+  maxQaSessionSeconds: number;
+  qaGracePeriodSeconds: number;
 }
 
 /**
@@ -22,9 +24,9 @@ interface PlanLimits {
  * the Next.js codebase.
  */
 const PLAN_LIMITS: Record<BillingPlanId, PlanLimits> = {
-  free: { runsPerPeriod: 3, decksPerPeriod: 1, qaSessionsPerPeriod: 1 },
-  day_pass: { runsPerPeriod: 15, decksPerPeriod: 5, qaSessionsPerPeriod: 5 },
-  pro: { runsPerPeriod: 50, decksPerPeriod: 20, qaSessionsPerPeriod: 30 },
+  free: { runsPerPeriod: 3, decksPerPeriod: 1, qaSecondsPerPeriod: 120, maxQaSessionSeconds: 60, qaGracePeriodSeconds: 10 },
+  day_pass: { runsPerPeriod: 15, decksPerPeriod: 5, qaSecondsPerPeriod: 600, maxQaSessionSeconds: 120, qaGracePeriodSeconds: 10 },
+  pro: { runsPerPeriod: 50, decksPerPeriod: 20, qaSecondsPerPeriod: 3600, maxQaSessionSeconds: 180, qaGracePeriodSeconds: 10 },
 };
 
 /** Dev user IDs that bypass all billing limits. */
@@ -57,8 +59,8 @@ interface DayPassRow {
   runs_limit: number;
   decks_used: number;
   decks_limit: number;
-  qa_sessions_used: number;
-  qa_sessions_limit: number;
+  qa_seconds_used: number;
+  qa_seconds_limit: number;
 }
 
 export interface UsageLimitResult {
@@ -67,6 +69,18 @@ export interface UsageLimitResult {
   used: number;
   limit: number | null;
   remaining: number | null;
+}
+
+export interface QaBudgetResult {
+  allowed: boolean;
+  planId: BillingPlanId;
+  budgetSeconds: number | null;
+  usedSeconds: number;
+  remainingSeconds: number | null;
+  maxSessionSeconds: number;
+  gracePeriodSeconds: number;
+  durationOptions: number[];
+  defaultDurationSeconds: number;
 }
 
 /**
@@ -91,7 +105,7 @@ async function getActiveDayPass(
 ): Promise<DayPassRow | null> {
   const { data } = await supabase
     .from('day_passes')
-    .select('id, expires_at, runs_used, runs_limit, decks_used, decks_limit, qa_sessions_used, qa_sessions_limit')
+    .select('id, expires_at, runs_used, runs_limit, decks_used, decks_limit, qa_seconds_used, qa_seconds_limit')
     .eq('user_id', userId)
     .eq('status', 'active')
     .gt('expires_at', new Date().toISOString())
@@ -105,7 +119,7 @@ async function getActiveDayPass(
 export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
-  resource: 'run' | 'deck' | 'qa_session',
+  resource: 'run' | 'deck' | 'qa_seconds',
 ): Promise<UsageLimitResult> {
   // Dev accounts bypass all usage limits
   if (isDevUser(userId)) {
@@ -118,7 +132,7 @@ export async function checkUsageLimit(
     const resourceMap = {
       run: { used: dayPass.runs_used, limit: dayPass.runs_limit },
       deck: { used: dayPass.decks_used, limit: dayPass.decks_limit },
-      qa_session: { used: dayPass.qa_sessions_used, limit: dayPass.qa_sessions_limit },
+      qa_seconds: { used: dayPass.qa_seconds_used, limit: dayPass.qa_seconds_limit },
     };
     const { used, limit } = resourceMap[resource];
     if (used < limit) {
@@ -148,7 +162,7 @@ export async function checkUsageLimit(
       ? 'runsPerPeriod'
       : resource === 'deck'
         ? 'decksPerPeriod'
-        : 'qaSessionsPerPeriod';
+        : 'qaSecondsPerPeriod';
 
   const limit = limits[limitKey];
 
@@ -162,6 +176,31 @@ export async function checkUsageLimit(
   const periodStart = sub?.current_period_start ?? defaultBounds.start;
   const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
+  if (resource === 'qa_seconds') {
+    // Sum quantity for qa_seconds events
+    const { data: events } = await supabase
+      .from('usage_events')
+      .select('quantity')
+      .eq('user_id', userId)
+      .eq('resource', 'qa_seconds')
+      .gte('period_start', periodStart)
+      .lte('period_end', periodEnd);
+
+    const used = (events ?? []).reduce(
+      (sum: number, e: { quantity?: number }) => sum + (e.quantity ?? 0),
+      0,
+    );
+    const remaining = Math.max(0, (limit as number) - used);
+
+    return {
+      allowed: used < (limit as number),
+      planId,
+      used,
+      limit,
+      remaining,
+    };
+  }
+
   const { count } = await supabase
     .from('usage_events')
     .select('id', { count: 'exact', head: true })
@@ -171,14 +210,47 @@ export async function checkUsageLimit(
     .lte('period_end', periodEnd);
 
   const used = count ?? 0;
-  const remaining = Math.max(0, limit - used);
+  const remaining = Math.max(0, (limit as number) - used);
 
   return {
-    allowed: used < limit,
+    allowed: used < (limit as number),
     planId,
     used,
     limit,
     remaining,
+  };
+}
+
+/**
+ * Get full Q&A budget info including plan-specific limits and duration options.
+ */
+export async function getQaBudget(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<QaBudgetResult> {
+  const result = await checkUsageLimit(supabase, userId, 'qa_seconds');
+  const limits = PLAN_LIMITS[result.planId];
+
+  const maxSession = limits.maxQaSessionSeconds;
+  const options: number[] = [];
+  if (maxSession >= 30) options.push(30);
+  if (maxSession >= 60) options.push(60);
+  if (maxSession >= 90) options.push(90);
+  if (maxSession >= 120) options.push(120);
+  if (maxSession >= 180) options.push(180);
+
+  const defaultDuration = result.planId === 'pro' ? 120 : 60;
+
+  return {
+    allowed: result.allowed,
+    planId: result.planId,
+    budgetSeconds: result.limit,
+    usedSeconds: result.used,
+    remainingSeconds: result.remaining,
+    maxSessionSeconds: maxSession,
+    gracePeriodSeconds: limits.qaGracePeriodSeconds,
+    durationOptions: options,
+    defaultDurationSeconds: Math.min(defaultDuration, maxSession),
   };
 }
 
@@ -188,7 +260,7 @@ export async function checkUsageLimit(
 export async function recordUsageEvent(
   supabase: SupabaseClient,
   userId: string,
-  resource: 'run' | 'deck' | 'qa_session',
+  resource: 'run' | 'deck',
 ): Promise<void> {
   const { data: sub } = await supabase
     .from('subscriptions')
@@ -203,6 +275,57 @@ export async function recordUsageEvent(
   await supabase.from('usage_events').insert({
     user_id: userId,
     resource,
+    period_start: periodStart,
+    period_end: periodEnd,
+  });
+}
+
+/**
+ * Record Q&A time usage (seconds-based).
+ * Uses atomic RPC for day pass updates to prevent race conditions.
+ */
+export async function recordQaSecondsUsage(
+  supabase: SupabaseClient,
+  userId: string,
+  seconds: number,
+): Promise<void> {
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const rounded = Math.round(seconds);
+  if (rounded === 0) return;
+
+  // Atomically increment day pass QA seconds if active
+  const dayPass = await getActiveDayPass(supabase, userId);
+  if (dayPass) {
+    const { error: rpcError } = await supabase.rpc('increment_day_pass_qa_seconds', {
+      pass_id: dayPass.id,
+      additional_seconds: rounded,
+    });
+
+    // Fallback if RPC not deployed: read-then-write
+    if (rpcError) {
+      const current = dayPass.qa_seconds_used;
+      await supabase
+        .from('day_passes')
+        .update({ qa_seconds_used: current + rounded, updated_at: new Date().toISOString() })
+        .eq('id', dayPass.id);
+    }
+  }
+
+  // Always record in usage_events for period tracking
+  const { data: sub } = await supabase
+    .from('subscriptions')
+    .select('current_period_start, current_period_end')
+    .eq('user_id', userId)
+    .single();
+
+  const defaultBounds = getDefaultPeriodBounds();
+  const periodStart = sub?.current_period_start ?? defaultBounds.start;
+  const periodEnd = sub?.current_period_end ?? defaultBounds.end;
+
+  await supabase.from('usage_events').insert({
+    user_id: userId,
+    resource: 'qa_seconds',
+    quantity: rounded,
     period_start: periodStart,
     period_end: periodEnd,
   });

@@ -154,6 +154,7 @@ export function useLiveQaAgent({
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const outboundAudioSentAtRef = useRef<number[]>([]);
   const closeIntentRef = useRef<CloseIntent>('none');
+  const visibilityCleanupRef = useRef<(() => void) | null>(null);
 
   // Audio playback state
   const playbackContextRef = useRef<AudioContext | null>(null);
@@ -227,6 +228,8 @@ export function useLiveQaAgent({
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
+    visibilityCleanupRef.current?.();
+    visibilityCleanupRef.current = null;
     startedAtRef.current = null;
   }, []);
 
@@ -375,14 +378,37 @@ export function useLiveQaAgent({
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
-      timerRef.current = setInterval(() => {
+
+      // Timer tick: update elapsed and enforce hard stop.
+      // Uses Date.now() delta so it stays accurate even when
+      // the browser throttles setInterval in backgrounded tabs.
+      const tick = () => {
         const startedAt = startedAtRef.current;
         if (startedAt == null) return;
         if (statusRef.current !== 'active') return;
 
         const elapsed = (Date.now() - startedAt) / 1000;
         setElapsedSeconds(elapsed);
-      }, 200);
+
+        if (elapsed >= durationLimitSeconds) {
+          stopSession('completed');
+        }
+      };
+
+      timerRef.current = setInterval(tick, 200);
+
+      // When the tab comes back from being backgrounded, fire
+      // an immediate tick so the hard-stop triggers even if
+      // setInterval was throttled/paused while hidden.
+      const onVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          tick();
+        }
+      };
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      visibilityCleanupRef.current = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      };
 
       const initPayload = {
         type: 'conversation_initiation_client_data',

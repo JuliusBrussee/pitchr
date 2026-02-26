@@ -13,7 +13,9 @@ import type { BillingPlan, BillingPlanId, PlanLimits, PlanPricing } from '@/type
 const FREE_LIMITS: PlanLimits = {
   runsPerPeriod: 3,
   decksPerPeriod: 1,
-  qaSessionsPerPeriod: 1,
+  qaSecondsPerPeriod: 120,
+  maxQaSessionSeconds: 60,
+  qaGracePeriodSeconds: 10,
   maxConcurrentRuns: 1,
   sectionFeedback: false,
   vocabularyMetrics: false,
@@ -25,7 +27,9 @@ const FREE_LIMITS: PlanLimits = {
 const DAY_PASS_LIMITS: PlanLimits = {
   runsPerPeriod: 15,
   decksPerPeriod: 5,
-  qaSessionsPerPeriod: 5,
+  qaSecondsPerPeriod: 600,
+  maxQaSessionSeconds: 120,
+  qaGracePeriodSeconds: 10,
   maxConcurrentRuns: 3,
   sectionFeedback: true,
   vocabularyMetrics: true,
@@ -37,7 +41,9 @@ const DAY_PASS_LIMITS: PlanLimits = {
 const PRO_LIMITS: PlanLimits = {
   runsPerPeriod: 50,
   decksPerPeriod: 20,
-  qaSessionsPerPeriod: 30,
+  qaSecondsPerPeriod: 3600,
+  maxQaSessionSeconds: 180,
+  qaGracePeriodSeconds: 10,
   maxConcurrentRuns: 3,
   sectionFeedback: true,
   vocabularyMetrics: true,
