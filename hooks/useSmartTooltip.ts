@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext } from 'react';
+import { useCallback, useContext } from 'react';
 import { TutorialContext } from '@/views/components/TutorialProvider';
 import type { TooltipType } from '@/views/components/SmartTooltip';
 import type { Placement } from '@floating-ui/react';
@@ -11,13 +11,18 @@ export function useSmartTooltip() {
     throw new Error('useSmartTooltip must be used within a TutorialProvider');
   }
 
-  return {
-    showTooltip: (
+  const showTooltip = useCallback(
+    (
       anchorEl: HTMLElement | null,
       type: TooltipType,
       message: string,
       placement?: Placement,
     ) => ctx.showTooltip(anchorEl, type, message, placement),
+    [ctx.showTooltip],
+  );
+
+  return {
+    showTooltip,
     hideTooltip: ctx.hideTooltip,
   };
 }

@@ -22,6 +22,7 @@ interface TutorialContextValue {
   startTour: (pageKey: string) => void;
   nextStep: () => void;
   skipTour: () => void;
+  resetTours: () => void;
   isTourActive: boolean;
   currentStep: number;
   currentPageKey: string | null;
@@ -40,6 +41,7 @@ export const TutorialContext = createContext<TutorialContextValue>({
   startTour: () => {},
   nextStep: () => {},
   skipTour: () => {},
+  resetTours: () => {},
   isTourActive: false,
   currentStep: 0,
   currentPageKey: null,
@@ -136,6 +138,14 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     endTour(true);
   }, [endTour]);
 
+  const resetTours = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const keys = Object.keys(localStorage).filter((k) => k.startsWith(TOUR_STORAGE_PREFIX));
+      keys.forEach((k) => localStorage.removeItem(k));
+    }
+    registeredRef.current.clear();
+  }, []);
+
   /* ── Auto-start tour on page registration ───────────────────── */
 
   const registerPage = useCallback((pageKey: string) => {
@@ -225,13 +235,14 @@ export function TutorialProvider({ children }: { children: ReactNode }) {
     startTour,
     nextStep,
     skipTour,
+    resetTours,
     isTourActive: Boolean(activeTourKey),
     currentStep: stepIndex,
     currentPageKey: activeTourKey,
     registerPage,
     showTooltip,
     hideTooltip,
-  }), [startTour, nextStep, skipTour, activeTourKey, stepIndex, registerPage, showTooltip, hideTooltip]);
+  }), [startTour, nextStep, skipTour, resetTours, activeTourKey, stepIndex, registerPage, showTooltip, hideTooltip]);
 
   /* ── Render ─────────────────────────────────────────────────── */
 

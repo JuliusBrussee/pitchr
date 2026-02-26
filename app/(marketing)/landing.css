@@ -300,7 +300,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  align-items: start;
+  align-items: stretch;
   max-width: 960px;
   margin: 0 auto;
 }

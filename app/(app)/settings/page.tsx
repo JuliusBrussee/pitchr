@@ -24,6 +24,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { useAchievements } from '@/hooks/useAchievements';
 import { useBilling } from '@/hooks/useBilling';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { useTutorial } from '@/hooks/useTutorial';
 import { AchievementGrid } from '@/views/components/achievements';
 import { SubscriptionBadge, UsageBar, PlanCard } from '@/views/components/billing';
 import { useRouter } from 'next/navigation';
@@ -138,6 +139,7 @@ export default function SettingsPage() {
   const achievements = useAchievements();
   const billing = useBilling();
   const onboarding = useOnboarding();
+  const { resetTours } = useTutorial();
 
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
@@ -293,10 +295,7 @@ export default function SettingsPage() {
             <SettingRow label="Reset page tips" description="Show guided tours again on each page">
               <button
                 onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    const keys = Object.keys(localStorage).filter((k) => k.startsWith('pitchr-tour-seen:'));
-                    keys.forEach((k) => localStorage.removeItem(k));
-                  }
+                  resetTours();
                   alert('Page tips have been reset.');
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"

@@ -50,7 +50,7 @@ export function PlanCard({
 
   return (
     <div
-      className="pricing-card relative flex flex-col rounded-2xl p-6 transition-all duration-300"
+      className="pricing-card relative flex flex-col h-full rounded-2xl p-6 transition-all duration-300"
       style={{
         backgroundColor: isPro
           ? 'var(--pricing-pro-bg)'
