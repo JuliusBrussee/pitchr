@@ -223,6 +223,7 @@ export function useSTT(): UseSTTReturn {
   const [checklistError, setChecklistError] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
+  const isRecordingRef = useRef(false);
   const answerWsRef = useRef<WebSocket | null>(null);
   const targetWsRef = useRef<WebSocket | null>(null);
   const submittedAnswerRef = useRef<string | null>(null);
@@ -233,6 +234,10 @@ export function useSTT(): UseSTTReturn {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const modeRef = useRef<PitchMode>('elevator');
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
 
   const sendChunk = useCallback((base64: string, commit: boolean) => {
     const ws = targetWsRef.current;
@@ -501,15 +506,18 @@ export function useSTT(): UseSTTReturn {
 
     let opened = false;
     ws.onerror = () => setError('WebSocket error.');
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       stopMic();
       wsRef.current = null;
+      const wasRecording = isRecordingRef.current;
       setIsRecording(false);
       setLiveText('');
       if (!opened) {
         setError(
           'Could not connect to transcript server. Run "yarn dev" (both Next and server) or start the server on port 3001.',
         );
+      } else if (wasRecording && !event.wasClean) {
+        setError('Connection to transcript server lost. Your recording was interrupted — please try again.');
       }
     };
     ws.onopen = () => {

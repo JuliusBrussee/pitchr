@@ -39,7 +39,6 @@ const app = express();
 const PORT = process.env.PORT ?? 3000;
 const ELEVENLABS_WS_URL = "wss://api.elevenlabs.io/v1/speech-to-text/realtime";
 const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"];
-const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 function getElevenLabsSttApiKey(): string {
   const direct = process.env.ELEVENLABS_API_KEY?.trim();
@@ -51,13 +50,8 @@ function getElevenLabsSttApiKey(): string {
 
 function parseAllowedOrigins(): Set<string> {
   const raw = process.env.ALLOWED_ORIGINS?.trim();
-  if (!raw) {
-    return new Set(DEFAULT_ALLOWED_ORIGINS);
-  }
-  const parsed = raw
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean);
+  if (!raw) return new Set(DEFAULT_ALLOWED_ORIGINS);
+  const parsed = raw.split(",").map((v) => v.trim()).filter(Boolean);
   return new Set(parsed.length > 0 ? parsed : DEFAULT_ALLOWED_ORIGINS);
 }
 
@@ -65,47 +59,16 @@ const allowedOrigins = parseAllowedOrigins();
 
 function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
-  if (!IS_PRODUCTION) {
-    try {
-      const parsed = new URL(origin);
-      if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
-        return true;
-      }
-    } catch {
-      // Fall through to explicit allow-list check.
+  try {
+    const parsed = new URL(origin);
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      return true;
     }
+  } catch {
+    // Fall through to explicit allow-list check.
   }
   return allowedOrigins.has(origin);
 }
-
-function warnUnexpectedEnvKeys(): void {
-  if (process.env.PAIDAI_API_KEY && !process.env.PAID_API_KEY) {
-    console.warn(
-      "[env] Detected deprecated PAIDAI_API_KEY. Rename it to PAID_API_KEY.",
-    );
-  }
-
-  const knownElevenLabsKeys = new Set([
-    "ELEVENLABS_API_KEY",
-    "ELEVENLABS_API_KEY_STT",
-    "ELEVENLABS_API_KEY_TTS",
-    "ELEVENLABS_VOICE_ID",
-    "ELEVENLABS_API_KEY_CONVAI",
-    "ELEVENLABS_CONVAI_AGENT_ID",
-  ]);
-  const unexpectedElevenLabsKeys = Object.keys(process.env)
-    .filter((key) => key.startsWith("ELEVENLABS_") && !knownElevenLabsKeys.has(key))
-    .sort();
-
-  if (unexpectedElevenLabsKeys.length > 0) {
-    console.warn(
-      "[env] Unexpected ELEVENLABS_* keys detected:",
-      unexpectedElevenLabsKeys.join(", "),
-    );
-  }
-}
-
-warnUnexpectedEnvKeys();
 
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -113,14 +76,9 @@ app.use((req, res, next) => {
     res.status(403).json({ error: "Origin not allowed by sidecar CORS policy." });
     return;
   }
-
-  if (origin) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Vary", "Origin");
-  }
+  res.setHeader("Access-Control-Allow-Origin", origin ?? "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
   if (req.method === "OPTIONS") {
     res.status(204).end();
     return;
@@ -138,23 +96,6 @@ app.get("/", (_req, res) => {
   <h1>STT backend</h1>
   <p>This server provides the WebSocket for transcription. Use the main app: run <code>yarn dev</code> and open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
 </body></html>`);
-});
-
-app.get("/healthz", (_req, res) => {
-  const sttKeyPresent = Boolean(getElevenLabsSttApiKey());
-  const ttsKeyPresent = Boolean(process.env.ELEVENLABS_API_KEY_TTS?.trim());
-  const voiceIdPresent = Boolean(process.env.ELEVENLABS_VOICE_ID?.trim());
-  res.status(200).json({
-    status: "ok",
-    service: "pitchr-elevenlabs-sidecar",
-    uptimeSec: Math.round(process.uptime()),
-    checks: {
-      stt_key_present: sttKeyPresent,
-      tts_key_present: ttsKeyPresent,
-      tts_voice_id_present: voiceIdPresent,
-      allowed_origins_count: allowedOrigins.size,
-    },
-  });
 });
 
 app.post("/api/coach-answer", express.json(), async (req, res) => {
@@ -198,13 +139,7 @@ function isPitchMode(value: unknown): value is PitchMode {
 wss.on("connection", (clientWs, req) => {
   const origin = req.headers.origin;
   if (!isAllowedOrigin(origin)) {
-    clientWs.send(
-      JSON.stringify({
-        type: "error",
-        error: "Origin not allowed by sidecar policy.",
-      }),
-    );
-    clientWs.close();
+    clientWs.close(4003, "Origin not allowed");
     return;
   }
 
@@ -595,7 +530,4 @@ wss.on("connection", (clientWs, req) => {
 
 httpServer.listen(PORT, () => {
   console.log(`Server at http://localhost:${PORT}`);
-  console.log(
-    `[server] Allowed origins: ${Array.from(allowedOrigins.values()).join(", ")}`,
-  );
 });

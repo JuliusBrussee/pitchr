@@ -39,11 +39,22 @@ export function useMediaStream(): UseMediaStreamReturn {
         setError(null);
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
-          videoRef.current.play().catch(() => {});
+          videoRef.current.play().catch(() => {
+            // Autoplay blocked by browser — video will play on user interaction
+          });
         }
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : 'Failed to access media devices');
+          const name = err instanceof DOMException ? err.name : '';
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            setError('Camera/mic access denied. Please allow permissions in your browser settings and reload the page.');
+          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            setError('No camera or microphone found. Please connect a device and reload.');
+          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+            setError('Camera or microphone is in use by another app. Close it and reload.');
+          } else {
+            setError(err instanceof Error ? err.message : 'Failed to access media devices');
+          }
         }
       }
     }
@@ -52,16 +63,29 @@ export function useMediaStream(): UseMediaStreamReturn {
 
     return () => {
       active = false;
-      currentStream?.getTracks().forEach(t => t.stop());
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+      }
     };
   }, []);
+
+  // Ensure all tracks are stopped on unmount (covers stream updates after init)
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+      }
+    };
+  }, [stream]);
 
   // Sync video element when stream changes
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !stream) return;
     video.srcObject = stream;
-    video.play().catch(() => {});
+    video.play().catch(() => {
+      // Autoplay blocked by browser — video will play on user interaction
+    });
   }, [stream]);
 
   const toggleCamera = useCallback(() => {

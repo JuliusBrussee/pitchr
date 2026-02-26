@@ -22,6 +22,7 @@ html.dark body {
   --blur-strength: 20px;
   --aura-color: rgba(255, 89, 65, 0.05);
   --aura-secondary: rgba(255, 170, 51, 0.03);
+  --pricing-pro-bg: rgba(255, 89, 65, 0.03);
 }
 
 .dark {
@@ -36,6 +37,12 @@ html.dark body {
   --blur-strength: 16px;
   --aura-color: rgba(255, 89, 65, 0.08);
   --aura-secondary: rgba(255, 170, 51, 0.05);
+  --pricing-pro-bg: rgba(255, 89, 65, 0.06);
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes fadeInUp {
@@ -45,6 +52,85 @@ html.dark body {
 
 .animate-fade-in-up {
   animation: fadeInUp 0.3s ease-out;
+}
+
+/* ——— Pricing Grid & Card Styles ——— */
+
+.pricing-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 768px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.pricing-card {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pricing-card:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+
+.pricing-card:has(.pricing-glow):hover {
+  transform: translateY(-3px) scale(1.03);
+}
+
+.pricing-cta:not(:disabled):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.pricing-cta:not(:disabled):active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+@keyframes pricingGlowPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.pricing-glow {
+  animation: pricingGlowPulse 3s ease-in-out infinite;
+}
+
+/* ——— Achievement Animations ——— */
+
+@keyframes achRingFill {
+  from { stroke-dashoffset: 125.66; }
+}
+.ach-ring-fill {
+  animation: achRingFill 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes achBarGrow {
+  from { width: 0%; }
+}
+.ach-bar-grow {
+  animation: achBarGrow 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.2s backwards;
+}
+
+@keyframes achCardIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.ach-stagger .ach-card {
+  animation: achCardIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+@keyframes achBadgeIn {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.ach-compact-badge {
+  animation: achBadgeIn 0.25s ease-out backwards;
 }
 
 /* ——— Start Session Button ——— */
@@ -1888,7 +1974,7 @@ html.dark body {
 
 .qa-summary-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -1991,6 +2077,383 @@ html.dark body {
 .qa-btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(255, 89, 65, 0.3);
+}
+
+/* ——— Pre-Session Gate ——— */
+
+.qa-gate {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.qa-gate-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  backdrop-filter: blur(var(--blur-strength));
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.qa-gate-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.qa-gate-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qa-gate-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 89, 65, 0.1);
+}
+
+.qa-gate-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.qa-gate-plan {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ff5941;
+}
+
+.qa-gate-budget {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qa-gate-budget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qa-gate-budget-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.qa-gate-budget-value {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.qa-gate-budget-low {
+  color: #f59e0b;
+}
+
+.qa-gate-budget-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-surface-hover);
+  overflow: hidden;
+}
+
+.qa-gate-budget-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff5941, #ff7a5c);
+  transition: width 0.5s ease-out;
+}
+
+.qa-gate-budget-fill-low {
+  background: linear-gradient(90deg, #f59e0b, #eab308);
+}
+
+.qa-gate-budget-fill-empty {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+/* ——— Duration Selector ——— */
+
+.qa-duration-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qa-duration-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.qa-duration-options {
+  display: flex;
+  gap: 6px;
+}
+
+.qa-duration-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qa-duration-btn:hover:not(:disabled) {
+  border-color: rgba(255, 89, 65, 0.3);
+  background: rgba(255, 89, 65, 0.05);
+}
+
+.qa-duration-btn-active {
+  border-color: #ff5941;
+  background: rgba(255, 89, 65, 0.1);
+  color: #ff5941;
+}
+
+.qa-duration-btn-disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ——— Gate Cost Preview ——— */
+
+.qa-gate-cost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-surface-hover);
+}
+
+/* ——— Gate Start Button ——— */
+
+.qa-gate-start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #ff5941, #e63b26);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(255, 89, 65, 0.25);
+}
+
+.qa-gate-start-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 89, 65, 0.35);
+}
+
+.qa-gate-start-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ——— Gate Exhausted State ——— */
+
+.qa-gate-exhausted {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  text-align: center;
+}
+
+.qa-gate-exhausted-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.qa-gate-upgrade-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ff5941, #e63b26);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.qa-gate-upgrade-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(255, 89, 65, 0.3);
+}
+
+/* ——— Gate Low Budget Warning ——— */
+
+.qa-gate-warning {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #f59e0b;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.qa-gate-warning-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  color: #ff5941;
+}
+
+.qa-gate-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.qa-gate-back:hover {
+  color: var(--text-secondary);
+}
+
+/* ——— Budget Pill (Top Bar) ——— */
+
+.qa-budget-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-surface-hover);
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-budget-pill-low {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+/* ——— Post-Session Billing Summary ——— */
+
+.qa-summary-billing {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--bg-surface-hover);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qa-summary-billing-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.qa-summary-billing-value {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-summary-billing-low {
+  color: #f59e0b;
+}
+
+.qa-summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.qa-summary-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.qa-summary-new-btn:hover {
+  border-color: rgba(255, 89, 65, 0.3);
+  background: rgba(255, 89, 65, 0.05);
+}
+
+.qa-summary-back-btn {
+  display: flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.qa-summary-back-btn:hover {
+  color: var(--text-secondary);
 }
 
 /* ——— Mobile Adjustments ——— */

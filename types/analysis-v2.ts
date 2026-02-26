@@ -324,12 +324,6 @@ export interface AnalysisMeta {
   };
 }
 
-export interface PaidSyncMeta {
-  status: 'sent' | 'skipped' | 'failed';
-  sent_at: string;
-  error?: string;
-}
-
 export interface RunEconomics {
   model_cost_usd: number;
   platform_overhead_usd: number;
@@ -348,7 +342,6 @@ export interface RunEconomics {
   estimated_value_usd: number;
   roi_multiple: number;
   gross_margin_usd: number;
-  paid_sync?: PaidSyncMeta;
 }
 
 export interface AnalysisOutputs {

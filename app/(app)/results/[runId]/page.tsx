@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useAchievements } from '@/hooks/useAchievements';
 import { AchievementToastContainer } from '@/views/components/achievements';
 import type { ProgressRunRecord } from '@/lib/progress';
-import type { FeedbackOutput, OneMinuteQAPack, PaidSyncMeta, RewriteDiff, RunEconomics } from '@/types/analysis-v2';
+import type { FeedbackOutput, OneMinuteQAPack, RewriteDiff, RunEconomics } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
 import {
   InvestorDrill,
@@ -25,6 +25,7 @@ import {
 import { buildRewriteDiff } from '@/services/rewriteDiffService';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useTutorial } from '@/hooks/useTutorial';
 import type {
   MiroFixBoardResponse,
   MiroFixPatchResponse,
@@ -144,16 +145,6 @@ interface MiroBoardState {
   createdAt: string;
   fallback?: boolean;
 }
-function paidSyncBadge(sync?: PaidSyncMeta): { label: string; color: string; bg: string } {
-  if (!sync || sync.status === 'skipped') {
-    return { label: 'Dry Run', color: '#ffaa33', bg: 'rgba(255,170,51,0.14)' };
-  }
-  if (sync.status === 'sent') {
-    return { label: 'Synced', color: '#22c55e', bg: 'rgba(34,197,94,0.14)' };
-  }
-  return { label: 'Sync Failed', color: '#ef4444', bg: 'rgba(239,68,68,0.14)' };
-}
-
 /* ── Section wrapper ─────────────────────────────────────────── */
 
 function Section({
@@ -193,20 +184,8 @@ function Section({
 /* ── Value Proof (compact) ───────────────────────────────────── */
 
 function ValueProof({ economics }: { economics: RunEconomics }) {
-  const badge = paidSyncBadge(economics.paid_sync);
-
   return (
-    <Section
-      title="Value Proof"
-      actions={
-        <span
-          className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-          style={{ color: badge.color, backgroundColor: badge.bg }}
-        >
-          {badge.label}
-        </span>
-      }
-    >
+    <Section title="Value Proof">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Est. Cost', value: formatCurrency(economics.estimated_cost_usd) },
@@ -248,7 +227,6 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false);
   const [seekToSec, setSeekToSec] = useState<number | null>(null);
   const recordingRef = useRef<RecordingPlayerHandle | null>(null);
-  const liveQaEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_QA !== 'false';
   const [miroBoard, setMiroBoard] = useState<MiroBoardState | null>(null);
   const [miroLocalSnapshot, setMiroLocalSnapshot] = useState<MiroFixBoardResponse['snapshot'] | null>(
     null,
@@ -260,6 +238,11 @@ export default function ResultsPage() {
   const miroPollIntervalMs = useMemo(() => getMiroPollIntervalMs(), []);
   const achievements = useAchievements();
   const achievementCheckDone = useRef(false);
+  const { registerPage } = useTutorial('results');
+
+  useEffect(() => {
+    registerPage('results');
+  }, [registerPage]);
 
   // When the run completes, fetch all runs and check achievements
   useEffect(() => {
@@ -774,11 +757,14 @@ export default function ResultsPage() {
       <RecordingPlayer ref={recordingRef} recordingUrl={run.audioUrl} seekToSec={seekToSec} />
 
       {/* ━━━ TIER 1: The Verdict ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <ScoreHero feedback={feedback} />
+      <div data-tour="tour-results-score">
+        <ScoreHero feedback={feedback} />
+      </div>
 
       {/* ━━━ TIER 2: Actionable Insights ━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />
 
+      <div data-tour="tour-results-fixes">
       <Section
         title="Priority Fixes"
         actions={
@@ -831,6 +817,7 @@ export default function ResultsPage() {
           </div>
         ) : null}
       </Section>
+      </div>
 
       {miroBoard ? (
         <section>
@@ -866,6 +853,7 @@ export default function ResultsPage() {
       <RewriteDiffPanel diff={rewriteDiff} />
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div data-tour="tour-results-rewrite">
         <Section
           title="Rewrite Script"
           actions={
@@ -887,13 +875,16 @@ export default function ResultsPage() {
             {feedback.rewrite_script}
           </p>
         </Section>
+        </div>
 
+        <div data-tour="tour-results-delivery">
         <Section title="Delivery Diagnostics">
           <VocabDiagnostics
             delivery={feedback.delivery_metrics}
             vocabulary={feedback.vocabulary_metrics}
           />
         </Section>
+        </div>
       </section>
 
       {economics ? <ValueProof economics={economics} /> : null}
@@ -908,7 +899,6 @@ export default function ResultsPage() {
           <InvestorDrill
             qaPack={qaPack}
             runId={run.id}
-            liveQaEnabled={liveQaEnabled}
           />
         </Section>
       ) : null}

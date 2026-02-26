@@ -354,6 +354,7 @@ Deno.serve(async (req: Request) => {
       pdf_url: originalUrl,
       slide_count: slideCount,
       thumbnail_url: null,
+      user_id: user.id,
     });
 
     // Insert slide records

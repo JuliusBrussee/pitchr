@@ -20,6 +20,8 @@ import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
+import { useOnboarding } from '@/hooks/useOnboarding';
+import { useTutorial } from '@/hooks/useTutorial';
 
 export default function SessionPage() {
   return (
@@ -44,10 +46,11 @@ function SessionPageContent() {
   const recorder = useRecorder();
   const { runPitchAnalysis, error: runError } = usePitchRun();
   const { setOrbState } = useTheme();
+  const { state: onboardingState } = useOnboarding();
+  const { registerPage } = useTutorial('session');
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [analysisWarning, setAnalysisWarning] = useState<string | null>(null);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
@@ -128,6 +131,10 @@ function SessionPageContent() {
     return () => window.removeEventListener('keydown', handler);
   }, [nextSlide, prevSlide]);
 
+  useEffect(() => {
+    registerPage('session');
+  }, [registerPage]);
+
   // Sync orb state to ThemeProvider for reactive aura
   useEffect(() => {
     setOrbState(session.orbState);
@@ -193,7 +200,6 @@ function SessionPageContent() {
 
   const handleStartSession = useCallback(() => {
     setAnalysisError(null);
-    setAnalysisWarning(null);
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
     session.startSession(pitchMode);
@@ -211,6 +217,16 @@ function SessionPageContent() {
     // and capturing the blob for upload. Stopping here causes a race condition
     // where the blob is lost before the effect can retrieve it.
   }, [session, stt]);
+
+  // Warn before navigating away during analysis
+  useEffect(() => {
+    if (!showAnalyzing) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [showAnalyzing]);
 
   const handleSessionToggle = useCallback(() => {
     if (session.isSessionActive) {
@@ -237,6 +253,13 @@ function SessionPageContent() {
       autoSubmitLockRef.current = true;
       setShowAnalyzing(false);
       setAnalysisError('Transcript was saved but no text was captured for analysis.');
+      return;
+    }
+    const MAX_TRANSCRIPT_CHARS = 50_000;
+    if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+      autoSubmitLockRef.current = true;
+      setShowAnalyzing(false);
+      setAnalysisError(`Transcript is too long (${transcript.length.toLocaleString()} chars). Maximum is ${MAX_TRANSCRIPT_CHARS.toLocaleString()} characters.`);
       return;
     }
 
@@ -276,15 +299,6 @@ function SessionPageContent() {
           deckText,
           transcriptSegments: stt.transcriptSegments,
         });
-        if (result.fallback) {
-          setAnalysisWarning(
-            result.warning ??
-              'Live model calls failed. Result will use cached fallback analysis.',
-          );
-          await new Promise((resolve) => {
-            setTimeout(resolve, 900);
-          });
-        }
         router.push(`/results/${result.runId}`);
       } catch (error) {
         autoSubmitLockRef.current = false;
@@ -308,7 +322,7 @@ function SessionPageContent() {
   ]);
 
   return (
-    <>
+    <div className="flex gap-4 h-full min-h-0">
       <SessionCanvas
         stream={media.stream}
         isCameraOn={media.isCameraOn}
@@ -333,21 +347,23 @@ function SessionPageContent() {
         elapsedSeconds={session.metrics.durationSecs}
         targetSeconds={modeConfig.targetDurationSeconds}
       />
-      <MetricsPanel
-        metrics={session.metrics}
-        targetDurationSeconds={modeConfig.targetDurationSeconds}
-        checklist={session.checklist}
-        isSessionActive={session.isSessionActive}
-        engagementBand={engagementBand}
-        isCameraOn={media.isCameraOn}
-        checklistSource={stt.checklistSource}
-        checklistNextHint={stt.checklistNextHint}
-        checklistError={stt.checklistError}
-        sttError={analysisError ?? runError ?? stt.error}
-        sttSaved={stt.saved && !showAnalyzing}
-        isAnalyzing={showAnalyzing}
-        analysisError={analysisError ?? runError}
-      />
+      <div data-tour="tour-session-metrics">
+        <MetricsPanel
+          metrics={session.metrics}
+          targetDurationSeconds={modeConfig.targetDurationSeconds}
+          checklist={session.checklist}
+          isSessionActive={session.isSessionActive}
+          engagementBand={engagementBand}
+          isCameraOn={media.isCameraOn}
+          checklistSource={stt.checklistSource}
+          checklistNextHint={stt.checklistNextHint}
+          checklistError={stt.checklistError}
+          sttError={analysisError ?? runError ?? stt.error}
+          sttSaved={stt.saved && !showAnalyzing}
+          isAnalyzing={showAnalyzing}
+          analysisError={analysisError ?? runError}
+        />
+      </div>
       <video
         ref={trackingVideoRef}
         autoPlay
@@ -361,7 +377,7 @@ function SessionPageContent() {
         className="sr-only"
         aria-hidden="true"
       />
-      <AnalyzingOverlay isVisible={showAnalyzing} warning={analysisWarning} />
-    </>
+      <AnalyzingOverlay isVisible={showAnalyzing} />
+    </div>
   );
 }

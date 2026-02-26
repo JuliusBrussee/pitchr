@@ -39,15 +39,30 @@ export async function getEdgeHeaders(
   extraHeaders?: Record<string, string>,
 ): Promise<Record<string, string>> {
   const supabase = createClient();
+
+  // Try getSession first (reads from storage, no network call).
+  // If it returns null, fall back to getUser() which refreshes the token.
+  let accessToken: string | undefined;
   const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    accessToken = session.access_token;
+  } else {
+    // getSession can return null when the stored session is stale or expired.
+    // Calling getUser triggers a token refresh and re-populates the session.
+    await supabase.auth.getUser();
+    const { data: { session: refreshed } } = await supabase.auth.getSession();
+    accessToken = refreshed?.access_token;
+  }
 
   const headers: Record<string, string> = {
     'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
     ...extraHeaders,
   };
 
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`;
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  } else {
+    console.warn('[fetchEdge] No auth session available — edge function call will be unauthenticated');
   }
 
   return headers;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -15,10 +15,15 @@ import {
   SectionHeader,
   TimeRangeSelector,
   EmptyState,
+  Skeleton,
+  SkeletonStatRow,
+  SkeletonCard,
+  useDelayedLoading,
 } from '@/views/components/ui';
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 
 /* ——— Types ——— */
 
@@ -539,13 +544,31 @@ function computeFillerData(runs: RunRecord[]): {
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('7D');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const { showTooltip } = useSmartTooltip();
+  const analyticsRef = useRef<HTMLDivElement | null>(null);
+  const showSkeleton = useDelayedLoading(loading);
 
-  useEffect(() => {
+  const loadRuns = useCallback(() => {
+    setFetchError(false);
+    setLoading(true);
     fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
-      .catch(() => setAllRuns([]));
-  }, []);
+      .catch(() => {
+        setAllRuns([]);
+        setFetchError(true);
+        if (analyticsRef.current) {
+          showTooltip(analyticsRef.current, 'error', 'Failed to load analytics data. Check your connection and try again.');
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [showTooltip]);
+
+  useEffect(() => {
+    loadRuns();
+  }, [loadRuns]);
 
   const filteredRuns = useMemo(() => filterByRange(allRuns, range), [allRuns, range]);
   const trendData = useMemo(() => computeTrend(filteredRuns, range), [filteredRuns, range]);
@@ -567,7 +590,7 @@ export default function AnalyticsPage() {
   const avgDurationStr = `${Math.floor(avgDurationSecs / 60)}:${(avgDurationSecs % 60).toString().padStart(2, '0')}`;
 
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
+    <main ref={analyticsRef} className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
       {/* Header */}
       <div
         className="flex items-center justify-between animate-fade-in-up"
@@ -585,6 +608,30 @@ export default function AnalyticsPage() {
         <TimeRangeSelector value={range} onChange={setRange} />
       </div>
 
+      {loading ? (
+        showSkeleton ? (
+          <>
+            <div className="grid grid-cols-4 gap-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="rounded-2xl border p-4"
+                  style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+                >
+                  <Skeleton className="h-3 w-16 mb-2" />
+                  <Skeleton className="h-6 w-20" />
+                </div>
+              ))}
+            </div>
+            <SkeletonCard />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          </>
+        ) : null
+      ) : (
+      <>
       {/* Top Stats Row */}
       <div className="grid grid-cols-4 gap-4">
         <StatCard
@@ -701,6 +748,8 @@ export default function AnalyticsPage() {
 
       {/* Bottom spacer */}
       <div className="h-2 flex-shrink-0" />
+      </>
+      )}
     </main>
   );
 }

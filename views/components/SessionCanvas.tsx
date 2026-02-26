@@ -144,7 +144,7 @@ export function SessionCanvas({
         </div>
 
         {/* Center: Playback controls */}
-        <div className="flex items-center gap-1">
+        <div data-tour="tour-session-record" className="flex items-center gap-1">
           <ControlButton icon={SkipBack} onClick={() => onPrevSlide?.()} label="Previous slide" size={16} />
           {isSessionActive ? (
             <ControlButton icon={Pause} onClick={onStopSession} label="Pause session" primary />
@@ -158,7 +158,7 @@ export function SessionCanvas({
         </div>
 
         {/* Right: Deck picker or spacer */}
-        <div className="flex items-center justify-end gap-2" style={{ minWidth: '8rem' }}>
+        <div data-tour="tour-session-deck" className="flex items-center justify-end gap-2" style={{ minWidth: '8rem' }}>
           <span
             className="text-xs font-medium px-2 py-1 rounded-md border"
             style={{

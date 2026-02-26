@@ -5,7 +5,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
 
 async function getMiroBoard(supabase: SupabaseClient, runId: string) {
   const { data, error } = await supabase

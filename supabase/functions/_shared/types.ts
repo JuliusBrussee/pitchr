@@ -141,6 +141,7 @@ export interface DeckRecord {
   slide_count: number;
   thumbnail_url: string | null;
   created_at: string;
+  user_id?: string;
 }
 
 export interface SlideRecord {

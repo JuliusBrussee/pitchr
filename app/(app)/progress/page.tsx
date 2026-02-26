@@ -1,6 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useTutorial } from '@/hooks/useTutorial';
+import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import {
   TrendingUp,
   Flame,
@@ -15,6 +18,10 @@ import {
   StatCard,
   SectionHeader,
   EmptyState,
+  Skeleton,
+  SkeletonStatRow,
+  SkeletonCard,
+  useDelayedLoading,
 } from '@/views/components/ui';
 import {
   ProgressKanban,
@@ -27,7 +34,6 @@ import { useAchievements } from '@/hooks/useAchievements';
 import { computeProgress } from '@/lib/progress';
 import type { ProgressRunRecord, ProgressSummary } from '@/lib/progress';
 import { getScoreBandLabel } from '@/views/components/ui/colors';
-import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 /* ——— Types ——— */
 
@@ -80,20 +86,37 @@ function normalizeRunToProgress(raw: RawRunRecord): ProgressRunRecord {
 export default function ProgressPage() {
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const { showTooltip } = useSmartTooltip();
+  const { registerPage } = useTutorial('progress');
+  const statsContainerRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
+  const loadRuns = useCallback(() => {
+    setFetchError(false);
+    setLoading(true);
     fetchEdge('pitch-run')
-      .then((r) => {
-        if (!r.ok) throw new Error('Failed to fetch runs');
-        return r.json();
-      })
+      .then((r) => r.json())
       .then((payload: { runs?: RawRunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
         setRuns(data.map(normalizeRunToProgress));
       })
-      .catch(() => setRuns([]))
+      .catch(() => {
+        setRuns([]);
+        setFetchError(true);
+        if (statsContainerRef.current) {
+          showTooltip(statsContainerRef.current, 'error', 'Failed to load progress data. Check your connection and try again.');
+        }
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [showTooltip]);
+
+  useEffect(() => {
+    loadRuns();
+  }, [loadRuns]);
+
+  useEffect(() => {
+    registerPage('progress');
+  }, [registerPage]);
 
   const progress: ProgressSummary = useMemo(
     () => computeProgress(runs),
@@ -106,19 +129,23 @@ export default function ProgressPage() {
     if (runs.length > 0) achievements.processRuns(runs);
   }, [runs, achievements.processRuns]);
 
+  const showSkeleton = useDelayedLoading(loading);
+
   const latestScore =
     progress.overallTrend.length > 0
       ? progress.overallTrend[progress.overallTrend.length - 1].score
       : 0;
 
   if (loading) {
+    if (!showSkeleton) return <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1" />;
     return (
-      <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex items-center justify-center">
-        <div
-          className="text-sm animate-pulse"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Loading progress data...
+      <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
+        <Skeleton className="h-8 w-40" />
+        <SkeletonStatRow />
+        <SkeletonCard />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       </main>
     );
@@ -151,13 +178,28 @@ export default function ProgressPage() {
         <GlassCard animationDelay="60ms">
           <EmptyState
             icon={<TrendingUp size={32} style={{ color: 'var(--text-muted)' }} />}
-            message="No pitch sessions yet. Complete your first pitch to start tracking progress."
+            message={fetchError ? 'Failed to load progress data.' : 'No pitch sessions yet. Complete your first pitch to start tracking progress.'}
           />
+          {fetchError && (
+            <div className="flex justify-center mt-3">
+              <button
+                onClick={loadRuns}
+                className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                style={{
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-secondary)',
+                  backgroundColor: 'var(--bg-surface-hover)',
+                }}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
         </GlassCard>
       ) : (
         <>
           {/* ——— Stat Cards ——— */}
-          <div className="grid grid-cols-4 gap-4">
+          <div ref={statsContainerRef} data-tour="tour-progress-stats" className="grid grid-cols-4 gap-4">
             <StatCard
               label="Current Score"
               value={`${latestScore}/100`}
@@ -235,6 +277,7 @@ export default function ProgressPage() {
           </GlassCard>
 
           {/* ——— Skill Kanban Board ——— */}
+          <div data-tour="tour-progress-kanban">
           <GlassCard animationDelay="320ms">
             <SectionHeader className="mb-4">Skill Board</SectionHeader>
             <p
@@ -246,15 +289,18 @@ export default function ProgressPage() {
             </p>
             <ProgressKanban categories={progress.categories} />
           </GlassCard>
+          </div>
 
           {/* ——— Score Timeline ——— */}
+          <div data-tour="tour-progress-timeline">
           <GlassCard animationDelay="380ms">
             <SectionHeader className="mb-4">Score Timeline</SectionHeader>
             <ScoreTimeline data={progress.overallTrend} />
           </GlassCard>
+          </div>
 
           {/* ——— Category Deep-Dive ——— */}
-          <div>
+          <div data-tour="tour-progress-categories">
             <SectionHeader className="mb-3">
               <span
                 className="animate-fade-in-up"

@@ -24,11 +24,12 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@floating-ui/react": "^0.27.18",
     "@mediapipe/tasks-vision": "^0.10.32",
-    "@paid-ai/paid-node": "^0.5.1",
     "@react-pdf/renderer": "^4.3.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@sentry/nextjs": "^10.40.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
     "dotenv": "^16.4.5",
@@ -40,6 +41,7 @@
     "pdfjs-dist": "^5.4.624",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "stripe": "^17.5.0",
     "three": "^0.169.0",
     "ws": "^8.18.0"
   },

@@ -49,6 +49,7 @@ export interface QASessionSummary {
 
 export interface CreateQASessionRequest {
   runId: string;
+  selectedDurationSeconds?: number;
 }
 
 export interface CreateQASessionResponse {
@@ -57,6 +58,13 @@ export interface CreateQASessionResponse {
   conversationId?: string;
   durationLimitSeconds: number;
   starterContext: string;
+  qaBudget: {
+    budgetSeconds: number | null;
+    usedSeconds: number;
+    remainingSeconds: number | null;
+    maxSessionSeconds: number;
+    gracePeriodSeconds: number;
+  };
 }
 
 export interface GetQASessionResponse {

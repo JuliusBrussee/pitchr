@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Target,
@@ -12,6 +12,9 @@ import {
   ArrowRight,
   Mic,
 } from 'lucide-react';
+import { useOnboarding } from '@/hooks/useOnboarding';
+import { useTutorial } from '@/hooks/useTutorial';
+import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import {
   GlassCard,
   StatCard,
@@ -22,6 +25,11 @@ import {
   InsightCard,
   RecommendationCard,
   EmptyState,
+  Skeleton,
+  SkeletonStatRow,
+  SkeletonCard,
+  SkeletonListRow,
+  useDelayedLoading,
   getModeColor,
   getModeBgColor,
   getModeLabel,
@@ -101,18 +109,42 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { state: onboardingState } = useOnboarding();
+  const [fetchError, setFetchError] = useState(false);
+  const { showTooltip } = useSmartTooltip();
+  const { registerPage } = useTutorial('dashboard');
+  const statsRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    setGreeting(getGreeting());
-    setFormattedDate(getFormattedDate());
+  const showSkeleton = useDelayedLoading(loading);
 
+  const loadRuns = useCallback(() => {
+    setFetchError(false);
+    setLoading(true);
     fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: RunRecord[] }) =>
         setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
       )
-      .catch(() => setAllRuns([]));
-  }, []);
+      .catch(() => {
+        setAllRuns([]);
+        setFetchError(true);
+        if (statsRef.current) {
+          showTooltip(statsRef.current, 'error', 'Failed to load your pitch runs. Check your connection and try again.');
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [showTooltip]);
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+    setFormattedDate(getFormattedDate());
+    loadRuns();
+  }, [loadRuns]);
+
+  useEffect(() => {
+    registerPage('dashboard');
+  }, [registerPage]);
 
   const totalRuns = allRuns.length;
   const averageScore = totalRuns > 0
@@ -155,7 +187,7 @@ export default function DashboardPage() {
               className="text-2xl font-bold mb-1"
               style={{ color: 'var(--text-primary)' }}
             >
-              {greeting}, Founder
+              {greeting}{onboardingState.displayName ? `, ${onboardingState.displayName}` : ', Founder'}
             </h1>
             <p
               className="text-sm flex items-center gap-1.5"
@@ -182,7 +214,48 @@ export default function DashboardPage() {
         </div>
 
         {/* ——— Stat Cards Row ——— */}
-        <div className="grid grid-cols-3 gap-4">
+        {loading ? (
+          showSkeleton ? (
+            <>
+              <SkeletonStatRow />
+              <SkeletonStatRow />
+              <div className="grid grid-cols-2 gap-4">
+                <SkeletonCard />
+                <SkeletonCard />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Skeleton className="h-5 w-28 mb-2" />
+                <SkeletonListRow />
+                <SkeletonListRow />
+                <SkeletonListRow />
+              </div>
+            </>
+          ) : null
+        ) : totalRuns === 0 ? (
+          <GlassCard animationDelay="0.26s">
+            <EmptyState
+              icon={<Mic size={32} style={{ color: 'var(--text-muted)' }} />}
+              message={fetchError ? 'Failed to load pitch runs.' : 'No pitch runs yet. Run your first pitch to see your breakdown here.'}
+            />
+            {fetchError && (
+              <div className="flex justify-center mt-3">
+                <button
+                  onClick={loadRuns}
+                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-surface-hover)',
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </GlassCard>
+        ) : (
+          <>
+        <div ref={statsRef} data-tour="tour-dashboard-stats" className="grid grid-cols-3 gap-4">
           <StatCard
             label="Total Runs"
             value={String(totalRuns)}
@@ -209,34 +282,26 @@ export default function DashboardPage() {
             value={formatUsd(totalMoneySavedUsd)}
             icon={<Zap size={16} />}
             animationDelay="0.24s"
-            poweredByPaid
+
           />
           <StatCard
             label="Total AI Spend"
             value={formatUsd(totalAiSpendUsd)}
             icon={<Timer size={16} />}
             animationDelay="0.28s"
-            poweredByPaid
+
           />
           <StatCard
             label="Net Savings (Est.)"
             value={formatUsd(netSavingsUsd)}
             icon={<TrendingUp size={16} />}
             animationDelay="0.32s"
-            poweredByPaid
+
           />
         </div>
 
-        {totalRuns === 0 ? (
-          <GlassCard animationDelay="0.26s">
-            <EmptyState
-              icon={<Mic size={32} style={{ color: 'var(--text-muted)' }} />}
-              message="No pitch runs yet. Run your first pitch to see your breakdown here."
-            />
-          </GlassCard>
-        ) : (
-          <>
             {/* ——— Rubric Breakdown ——— */}
+            <div data-tour="tour-dashboard-rubric">
             <GlassCard animationDelay="0.26s">
               <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
               <div className="flex flex-col gap-3.5">
@@ -252,6 +317,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             </GlassCard>
+            </div>
 
             {/* ——— Top Insights + Practice Recommendations ——— */}
             <div className="grid grid-cols-2 gap-4">
@@ -264,6 +330,7 @@ export default function DashboardPage() {
                 </div>
               </GlassCard>
 
+              <div data-tour="tour-dashboard-recommendations">
               <GlassCard animationDelay="0.38s">
                 <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
                 <div className="flex flex-col gap-3">
@@ -272,10 +339,12 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </GlassCard>
+              </div>
             </div>
 
             {/* ——— Recent Runs ——— */}
             <div
+              data-tour="tour-dashboard-recent"
               className="animate-fade-in-up"
               style={{ animationDelay: '0.44s', animationFillMode: 'both' }}
             >

@@ -68,22 +68,50 @@ uniform float uTime;
 uniform float uSpeed;
 uniform float uDisplacement;
 uniform float uIntensity;
+uniform float uFresnelPower;
+uniform float uFilmThickness;
 
 varying vec3 vNormal;
 varying vec3 vPosition;
+varying vec3 vWorldNormal;
 varying float vDisplacement;
+varying float vNoise;
 
 void main() {
-  vNormal = normalize(normalMatrix * normal);
-
+  // Smooth organic noise — gentler for bubble-like surface
   float t = uTime * uSpeed;
-  float noise = snoise(position * 1.5 + t);
-  float noise2 = snoise(position * 3.0 + t * 0.5) * 0.5;
-  float totalNoise = (noise + noise2) * uDisplacement * uIntensity;
+  float noise = snoise(position * 1.2 + t * 0.8);
+  float noise2 = snoise(position * 2.5 + t * 0.4) * 0.4;
+  float noise3 = snoise(position * 0.6 + t * 0.2) * 0.6; // large-scale gentle warping
+  float totalNoise = (noise + noise2 + noise3) * uDisplacement * uIntensity;
 
   vec3 newPosition = position + normal * totalNoise;
-  vPosition = newPosition;
+
+  // Compute perturbed normal for accurate Fresnel
+  float eps = 0.01;
+  vec3 tangent1 = normalize(cross(normal, vec3(0.0, 1.0, 0.0)));
+  if (length(cross(normal, vec3(0.0, 1.0, 0.0))) < 0.01) {
+    tangent1 = normalize(cross(normal, vec3(1.0, 0.0, 0.0)));
+  }
+  vec3 tangent2 = normalize(cross(normal, tangent1));
+
+  float n1 = snoise((position + tangent1 * eps) * 1.2 + t * 0.8)
+           + snoise((position + tangent1 * eps) * 2.5 + t * 0.4) * 0.4
+           + snoise((position + tangent1 * eps) * 0.6 + t * 0.2) * 0.6;
+  float n2 = snoise((position + tangent2 * eps) * 1.2 + t * 0.8)
+           + snoise((position + tangent2 * eps) * 2.5 + t * 0.4) * 0.4
+           + snoise((position + tangent2 * eps) * 0.6 + t * 0.2) * 0.6;
+
+  vec3 perturbedNormal = normalize(normal +
+    (n1 - (noise + noise2 * 0.4 + noise3 * 0.6)) / eps * tangent1 * uDisplacement * uIntensity +
+    (n2 - (noise + noise2 * 0.4 + noise3 * 0.6)) / eps * tangent2 * uDisplacement * uIntensity
+  );
+
+  vNormal = normalize(normalMatrix * perturbedNormal);
+  vWorldNormal = normalize((modelMatrix * vec4(perturbedNormal, 0.0)).xyz);
+  vPosition = (modelViewMatrix * vec4(newPosition, 1.0)).xyz;
   vDisplacement = totalNoise;
+  vNoise = noise * 0.5 + 0.5;
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }

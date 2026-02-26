@@ -52,11 +52,13 @@ export function usePitchRun(): UsePitchRunReturn {
         const payload = (await response.json()) as CreatePitchRunResponse | CreatePitchRunErrorResponse;
 
         if (!response.ok) {
-          throw new Error(
-            'error' in payload && payload.error
+          const errorMsg =
+            ('error' in payload && payload.error)
               ? payload.error
-              : 'Pitch analysis failed.',
-          );
+              : ('message' in payload && (payload as Record<string, unknown>).message)
+                ? String((payload as Record<string, unknown>).message)
+                : `Pitch analysis failed (${response.status}).`;
+          throw new Error(errorMsg);
         }
 
         const success = payload as CreatePitchRunResponse;

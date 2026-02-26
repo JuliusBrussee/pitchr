@@ -3,20 +3,15 @@
 // Methods: POST (create live VC Q&A session)
 
 import { handleCors } from '../_shared/cors.ts';
-import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
+import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { createQASession } from '../_shared/qna-session-service.ts';
 import { getSignedUrl, ElevenLabsConvaiError } from '../_shared/elevenlabs-convai.ts';
 import { getRun } from '../_shared/run-service.ts';
-
-const QA_DURATION_LIMIT_SECONDS = 60;
+import { getQaBudget } from '../_shared/billing-service.ts';
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
-}
-
-function liveQaEnabled(): boolean {
-  return Deno.env.get('NEXT_PUBLIC_ENABLE_LIVE_QA') === 'true';
 }
 
 function isMissingConvaiWritePermission(error: ElevenLabsConvaiError): boolean {
@@ -36,7 +31,7 @@ function buildQaAgentSystemPrompt(input: {
     : '';
 
   return [
-    'You are a venture investor conducting a 1-minute rapid-fire Q&A.',
+    'You are a venture investor conducting a rapid-fire Q&A.',
     `Time limit: ${timeLimit} seconds. Be concise.`,
     weakCats,
     '',
@@ -53,10 +48,6 @@ Deno.serve(async (req: Request) => {
     return errorResponse('Method not allowed', 405);
   }
 
-  if (!liveQaEnabled()) {
-    return errorResponse('Live VC Q&A is disabled. Set NEXT_PUBLIC_ENABLE_LIVE_QA=true.', 403);
-  }
-
   let body: unknown;
   try {
     body = await req.json();
@@ -64,7 +55,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse('Invalid JSON body.', 400);
   }
 
-  const payload = body as { runId?: string };
+  const payload = body as { runId?: string; selectedDurationSeconds?: number };
   const runId = typeof payload.runId === 'string' ? payload.runId.trim() : '';
   if (!runId || !isUuid(runId)) {
     return errorResponse('runId must be a valid UUID.', 400);
@@ -76,7 +67,39 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { supabase } = await getAuthenticatedUser(req);
+    const { supabase, user } = await getAuthenticatedUser(req);
+
+    // Get Q&A budget info for this user
+    const adminClient = createAdminClient();
+    const budget = await getQaBudget(adminClient, user.id);
+
+    // Deny only when budget is fully exhausted with no remaining seconds.
+    // Users at exactly 0 can still start — if they finish within the grace
+    // period the session is free, and durationLimit is clamped to grace period.
+    const remaining = budget.remainingSeconds ?? Infinity;
+    if (!budget.allowed && remaining <= 0) {
+      return errorResponse(
+        `Q&A time budget exhausted (${Math.floor(budget.usedSeconds / 60)}m ${budget.usedSeconds % 60}s / ${budget.budgetSeconds ? `${Math.floor(budget.budgetSeconds / 60)}m` : '\u221e'}). Upgrade your plan for more Q&A time.`,
+        429,
+      );
+    }
+
+    // Validate and clamp selected duration against plan limits and remaining budget.
+    // When remaining is very low (e.g. 5s), clamp to at least the grace period so
+    // the user has a chance to start and cleanly exit without being charged.
+    const requestedDuration =
+      typeof payload.selectedDurationSeconds === 'number' && payload.selectedDurationSeconds > 0
+        ? Math.round(payload.selectedDurationSeconds)
+        : budget.defaultDurationSeconds;
+
+    const durationLimitSeconds = Math.max(
+      budget.gracePeriodSeconds,
+      Math.min(
+        requestedDuration,
+        budget.maxSessionSeconds,
+        remaining,
+      ),
+    );
 
     // Build context from the run
     const run = await getRun(supabase, runId);
@@ -93,17 +116,21 @@ Deno.serve(async (req: Request) => {
     const qaSystemPrompt = buildQaAgentSystemPrompt({
       starterContext,
       weakestCategories,
-      timeLimitSeconds: QA_DURATION_LIMIT_SECONDS,
+      timeLimitSeconds: durationLimitSeconds,
     });
 
     const signed = await getSignedUrl(agentId, true);
     const qaSession = await createQASession(supabase, {
       runId,
+      userId: user.id,
       status: 'active',
       conversationId: signed.conversationId,
-      durationLimitSeconds: QA_DURATION_LIMIT_SECONDS,
+      durationLimitSeconds,
       meta: {
         starter_context: qaSystemPrompt,
+        requested_duration_seconds: requestedDuration,
+        plan_max_session_seconds: budget.maxSessionSeconds,
+        grace_period_seconds: budget.gracePeriodSeconds,
       },
     });
 
@@ -111,8 +138,15 @@ Deno.serve(async (req: Request) => {
       qaSessionId: qaSession.id,
       signedUrl: signed.signedUrl,
       conversationId: signed.conversationId,
-      durationLimitSeconds: QA_DURATION_LIMIT_SECONDS,
+      durationLimitSeconds,
       starterContext: qaSystemPrompt,
+      qaBudget: {
+        budgetSeconds: budget.budgetSeconds,
+        usedSeconds: budget.usedSeconds,
+        remainingSeconds: budget.remainingSeconds,
+        maxSessionSeconds: budget.maxSessionSeconds,
+        gracePeriodSeconds: budget.gracePeriodSeconds,
+      },
     }, 201);
   } catch (error) {
     if (error instanceof ElevenLabsConvaiError) {

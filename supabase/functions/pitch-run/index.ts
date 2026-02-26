@@ -3,7 +3,7 @@
 // Methods: POST (create run), GET (list runs)
 
 import { handleCors } from '../_shared/cors.ts';
-import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
+import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import {
   insertRun,
@@ -15,13 +15,15 @@ import {
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
 import { analyzePitch } from '../_shared/analysis-service.ts';
 import { SAMPLE_RESULT } from '../_shared/sample-result.ts';
-import type {
-  PitchMode,
-  InputType,
-  Run,
-  ListPitchRunsResponse,
-  CreatePitchRunResponse,
-} from '../_shared/types.ts';
+import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
+import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
+
+class RateLimitError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RateLimitError';
+  }
+}
 
 class PitchValidationError extends Error {}
 
@@ -135,6 +137,17 @@ async function handlePost(req: Request) {
 
   const { supabase, user } = await getAuthenticatedUser(req);
   const payload = validateRequest(body);
+
+  // Rate limit check
+  const adminClient = createAdminClient();
+  const usageCheck = await checkUsageLimit(adminClient, user.id, 'run');
+  if (!usageCheck.allowed) {
+    throw new RateLimitError(
+      `You've used ${usageCheck.used}/${usageCheck.limit} pitch analyses this period. ` +
+      `Upgrade your plan for more analyses.`,
+    );
+  }
+
   const runId = crypto.randomUUID();
   const startedAt = new Date().toISOString();
 
@@ -195,20 +208,20 @@ async function handlePost(req: Request) {
       error_message: null,
     });
 
-    const providerUsed = analysis.meta?.provider_used ?? 'none';
-    const warning = fallback
-      ? 'Analysis completed with cached fallback content because live model calls failed.'
-      : undefined;
-    const response: CreatePitchRunResponse = {
-      runId: completedRun.id,
-      status: 'complete',
-      overallScore,
-      fallback,
-      provider_used: providerUsed,
-      warning,
-    };
+    // Record usage after successful completion
+    try {
+      await recordUsageEvent(adminClient, user.id, 'run');
+    } catch (usageErr) {
+      console.error('[pitch-run] failed to record usage event', {
+        runId,
+        error: usageErr instanceof Error ? usageErr.message : String(usageErr),
+      });
+    }
 
-    return jsonResponse(response, 201);
+    return jsonResponse(
+      { runId: completedRun.id, status: 'complete', overallScore },
+      201,
+    );
   } catch (analysisError) {
     const message =
       analysisError instanceof Error
@@ -253,6 +266,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitError) {
+      return errorResponse(error.message, 429);
     }
     if (error instanceof PitchValidationError) {
       return errorResponse(error.message, 400);

@@ -4,7 +4,7 @@ import { SAMPLE_RESULT } from '@/config/sampleResult';
 import { enqueuePitchRun } from '@/services/pitchRunQueueService';
 import { analyzePitch } from '@/services/analysisService';
 import { buildRunEconomics } from '@/services/economicsService';
-import { syncRunToPaid } from '@/services/paidService';
+import { recordUsage } from '@/services/billingService';
 import { listRuns, updateRun } from '@/services/runService';
 
 vi.mock('@/services/analysisService', () => ({
@@ -20,8 +20,8 @@ vi.mock('@/services/economicsService', () => ({
   buildRunEconomics: vi.fn(),
 }));
 
-vi.mock('@/services/paidService', () => ({
-  syncRunToPaid: vi.fn(),
+vi.mock('@/services/billingService', () => ({
+  recordUsage: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/admin', () => ({
@@ -59,10 +59,7 @@ describe('pitchRunQueueService', () => {
       roi_multiple: 4904.76,
       gross_margin_usd: 102.98,
     });
-    vi.mocked(syncRunToPaid).mockResolvedValue({
-      status: 'sent',
-      sent_at: new Date().toISOString(),
-    });
+    vi.mocked(recordUsage).mockResolvedValue(undefined);
     vi.mocked(analyzePitch).mockResolvedValue({
       analysis: {
         ...SAMPLE_RESULT,
@@ -77,16 +74,17 @@ describe('pitchRunQueueService', () => {
     });
   });
 
-  it('persists economics and paid sync status for completed runs', async () => {
+  it('persists economics and records usage for completed runs', async () => {
     enqueuePitchRun({
       runId: 'run-queue-1',
+      userId: 'user-123',
       mode: 'vc_pitch',
       transcript: 'test transcript',
       deckText: 'deck context',
     });
 
     await waitFor(() => {
-      expect(updateRun).toHaveBeenCalledTimes(3);
+      expect(updateRun).toHaveBeenCalledTimes(2);
     });
 
     const completeCall = vi.mocked(updateRun).mock.calls[1];
@@ -104,18 +102,6 @@ describe('pitchRunQueueService', () => {
       },
     });
 
-    const paidSyncCall = vi.mocked(updateRun).mock.calls[2];
-    expect(paidSyncCall?.[2]).toMatchObject({
-      analysis: {
-        meta: {
-          economics: {
-            paid_sync: {
-              status: 'sent',
-            },
-          },
-        },
-      },
-    });
-    expect(syncRunToPaid).toHaveBeenCalledTimes(1);
+    expect(recordUsage).toHaveBeenCalledTimes(1);
   });
 });

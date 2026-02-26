@@ -11,7 +11,6 @@ interface StatCardProps {
   deltaDirection?: 'up' | 'down';
   deltaIsGood?: boolean;
   animationDelay?: string;
-  poweredByPaid?: boolean;
 }
 
 export function StatCard({
@@ -22,7 +21,6 @@ export function StatCard({
   deltaDirection,
   deltaIsGood,
   animationDelay,
-  poweredByPaid,
 }: StatCardProps) {
   const isPositive = deltaDirection === 'up';
   const isGood = deltaIsGood !== undefined ? deltaIsGood : isPositive;
@@ -69,23 +67,6 @@ export function StatCard({
           </span>
         )}
       </div>
-      {poweredByPaid && (
-        <div
-          className="absolute bottom-2 right-3 flex items-center gap-1.5 opacity-40"
-        >
-          <img
-            src="/paid-logo-icon.png"
-            alt="Paid AI"
-            className="w-6 h-7 object-contain"
-          />
-          <span
-            className="text-[18px] font-medium tracking-wide"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            Paid
-          </span>
-        </div>
-      )}
     </div>
   );
 }

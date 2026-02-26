@@ -27,6 +27,15 @@ All SQL migrations live in `migrations/` at the project root. Run them **in orde
 | `10-recordings-storage-policies.sql` | Adds public recording read/upload/delete policies |
 | `11-create-qa-sessions-table.sql` | Creates `qa_sessions` linked to `runs` for live VC Q&A persistence |
 | `12-create-qa-resource-gaps-table.sql` | Creates `qa_resource_gaps` queue for async knowledge refresh |
+| `13-add-user-id-columns.sql` | Adds `user_id` columns to existing tables for auth scoping |
+| `14-rls-user-scoped-policies.sql` | RLS policies scoped to authenticated user |
+| `15-storage-user-scoped-policies.sql` | Storage policies scoped to authenticated user |
+| `16-create-settings-table.sql` | Creates `settings` table for user preferences |
+| `17-create-waitlist-table.sql` | Creates `waitlist` table for pre-launch signups |
+| `18-create-subscriptions-table.sql` | Creates `subscriptions` table (plan, Stripe IDs, period) |
+| `19-create-usage-tracking-table.sql` | Creates `usage_events` table for rate limiting |
+| `20-create-billing-events-table.sql` | Creates `billing_events` table for Stripe webhook idempotency |
+| `21-create-day-passes-table.sql` | Creates `day_passes` table for 24h access passes |
 
 **Quick run (all at once):**
 
@@ -45,7 +54,6 @@ For live VC Q&A and post-analysis features, add:
 ```env
 ELEVENLABS_API_KEY_CONVAI=your-elevenlabs-api-key
 ELEVENLABS_CONVAI_AGENT_ID=your-convai-agent-id
-NEXT_PUBLIC_ENABLE_LIVE_QA=false
 ENABLE_SECTION_FEEDBACK=true
 ENABLE_REWRITE_DIFF=true
 ```
