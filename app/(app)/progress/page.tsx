@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import {
   TrendingUp,
   Flame,
@@ -81,7 +82,7 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/pitch/run')
+    fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: RawRunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
