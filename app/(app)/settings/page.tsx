@@ -274,7 +274,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => {
                   onboarding.reset();
-                  router.push('/setup');
+                  router.push('/try');
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
                 style={{
