@@ -19,6 +19,7 @@ import {
   SectionHeader,
   SearchInput,
   EmptyState,
+  SkeletonListRow,
   getModeColor,
   getModeBgColor,
   getModeLabel,
@@ -177,8 +178,9 @@ export default function HistoryPage() {
     return acc;
   }, {});
 
-  /* Handle delete */
-  const handleDelete = async (id: string) => {
+  /* Handle delete with confirmation */
+  const handleDelete = async (id: string, runNumber: number) => {
+    if (!window.confirm(`Delete Pitch #${runNumber}? This cannot be undone.`)) return;
     setDeletingId(id);
     try {
       await fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: id } });
@@ -296,7 +298,13 @@ export default function HistoryPage() {
 
       {/* ——— Session List / Grid ——— */}
       <GlassCard className="flex-1 overflow-y-auto" animate={false}>
-        {Object.keys(groupedVisible).length === 0 ? (
+        {loading ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <SkeletonListRow key={i} />
+            ))}
+          </div>
+        ) : Object.keys(groupedVisible).length === 0 ? (
           <>
             <EmptyState
               icon={<Clock size={32} style={{ color: 'var(--text-muted)' }} />}
@@ -421,7 +429,7 @@ export default function HistoryPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(run.id);
+                            handleDelete(run.id, run.number);
                           }}
                           className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg transition-all duration-150 flex-shrink-0"
                           style={{ color: 'var(--text-muted)' }}
@@ -496,7 +504,7 @@ export default function HistoryPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDelete(run.id);
+                              handleDelete(run.id, run.number);
                             }}
                             className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg transition-all duration-150"
                             style={{ color: 'var(--text-muted)' }}

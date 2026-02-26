@@ -10,4 +10,5 @@ export { CategoryBar } from './CategoryBar';
 export { EmptyState } from './EmptyState';
 export { InsightCard } from './InsightCard';
 export { RecommendationCard } from './RecommendationCard';
+export { Skeleton, SkeletonCard, SkeletonStatRow, SkeletonListRow } from './Skeleton';
 export * from './colors';

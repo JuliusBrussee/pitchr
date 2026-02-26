@@ -45,7 +45,16 @@ export function useMediaStream(): UseMediaStreamReturn {
         }
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : 'Failed to access media devices');
+          const name = err instanceof DOMException ? err.name : '';
+          if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            setError('Camera/mic access denied. Please allow permissions in your browser settings and reload the page.');
+          } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            setError('No camera or microphone found. Please connect a device and reload.');
+          } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+            setError('Camera or microphone is in use by another app. Close it and reload.');
+          } else {
+            setError(err instanceof Error ? err.message : 'Failed to access media devices');
+          }
         }
       }
     }

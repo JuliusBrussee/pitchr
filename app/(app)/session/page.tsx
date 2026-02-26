@@ -210,6 +210,16 @@ function SessionPageContent() {
     // where the blob is lost before the effect can retrieve it.
   }, [session, stt]);
 
+  // Warn before navigating away during analysis
+  useEffect(() => {
+    if (!showAnalyzing) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [showAnalyzing]);
+
   const handleSessionToggle = useCallback(() => {
     if (session.isSessionActive) {
       handleStopSession();

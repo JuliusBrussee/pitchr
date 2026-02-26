@@ -15,6 +15,9 @@ import {
   SectionHeader,
   TimeRangeSelector,
   EmptyState,
+  Skeleton,
+  SkeletonStatRow,
+  SkeletonCard,
 } from '@/views/components/ui';
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
@@ -540,11 +543,13 @@ function computeFillerData(runs: RunRecord[]): {
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('7D');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const { toast } = useToast();
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
+    setLoading(true);
     fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
@@ -552,7 +557,8 @@ export default function AnalyticsPage() {
         setAllRuns([]);
         setFetchError(true);
         toast('error', 'Failed to load analytics data. Check your connection and try again.');
-      });
+      })
+      .finally(() => setLoading(false));
   }, [toast]);
 
   useEffect(() => {
@@ -597,6 +603,28 @@ export default function AnalyticsPage() {
         <TimeRangeSelector value={range} onChange={setRange} />
       </div>
 
+      {loading ? (
+        <>
+          <div className="grid grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="rounded-2xl border p-4"
+                style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
+              >
+                <Skeleton className="h-3 w-16 mb-2" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+            ))}
+          </div>
+          <SkeletonCard />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </>
+      ) : (
+      <>
       {/* Top Stats Row */}
       <div className="grid grid-cols-4 gap-4">
         <StatCard
@@ -713,6 +741,8 @@ export default function AnalyticsPage() {
 
       {/* Bottom spacer */}
       <div className="h-2 flex-shrink-0" />
+      </>
+      )}
     </main>
   );
 }

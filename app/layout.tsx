@@ -1,13 +1,19 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import { ThemeProvider } from '@/views/components/ThemeProvider';
 import { AuthProvider } from '@/views/components/AuthProvider';
 import { ToastProvider } from '@/views/components/Toast';
 
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+
 export const metadata: Metadata = {
   title: 'Pitchr — AI Pitch Coach',
   description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics — all in under 30 seconds.',
   metadataBase: new URL('https://pitchr.app'),
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     title: 'Pitchr — AI Pitch Coach',
     description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
@@ -52,6 +58,17 @@ export default function RootLayout({
         />
       </head>
       <body>
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${GA_MEASUREMENT_ID}');`}
+            </Script>
+          </>
+        )}
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

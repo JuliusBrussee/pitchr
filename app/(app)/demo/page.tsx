@@ -1,6 +1,12 @@
 'use client';
 
-import { SiriBubble, useSiriBubble, OrbState } from '@/views/components/SiriBubble';
+import dynamic from 'next/dynamic';
+import { useSiriBubble, OrbState } from '@/views/components/SiriBubble';
+
+const SiriBubble = dynamic(
+  () => import('@/views/components/SiriBubble/SiriBubble').then((m) => ({ default: m.SiriBubble })),
+  { ssr: false },
+);
 
 const STATES: OrbState[] = ['idle', 'active', 'positive', 'negative', 'neutral'];
 const SIZES = ['sm', 'md', 'lg', 'xl'] as const;

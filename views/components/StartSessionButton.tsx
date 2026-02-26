@@ -11,6 +11,7 @@ interface StartSessionButtonProps {
 export function StartSessionButton({ onClick, isSessionActive }: StartSessionButtonProps) {
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const counter = useRef(0);
+  const busyRef = useRef(false);
 
   const spawnRipple = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -19,10 +20,18 @@ export function StartSessionButton({ onClick, isSessionActive }: StartSessionBut
     setTimeout(() => setRipples(prev => prev.filter(r => r.id !== id)), 700);
   }, []);
 
+  const handleClick = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
+    setTimeout(() => { busyRef.current = false; }, 1000);
+    spawnRipple(e);
+    onClick();
+  }, [onClick, spawnRipple]);
+
   if (isSessionActive) {
     return (
       <button
-        onClick={(e) => { spawnRipple(e); onClick(); }}
+        onClick={handleClick}
         className="session-end-btn"
       >
         {ripples.map(r => (
@@ -43,7 +52,7 @@ export function StartSessionButton({ onClick, isSessionActive }: StartSessionBut
     <div className="session-start-wrap">
       <div className="session-start-glow" />
       <button
-        onClick={(e) => { spawnRipple(e); onClick(); }}
+        onClick={handleClick}
         className="session-start-btn"
       >
         {ripples.map(r => (

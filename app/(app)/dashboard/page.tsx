@@ -23,6 +23,10 @@ import {
   InsightCard,
   RecommendationCard,
   EmptyState,
+  Skeleton,
+  SkeletonStatRow,
+  SkeletonCard,
+  SkeletonListRow,
   getModeColor,
   getModeBgColor,
   getModeLabel,
@@ -102,11 +106,13 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const { toast } = useToast();
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
+    setLoading(true);
     fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: RunRecord[] }) =>
@@ -116,7 +122,8 @@ export default function DashboardPage() {
         setAllRuns([]);
         setFetchError(true);
         toast('error', 'Failed to load your pitch runs. Check your connection and try again.');
-      });
+      })
+      .finally(() => setLoading(false));
   }, [toast]);
 
   useEffect(() => {
@@ -193,6 +200,45 @@ export default function DashboardPage() {
         </div>
 
         {/* ——— Stat Cards Row ——— */}
+        {loading ? (
+          <>
+            <SkeletonStatRow />
+            <SkeletonStatRow />
+            <div className="grid grid-cols-2 gap-4">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-5 w-28 mb-2" />
+              <SkeletonListRow />
+              <SkeletonListRow />
+              <SkeletonListRow />
+            </div>
+          </>
+        ) : totalRuns === 0 ? (
+          <GlassCard animationDelay="0.26s">
+            <EmptyState
+              icon={<Mic size={32} style={{ color: 'var(--text-muted)' }} />}
+              message={fetchError ? 'Failed to load pitch runs.' : 'No pitch runs yet. Run your first pitch to see your breakdown here.'}
+            />
+            {fetchError && (
+              <div className="flex justify-center mt-3">
+                <button
+                  onClick={loadRuns}
+                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-surface-hover)',
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </GlassCard>
+        ) : (
+          <>
         <div className="grid grid-cols-3 gap-4">
           <StatCard
             label="Total Runs"
@@ -238,30 +284,6 @@ export default function DashboardPage() {
           />
         </div>
 
-        {totalRuns === 0 ? (
-          <GlassCard animationDelay="0.26s">
-            <EmptyState
-              icon={<Mic size={32} style={{ color: 'var(--text-muted)' }} />}
-              message={fetchError ? 'Failed to load pitch runs.' : 'No pitch runs yet. Run your first pitch to see your breakdown here.'}
-            />
-            {fetchError && (
-              <div className="flex justify-center mt-3">
-                <button
-                  onClick={loadRuns}
-                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
-                  style={{
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--text-secondary)',
-                    backgroundColor: 'var(--bg-surface-hover)',
-                  }}
-                >
-                  Try Again
-                </button>
-              </div>
-            )}
-          </GlassCard>
-        ) : (
-          <>
             {/* ——— Rubric Breakdown ——— */}
             <GlassCard animationDelay="0.26s">
               <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>

@@ -17,6 +17,9 @@ import {
   StatCard,
   SectionHeader,
   EmptyState,
+  Skeleton,
+  SkeletonStatRow,
+  SkeletonCard,
 } from '@/views/components/ui';
 import {
   ProgressKanban,
@@ -123,12 +126,13 @@ export default function ProgressPage() {
 
   if (loading) {
     return (
-      <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex items-center justify-center">
-        <div
-          className="text-sm animate-pulse"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          Loading progress data...
+      <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
+        <Skeleton className="h-8 w-40" />
+        <SkeletonStatRow />
+        <SkeletonCard />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <SkeletonCard />
+          <SkeletonCard />
         </div>
       </main>
     );
