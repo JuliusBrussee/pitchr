@@ -17,9 +17,16 @@ function SetupPageInner() {
     if (authLoading || !loaded) return;
     if (!user) { router.replace('/login'); return; }
     const isReplay = searchParams.get('replay') === 'true';
+    // Users arriving from the try flow skip onboarding and go straight to session
+    if (state.cameFromTry) {
+      const mode = state.preferredMode || 'elevator';
+      complete(user.user_metadata?.full_name || '', mode);
+      router.replace(`/session?mode=${mode}`);
+      return;
+    }
     if (state.isComplete && !isReplay) { router.replace('/dashboard'); return; }
     setReady(true);
-  }, [authLoading, loaded, user, state.isComplete, searchParams, router]);
+  }, [authLoading, loaded, user, state.isComplete, state.cameFromTry, state.preferredMode, searchParams, router, complete]);
 
   if (!ready) return null;
 

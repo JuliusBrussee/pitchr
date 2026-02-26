@@ -20,6 +20,8 @@ import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
+import { CoachToast } from '@/views/components/ui/CoachToast';
+import { useOnboarding } from '@/hooks/useOnboarding';
 
 export default function SessionPage() {
   return (
@@ -44,6 +46,7 @@ function SessionPageContent() {
   const recorder = useRecorder();
   const { runPitchAnalysis, error: runError } = usePitchRun();
   const { setOrbState } = useTheme();
+  const { state: onboardingState } = useOnboarding();
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -314,7 +317,7 @@ function SessionPageContent() {
   ]);
 
   return (
-    <>
+    <div className="flex gap-4 h-full min-h-0">
       <SessionCanvas
         stream={media.stream}
         isCameraOn={media.isCameraOn}
@@ -368,6 +371,7 @@ function SessionPageContent() {
         aria-hidden="true"
       />
       <AnalyzingOverlay isVisible={showAnalyzing} />
-    </>
+      <CoachToast pageKey={onboardingState.cameFromTry ? 'session-from-try' : 'session'} />
+    </div>
   );
 }
