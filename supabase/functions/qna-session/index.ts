@@ -73,24 +73,32 @@ Deno.serve(async (req: Request) => {
     const adminClient = createAdminClient();
     const budget = await getQaBudget(adminClient, user.id);
 
-    if (!budget.allowed) {
+    // Deny only when budget is fully exhausted with no remaining seconds.
+    // Users at exactly 0 can still start — if they finish within the grace
+    // period the session is free, and durationLimit is clamped to grace period.
+    const remaining = budget.remainingSeconds ?? Infinity;
+    if (!budget.allowed && remaining <= 0) {
       return errorResponse(
         `Q&A time budget exhausted (${Math.floor(budget.usedSeconds / 60)}m ${budget.usedSeconds % 60}s / ${budget.budgetSeconds ? `${Math.floor(budget.budgetSeconds / 60)}m` : '\u221e'}). Upgrade your plan for more Q&A time.`,
         429,
       );
     }
 
-    // Validate and clamp selected duration against plan limits
+    // Validate and clamp selected duration against plan limits and remaining budget.
+    // When remaining is very low (e.g. 5s), clamp to at least the grace period so
+    // the user has a chance to start and cleanly exit without being charged.
     const requestedDuration =
       typeof payload.selectedDurationSeconds === 'number' && payload.selectedDurationSeconds > 0
         ? Math.round(payload.selectedDurationSeconds)
         : budget.defaultDurationSeconds;
 
-    const durationLimitSeconds = Math.min(
-      requestedDuration,
-      budget.maxSessionSeconds,
-      // Don't exceed remaining budget
-      budget.remainingSeconds !== null ? budget.remainingSeconds : Infinity,
+    const durationLimitSeconds = Math.max(
+      budget.gracePeriodSeconds,
+      Math.min(
+        requestedDuration,
+        budget.maxSessionSeconds,
+        remaining,
+      ),
     );
 
     // Build context from the run

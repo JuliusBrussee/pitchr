@@ -282,24 +282,33 @@ export async function recordUsageEvent(
 
 /**
  * Record Q&A time usage (seconds-based).
- * Also records on active day pass if applicable.
+ * Uses atomic RPC for day pass updates to prevent race conditions.
  */
 export async function recordQaSecondsUsage(
   supabase: SupabaseClient,
   userId: string,
   seconds: number,
 ): Promise<void> {
-  const rounded = Math.round(Math.max(0, seconds));
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const rounded = Math.round(seconds);
   if (rounded === 0) return;
 
-  // Check if day pass is active and record there too
+  // Atomically increment day pass QA seconds if active
   const dayPass = await getActiveDayPass(supabase, userId);
   if (dayPass) {
-    const current = dayPass.qa_seconds_used;
-    await supabase
-      .from('day_passes')
-      .update({ qa_seconds_used: current + rounded, updated_at: new Date().toISOString() })
-      .eq('id', dayPass.id);
+    const { error: rpcError } = await supabase.rpc('increment_day_pass_qa_seconds', {
+      pass_id: dayPass.id,
+      additional_seconds: rounded,
+    });
+
+    // Fallback if RPC not deployed: read-then-write
+    if (rpcError) {
+      const current = dayPass.qa_seconds_used;
+      await supabase
+        .from('day_passes')
+        .update({ qa_seconds_used: current + rounded, updated_at: new Date().toISOString() })
+        .eq('id', dayPass.id);
+    }
   }
 
   // Always record in usage_events for period tracking

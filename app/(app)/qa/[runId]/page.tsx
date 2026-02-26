@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Component, useCallback, useEffect, useRef, useState } from 'react';
+import type { ErrorInfo, ReactNode } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -505,10 +506,75 @@ function PostSessionSummary({
   );
 }
 
-/* ——— Main Page ——— */
+/* ——— Error Boundary ——— */
+interface ErrorBoundaryProps {
+  children: ReactNode;
+  runId?: string;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+class QaErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[QA Error Boundary]', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="qa-page">
+          <div className="qa-ambient" />
+          <div className="qa-grid-overlay" />
+          <div className="qa-gate">
+            <div className="qa-gate-card">
+              <div className="qa-gate-header">
+                <h1 className="qa-gate-title">Something went wrong</h1>
+              </div>
+              <div className="qa-msg qa-msg-error">
+                {this.state.error?.message ?? 'An unexpected error occurred during the Q&A session.'}
+              </div>
+              <div className="qa-summary-actions">
+                <button
+                  type="button"
+                  className="qa-summary-new-btn"
+                  onClick={() => this.setState({ hasError: false, error: null })}
+                >
+                  <RefreshCw size={13} />
+                  Try Again
+                </button>
+                <Link href={this.props.runId ? `/results/${this.props.runId}` : '/'} className="qa-summary-back-btn no-underline">
+                  Back to Results
+                </Link>
+              </div>
+            </div>
+          </div>
+        </main>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ——— Main Page (with error boundary) ——— */
 export default function LiveQaPage() {
   const params = useParams<{ runId: string | string[] }>();
   const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
+
+  return (
+    <QaErrorBoundary runId={runId}>
+      <LiveQaPageInner runId={runId} />
+    </QaErrorBoundary>
+  );
+}
+
+function LiveQaPageInner({ runId }: { runId: string }) {
   const [bootstrap, setBootstrap] = useState<SessionBootstrap | null>(null);
   const [bootstrapNonce, setBootstrapNonce] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -518,6 +584,8 @@ export default function LiveQaPage() {
   const [selectedDuration, setSelectedDuration] = useState(60);
   const [qaBudget, setQaBudget] = useState<QaBudgetState | null>(null);
   const [budgetLoading, setBudgetLoading] = useState(true);
+  const [budgetError, setBudgetError] = useState<string | null>(null);
+  const [budgetRetryCount, setBudgetRetryCount] = useState(0);
   const [sessionStarted, setSessionStarted] = useState(false);
   const bootstrapRequestKeyRef = useRef<string | null>(null);
   const bootstrapInFlightRef = useRef<string | null>(null);
@@ -536,58 +604,59 @@ export default function LiveQaPage() {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [liveQa.turns]);
 
-  // Fetch Q&A budget on mount
+  // Fetch Q&A budget on mount (and on retry)
   useEffect(() => {
     if (!runId) return;
+    let cancelled = false;
     setBudgetLoading(true);
-    fetch('/api/billing/usage?resource=qa_seconds')
-      .then((r) => r.json())
-      .then((data) => {
-        // Build budget state from the usage check + plan info
-        fetch('/api/billing/subscription')
-          .then((r) => r.json())
-          .then((billingData) => {
-            const limits = billingData.limits;
-            const maxSession = limits?.maxQaSessionSeconds ?? 60;
-            const options: number[] = [];
-            if (maxSession >= 30) options.push(30);
-            if (maxSession >= 60) options.push(60);
-            if (maxSession >= 90) options.push(90);
-            if (maxSession >= 120) options.push(120);
-            if (maxSession >= 180) options.push(180);
+    setBudgetError(null);
 
-            const planId = data.planId ?? billingData.subscription?.planId ?? 'free';
-            const defaultDuration = planId === 'pro' ? 120 : 60;
+    (async () => {
+      try {
+        const usageRes = await fetch('/api/billing/usage?resource=qa_seconds');
+        if (!usageRes.ok) throw new Error('Failed to load usage data');
+        const data = await usageRes.json();
 
-            setQaBudget({
-              budgetSeconds: data.limit ?? limits?.qaSecondsPerPeriod ?? 120,
-              usedSeconds: data.used ?? 0,
-              remainingSeconds: data.remaining ?? null,
-              maxSessionSeconds: maxSession,
-              gracePeriodSeconds: limits?.qaGracePeriodSeconds ?? 10,
-              durationOptions: options,
-              defaultDurationSeconds: Math.min(defaultDuration, maxSession),
-              planId,
-            });
-            setSelectedDuration(Math.min(defaultDuration, maxSession));
-            setBudgetLoading(false);
-          })
-          .catch(() => {
-            setQaBudget({
-              budgetSeconds: 120,
-              usedSeconds: 0,
-              remainingSeconds: 120,
-              maxSessionSeconds: 60,
-              gracePeriodSeconds: 10,
-              durationOptions: [30, 60],
-              defaultDurationSeconds: 60,
-              planId: 'free',
-            });
-            setBudgetLoading(false);
-          });
-      })
-      .catch(() => setBudgetLoading(false));
-  }, [runId]);
+        const billingRes = await fetch('/api/billing/subscription');
+        if (!billingRes.ok) throw new Error('Failed to load subscription data');
+        const billingData = await billingRes.json();
+
+        if (cancelled) return;
+
+        const limits = billingData.limits;
+        const maxSession = limits?.maxQaSessionSeconds ?? 60;
+        const options: number[] = [];
+        if (maxSession >= 30) options.push(30);
+        if (maxSession >= 60) options.push(60);
+        if (maxSession >= 90) options.push(90);
+        if (maxSession >= 120) options.push(120);
+        if (maxSession >= 180) options.push(180);
+
+        const planId = data.planId ?? billingData.subscription?.planId ?? 'free';
+        const defaultDuration = planId === 'pro' ? 120 : 60;
+
+        setQaBudget({
+          budgetSeconds: data.limit ?? limits?.qaSecondsPerPeriod ?? 120,
+          usedSeconds: data.used ?? 0,
+          remainingSeconds: data.remaining ?? null,
+          maxSessionSeconds: maxSession,
+          gracePeriodSeconds: limits?.qaGracePeriodSeconds ?? 10,
+          durationOptions: options,
+          defaultDurationSeconds: Math.min(defaultDuration, maxSession),
+          planId,
+        });
+        setSelectedDuration(Math.min(defaultDuration, maxSession));
+      } catch (err) {
+        if (!cancelled) {
+          setBudgetError(err instanceof Error ? err.message : 'Failed to load Q&A budget');
+        }
+      } finally {
+        if (!cancelled) setBudgetLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [runId, budgetRetryCount]);
 
   const requestFreshSession = useCallback(() => {
     bootstrapAbortRef.current?.abort();
@@ -736,6 +805,35 @@ export default function LiveQaPage() {
                 <RefreshCw size={20} className="qa-spin" style={{ color: '#ff5941' }} />
                 <span>Loading Q&A budget...</span>
               </div>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    if (budgetError) {
+      return (
+        <main className="qa-page">
+          <div className="qa-ambient" />
+          <div className="qa-grid-overlay" />
+          <div className="qa-gate">
+            <div className="qa-gate-card">
+              <div className="qa-gate-header">
+                <h1 className="qa-gate-title">Failed to load Q&A</h1>
+              </div>
+              <div className="qa-msg qa-msg-error">{budgetError}</div>
+              <button
+                type="button"
+                className="qa-gate-start-btn"
+                onClick={() => setBudgetRetryCount((c) => c + 1)}
+              >
+                <RefreshCw size={16} />
+                Retry
+              </button>
+              <Link href={`/results/${runId}`} className="qa-gate-back no-underline">
+                <ArrowLeft size={12} />
+                Back to Results
+              </Link>
             </div>
           </div>
         </main>

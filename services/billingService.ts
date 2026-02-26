@@ -311,28 +311,38 @@ export async function recordDayPassUsage(
 
 /**
  * Record Q&A time usage on a day pass (seconds-based).
+ * Uses atomic RPC to prevent race conditions from concurrent sessions.
  */
 export async function recordDayPassQaSeconds(
   supabase: SupabaseClient,
   dayPassId: string,
   seconds: number,
 ): Promise<void> {
-  const rounded = Math.round(Math.max(0, seconds));
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const rounded = Math.round(seconds);
   if (rounded === 0) return;
 
-  const { data: pass } = await supabase
-    .from('day_passes')
-    .select('qa_seconds_used')
-    .eq('id', dayPassId)
-    .single();
+  const { error } = await supabase.rpc('increment_day_pass_qa_seconds', {
+    pass_id: dayPassId,
+    additional_seconds: rounded,
+  });
 
-  if (pass) {
-    const current = (pass as Record<string, unknown>).qa_seconds_used as number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (supabase as any)
+  // Fallback if RPC not deployed yet: read-then-write (less safe)
+  if (error) {
+    const { data: pass } = await supabase
       .from('day_passes')
-      .update({ qa_seconds_used: current + rounded, updated_at: new Date().toISOString() })
-      .eq('id', dayPassId);
+      .select('qa_seconds_used')
+      .eq('id', dayPassId)
+      .single();
+
+    if (pass) {
+      const current = (pass as Record<string, unknown>).qa_seconds_used as number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from('day_passes')
+        .update({ qa_seconds_used: current + rounded, updated_at: new Date().toISOString() })
+        .eq('id', dayPassId);
+    }
   }
 }
 
@@ -517,7 +527,8 @@ export async function recordQaSecondsUsage(
   userId: string,
   seconds: number,
 ): Promise<void> {
-  const rounded = Math.round(Math.max(0, seconds));
+  if (!Number.isFinite(seconds) || seconds <= 0) return;
+  const rounded = Math.round(seconds);
   if (rounded === 0) return;
 
   const sub = await getOrCreateSubscription(supabase, userId);

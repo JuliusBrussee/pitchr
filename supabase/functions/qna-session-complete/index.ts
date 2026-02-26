@@ -83,6 +83,12 @@ Deno.serve(async (req: Request) => {
       return errorResponse('QA session not found.', 404);
     }
 
+    // Idempotency: if session is already completed/expired/failed, return it as-is.
+    // This prevents double-billing when the client retries a failed persist request.
+    if (session.status === 'completed' || session.status === 'expired' || session.status === 'failed') {
+      return jsonResponse({ qaSession: session }, 200);
+    }
+
     const conversationId = payload.conversationId ?? session.conversationId;
     let transcript = payload.transcript;
     let turns = payload.turns ?? [];
@@ -131,13 +137,11 @@ Deno.serve(async (req: Request) => {
     const finalStatus = payload.status ?? 'completed';
 
     // Deduct actual seconds used from budget (skip grace period sessions)
-    const adminClient = createAdminClient();
     const billableSeconds = isGracePeriod ? 0 : Math.round(durationSeconds);
 
-    if (billableSeconds > 0) {
-      await recordQaSecondsUsage(adminClient, user.id, billableSeconds);
-    }
-
+    // Complete session FIRST so it's no longer "active". This prevents
+    // the server-side expire cron from also billing this session if the
+    // billing step below fails.
     const qaSession = await completeQASession(supabase, qaSessionId, {
       status: finalStatus,
       conversationId,
@@ -154,6 +158,12 @@ Deno.serve(async (req: Request) => {
         grace_period_applied: isGracePeriod,
       },
     });
+
+    // Record billing after session is marked complete
+    if (billableSeconds > 0) {
+      const adminClient = createAdminClient();
+      await recordQaSecondsUsage(adminClient, user.id, billableSeconds);
+    }
 
     return jsonResponse({ qaSession }, 200);
   } catch (error) {
