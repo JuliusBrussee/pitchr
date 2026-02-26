@@ -22,10 +22,15 @@ export function AchievementGrid({ state }: AchievementGridProps) {
   const [filter, setFilter] = useState<AchievementCategory | 'all'>('all');
   const [isExpanded, setIsExpanded] = useState(false);
   const [shouldStagger, setShouldStagger] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const expandedRef = useRef<HTMLDivElement>(null);
   const collapsedRef = useRef<HTMLDivElement>(null);
 
-  const earnedCount = Object.keys(state).length;
+  useEffect(() => { setIsMounted(true); }, []);
+
+  // Use empty state on server to avoid hydration mismatch
+  const safeState = isMounted ? state : {};
+  const earnedCount = Object.keys(safeState).length;
   const totalCount = ACHIEVEMENT_DEFS.length;
   const percent = totalCount > 0 ? Math.round((earnedCount / totalCount) * 100) : 0;
 
@@ -34,11 +39,11 @@ export function AchievementGrid({ state }: AchievementGridProps) {
     : ACHIEVEMENT_DEFS.filter((d) => d.category === filter);
 
   // Earned achievements sorted by unlock date (most recent first)
-  const earned = ACHIEVEMENT_DEFS.filter((d) => state[d.id]);
+  const earned = ACHIEVEMENT_DEFS.filter((d) => safeState[d.id]);
   const recentEarned = [...earned]
     .sort((a, b) => {
-      const ta = new Date(state[a.id]?.unlockedAt ?? 0).getTime();
-      const tb = new Date(state[b.id]?.unlockedAt ?? 0).getTime();
+      const ta = new Date(safeState[a.id]?.unlockedAt ?? 0).getTime();
+      const tb = new Date(safeState[b.id]?.unlockedAt ?? 0).getTime();
       return tb - ta;
     })
     .slice(0, 5);
@@ -58,7 +63,7 @@ export function AchievementGrid({ state }: AchievementGridProps) {
 
   useEffect(() => {
     measure();
-  }, [measure, filter, state, earned.length]);
+  }, [measure, filter, safeState, earned.length]);
 
   // Re-measure on window resize
   useEffect(() => {
@@ -168,7 +173,7 @@ export function AchievementGrid({ state }: AchievementGridProps) {
                 <AchievementCard
                   key={def.id}
                   def={def}
-                  state={state[def.id]}
+                  state={safeState[def.id]}
                   isLocked={false}
                   compact
                   index={i}
@@ -215,7 +220,7 @@ export function AchievementGrid({ state }: AchievementGridProps) {
               const label = cat === 'all' ? 'All' : CATEGORY_LABELS[cat];
               const catCount = cat === 'all'
                 ? earnedCount
-                : ACHIEVEMENT_DEFS.filter((d) => d.category === cat && state[d.id]).length;
+                : ACHIEVEMENT_DEFS.filter((d) => d.category === cat && safeState[d.id]).length;
               const catTotal = cat === 'all'
                 ? totalCount
                 : ACHIEVEMENT_DEFS.filter((d) => d.category === cat).length;
@@ -246,8 +251,8 @@ export function AchievementGrid({ state }: AchievementGridProps) {
               <AchievementCard
                 key={def.id}
                 def={def}
-                state={state[def.id]}
-                isLocked={!state[def.id]}
+                state={safeState[def.id]}
+                isLocked={!safeState[def.id]}
                 index={shouldStagger ? i : 0}
               />
             ))}
