@@ -174,20 +174,6 @@ function WaveformVisualizer({ isActive }: { isActive: boolean }) {
   );
 }
 
-/* ——— Latency Badge ——— */
-function LatencyBadge({ label, value }: { label: string; value: number }) {
-  const rounded = Math.round(value);
-  const quality = rounded < 300 ? 'good' : rounded < 600 ? 'fair' : 'poor';
-
-  return (
-    <div className={`qa-latency-badge qa-latency-${quality}`}>
-      <span className="qa-latency-dot" />
-      <span className="qa-latency-label">{label}</span>
-      <span className="qa-latency-value">{rounded}ms</span>
-    </div>
-  );
-}
-
 /* ——— Status Pill ——— */
 function StatusPill({ status, isOvertime }: { status: string; isOvertime: boolean }) {
   const isLive = status === 'active';
@@ -426,11 +412,6 @@ export default function LiveQaPage() {
 
         <div className="qa-topbar-right">
           <ConnectionQuality diagnostics={liveQa.diagnostics} />
-          <div className="qa-topbar-divider" />
-          <div className="qa-latency-group">
-            <LatencyBadge label="p50" value={liveQa.latency.p50Ms} />
-            <LatencyBadge label="p95" value={liveQa.latency.p95Ms} />
-          </div>
         </div>
       </header>
 
@@ -609,10 +590,6 @@ export default function LiveQaPage() {
                 <div className="qa-summary-stat">
                   <span className="qa-summary-value">{formatSeconds(liveQa.elapsedSeconds)}</span>
                   <span className="qa-summary-label">Duration</span>
-                </div>
-                <div className="qa-summary-stat">
-                  <span className="qa-summary-value">{Math.round(liveQa.latency.p50Ms)}ms</span>
-                  <span className="qa-summary-label">Avg Latency</span>
                 </div>
               </div>
             </div>

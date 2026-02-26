@@ -36,10 +36,18 @@ interface PlanLimitsInfo {
   queuePriority: number;
 }
 
+interface DayPassInfo {
+  id: string;
+  expiresAt: string;
+  runsUsed: number;
+  runsLimit: number;
+}
+
 interface BillingState {
   subscription: SubscriptionInfo | null;
   usage: UsageInfo | null;
   limits: PlanLimitsInfo | null;
+  dayPass: DayPassInfo | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -49,6 +57,7 @@ export function useBilling() {
     subscription: null,
     usage: null,
     limits: null,
+    dayPass: null,
     isLoading: true,
     error: null,
   });
@@ -63,6 +72,7 @@ export function useBilling() {
         subscription: data.subscription,
         usage: data.usage,
         limits: data.limits,
+        dayPass: data.dayPass ?? null,
         isLoading: false,
         error: null,
       });

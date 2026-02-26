@@ -8,7 +8,7 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
  * the Deno runtime and shared Supabase client.
  * —————————————————————————————————————————————————————————— */
 
-export type BillingPlanId = 'free' | 'pro';
+export type BillingPlanId = 'free' | 'day_pass' | 'pro';
 
 interface PlanLimits {
   runsPerPeriod: number | null;
@@ -23,6 +23,7 @@ interface PlanLimits {
  */
 const PLAN_LIMITS: Record<BillingPlanId, PlanLimits> = {
   free: { runsPerPeriod: 3, decksPerPeriod: 1, qaSessionsPerPeriod: 1 },
+  day_pass: { runsPerPeriod: 15, decksPerPeriod: 5, qaSessionsPerPeriod: 5 },
   pro: { runsPerPeriod: 50, decksPerPeriod: 20, qaSessionsPerPeriod: 30 },
 };
 
@@ -39,7 +40,7 @@ function isDevUser(userId: string): boolean {
 }
 
 function isValidPlan(value: string): value is BillingPlanId {
-  return value === 'free' || value === 'pro';
+  return value === 'free' || value === 'day_pass' || value === 'pro';
 }
 
 interface SubscriptionRow {
@@ -47,6 +48,17 @@ interface SubscriptionRow {
   status: string;
   current_period_start: string;
   current_period_end: string;
+}
+
+interface DayPassRow {
+  id: string;
+  expires_at: string;
+  runs_used: number;
+  runs_limit: number;
+  decks_used: number;
+  decks_limit: number;
+  qa_sessions_used: number;
+  qa_sessions_limit: number;
 }
 
 export interface UsageLimitResult {
@@ -69,6 +81,27 @@ function getDefaultPeriodBounds(): { start: string; end: string } {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
+/**
+ * Check for an active (non-expired) day pass. Returns the pass row
+ * if one exists, otherwise null.
+ */
+async function getActiveDayPass(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<DayPassRow | null> {
+  const { data } = await supabase
+    .from('day_passes')
+    .select('id, expires_at, runs_used, runs_limit, decks_used, decks_limit, qa_sessions_used, qa_sessions_limit')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .gt('expires_at', new Date().toISOString())
+    .order('purchased_at', { ascending: false })
+    .limit(1)
+    .single<DayPassRow>();
+
+  return data ?? null;
+}
+
 export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
@@ -79,7 +112,27 @@ export async function checkUsageLimit(
     return { allowed: true, planId: 'pro', used: 0, limit: null, remaining: null };
   }
 
-  // 1. Get subscription (or default to free)
+  // 1. Check active day pass first — it takes priority
+  const dayPass = await getActiveDayPass(supabase, userId);
+  if (dayPass) {
+    const resourceMap = {
+      run: { used: dayPass.runs_used, limit: dayPass.runs_limit },
+      deck: { used: dayPass.decks_used, limit: dayPass.decks_limit },
+      qa_session: { used: dayPass.qa_sessions_used, limit: dayPass.qa_sessions_limit },
+    };
+    const { used, limit } = resourceMap[resource];
+    if (used < limit) {
+      return {
+        allowed: true,
+        planId: 'day_pass',
+        used,
+        limit,
+        remaining: Math.max(0, limit - used),
+      };
+    }
+  }
+
+  // 2. Fall back to subscription
   const { data: sub } = await supabase
     .from('subscriptions')
     .select('plan_id, status, current_period_start, current_period_end')
@@ -104,7 +157,7 @@ export async function checkUsageLimit(
     return { allowed: true, planId, used: 0, limit: null, remaining: null };
   }
 
-  // 2. Count usage events in the current period
+  // 3. Count usage events in the current period
   const defaultBounds = getDefaultPeriodBounds();
   const periodStart = sub?.current_period_start ?? defaultBounds.start;
   const periodEnd = sub?.current_period_end ?? defaultBounds.end;

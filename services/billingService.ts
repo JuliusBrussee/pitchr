@@ -302,9 +302,11 @@ export async function recordDayPassUsage(
       .single();
 
     if (pass) {
-      await supabase
+      const currentCount = (pass as Record<string, unknown>)[column] as number;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
         .from('day_passes')
-        .update({ [column]: (pass[column] as number) + 1, updated_at: new Date().toISOString() })
+        .update({ [column]: currentCount + 1, updated_at: new Date().toISOString() })
         .eq('id', dayPassId);
     }
   }

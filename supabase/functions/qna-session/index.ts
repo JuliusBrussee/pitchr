@@ -3,11 +3,12 @@
 // Methods: POST (create live VC Q&A session)
 
 import { handleCors } from '../_shared/cors.ts';
-import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
+import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { createQASession } from '../_shared/qna-session-service.ts';
 import { getSignedUrl, ElevenLabsConvaiError } from '../_shared/elevenlabs-convai.ts';
 import { getRun } from '../_shared/run-service.ts';
+import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 
 const QA_DURATION_LIMIT_SECONDS = 60;
 
@@ -70,6 +71,16 @@ Deno.serve(async (req: Request) => {
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
 
+    // Rate limit check
+    const adminClient = createAdminClient();
+    const usageCheck = await checkUsageLimit(adminClient, user.id, 'qa_session');
+    if (!usageCheck.allowed) {
+      return errorResponse(
+        `QA session limit reached (${usageCheck.used}/${usageCheck.limit}). Upgrade your plan for more sessions.`,
+        429,
+      );
+    }
+
     // Build context from the run
     const run = await getRun(supabase, runId);
     const analysis = run.analysis?.outputs?.feedback;
@@ -99,6 +110,9 @@ Deno.serve(async (req: Request) => {
         starter_context: qaSystemPrompt,
       },
     });
+
+    // Record usage after successful creation
+    await recordUsageEvent(adminClient, user.id, 'qa_session');
 
     return jsonResponse({
       qaSessionId: qaSession.id,

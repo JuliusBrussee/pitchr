@@ -138,7 +138,7 @@ export function planIdFromStripePriceId(stripePriceId: string): BillingPlanId {
 }
 
 /** Default trial period in days (0 = no trial) */
-export const TRIAL_PERIOD_DAYS = 7;
+export const TRIAL_PERIOD_DAYS = 0;
 
 /** Grace period after subscription expiry before downgrading (hours) */
 export const GRACE_PERIOD_HOURS = 48;

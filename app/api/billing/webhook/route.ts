@@ -229,7 +229,8 @@ async function handlePaymentFailed(admin: ReturnType<typeof createAdminClient>, 
     .single();
 
   if (sub.data) {
-    await admin
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any)
       .from('subscriptions')
       .update({ status: 'past_due', updated_at: new Date().toISOString() })
       .eq('user_id', userId);

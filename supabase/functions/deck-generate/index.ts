@@ -5,9 +5,10 @@
 // the selected template, uploads to Supabase Storage, and inserts deck + slides.
 
 import { handleCors } from '../_shared/cors.ts';
-import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
+import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { uploadToStorage, insertDeck, insertSlides } from '../_shared/deck-service.ts';
+import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 import type { TemplateId, GenerateDeckRequest } from '../_shared/types.ts';
 
 const VALID_TEMPLATES = new Set<TemplateId>([
@@ -409,6 +410,17 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+
+    // Rate limit check for deck generation
+    const adminClient = createAdminClient();
+    const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck');
+    if (!usageCheck.allowed) {
+      return errorResponse(
+        `Deck generation limit reached (${usageCheck.used}/${usageCheck.limit}). Upgrade your plan for more decks.`,
+        429,
+      );
+    }
+
     const body = await req.json() as Partial<GenerateDeckRequest>;
 
     // Validate companyName
@@ -479,6 +491,9 @@ Deno.serve(async (req: Request) => {
       text: formatSlideText(slide),
     }));
     await insertSlides(supabase, deck.id, slideRows);
+
+    // Record usage after successful generation
+    await recordUsageEvent(adminClient, user.id, 'deck');
 
     console.log('[deck-generate] deck created', deck.id);
 

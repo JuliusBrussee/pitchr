@@ -1,20 +1,27 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { getOrCreateSubscription, getUsage } from '@/services/billingService';
-import { getPlan } from '@/config/billing';
+import { getOrCreateSubscription, getUsage, getActiveDayPass } from '@/services/billingService';
+import { getPlan, getPlanLimits } from '@/config/billing';
 
 /**
  * GET /api/billing/subscription
- * Returns the current user's subscription + usage summary.
+ * Returns the current user's subscription + usage summary + active day pass.
  */
 export async function GET() {
   try {
     const { user } = await getAuthenticatedUser();
     const admin = createAdminClient();
-    const subscription = await getOrCreateSubscription(admin, user.id);
-    const usage = await getUsage(admin, user.id);
-    const plan = getPlan(subscription.planId);
+    const [subscription, usage, dayPass] = await Promise.all([
+      getOrCreateSubscription(admin, user.id),
+      getUsage(admin, user.id),
+      getActiveDayPass(admin, user.id),
+    ]);
+
+    // If day pass is active, show its limits instead of subscription limits
+    const effectivePlanId = dayPass ? 'day_pass' : subscription.planId;
+    const plan = getPlan(effectivePlanId);
+    const limits = getPlanLimits(effectivePlanId);
 
     return NextResponse.json({
       subscription: {
@@ -27,16 +34,24 @@ export async function GET() {
         hasStripeSubscription: !!subscription.stripeSubscriptionId,
       },
       usage: {
-        runsUsed: usage.runsUsed,
-        runsLimit: plan.limits.runsPerPeriod,
-        decksUsed: usage.decksUsed,
-        decksLimit: plan.limits.decksPerPeriod,
-        qaSessionsUsed: usage.qaSessionsUsed,
-        qaSessionsLimit: plan.limits.qaSessionsPerPeriod,
+        runsUsed: dayPass ? dayPass.runsUsed : usage.runsUsed,
+        runsLimit: limits.runsPerPeriod,
+        decksUsed: dayPass ? dayPass.decksUsed : usage.decksUsed,
+        decksLimit: limits.decksPerPeriod,
+        qaSessionsUsed: dayPass ? dayPass.qaSessionsUsed : usage.qaSessionsUsed,
+        qaSessionsLimit: limits.qaSessionsPerPeriod,
         periodStart: usage.periodStart,
         periodEnd: usage.periodEnd,
       },
-      limits: plan.limits,
+      limits,
+      dayPass: dayPass
+        ? {
+            id: dayPass.id,
+            expiresAt: dayPass.expiresAt,
+            runsUsed: dayPass.runsUsed,
+            runsLimit: dayPass.runsLimit,
+          }
+        : null,
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthenticationError') {
