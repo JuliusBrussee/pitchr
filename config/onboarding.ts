@@ -99,13 +99,3 @@ export const RUBRIC_EXPLORER = [
   },
 ];
 
-// Coach toast messages for progressive hints
-export const COACH_TOASTS: Record<string, string> = {
-  dashboard: 'This is home base. Your scores, trends, and next moves -- all here.',
-  session: 'Pick your mode, hit record, and let it rip. The AI\'s listening.',
-  'session-from-try': 'That was practice. Now let\'s get your real score — same pitch, real feedback.',
-  results: 'Scroll down. The fixes are ranked -- top one has the biggest impact.',
-  history: 'Every pitch you\'ve run lives here. Track your progress over time.',
-  deck: 'Upload your deck and practice slide-by-slide. The AI reads along.',
-  progress: 'Your score timeline. Watch the line go up.',
-};

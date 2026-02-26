@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -22,7 +22,7 @@ import {
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
-import { useToast } from '@/views/components/Toast';
+import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 
 /* ——— Types ——— */
 
@@ -545,7 +545,8 @@ export default function AnalyticsPage() {
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const { toast } = useToast();
+  const { showTooltip } = useSmartTooltip();
+  const analyticsRef = useRef<HTMLDivElement | null>(null);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -556,10 +557,12 @@ export default function AnalyticsPage() {
       .catch(() => {
         setAllRuns([]);
         setFetchError(true);
-        toast('error', 'Failed to load analytics data. Check your connection and try again.');
+        if (analyticsRef.current) {
+          showTooltip(analyticsRef.current, 'error', 'Failed to load analytics data. Check your connection and try again.');
+        }
       })
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [showTooltip]);
 
   useEffect(() => {
     loadRuns();
@@ -585,7 +588,7 @@ export default function AnalyticsPage() {
   const avgDurationStr = `${Math.floor(avgDurationSecs / 60)}:${(avgDurationSecs % 60).toString().padStart(2, '0')}`;
 
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
+    <main ref={analyticsRef} className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
       {/* Header */}
       <div
         className="flex items-center justify-between animate-fade-in-up"

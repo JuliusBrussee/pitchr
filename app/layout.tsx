@@ -3,7 +3,7 @@ import Script from 'next/script';
 import './globals.css';
 import { ThemeProvider } from '@/views/components/ThemeProvider';
 import { AuthProvider } from '@/views/components/AuthProvider';
-import { ToastProvider } from '@/views/components/Toast';
+import { TutorialProvider } from '@/views/components/TutorialProvider';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
@@ -71,7 +71,7 @@ export default function RootLayout({
         )}
         <ThemeProvider>
           <AuthProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <TutorialProvider>{children}</TutorialProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
-import { useToast } from '@/views/components/Toast';
+import { useTutorial } from '@/hooks/useTutorial';
+import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import {
   TrendingUp,
   Flame,
@@ -85,7 +86,9 @@ export default function ProgressPage() {
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const { toast } = useToast();
+  const { showTooltip } = useSmartTooltip();
+  const { registerPage } = useTutorial('progress');
+  const statsContainerRef = useRef<HTMLDivElement | null>(null);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -99,14 +102,20 @@ export default function ProgressPage() {
       .catch(() => {
         setRuns([]);
         setFetchError(true);
-        toast('error', 'Failed to load progress data. Check your connection and try again.');
+        if (statsContainerRef.current) {
+          showTooltip(statsContainerRef.current, 'error', 'Failed to load progress data. Check your connection and try again.');
+        }
       })
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [showTooltip]);
 
   useEffect(() => {
     loadRuns();
   }, [loadRuns]);
+
+  useEffect(() => {
+    registerPage('progress');
+  }, [registerPage]);
 
   const progress: ProgressSummary = useMemo(
     () => computeProgress(runs),
@@ -186,7 +195,7 @@ export default function ProgressPage() {
       ) : (
         <>
           {/* ——— Stat Cards ——— */}
-          <div className="grid grid-cols-4 gap-4">
+          <div ref={statsContainerRef} data-tour="tour-progress-stats" className="grid grid-cols-4 gap-4">
             <StatCard
               label="Current Score"
               value={`${latestScore}/100`}
@@ -264,6 +273,7 @@ export default function ProgressPage() {
           </GlassCard>
 
           {/* ——— Skill Kanban Board ——— */}
+          <div data-tour="tour-progress-kanban">
           <GlassCard animationDelay="320ms">
             <SectionHeader className="mb-4">Skill Board</SectionHeader>
             <p
@@ -275,15 +285,18 @@ export default function ProgressPage() {
             </p>
             <ProgressKanban categories={progress.categories} />
           </GlassCard>
+          </div>
 
           {/* ——— Score Timeline ——— */}
+          <div data-tour="tour-progress-timeline">
           <GlassCard animationDelay="380ms">
             <SectionHeader className="mb-4">Score Timeline</SectionHeader>
             <ScoreTimeline data={progress.overallTrend} />
           </GlassCard>
+          </div>
 
           {/* ——— Category Deep-Dive ——— */}
-          <div>
+          <div data-tour="tour-progress-categories">
             <SectionHeader className="mb-3">
               <span
                 className="animate-fade-in-up"

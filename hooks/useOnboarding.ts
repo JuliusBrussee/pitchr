@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 
 const STORAGE_KEY = 'pitchr_onboarding';
-const TOAST_PREFIX = 'pitchr-toast-seen:';
+const TOUR_PREFIX = 'pitchr-tour-seen:';
 
 export interface OnboardingState {
   isComplete: boolean;
@@ -70,7 +70,7 @@ export function useOnboarding() {
     setState(DEFAULTS);
     // Also clear all toast flags
     if (typeof window === 'undefined') return;
-    const keys = Object.keys(localStorage).filter((k) => k.startsWith(TOAST_PREFIX));
+    const keys = Object.keys(localStorage).filter((k) => k.startsWith(TOUR_PREFIX));
     keys.forEach((k) => localStorage.removeItem(k));
   }, []);
 

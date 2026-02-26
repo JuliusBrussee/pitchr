@@ -290,11 +290,11 @@ export default function SettingsPage() {
 
             <div className="h-px my-1" style={{ backgroundColor: 'var(--border-color)' }} />
 
-            <SettingRow label="Reset page tips" description="Show coach tips again on each page">
+            <SettingRow label="Reset page tips" description="Show guided tours again on each page">
               <button
                 onClick={() => {
                   if (typeof window !== 'undefined') {
-                    const keys = Object.keys(localStorage).filter((k) => k.startsWith('pitchr-toast-seen:'));
+                    const keys = Object.keys(localStorage).filter((k) => k.startsWith('pitchr-tour-seen:'));
                     keys.forEach((k) => localStorage.removeItem(k));
                   }
                   alert('Page tips have been reset.');

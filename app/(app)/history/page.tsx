@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Clock,
   ArrowRight,
@@ -28,7 +28,8 @@ import type { PitchMode } from '@/views/components/ui';
 import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 import { RunDetailModal } from '@/views/components/RunDetailModal';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
-import { useToast } from '@/views/components/Toast';
+import { useTutorial } from '@/hooks/useTutorial';
+import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 
 /* ——— Types ——— */
 
@@ -114,7 +115,9 @@ export default function HistoryPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState(false);
-  const { toast } = useToast();
+  const { showTooltip } = useSmartTooltip();
+  const { registerPage } = useTutorial('history');
+  const runListRef = useRef<HTMLDivElement | null>(null);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -141,14 +144,20 @@ export default function HistoryPage() {
       .catch(() => {
         setRuns([]);
         setFetchError(true);
-        toast('error', 'Failed to load pitch history. Check your connection and try again.');
+        if (runListRef.current) {
+          showTooltip(runListRef.current, 'error', 'Failed to load pitch history. Check your connection and try again.');
+        }
       })
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [showTooltip]);
 
   useEffect(() => {
     loadRuns();
   }, [loadRuns]);
+
+  useEffect(() => {
+    registerPage('history');
+  }, [registerPage]);
 
   /* Filtering */
   const filtered = runs.filter((run) => {
@@ -224,6 +233,7 @@ export default function HistoryPage() {
 
           {/* View toggle */}
           <div
+            data-tour="tour-history-view"
             className="flex rounded-lg border overflow-hidden"
             style={{ borderColor: 'var(--border-color)' }}
           >
@@ -249,7 +259,7 @@ export default function HistoryPage() {
         </div>
 
         {/* Search + Mode filter row */}
-        <div className="flex items-center gap-3">
+        <div data-tour="tour-history-search" className="flex items-center gap-3">
           <SearchInput
             value={searchQuery}
             onChange={setSearchQuery}
@@ -297,7 +307,7 @@ export default function HistoryPage() {
       </GlassCard>
 
       {/* ——— Session List / Grid ——— */}
-      <GlassCard className="flex-1 overflow-y-auto" animate={false}>
+      <GlassCard ref={runListRef} data-tour="tour-history-runs" className="flex-1 overflow-y-auto" animate={false}>
         {loading ? (
           <div className="flex flex-col gap-2">
             {[0, 1, 2, 3, 4].map((i) => (

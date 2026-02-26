@@ -19,6 +19,7 @@ import { SearchInput, SectionHeader, EmptyState } from '@/views/components/ui';
 import { GenerateDeckModal } from '@/views/components/GenerateDeckModal';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { DeckRecord } from '@/services/deckService';
+import { useTutorial } from '@/hooks/useTutorial';
 
 /* --- Helpers --- */
 
@@ -79,6 +80,7 @@ export default function DeckPage() {
   const [error, setError] = useState<string | null>(null);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { registerPage } = useTutorial('deck');
 
   // Fetch decks
   const fetchDecks = useCallback(async () => {
@@ -98,6 +100,10 @@ export default function DeckPage() {
   useEffect(() => {
     fetchDecks();
   }, [fetchDecks]);
+
+  useEffect(() => {
+    registerPage('deck');
+  }, [registerPage]);
 
   // Inject shimmer keyframes once on mount
   useEffect(() => {
@@ -259,6 +265,7 @@ export default function DeckPage() {
 
       {/* --- Upload Dropzone --- */}
       <div
+        data-tour="tour-deck-upload"
         className="animate-fade-in-up"
         style={{ animationDelay: '0.05s', animationFillMode: 'both' }}
       >
@@ -347,6 +354,7 @@ export default function DeckPage() {
 
       {/* --- Deck Grid --- */}
       <div
+        data-tour="tour-deck-cards"
         className="grid gap-4"
         style={{
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -354,6 +362,7 @@ export default function DeckPage() {
       >
         {/* Create with AI Card */}
         <div
+          data-tour="tour-deck-ai"
           className="animate-fade-in-up"
           style={{ animationDelay: '0.1s', animationFillMode: 'both' }}
         >

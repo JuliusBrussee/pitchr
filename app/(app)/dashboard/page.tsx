@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Target,
@@ -12,8 +12,9 @@ import {
   ArrowRight,
   Mic,
 } from 'lucide-react';
-import { useToast } from '@/views/components/Toast';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { useTutorial } from '@/hooks/useTutorial';
+import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import {
   GlassCard,
   StatCard,
@@ -110,7 +111,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const { state: onboardingState } = useOnboarding();
   const [fetchError, setFetchError] = useState(false);
-  const { toast } = useToast();
+  const { showTooltip } = useSmartTooltip();
+  const { registerPage } = useTutorial('dashboard');
+  const statsRef = useRef<HTMLDivElement | null>(null);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -123,16 +126,22 @@ export default function DashboardPage() {
       .catch(() => {
         setAllRuns([]);
         setFetchError(true);
-        toast('error', 'Failed to load your pitch runs. Check your connection and try again.');
+        if (statsRef.current) {
+          showTooltip(statsRef.current, 'error', 'Failed to load your pitch runs. Check your connection and try again.');
+        }
       })
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [showTooltip]);
 
   useEffect(() => {
     setGreeting(getGreeting());
     setFormattedDate(getFormattedDate());
     loadRuns();
   }, [loadRuns]);
+
+  useEffect(() => {
+    registerPage('dashboard');
+  }, [registerPage]);
 
   const totalRuns = allRuns.length;
   const averageScore = totalRuns > 0
@@ -241,7 +250,7 @@ export default function DashboardPage() {
           </GlassCard>
         ) : (
           <>
-        <div className="grid grid-cols-3 gap-4">
+        <div ref={statsRef} data-tour="tour-dashboard-stats" className="grid grid-cols-3 gap-4">
           <StatCard
             label="Total Runs"
             value={String(totalRuns)}
@@ -287,6 +296,7 @@ export default function DashboardPage() {
         </div>
 
             {/* ——— Rubric Breakdown ——— */}
+            <div data-tour="tour-dashboard-rubric">
             <GlassCard animationDelay="0.26s">
               <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
               <div className="flex flex-col gap-3.5">
@@ -302,6 +312,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             </GlassCard>
+            </div>
 
             {/* ——— Top Insights + Practice Recommendations ——— */}
             <div className="grid grid-cols-2 gap-4">
@@ -314,6 +325,7 @@ export default function DashboardPage() {
                 </div>
               </GlassCard>
 
+              <div data-tour="tour-dashboard-recommendations">
               <GlassCard animationDelay="0.38s">
                 <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
                 <div className="flex flex-col gap-3">
@@ -322,10 +334,12 @@ export default function DashboardPage() {
                   ))}
                 </div>
               </GlassCard>
+              </div>
             </div>
 
             {/* ——— Recent Runs ——— */}
             <div
+              data-tour="tour-dashboard-recent"
               className="animate-fade-in-up"
               style={{ animationDelay: '0.44s', animationFillMode: 'both' }}
             >

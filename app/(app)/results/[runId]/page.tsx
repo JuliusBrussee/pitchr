@@ -25,6 +25,7 @@ import {
 import { buildRewriteDiff } from '@/services/rewriteDiffService';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useTutorial } from '@/hooks/useTutorial';
 import type {
   MiroFixBoardResponse,
   MiroFixPatchResponse,
@@ -237,6 +238,11 @@ export default function ResultsPage() {
   const miroPollIntervalMs = useMemo(() => getMiroPollIntervalMs(), []);
   const achievements = useAchievements();
   const achievementCheckDone = useRef(false);
+  const { registerPage } = useTutorial('results');
+
+  useEffect(() => {
+    registerPage('results');
+  }, [registerPage]);
 
   // When the run completes, fetch all runs and check achievements
   useEffect(() => {
@@ -719,11 +725,14 @@ export default function ResultsPage() {
       <RecordingPlayer ref={recordingRef} recordingUrl={run.audioUrl} seekToSec={seekToSec} />
 
       {/* ━━━ TIER 1: The Verdict ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <ScoreHero feedback={feedback} />
+      <div data-tour="tour-results-score">
+        <ScoreHero feedback={feedback} />
+      </div>
 
       {/* ━━━ TIER 2: Actionable Insights ━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />
 
+      <div data-tour="tour-results-fixes">
       <Section
         title="Priority Fixes"
         actions={
@@ -776,6 +785,7 @@ export default function ResultsPage() {
           </div>
         ) : null}
       </Section>
+      </div>
 
       {miroBoard ? (
         <section>
@@ -811,6 +821,7 @@ export default function ResultsPage() {
       <RewriteDiffPanel diff={rewriteDiff} />
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div data-tour="tour-results-rewrite">
         <Section
           title="Rewrite Script"
           actions={
@@ -832,13 +843,16 @@ export default function ResultsPage() {
             {feedback.rewrite_script}
           </p>
         </Section>
+        </div>
 
+        <div data-tour="tour-results-delivery">
         <Section title="Delivery Diagnostics">
           <VocabDiagnostics
             delivery={feedback.delivery_metrics}
             vocabulary={feedback.vocabulary_metrics}
           />
         </Section>
+        </div>
       </section>
 
       {economics ? <ValueProof economics={economics} /> : null}

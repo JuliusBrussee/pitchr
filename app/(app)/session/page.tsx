@@ -20,8 +20,8 @@ import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
-import { CoachToast } from '@/views/components/ui/CoachToast';
 import { useOnboarding } from '@/hooks/useOnboarding';
+import { useTutorial } from '@/hooks/useTutorial';
 
 export default function SessionPage() {
   return (
@@ -47,6 +47,7 @@ function SessionPageContent() {
   const { runPitchAnalysis, error: runError } = usePitchRun();
   const { setOrbState } = useTheme();
   const { state: onboardingState } = useOnboarding();
+  const { registerPage } = useTutorial('session');
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -129,6 +130,10 @@ function SessionPageContent() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [nextSlide, prevSlide]);
+
+  useEffect(() => {
+    registerPage('session');
+  }, [registerPage]);
 
   // Sync orb state to ThemeProvider for reactive aura
   useEffect(() => {
@@ -342,21 +347,23 @@ function SessionPageContent() {
         elapsedSeconds={session.metrics.durationSecs}
         targetSeconds={modeConfig.targetDurationSeconds}
       />
-      <MetricsPanel
-        metrics={session.metrics}
-        targetDurationSeconds={modeConfig.targetDurationSeconds}
-        checklist={session.checklist}
-        isSessionActive={session.isSessionActive}
-        engagementBand={engagementBand}
-        isCameraOn={media.isCameraOn}
-        checklistSource={stt.checklistSource}
-        checklistNextHint={stt.checklistNextHint}
-        checklistError={stt.checklistError}
-        sttError={analysisError ?? runError ?? stt.error}
-        sttSaved={stt.saved && !showAnalyzing}
-        isAnalyzing={showAnalyzing}
-        analysisError={analysisError ?? runError}
-      />
+      <div data-tour="tour-session-metrics">
+        <MetricsPanel
+          metrics={session.metrics}
+          targetDurationSeconds={modeConfig.targetDurationSeconds}
+          checklist={session.checklist}
+          isSessionActive={session.isSessionActive}
+          engagementBand={engagementBand}
+          isCameraOn={media.isCameraOn}
+          checklistSource={stt.checklistSource}
+          checklistNextHint={stt.checklistNextHint}
+          checklistError={stt.checklistError}
+          sttError={analysisError ?? runError ?? stt.error}
+          sttSaved={stt.saved && !showAnalyzing}
+          isAnalyzing={showAnalyzing}
+          analysisError={analysisError ?? runError}
+        />
+      </div>
       <video
         ref={trackingVideoRef}
         autoPlay
@@ -371,7 +378,6 @@ function SessionPageContent() {
         aria-hidden="true"
       />
       <AnalyzingOverlay isVisible={showAnalyzing} />
-      <CoachToast pageKey={onboardingState.cameFromTry ? 'session-from-try' : 'session'} />
     </div>
   );
 }
