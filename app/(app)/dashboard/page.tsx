@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Target,
@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Mic,
 } from 'lucide-react';
+import { useToast } from '@/views/components/Toast';
 import {
   GlassCard,
   StatCard,
@@ -101,18 +102,28 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('');
   const [formattedDate, setFormattedDate] = useState('');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
+  const [fetchError, setFetchError] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
-    setGreeting(getGreeting());
-    setFormattedDate(getFormattedDate());
-
+  const loadRuns = useCallback(() => {
+    setFetchError(false);
     fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: RunRecord[] }) =>
         setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
       )
-      .catch(() => setAllRuns([]));
-  }, []);
+      .catch(() => {
+        setAllRuns([]);
+        setFetchError(true);
+        toast('error', 'Failed to load your pitch runs. Check your connection and try again.');
+      });
+  }, [toast]);
+
+  useEffect(() => {
+    setGreeting(getGreeting());
+    setFormattedDate(getFormattedDate());
+    loadRuns();
+  }, [loadRuns]);
 
   const totalRuns = allRuns.length;
   const averageScore = totalRuns > 0
@@ -231,8 +242,23 @@ export default function DashboardPage() {
           <GlassCard animationDelay="0.26s">
             <EmptyState
               icon={<Mic size={32} style={{ color: 'var(--text-muted)' }} />}
-              message="No pitch runs yet. Run your first pitch to see your breakdown here."
+              message={fetchError ? 'Failed to load pitch runs.' : 'No pitch runs yet. Run your first pitch to see your breakdown here.'}
             />
+            {fetchError && (
+              <div className="flex justify-center mt-3">
+                <button
+                  onClick={loadRuns}
+                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-surface-hover)',
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
           </GlassCard>
         ) : (
           <>

@@ -7,15 +7,25 @@ interface SidebarContextValue {
   isSessionActive: boolean;
   registerSession: (controls: { onStartSession: () => void; isSessionActive: boolean }) => void;
   unregisterSession: () => void;
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
+  closeSidebar: () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
   isSessionActive: false,
   registerSession: () => {},
   unregisterSession: () => {},
+  isSidebarOpen: false,
+  toggleSidebar: () => {},
+  closeSidebar: () => {},
 });
 
 export function SidebarProvider({ children }: { children: ReactNode }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const toggleSidebar = useCallback(() => setIsSidebarOpen((p) => !p), []);
+  const closeSidebar = useCallback(() => setIsSidebarOpen(false), []);
+
   const [sessionControls, setSessionControls] = useState<{
     onStartSession?: () => void;
     isSessionActive: boolean;
@@ -47,6 +57,9 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
         isSessionActive: sessionControls.isSessionActive,
         registerSession,
         unregisterSession,
+        isSidebarOpen,
+        toggleSidebar,
+        closeSidebar,
       }}
     >
       {children}

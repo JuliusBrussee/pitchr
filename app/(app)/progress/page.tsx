@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useToast } from '@/views/components/Toast';
 import {
   TrendingUp,
   Flame,
@@ -80,17 +81,29 @@ function normalizeRunToProgress(raw: RawRunRecord): ProgressRunRecord {
 export default function ProgressPage() {
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
+  const loadRuns = useCallback(() => {
+    setFetchError(false);
+    setLoading(true);
     fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: RawRunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
         setRuns(data.map(normalizeRunToProgress));
       })
-      .catch(() => setRuns([]))
+      .catch(() => {
+        setRuns([]);
+        setFetchError(true);
+        toast('error', 'Failed to load progress data. Check your connection and try again.');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    loadRuns();
+  }, [loadRuns]);
 
   const progress: ProgressSummary = useMemo(
     () => computeProgress(runs),
@@ -148,8 +161,23 @@ export default function ProgressPage() {
         <GlassCard animationDelay="60ms">
           <EmptyState
             icon={<TrendingUp size={32} style={{ color: 'var(--text-muted)' }} />}
-            message="No pitch sessions yet. Complete your first pitch to start tracking progress."
+            message={fetchError ? 'Failed to load progress data.' : 'No pitch sessions yet. Complete your first pitch to start tracking progress.'}
           />
+          {fetchError && (
+            <div className="flex justify-center mt-3">
+              <button
+                onClick={loadRuns}
+                className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                style={{
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-secondary)',
+                  backgroundColor: 'var(--bg-surface-hover)',
+                }}
+              >
+                Try Again
+              </button>
+            </div>
+          )}
         </GlassCard>
       ) : (
         <>

@@ -229,11 +229,16 @@ async function handlePaymentFailed(admin: ReturnType<typeof createAdminClient>, 
     .single();
 
   if (sub.data) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (admin as any)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- untyped Supabase client (no Database generic)
+    const { error } = await (admin as any)
       .from('subscriptions')
       .update({ status: 'past_due', updated_at: new Date().toISOString() })
       .eq('user_id', userId);
+
+    if (error) {
+      console.error('[billing/webhook] failed to mark subscription past_due:', error.message);
+      throw new Error(`Failed to update subscription status: ${error.message}`);
+    }
   }
 
   console.log('[billing/webhook] payment failed', { userId });

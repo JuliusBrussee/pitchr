@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   BillingPlanId,
-  BillingInterval,
   DayPass,
   QaBudgetInfo,
   Subscription,
@@ -290,22 +289,9 @@ export async function recordDayPassUsage(
     usage_column: column,
   });
 
-  // Fallback if RPC doesn't exist: read-then-write
   if (error) {
-    const { data: pass } = await supabase
-      .from('day_passes')
-      .select(column)
-      .eq('id', dayPassId)
-      .single();
-
-    if (pass) {
-      const currentCount = (pass as Record<string, unknown>)[column] as number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('day_passes')
-        .update({ [column]: currentCount + 1, updated_at: new Date().toISOString() })
-        .eq('id', dayPassId);
-    }
+    console.error(`[billing] atomic day pass usage increment failed for ${dayPassId}:`, error.message);
+    throw new Error(`Failed to record day pass usage: ${error.message}`);
   }
 }
 
@@ -327,22 +313,9 @@ export async function recordDayPassQaSeconds(
     additional_seconds: rounded,
   });
 
-  // Fallback if RPC not deployed yet: read-then-write (less safe)
   if (error) {
-    const { data: pass } = await supabase
-      .from('day_passes')
-      .select('qa_seconds_used')
-      .eq('id', dayPassId)
-      .single();
-
-    if (pass) {
-      const current = (pass as Record<string, unknown>).qa_seconds_used as number;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
-        .from('day_passes')
-        .update({ qa_seconds_used: current + rounded, updated_at: new Date().toISOString() })
-        .eq('id', dayPassId);
-    }
+    console.error(`[billing] atomic day pass QA seconds increment failed for ${dayPassId}:`, error.message);
+    throw new Error(`Failed to record day pass QA seconds: ${error.message}`);
   }
 }
 
@@ -460,7 +433,7 @@ export async function checkUsageLimit(
 
   // Check active day pass first — it takes priority over subscription limits
   const dayPassResult = await checkDayPassUsage(supabase, userId, resource);
-  if (dayPassResult?.allowed) return dayPassResult;
+  if (dayPassResult) return dayPassResult;
 
   const sub = await getOrCreateSubscription(supabase, userId);
   const usage = await getUsage(supabase, userId);

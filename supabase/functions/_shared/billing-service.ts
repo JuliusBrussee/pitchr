@@ -135,15 +135,13 @@ export async function checkUsageLimit(
       qa_seconds: { used: dayPass.qa_seconds_used, limit: dayPass.qa_seconds_limit },
     };
     const { used, limit } = resourceMap[resource];
-    if (used < limit) {
-      return {
-        allowed: true,
-        planId: 'day_pass',
-        used,
-        limit,
-        remaining: Math.max(0, limit - used),
-      };
-    }
+    return {
+      allowed: used < limit,
+      planId: 'day_pass' as BillingPlanId,
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+    };
   }
 
   // 2. Fall back to subscription
@@ -301,13 +299,9 @@ export async function recordQaSecondsUsage(
       additional_seconds: rounded,
     });
 
-    // Fallback if RPC not deployed: read-then-write
     if (rpcError) {
-      const current = dayPass.qa_seconds_used;
-      await supabase
-        .from('day_passes')
-        .update({ qa_seconds_used: current + rounded, updated_at: new Date().toISOString() })
-        .eq('id', dayPass.id);
+      console.error(`[billing] atomic day pass QA seconds increment failed for ${dayPass.id}:`, rpcError.message);
+      throw new Error(`Failed to record day pass QA seconds: ${rpcError.message}`);
     }
   }
 

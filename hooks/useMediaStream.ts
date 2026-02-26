@@ -39,7 +39,9 @@ export function useMediaStream(): UseMediaStreamReturn {
         setError(null);
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
-          videoRef.current.play().catch(() => {});
+          videoRef.current.play().catch(() => {
+            // Autoplay blocked by browser — video will play on user interaction
+          });
         }
       } catch (err) {
         if (active) {
@@ -61,7 +63,9 @@ export function useMediaStream(): UseMediaStreamReturn {
     const video = videoRef.current;
     if (!video || !stream) return;
     video.srcObject = stream;
-    video.play().catch(() => {});
+    video.play().catch(() => {
+      // Autoplay blocked by browser — video will play on user interaction
+    });
   }, [stream]);
 
   const toggleCamera = useCallback(() => {

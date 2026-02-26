@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Clock,
   ArrowRight,
@@ -27,6 +27,7 @@ import type { PitchMode } from '@/views/components/ui';
 import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 import { RunDetailModal } from '@/views/components/RunDetailModal';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useToast } from '@/views/components/Toast';
 
 /* ——— Types ——— */
 
@@ -111,8 +112,12 @@ export default function HistoryPage() {
   const [visibleCount, setVisibleCount] = useState(8);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
+  const loadRuns = useCallback(() => {
+    setFetchError(false);
+    setLoading(true);
     fetchEdge('pitch-run')
       .then((res) => res.json())
       .then((payload: { runs?: RunRecord[] }) => {
@@ -132,9 +137,17 @@ export default function HistoryPage() {
         }));
         setRuns(mapped);
       })
-      .catch(() => setRuns([]))
+      .catch(() => {
+        setRuns([]);
+        setFetchError(true);
+        toast('error', 'Failed to load pitch history. Check your connection and try again.');
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [toast]);
+
+  useEffect(() => {
+    loadRuns();
+  }, [loadRuns]);
 
   /* Filtering */
   const filtered = runs.filter((run) => {
@@ -284,14 +297,33 @@ export default function HistoryPage() {
       {/* ——— Session List / Grid ——— */}
       <GlassCard className="flex-1 overflow-y-auto" animate={false}>
         {Object.keys(groupedVisible).length === 0 ? (
-          <EmptyState
-            icon={<Clock size={32} style={{ color: 'var(--text-muted)' }} />}
-            message={
-              searchQuery || modeFilter !== 'all'
-                ? 'No runs match your filters.'
-                : 'No pitch runs yet. Start your first session!'
-            }
-          />
+          <>
+            <EmptyState
+              icon={<Clock size={32} style={{ color: 'var(--text-muted)' }} />}
+              message={
+                fetchError
+                  ? 'Failed to load pitch history.'
+                  : searchQuery || modeFilter !== 'all'
+                    ? 'No runs match your filters.'
+                    : 'No pitch runs yet. Start your first session!'
+              }
+            />
+            {fetchError && (
+              <div className="flex justify-center mt-3">
+                <button
+                  onClick={loadRuns}
+                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-surface-hover)',
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </>
         ) : viewMode === 'list' ? (
           /* ——— List View ——— */
           <div className="flex flex-col gap-5">

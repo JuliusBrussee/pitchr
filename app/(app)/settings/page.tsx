@@ -170,7 +170,9 @@ export default function SettingsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
-    }).catch(() => {});
+    }).catch(() => {
+      // Settings are also persisted locally — remote sync failure is non-critical
+    });
   }
 
   useEffect(() => {

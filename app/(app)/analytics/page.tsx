@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -19,6 +19,7 @@ import {
 import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useToast } from '@/views/components/Toast';
 
 /* ——— Types ——— */
 
@@ -539,13 +540,24 @@ function computeFillerData(runs: RunRecord[]): {
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('7D');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
+  const [fetchError, setFetchError] = useState(false);
+  const { toast } = useToast();
 
-  useEffect(() => {
+  const loadRuns = useCallback(() => {
+    setFetchError(false);
     fetchEdge('pitch-run')
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
-      .catch(() => setAllRuns([]));
-  }, []);
+      .catch(() => {
+        setAllRuns([]);
+        setFetchError(true);
+        toast('error', 'Failed to load analytics data. Check your connection and try again.');
+      });
+  }, [toast]);
+
+  useEffect(() => {
+    loadRuns();
+  }, [loadRuns]);
 
   const filteredRuns = useMemo(() => filterByRange(allRuns, range), [allRuns, range]);
   const trendData = useMemo(() => computeTrend(filteredRuns, range), [filteredRuns, range]);

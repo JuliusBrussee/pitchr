@@ -2,10 +2,24 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/views/components/ThemeProvider';
 import { AuthProvider } from '@/views/components/AuthProvider';
+import { ToastProvider } from '@/views/components/Toast';
 
 export const metadata: Metadata = {
-  title: 'Pitchr',
-  description: 'AI-powered pitch battle platform',
+  title: 'Pitchr — AI Pitch Coach',
+  description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics — all in under 30 seconds.',
+  metadataBase: new URL('https://pitchr.app'),
+  openGraph: {
+    title: 'Pitchr — AI Pitch Coach',
+    description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
+    url: 'https://pitchr.app',
+    siteName: 'Pitchr',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Pitchr — AI Pitch Coach',
+    description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
+  },
 };
 
 export const viewport = {
@@ -39,7 +53,9 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

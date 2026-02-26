@@ -38,6 +38,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ?? 3000;
 const ELEVENLABS_WS_URL = "wss://api.elevenlabs.io/v1/speech-to-text/realtime";
+const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"];
 
 function getElevenLabsSttApiKey(): string {
   const direct = process.env.ELEVENLABS_API_KEY?.trim();
@@ -47,11 +48,38 @@ function getElevenLabsSttApiKey(): string {
   return "";
 }
 
-app.use((_req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+function parseAllowedOrigins(): Set<string> {
+  const raw = process.env.ALLOWED_ORIGINS?.trim();
+  if (!raw) return new Set(DEFAULT_ALLOWED_ORIGINS);
+  const parsed = raw.split(",").map((v) => v.trim()).filter(Boolean);
+  return new Set(parsed.length > 0 ? parsed : DEFAULT_ALLOWED_ORIGINS);
+}
+
+const allowedOrigins = parseAllowedOrigins();
+
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  try {
+    const parsed = new URL(origin);
+    if (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1") {
+      return true;
+    }
+  } catch {
+    // Fall through to explicit allow-list check.
+  }
+  return allowedOrigins.has(origin);
+}
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (!isAllowedOrigin(origin)) {
+    res.status(403).json({ error: "Origin not allowed by sidecar CORS policy." });
+    return;
+  }
+  res.setHeader("Access-Control-Allow-Origin", origin ?? "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (_req.method === "OPTIONS") {
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
     res.status(204).end();
     return;
   }
@@ -108,7 +136,13 @@ function isPitchMode(value: unknown): value is PitchMode {
   return value === "elevator" || value === "vc_pitch";
 }
 
-wss.on("connection", (clientWs) => {
+wss.on("connection", (clientWs, req) => {
+  const origin = req.headers.origin;
+  if (!isAllowedOrigin(origin)) {
+    clientWs.close(4003, "Origin not allowed");
+    return;
+  }
+
   const apiKey = getElevenLabsSttApiKey();
   if (!apiKey) {
     clientWs.send(

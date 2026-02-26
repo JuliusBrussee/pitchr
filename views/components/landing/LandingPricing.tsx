@@ -3,51 +3,8 @@
 import { useState } from 'react';
 import { Check, X, Clock, Zap, ArrowRight } from 'lucide-react';
 import { BILLING_PLANS } from '@/config/billing';
+import { buildFeatureList, buildExcludedFeatures } from '@/config/billing-features';
 import type { BillingPlan, BillingInterval } from '@/types/billing';
-
-function buildFeatureList(plan: BillingPlan): string[] {
-  const { limits } = plan;
-  const features: string[] = [];
-  const isOneTime = plan.oneTime === true;
-  const periodLabel = isOneTime ? '' : '/mo';
-
-  features.push(
-    limits.runsPerPeriod === null
-      ? 'Unlimited pitch analyses'
-      : `${limits.runsPerPeriod} pitch analyses${periodLabel}`,
-  );
-  features.push(
-    limits.decksPerPeriod === null
-      ? 'Unlimited deck uploads'
-      : `${limits.decksPerPeriod} deck upload${limits.decksPerPeriod !== 1 ? 's' : ''}${periodLabel}`,
-  );
-  const qaMinutes = limits.qaSecondsPerPeriod !== null ? Math.floor(limits.qaSecondsPerPeriod / 60) : null;
-  features.push(
-    qaMinutes === null
-      ? 'Unlimited Q&A time'
-      : `${qaMinutes} min Q&A time${periodLabel}`,
-  );
-  features.push(
-    `Up to ${Math.floor(limits.maxQaSessionSeconds / 60)}:${String(limits.maxQaSessionSeconds % 60).padStart(2, '0')} per session`,
-  );
-  if (limits.sectionFeedback) features.push('Section-level feedback');
-  if (limits.vocabularyMetrics) features.push('Vocabulary analytics');
-  if (limits.historicalLinks) features.push('Historical comparison');
-  if (limits.deckGeneration) features.push('AI deck generation');
-  if (limits.maxConcurrentRuns > 1) features.push(`${limits.maxConcurrentRuns} concurrent analyses`);
-  if (limits.queuePriority <= 10) features.push('Priority queue');
-  return features;
-}
-
-function buildExcludedFeatures(plan: BillingPlan): string[] {
-  if (plan.id !== 'free') return [];
-  const excluded: string[] = [];
-  if (!plan.limits.sectionFeedback) excluded.push('Section-level feedback');
-  if (!plan.limits.vocabularyMetrics) excluded.push('Vocabulary analytics');
-  if (!plan.limits.historicalLinks) excluded.push('Historical comparison');
-  if (!plan.limits.deckGeneration) excluded.push('AI deck generation');
-  return excluded;
-}
 
 interface LandingPlanCardProps {
   plan: BillingPlan;

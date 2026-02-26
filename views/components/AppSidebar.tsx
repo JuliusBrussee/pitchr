@@ -18,6 +18,7 @@ import {
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useAuth } from '@/views/components/AuthProvider';
 import { StartSessionButton } from '@/views/components/StartSessionButton';
+import { useSidebar } from '@/views/components/SidebarContext';
 
 interface AppSidebarProps {
   onStartSession?: () => void;
@@ -41,6 +42,7 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
   const { isDark, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const pathname = usePathname();
+  const { closeSidebar } = useSidebar();
 
   return (
     <aside
@@ -76,6 +78,7 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
             <Link
               key={item.id}
               href={item.href}
+              onClick={closeSidebar}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
               style={{
                 backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
@@ -105,6 +108,7 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
             <Link
               key={item.id}
               href={item.href}
+              onClick={closeSidebar}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
               style={{
                 backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
