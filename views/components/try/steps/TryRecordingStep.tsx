@@ -123,17 +123,27 @@ export function TryRecordingStep({ mode, onComplete }: TryRecordingStepProps) {
     <div className="flex flex-col items-center justify-center h-full px-6 py-8 gap-6">
       {/* Camera preview or SiriBubble */}
       <div className="relative" style={{ width: 200, height: 200 }}>
-        {isCameraOn && stream ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full rounded-full object-cover"
-            style={{ transform: 'scaleX(-1)' }}
+        {/* Video always rendered so srcObject assignment works; visibility controlled below */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full rounded-full object-cover"
+          style={{ transform: 'scaleX(-1)', display: isCameraOn && stream ? 'block' : 'none' }}
+        />
+        {/* Show orb only when camera is explicitly off — not during the stream-loading window */}
+        {!isCameraOn && (
+          <div className="absolute inset-0">
+            <SiriBubble state={isRecording ? 'active' : 'idle'} fluid />
+          </div>
+        )}
+        {/* Camera loading placeholder */}
+        {isCameraOn && !stream && (
+          <div
+            className="w-full h-full rounded-full flex items-center justify-center"
+            style={{ backgroundColor: '#1a1a2e' }}
           />
-        ) : (
-          <SiriBubble state={isRecording ? 'active' : 'idle'} />
         )}
       </div>
 

@@ -20,8 +20,8 @@ export function Orb({
   state,
   intensity,
   opacity,
-  fresnelPower = 2.5,
-  filmThickness = 0.6,
+  fresnelPower = DEFAULTS.fresnelPower,
+  filmThickness = DEFAULTS.filmThickness,
 }: OrbProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const materialRef = useRef<THREE.ShaderMaterial>(null);

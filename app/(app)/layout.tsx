@@ -49,7 +49,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content — add left padding on mobile for hamburger */}
-      <main className="flex-1 min-w-0 min-h-0 md:pl-0 pt-12 md:pt-0">
+      <main className="flex-1 min-w-0 min-h-0 flex flex-col md:pl-0 pt-12 md:pt-0">
         {children}
       </main>
     </div>

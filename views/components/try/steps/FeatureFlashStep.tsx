@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Mic, CheckCircle2, Activity } from 'lucide-react';
-import { SiriBubble } from '@/views/components/SiriBubble';
 
 interface FeatureFlashStepProps {
   onNext: () => void;
@@ -68,36 +67,32 @@ export function FeatureFlashStep({ onNext }: FeatureFlashStepProps) {
       </p>
 
       <div className="w-full max-w-md space-y-6">
-        {/* SiriBubble + WPM */}
-        <div className="flex items-center gap-6">
-          <div style={{ width: 80, height: 80, flexShrink: 0 }}>
-            <SiriBubble state="active" />
-          </div>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-2">
+        {/* WPM + Fillers */}
+        <div className="flex items-center justify-center gap-10">
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Activity size={14} style={{ color: wpmColor }} />
-              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                WPM
-              </span>
-              <span
-                className="text-lg font-bold tabular-nums transition-colors duration-300"
-                style={{ color: wpmColor }}
-              >
-                {wpm}
-              </span>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>WPM</span>
             </div>
-            <div className="flex items-center gap-2">
+            <span
+              className="text-3xl font-bold tabular-nums transition-colors duration-300"
+              style={{ color: wpmColor }}
+            >
+              {wpm}
+            </span>
+          </div>
+          <div className="w-px h-10" style={{ backgroundColor: 'var(--border-color)' }} />
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-center gap-1.5">
               <Mic size={14} style={{ color: fillerCount > 0 ? '#f59e0b' : 'var(--text-muted)' }} />
-              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
-                Fillers
-              </span>
-              <span
-                className="text-lg font-bold tabular-nums"
-                style={{ color: fillerCount > 0 ? '#f59e0b' : 'var(--text-secondary)' }}
-              >
-                {fillerCount}
-              </span>
+              <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>Fillers</span>
             </div>
+            <span
+              className="text-3xl font-bold tabular-nums"
+              style={{ color: fillerCount > 0 ? '#f59e0b' : 'var(--text-secondary)' }}
+            >
+              {fillerCount}
+            </span>
           </div>
         </div>
 

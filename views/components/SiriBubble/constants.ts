@@ -8,11 +8,11 @@ export const SIZE_MAP: Record<string, number> = {
 };
 
 export const COLOR_MAP: Record<OrbState, OrbColors> = {
-  idle:     { primary: '#FF8C42', secondary: '#FFB347' },   // orange
-  active:   { primary: '#FF6B2B', secondary: '#FFA040' },   // warm orange
-  positive: { primary: '#34D399', secondary: '#6EE7B7' },   // green
-  negative: { primary: '#F87171', secondary: '#FCA5A5' },   // red (soft)
-  neutral:  { primary: '#FBBF24', secondary: '#FCD34D' },   // amber
+  idle:     { primary: '#FF6A1A', secondary: '#FF9F45' },   // vivid orange
+  active:   { primary: '#FF5500', secondary: '#FF8C2A' },   // hot orange
+  positive: { primary: '#10B981', secondary: '#34D399' },   // vivid green
+  negative: { primary: '#EF4444', secondary: '#F87171' },   // vivid red
+  neutral:  { primary: '#F59E0B', secondary: '#FBBF24' },   // vivid amber
 };
 
 export const ANIMATION_MAP: Record<OrbState, OrbAnimationConfig> = {
@@ -24,9 +24,11 @@ export const ANIMATION_MAP: Record<OrbState, OrbAnimationConfig> = {
 };
 
 export const DEFAULTS = {
-  intensity: 0.20,
+  intensity: 0.42,
   size: 'md' as const,
-  opacity: 0.75,
+  opacity: 0.92,
+  fresnelPower: 6.0,
+  filmThickness: 2.0,
   lerpSpeed: 0.03,
   breatheAmplitude: 0.015,
   breathePeriod: 4.0,

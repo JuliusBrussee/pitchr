@@ -189,9 +189,6 @@ export function GatedResultsStep({ mode }: GatedResultsStepProps) {
             }}
           >
             <div className="flex flex-col items-center mb-6">
-              <div className="mb-3" style={{ width: 48, height: 48 }}>
-                <SiriBubble state="idle" />
-              </div>
               <p className="text-3xl font-bold" style={{ color: '#ff5941' }}>
                 {TRY_DEMO_SCORE}/100
               </p>
