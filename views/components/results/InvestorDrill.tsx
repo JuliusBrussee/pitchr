@@ -7,10 +7,9 @@ import type { OneMinuteQAPack } from '@/types/analysis-v2';
 interface InvestorDrillProps {
   qaPack: OneMinuteQAPack;
   runId: string;
-  liveQaEnabled: boolean;
 }
 
-export function InvestorDrill({ qaPack, runId, liveQaEnabled }: InvestorDrillProps) {
+export function InvestorDrill({ qaPack, runId }: InvestorDrillProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">
@@ -59,16 +58,14 @@ export function InvestorDrill({ qaPack, runId, liveQaEnabled }: InvestorDrillPro
         </div>
       ))}
 
-      {liveQaEnabled ? (
-        <Link
-          href={`/qa/${runId}`}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg no-underline text-sm font-medium transition-transform hover:scale-[1.02] active:scale-[0.98]"
-          style={{ color: 'white', backgroundColor: '#e63b26' }}
-        >
-          <Timer size={14} />
-          Start Live VC Q&amp;A (60s)
-        </Link>
-      ) : null}
+      <Link
+        href={`/qa/${runId}`}
+        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg no-underline text-sm font-medium transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        style={{ color: 'white', backgroundColor: '#e63b26' }}
+      >
+        <Timer size={14} />
+        Start Live VC Q&amp;A (60s)
+      </Link>
     </div>
   );
 }

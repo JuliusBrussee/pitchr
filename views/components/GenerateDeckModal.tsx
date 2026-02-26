@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Loader2, Check, Wand2, FileText, Palette } from 'lucide-react';
 import { TEMPLATE_LIST } from '@/config/deckTemplates';
-import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { TemplateId } from '@/types/deckGeneration';
 
 interface GenerateDeckModalProps {
@@ -270,7 +269,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess }: GenerateDeckMo
     setError(null);
 
     try {
-      const res = await fetchEdge('deck-generate', {
+      const res = await fetch('/api/deck/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

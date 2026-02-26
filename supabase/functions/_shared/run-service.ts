@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
 import type { PitchMode, RunStats, RunStatus, InputType, Coverage, Run, QASessionSummary } from './types.ts';
 
 export class RunNotFoundError extends Error {

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Mic,
-  MicOff,
+
   Radio,
   RefreshCw,
   Signal,
@@ -118,10 +118,10 @@ function CountdownRing({
           return (
             <line
               key={i}
-              x1={100 + innerR * Math.cos(angle)}
-              y1={100 + innerR * Math.sin(angle)}
-              x2={100 + outerR * Math.cos(angle)}
-              y2={100 + outerR * Math.sin(angle)}
+              x1={Math.round((100 + innerR * Math.cos(angle)) * 1000) / 1000}
+              y1={Math.round((100 + innerR * Math.sin(angle)) * 1000) / 1000}
+              x2={Math.round((100 + outerR * Math.cos(angle)) * 1000) / 1000}
+              y2={Math.round((100 + outerR * Math.sin(angle)) * 1000) / 1000}
               stroke={isOvertime ? '#ef4444' : 'var(--text-muted)'}
               strokeWidth={isMajor ? 1.5 : 0.5}
               opacity={isOvertime ? (isMajor ? 0.6 : 0.25) : (isMajor ? 0.4 : 0.15)}
@@ -164,9 +164,9 @@ function WaveformVisualizer({ isActive }: { isActive: boolean }) {
           key={i}
           className={`qa-waveform-bar ${isActive ? 'qa-waveform-bar-active' : ''}`}
           style={{
-            '--bar-index': i,
+            '--bar-index': String(i),
             '--bar-delay': `${i * 60}ms`,
-            '--bar-height': `${20 + Math.sin(i * 0.8) * 60}%`,
+            '--bar-height': `${Math.round((20 + Math.sin(i * 0.8) * 60) * 1000) / 1000}%`,
           } as React.CSSProperties}
         />
       ))}
@@ -250,8 +250,6 @@ function ConnectionQuality({ diagnostics }: { diagnostics: { wsOpened: boolean; 
 export default function LiveQaPage() {
   const params = useParams<{ runId: string | string[] }>();
   const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
-  const liveQaEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_QA === 'true';
-
   const [bootstrap, setBootstrap] = useState<SessionBootstrap | null>(null);
   const [bootstrapNonce, setBootstrapNonce] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -288,7 +286,7 @@ export default function LiveQaPage() {
   }, []);
 
   useEffect(() => {
-    if (!runId || !liveQaEnabled) {
+    if (!runId) {
       setIsLoading(false);
       return;
     }
@@ -340,7 +338,7 @@ export default function LiveQaPage() {
         }
       }
     })();
-  }, [bootstrapNonce, liveQaEnabled, runId]);
+  }, [bootstrapNonce, runId]);
 
   useEffect(() => {
     if (!bootstrap || persistInFlightRef.current || persistedStatus) return;
@@ -404,26 +402,6 @@ export default function LiveQaPage() {
   const canStart = !!bootstrap && !isLoading && liveQa.status !== 'connecting' && liveQa.status !== 'active' && liveQa.status !== 'error';
   const canStop = liveQa.status === 'active';
   const canReset = !isLoading && liveQa.status !== 'active' && liveQa.status !== 'connecting';
-
-  /* ——— Disabled State ——— */
-  if (!liveQaEnabled) {
-    return (
-      <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
-        <div className="qa-disabled-card">
-          <div className="qa-disabled-icon">
-            <MicOff size={32} />
-          </div>
-          <h1 className="qa-disabled-title">Live VC Q&A Disabled</h1>
-          <p className="qa-disabled-desc">
-            Enable this feature with <code>NEXT_PUBLIC_ENABLE_LIVE_QA=true</code>.
-          </p>
-          <Link href={`/results/${runId}`} className="qa-btn qa-btn-primary no-underline">
-            Back to Results
-          </Link>
-        </div>
-      </main>
-    );
-  }
 
   /* ——— Main UI ——— */
   return (

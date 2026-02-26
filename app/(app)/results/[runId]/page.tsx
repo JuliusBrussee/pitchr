@@ -226,7 +226,6 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false);
   const [seekToSec, setSeekToSec] = useState<number | null>(null);
   const recordingRef = useRef<RecordingPlayerHandle | null>(null);
-  const liveQaEnabled = process.env.NEXT_PUBLIC_ENABLE_LIVE_QA !== 'false';
   const [miroBoard, setMiroBoard] = useState<MiroBoardState | null>(null);
   const [miroLocalSnapshot, setMiroLocalSnapshot] = useState<MiroFixBoardResponse['snapshot'] | null>(
     null,
@@ -854,7 +853,6 @@ export default function ResultsPage() {
           <InvestorDrill
             qaPack={qaPack}
             runId={run.id}
-            liveQaEnabled={liveQaEnabled}
           />
         </Section>
       ) : null}

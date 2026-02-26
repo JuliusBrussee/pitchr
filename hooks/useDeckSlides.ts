@@ -27,7 +27,7 @@ export function useDeckSlides(pdfUrl: string | null): UseDeckSlidesReturn {
 
   // Load PDF document
   useEffect(() => {
-    if (!pdfUrl) {
+    if (!pdfUrl || pdfUrl.trim() === '') {
       setPdfDoc(null);
       setSlideCount(0);
       setCurrentSlide(1);

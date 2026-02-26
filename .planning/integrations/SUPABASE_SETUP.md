@@ -45,7 +45,6 @@ For live VC Q&A and post-analysis features, add:
 ```env
 ELEVENLABS_API_KEY_CONVAI=your-elevenlabs-api-key
 ELEVENLABS_CONVAI_AGENT_ID=your-convai-agent-id
-NEXT_PUBLIC_ENABLE_LIVE_QA=false
 ENABLE_SECTION_FEEDBACK=true
 ENABLE_REWRITE_DIFF=true
 ```

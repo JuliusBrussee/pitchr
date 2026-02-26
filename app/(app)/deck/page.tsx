@@ -507,16 +507,18 @@ export default function DeckPage() {
                 </div>
 
                 <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownload(deck);
-                    }}
-                    className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200"
-                    aria-label="Download deck"
-                  >
-                    <Download size={16} />
-                  </button>
+                  {deck.pdf_url && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(deck);
+                      }}
+                      className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-all duration-200"
+                      aria-label="Download deck"
+                    >
+                      <Download size={16} />
+                    </button>
+                  )}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

@@ -16,7 +16,7 @@ import type {
   FixImpact,
   PitchMode,
 } from '../_shared/types.ts';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
 
 const MAX_TRANSCRIPT_CHARS = 120_000;
 

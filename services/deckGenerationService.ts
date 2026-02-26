@@ -79,17 +79,27 @@ function isGeneratedDeck(value: unknown): value is GeneratedDeck {
 }
 
 function parseJsonArray(raw: string): unknown {
+  let parsed: unknown;
   try {
-    return JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
-    // Try to extract JSON array from surrounding text
+    // Try to extract JSON array from surrounding text / markdown fences
     const start = raw.indexOf('[');
     const end = raw.lastIndexOf(']');
     if (start === -1 || end === -1 || end <= start) {
       throw new Error('Model output is not valid JSON');
     }
-    return JSON.parse(raw.slice(start, end + 1));
+    parsed = JSON.parse(raw.slice(start, end + 1));
   }
+
+  // Handle models that wrap the array in an object like {"slides": [...]}
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const values = Object.values(parsed as Record<string, unknown>);
+    const arrayValue = values.find(Array.isArray);
+    if (arrayValue) return arrayValue;
+  }
+
+  return parsed;
 }
 
 /* --- LLM Call + Parse --- */
@@ -111,32 +121,51 @@ async function generateSlideContent(
       responseFormat: 'json',
       temperature: 0.4,
       maxTokens: 8192,
+      timeoutMs: 60_000,
     });
 
     const candidate = parseJsonArray(rawOutput);
     if (isGeneratedDeck(candidate)) {
       parsed = stripPlaceholders(candidate);
+    } else {
+      const arr = Array.isArray(candidate) ? candidate : [];
+      console.warn(
+        '[deckGen] First attempt failed validation:',
+        `got ${arr.length} slides,`,
+        `types: [${arr.map((s: Record<string, unknown>) => s?.type ?? '?').join(', ')}]`,
+      );
     }
-  } catch {
+  } catch (err) {
+    console.error('[deckGen] First attempt error:', err instanceof Error ? err.message : err);
     parsed = null;
   }
 
   // Repair attempt
   if (!parsed && rawOutput) {
     try {
+      console.log('[deckGen] Attempting repair...');
       const repaired = await completeWithLlmRouter({
         systemPrompt: DECK_GENERATION_SYSTEM_PROMPT,
         userPrompt: buildDeckRepairPrompt(rawOutput, companyName, description),
         responseFormat: 'json',
         temperature: 0.3,
         maxTokens: 8192,
+        timeoutMs: 60_000,
       });
 
       const repairedCandidate = parseJsonArray(repaired);
       if (isGeneratedDeck(repairedCandidate)) {
         parsed = stripPlaceholders(repairedCandidate);
+      } else {
+        const arr = Array.isArray(repairedCandidate) ? repairedCandidate : [];
+        console.warn(
+          '[deckGen] Repair failed validation:',
+          `got ${arr.length} slides,`,
+          `types: [${arr.map((s: Record<string, unknown>) => s?.type ?? '?').join(', ')}]`,
+        );
       }
-    } catch {
+    } catch (err) {
+      console.error('[deckGen] Repair attempt error:', err instanceof Error ? err.message : err);
       parsed = null;
     }
   }
@@ -198,6 +227,7 @@ export async function generateDeck(
     pdf_url: pdfUrl,
     slide_count: slides.length,
     thumbnail_url: null,
+    user_id: userId,
   });
 
   // 5. Insert per-slide text for search/context
