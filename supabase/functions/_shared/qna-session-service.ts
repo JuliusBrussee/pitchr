@@ -89,6 +89,7 @@ function toQASession(row: QASessionRow): QASession {
 
 export async function createQASession(supabase: SupabaseClient, input: {
   runId: string;
+  userId: string;
   status?: QASessionStatus;
   conversationId?: string;
   durationLimitSeconds?: number;
@@ -101,6 +102,7 @@ export async function createQASession(supabase: SupabaseClient, input: {
   const now = new Date().toISOString();
   const payload = {
     run_id: input.runId,
+    user_id: input.userId,
     status: input.status ?? 'active',
     conversation_id: input.conversationId ?? null,
     started_at: now,

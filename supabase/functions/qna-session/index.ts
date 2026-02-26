@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { supabase } = await getAuthenticatedUser(req);
+    const { supabase, user } = await getAuthenticatedUser(req);
 
     // Build context from the run
     const run = await getRun(supabase, runId);
@@ -99,6 +99,7 @@ Deno.serve(async (req: Request) => {
     const signed = await getSignedUrl(agentId, true);
     const qaSession = await createQASession(supabase, {
       runId,
+      userId: user.id,
       status: 'active',
       conversationId: signed.conversationId,
       durationLimitSeconds: QA_DURATION_LIMIT_SECONDS,
