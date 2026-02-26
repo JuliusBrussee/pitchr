@@ -9,12 +9,14 @@ export interface OnboardingState {
   isComplete: boolean;
   displayName: string;
   preferredMode: 'elevator' | 'vc_pitch';
+  cameFromTry: boolean;
 }
 
 const DEFAULTS: OnboardingState = {
   isComplete: false,
   displayName: '',
   preferredMode: 'elevator',
+  cameFromTry: false,
 };
 
 function loadState(): OnboardingState {
@@ -47,6 +49,17 @@ export function useOnboarding() {
       isComplete: true,
       displayName: name,
       preferredMode: mode,
+      cameFromTry: false,
+    };
+    persistState(next);
+    setState(next);
+  }, []);
+
+  const markCameFromTry = useCallback((mode: 'elevator' | 'vc_pitch') => {
+    const next: OnboardingState = {
+      ...loadState(),
+      cameFromTry: true,
+      preferredMode: mode,
     };
     persistState(next);
     setState(next);
@@ -61,5 +74,5 @@ export function useOnboarding() {
     keys.forEach((k) => localStorage.removeItem(k));
   }, []);
 
-  return { state, loaded, complete, reset };
+  return { state, loaded, complete, markCameFromTry, reset };
 }

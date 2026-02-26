@@ -3,7 +3,7 @@
 interface ProgressBarProps {
   currentStep: number;
   totalSteps: number;
-  onSkip: () => void;
+  onSkip?: () => void;
 }
 
 export function ProgressBar({ currentStep, totalSteps, onSkip }: ProgressBarProps) {
@@ -45,13 +45,17 @@ export function ProgressBar({ currentStep, totalSteps, onSkip }: ProgressBarProp
       </div>
 
       {/* Skip link */}
-      <button
-        onClick={onSkip}
-        className="text-xs font-medium transition-opacity hover:opacity-80"
-        style={{ color: 'var(--text-muted)' }}
-      >
-        Skip
-      </button>
+      {onSkip ? (
+        <button
+          onClick={onSkip}
+          className="text-xs font-medium transition-opacity hover:opacity-80"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Skip
+        </button>
+      ) : (
+        <span className="w-8" />
+      )}
     </div>
   );
 }
