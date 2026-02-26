@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ArrowRight, Mic, CheckCircle2, Activity } from 'lucide-react';
 import { SiriBubble } from '@/views/components/SiriBubble';
 
@@ -13,16 +13,21 @@ export function FeatureFlashStep({ onNext }: FeatureFlashStepProps) {
   const [fillerCount, setFillerCount] = useState(0);
   const [checklist, setChecklist] = useState<boolean[]>([false, false, false, false]);
   const [showCta, setShowCta] = useState(false);
+  const wpmAnimRef = useRef<number | null>(null);
 
   // Animate metrics over ~5 seconds
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
 
-    // WPM ramps up 0 -> 145 over 3s
-    const wpmSteps = [0, 45, 89, 112, 130, 138, 145];
-    wpmSteps.forEach((val, i) => {
-      timers.push(setTimeout(() => setWpm(val), i * 450));
-    });
+    // WPM ramps up 0 -> 145 over 3s with smooth easing
+    const startTime = performance.now();
+    const animateWpm = (now: number) => {
+      const progress = Math.min((now - startTime) / 3000, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setWpm(Math.round(145 * eased));
+      if (progress < 1) wpmAnimRef.current = requestAnimationFrame(animateWpm);
+    };
+    wpmAnimRef.current = requestAnimationFrame(animateWpm);
 
     // Filler detected at 1.5s and 3s
     timers.push(setTimeout(() => setFillerCount(1), 1500));
@@ -43,7 +48,10 @@ export function FeatureFlashStep({ onNext }: FeatureFlashStepProps) {
     // Show CTA after animations
     timers.push(setTimeout(() => setShowCta(true), 5000));
 
-    return () => timers.forEach(clearTimeout);
+    return () => {
+      timers.forEach(clearTimeout);
+      if (wpmAnimRef.current) cancelAnimationFrame(wpmAnimRef.current);
+    };
   }, []);
 
   const checklistLabels = ['Problem stated', 'Solution introduced', 'Traction mentioned', 'Ask defined'];
