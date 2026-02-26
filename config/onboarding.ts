@@ -99,3 +99,15 @@ export const RUBRIC_EXPLORER = [
   },
 ];
 
+// Coach toast messages shown after onboarding on first visit per page.
+export const COACH_TOASTS: Record<string, string> = {
+  dashboard: 'This is home base. Your scores, trends, and next moves all live here.',
+  session: "Pick your mode, hit record, and let it rip. The AI's listening.",
+  'session-from-try': "That was practice. Now let's get your real score with real feedback.",
+  results: 'Scroll down. The fixes are ranked, and the top one has the biggest impact.',
+  history: "Every pitch you've run lives here. Track your progress over time.",
+  analytics: 'Use the range selector to spot trend lines and identify weak categories early.',
+  deck: 'Upload your deck and practice slide-by-slide. The AI reads along.',
+  progress: 'Your score timeline over time. Keep this line moving up.',
+  settings: 'Replay onboarding or reset tours and tips any time from here.',
+};

@@ -94,9 +94,9 @@ describe('AnalyticsPage', () => {
     expect(screen.getByText('Score Trend')).toBeTruthy();
     expect(screen.getByText('Rubric Category Trend')).toBeTruthy();
     expect(screen.queryByText('Sessions This Period')).toBeTruthy();
-    // Default 30D buckets.
-    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(30);
-    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(150);
+    // Default 7D buckets.
+    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(7);
+    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(35);
     // Two days with data should be visible.
     expect(countVisibleBars('score-trend-bar')).toBe(2);
   });
@@ -154,11 +154,11 @@ describe('AnalyticsPage', () => {
       expect(screen.queryByText('Sessions This Period')).toBeTruthy();
     });
 
-    // Default range is 30D, so only the recent run should count.
+    // Default range is 7D, so only the recent run should count.
     expect(getStatValue('Sessions This Period')).toBe('1');
-    // 30 day grouped buckets.
-    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(30);
-    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(150);
+    // 7 day grouped buckets.
+    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(7);
+    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(35);
     expect(countVisibleBars('score-trend-bar')).toBe(1);
 
     fireEvent.click(screen.getByRole('button', { name: 'All' }));
