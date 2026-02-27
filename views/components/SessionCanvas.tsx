@@ -12,6 +12,7 @@ interface SessionCanvasProps {
   toggleMic: () => void;
   isSessionActive: boolean;
   onStartSession: () => void;
+  onPauseSession: () => void;
   onStopSession: () => void;
   pdfUrl?: string | null;
   currentSlide?: number;
@@ -37,6 +38,7 @@ export function SessionCanvas({
   toggleMic,
   isSessionActive,
   onStartSession,
+  onPauseSession,
   onStopSession,
   pdfUrl,
   currentSlide = 1,
@@ -147,7 +149,7 @@ export function SessionCanvas({
         <div data-tour="tour-session-record" className="flex items-center gap-1">
           <ControlButton icon={SkipBack} onClick={() => onPrevSlide?.()} label="Previous slide" size={16} />
           {isSessionActive ? (
-            <ControlButton icon={Pause} onClick={onStopSession} label="Pause session" primary />
+            <ControlButton icon={Pause} onClick={onPauseSession} label="Pause session" primary />
           ) : (
             <ControlButton icon={Play} onClick={onStartSession} label="Start session" primary />
           )}

@@ -54,6 +54,7 @@ function SessionPageContent() {
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
+  const hasStartedRef = useRef(false);
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
   // Deck state
@@ -202,12 +203,30 @@ function SessionPageContent() {
     setAnalysisError(null);
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
-    session.startSession(pitchMode);
-    stt.start({ mode: pitchMode });
-    if (media.stream) {
-      recorder.startRecording(media.stream);
+
+    const isFirstStart = !hasStartedRef.current;
+    if (isFirstStart) {
+      hasStartedRef.current = true;
+      session.startSession(pitchMode);
+      stt.start({ mode: pitchMode });
+      if (media.stream) {
+        recorder.startRecording(media.stream);
+      }
+      return;
     }
-  }, [pitchMode, session, stt, media.stream, recorder]);
+
+    session.resumeSession();
+    stt.start({ mode: pitchMode, resume: true });
+  }, [media.stream, pitchMode, recorder, session, stt]);
+
+  const handlePauseSession = useCallback(() => {
+    if (!session.isSessionActive) {
+      return;
+    }
+    session.stopSession();
+    stt.pause();
+    setShowAnalyzing(false);
+  }, [session, stt]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
@@ -331,6 +350,7 @@ function SessionPageContent() {
         toggleMic={media.toggleMic}
         isSessionActive={session.isSessionActive}
         onStartSession={handleStartSession}
+        onPauseSession={handlePauseSession}
         onStopSession={handleStopSession}
         pdfUrl={selectedDeck?.pdf_url ?? null}
         currentSlide={currentSlide}

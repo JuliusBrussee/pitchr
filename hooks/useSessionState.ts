@@ -33,6 +33,7 @@ export interface SessionState {
   isSessionActive: boolean;
   startSession: (mode: PitchMode) => void;
   stopSession: () => void;
+  resumeSession: () => void;
 }
 
 const FILLER_WORDS = new Set([
@@ -289,6 +290,14 @@ export function useSessionState(): SessionState {
     setOrbState('idle');
   }, []);
 
+  const resumeSession = useCallback(() => {
+    if (!sessionStartRef.current) {
+      sessionStartRef.current = Date.now();
+    }
+    setIsSessionActive(true);
+    setOrbState('active');
+  }, []);
+
   return {
     orbState,
     setOrbState,
@@ -301,5 +310,6 @@ export function useSessionState(): SessionState {
     isSessionActive,
     startSession,
     stopSession,
+    resumeSession,
   };
 }
