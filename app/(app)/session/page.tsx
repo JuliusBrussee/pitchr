@@ -46,9 +46,10 @@ function SessionPageContent() {
   const { runPitchAnalysis, error: runError } = usePitchRun();
   const {
     activeProject,
-    activeProjectId,
     isLoading: isProjectLoading,
   } = useProject();
+  const sessionProject = activeProject && !activeProject.isArchived ? activeProject : null;
+  const sessionProjectId = sessionProject?.id ?? null;
   const { setOrbState } = useTheme();
   const { registerPage } = useTutorial('session');
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -65,22 +66,19 @@ function SessionPageContent() {
   const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
-  const pitchMode: PitchMode = activeProject?.workflowMode
+  const pitchMode: PitchMode = sessionProject?.workflowMode
     ?? 'vc_pitch';
   const modeConfig = PITCH_MODE_CONFIG[pitchMode];
-  const workflowPromptSummary = activeProject?.type === 'elevator_pitch'
-    ? 'Elevator rubric pack + customer/investor clarity prompt (30s core)'
-    : 'VC rubric pack + investor fundraising prompt (2-minute)';
 
   useEffect(() => {
     if (isProjectLoading) return;
-    if (activeProjectId) return;
+    if (sessionProjectId) return;
     router.replace('/session/select-project?returnTo=/session');
-  }, [activeProjectId, isProjectLoading, router]);
+  }, [sessionProjectId, isProjectLoading, router]);
 
   // Fetch available decks for the active project
   useEffect(() => {
-    if (!activeProjectId) {
+    if (!sessionProjectId) {
       setDecks([]);
       setSelectedDeckId(null);
       setIsLoadingDecks(false);
@@ -90,7 +88,7 @@ function SessionPageContent() {
     (async () => {
       try {
         const res = await fetchEdge('deck-list', {
-          params: { projectId: activeProjectId },
+          params: { projectId: sessionProjectId },
         });
         if (!res.ok) throw new Error('Failed to load decks');
         const data = await res.json();
@@ -101,7 +99,7 @@ function SessionPageContent() {
         setIsLoadingDecks(false);
       }
     })();
-  }, [activeProjectId]);
+  }, [sessionProjectId]);
 
   const selectedDeck = useMemo(
     () => decks.find((d) => d.id === selectedDeckId) ?? null,
@@ -332,7 +330,7 @@ function SessionPageContent() {
           }
         }
         const result = await runPitchAnalysis({
-          projectId: activeProjectId ?? undefined,
+          projectId: sessionProjectId ?? undefined,
           mode: pitchMode,
           inputType: 'audio',
           transcript,
@@ -352,7 +350,7 @@ function SessionPageContent() {
       }
     })();
   }, [
-    activeProjectId,
+    sessionProjectId,
     loadDeckText,
     pitchMode,
     recorder,
@@ -367,20 +365,6 @@ function SessionPageContent() {
   return (
     <div className="flex gap-4 h-full min-h-0">
       <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-2">
-        {activeProject ? (
-          <div
-            className="rounded-xl border px-3 py-2 text-xs flex items-center gap-2 flex-wrap"
-            style={{
-              borderColor: 'var(--border-color)',
-              backgroundColor: 'var(--bg-surface)',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <span>Project: {activeProject.name}</span>
-            <span>Workflow: {modeConfig.label}</span>
-            <span>Judge path: {workflowPromptSummary}</span>
-          </div>
-        ) : null}
         <SessionCanvas
           stream={media.stream}
           isCameraOn={media.isCameraOn}
@@ -424,7 +408,7 @@ function SessionPageContent() {
             analysisError
             ?? runError
             ?? stt.error
-            ?? (!isProjectLoading && !activeProjectId ? 'Select a project before starting a session.' : null)
+            ?? (!isProjectLoading && !sessionProjectId ? 'Select a project before starting a session.' : null)
           }
           sttSaved={stt.saved && !showAnalyzing}
           isAnalyzing={showAnalyzing}

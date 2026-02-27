@@ -28,7 +28,7 @@ interface ProjectContextValue {
     type: ProjectTypeId;
     promptOverrides?: ProjectPromptOverrides;
     setActive?: boolean;
-  }) => Promise<void>;
+  }) => Promise<Project>;
   updateProject: (input: {
     projectId: string;
     name?: string;
@@ -46,7 +46,17 @@ const ProjectContext = createContext<ProjectContextValue>({
   error: null,
   refresh: async () => {},
   setActiveProject: async () => {},
-  createProject: async () => {},
+  createProject: async () => ({
+    id: '',
+    name: '',
+    type: 'two_min_pitch',
+    workflowMode: 'vc_pitch',
+    isArchived: false,
+    isSeeded: false,
+    promptOverrides: {},
+    createdAt: '',
+    updatedAt: '',
+  }),
   updateProject: async () => {},
 });
 
@@ -118,7 +128,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setActive: input.setActive,
       }),
     });
-    const payload = await readEdgePayload<{ activeProjectId?: string | null }>(response);
+    const payload = await readEdgePayload<{ activeProjectId?: string | null; project?: Project }>(response);
     if (!response.ok) {
       throw new Error(getEdgeErrorMessage(payload, 'Failed to create project.'));
     }
@@ -126,6 +136,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     if (payload.activeProjectId) {
       setActiveProjectId(payload.activeProjectId);
     }
+    if (!payload.project) {
+      throw new Error('Failed to create project.');
+    }
+    return payload.project;
   }, [refresh]);
 
   const updateProject = useCallback(async (input: {

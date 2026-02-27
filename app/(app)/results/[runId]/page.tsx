@@ -635,11 +635,11 @@ export default function ResultsPage() {
               'The analysis job failed before completion.'}
           </p>
           <Link
-            href="/session/select-project"
+            href="/session"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg no-underline font-medium"
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
-            Run Again
+            Start New Session
           </Link>
         </div>
       </main>
@@ -667,11 +667,11 @@ export default function ResultsPage() {
             No run was found for this ID.
           </p>
           <Link
-            href="/session/select-project"
+            href="/session"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg no-underline font-medium"
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
-            Run a Pitch
+            Start New Session
           </Link>
         </div>
       </main>
@@ -717,11 +717,11 @@ export default function ResultsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/session/select-project"
+            href="/session"
             className="px-3 py-1.5 rounded-lg border text-sm no-underline transition-colors duration-150 hover:bg-[var(--bg-surface-hover)]"
             style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
           >
-            Run Again
+            Start New Session
           </Link>
           <Link
             href="/history"

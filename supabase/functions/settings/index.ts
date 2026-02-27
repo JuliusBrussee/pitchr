@@ -18,6 +18,7 @@ const DEFAULTS = {
 };
 
 const SETTING_COLUMNS = Object.keys(DEFAULTS) as (keyof typeof DEFAULTS)[];
+const PATCHABLE_SETTING_COLUMNS = SETTING_COLUMNS.filter((key) => key !== 'active_project_id');
 
 async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
@@ -54,9 +55,13 @@ async function handlePatch(req: Request) {
     return errorResponse('Invalid JSON body', 400);
   }
 
+  if ('active_project_id' in body) {
+    return errorResponse('active_project_id cannot be updated via /settings. Use /projects instead.', 400);
+  }
+
   // Filter to only known setting columns
   const updates: Record<string, unknown> = {};
-  for (const key of SETTING_COLUMNS) {
+  for (const key of PATCHABLE_SETTING_COLUMNS) {
     if (key in body) {
       updates[key] = body[key];
     }

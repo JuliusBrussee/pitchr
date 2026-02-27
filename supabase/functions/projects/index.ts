@@ -37,7 +37,9 @@ async function handleGet(req: Request): Promise<Response> {
   let activeProjectId = await getActiveProjectId(supabase, user.id);
   const activeExists = activeProjectId && projects.some((project) => project.id === activeProjectId);
   if (!activeExists) {
-    const fallback = await resolveProjectForRequest(supabase, user.id);
+    const fallback = await resolveProjectForRequest(supabase, user.id, {
+      persistResolvedProject: true,
+    });
     activeProjectId = fallback.id;
   }
 
@@ -61,7 +63,7 @@ async function handlePost(req: Request): Promise<Response> {
 
   const name = typeof body.name === 'string' ? body.name.trim() : '';
   const type = body.type;
-  const setActive = body.setActive !== false;
+  const setActive = body.setActive === true;
   if (!name) {
     throw new ProjectValidationError('name is required.');
   }
@@ -126,7 +128,9 @@ async function handlePatch(req: Request): Promise<Response> {
 
   let activeProjectId = await getActiveProjectId(supabase, user.id);
   if (project.is_archived && activeProjectId === project.id) {
-    const fallback = await resolveProjectForRequest(supabase, user.id);
+    const fallback = await resolveProjectForRequest(supabase, user.id, {
+      persistResolvedProject: true,
+    });
     activeProjectId = fallback.id;
   }
 

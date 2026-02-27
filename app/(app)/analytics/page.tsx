@@ -24,6 +24,7 @@ import type { TimeRange } from '@/views/components/ui';
 import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components/ui';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useSmartTooltip } from '@/hooks/useSmartTooltip';
+import { useProject } from '@/views/components/ProjectProvider';
 
 /* ——— Types ——— */
 
@@ -62,8 +63,6 @@ interface RubricTrendPoint {
   hasData: boolean;
   scores: { category: string; score: number; hasData: boolean }[];
 }
-
-type ProjectScope = 'active' | 'all';
 
 /* ——— Helpers ——— */
 
@@ -545,7 +544,7 @@ function computeFillerData(runs: RunRecord[]): {
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('7D');
-  const [projectScope, setProjectScope] = useState<ProjectScope>('active');
+  const { activeProjectId } = useProject();
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -555,9 +554,14 @@ export default function AnalyticsPage() {
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
+    if (!activeProjectId) {
+      setAllRuns([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     fetchEdge('pitch-run', {
-      params: projectScope === 'all' ? { allProjects: 'true' } : undefined,
+      params: { projectId: activeProjectId },
     })
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
@@ -569,7 +573,7 @@ export default function AnalyticsPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [projectScope, showTooltip]);
+  }, [activeProjectId, showTooltip]);
 
   useEffect(() => {
     loadRuns();
@@ -611,25 +615,6 @@ export default function AnalyticsPage() {
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="inline-flex rounded-lg border overflow-hidden"
-            style={{ borderColor: 'var(--border-color)' }}
-          >
-            {(['active', 'all'] as ProjectScope[]).map((scope) => (
-              <button
-                key={scope}
-                type="button"
-                onClick={() => setProjectScope(scope)}
-                className="px-3 py-1.5 text-xs font-medium transition-colors"
-                style={{
-                  backgroundColor: projectScope === scope ? 'var(--bg-surface-hover)' : 'transparent',
-                  color: projectScope === scope ? 'var(--text-primary)' : 'var(--text-muted)',
-                }}
-              >
-                {scope === 'active' ? 'Active Project' : 'All Projects'}
-              </button>
-            ))}
-          </div>
           <TimeRangeSelector value={range} onChange={setRange} />
         </div>
       </div>
