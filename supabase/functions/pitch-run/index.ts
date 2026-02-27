@@ -16,6 +16,7 @@ import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.t
 import { analyzePitch } from '../_shared/analysis-service.ts';
 import { SAMPLE_RESULT } from '../_shared/sample-result.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
+import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
 
 class RateLimitError extends Error {
@@ -50,7 +51,7 @@ function validateRequest(body: unknown): any {
   }
 
   const payload = body as Record<string, unknown>;
-  if (!isPitchMode(payload.mode)) {
+  if (payload.mode !== undefined && !isPitchMode(payload.mode)) {
     throw new PitchValidationError('Invalid mode. Expected elevator or vc_pitch.');
   }
   if (!isInputType(payload.inputType)) {
@@ -65,6 +66,11 @@ function validateRequest(body: unknown): any {
   if (payload.deckId !== undefined) {
     if (typeof payload.deckId !== 'string' || !isUuid(payload.deckId)) {
       throw new PitchValidationError('deckId must be a valid UUID when provided.');
+    }
+  }
+  if (payload.projectId !== undefined) {
+    if (typeof payload.projectId !== 'string' || !isUuid(payload.projectId)) {
+      throw new PitchValidationError('projectId must be a valid UUID when provided.');
     }
   }
   if (payload.deckText !== undefined && typeof payload.deckText !== 'string') {
@@ -82,7 +88,8 @@ function validateRequest(body: unknown): any {
   }
 
   return {
-    mode: payload.mode,
+    mode: payload.mode as PitchMode | undefined,
+    projectId: payload.projectId as string | undefined,
     transcript: (payload.transcript as string).trim(),
     inputType: payload.inputType,
     audioUrl: payload.audioUrl as string | undefined,
@@ -95,15 +102,27 @@ function validateRequest(body: unknown): any {
 }
 
 async function handleGet(req: Request) {
-  const { supabase } = await getAuthenticatedUser(req);
+  const { supabase, user } = await getAuthenticatedUser(req);
   const url = new URL(req.url);
   const mode = url.searchParams.get('mode');
+  const projectId = url.searchParams.get('projectId');
+  const allProjects = url.searchParams.get('allProjects') === 'true';
   const limitParam = url.searchParams.get('limit');
   const includePending = url.searchParams.get('includePending') === 'true';
   const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
   const parsedMode = mode === 'elevator' || mode === 'vc_pitch' ? mode : undefined;
+  if (projectId && !isUuid(projectId)) {
+    return errorResponse('projectId query parameter must be a valid UUID.', 400);
+  }
 
-  const allRuns = await listRuns(supabase, { mode: parsedMode });
+  const resolvedProject = allProjects
+    ? null
+    : await resolveProjectForRequest(supabase, user.id, { projectId: projectId ?? undefined, mode: parsedMode });
+
+  const allRuns = await listRuns(supabase, {
+    mode: parsedMode,
+    projectId: resolvedProject?.id,
+  });
   const visibleRuns = includePending
     ? allRuns
     : allRuns.filter((run) => run.status === 'complete');
@@ -137,6 +156,20 @@ async function handlePost(req: Request) {
 
   const { supabase, user } = await getAuthenticatedUser(req);
   const payload = validateRequest(body);
+  const project = await resolveProjectForRequest(supabase, user.id, {
+    projectId: payload.projectId,
+    mode: payload.mode,
+  });
+  if (payload.mode && payload.mode !== project.workflow_mode) {
+    throw new PitchValidationError(
+      `mode ${payload.mode} does not match selected project workflow ${project.workflow_mode}.`,
+    );
+  }
+  const mode = project.workflow_mode;
+  const analysisSystemPrompt =
+    typeof project.prompt_overrides?.analysis_system_prompt === 'string'
+      ? project.prompt_overrides.analysis_system_prompt
+      : undefined;
 
   // Rate limit check
   const adminClient = createAdminClient();
@@ -155,7 +188,8 @@ async function handlePost(req: Request) {
   const run = await insertRun(supabase, {
     id: runId,
     user_id: user.id,
-    mode: payload.mode,
+    project_id: project.id,
+    mode,
     status: 'running',
     started_at: startedAt,
     input_type: payload.inputType,
@@ -192,8 +226,10 @@ async function handlePost(req: Request) {
   try {
     const { analysis, fallback } = await analyzePitch({
       transcript: payload.transcript,
-      mode: payload.mode,
+      mode,
+      projectType: project.type,
       deckText: payload.deckText,
+      systemPromptOverride: analysisSystemPrompt,
     });
 
     const overallScore = analysis.outputs?.feedback?.overall_score ?? 0;
@@ -219,7 +255,14 @@ async function handlePost(req: Request) {
     }
 
     return jsonResponse(
-      { runId: completedRun.id, status: 'complete', overallScore },
+      {
+        runId: completedRun.id,
+        status: 'complete',
+        projectId: project.id,
+        projectType: project.type,
+        workflowMode: mode,
+        overallScore,
+      },
       201,
     );
   } catch (analysisError) {
@@ -249,7 +292,14 @@ async function handlePost(req: Request) {
     });
 
     return jsonResponse(
-      { runId: run.id, status: 'failed', error: message },
+      {
+        runId: run.id,
+        status: 'failed',
+        projectId: project.id,
+        projectType: project.type,
+        workflowMode: mode,
+        error: message,
+      },
       201,
     );
   }
@@ -272,6 +322,9 @@ Deno.serve(async (req: Request) => {
     }
     if (error instanceof PitchValidationError) {
       return errorResponse(error.message, 400);
+    }
+    if (error instanceof ProjectNotFoundError) {
+      return errorResponse(error.message, 404);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to process pitch run request',

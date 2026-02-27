@@ -11,6 +11,13 @@ export class RunNotFoundError extends Error {
 export interface RunRecord {
   id: string;
   user_id: string;
+  project_id: string;
+  projects?: {
+    id: string;
+    name: string;
+    type: 'two_min_pitch' | 'elevator_pitch';
+    workflow_mode: PitchMode;
+  } | null;
   mode: PitchMode;
   status: RunStatus;
   error_message: string | null;
@@ -32,6 +39,7 @@ export interface RunRecord {
 export interface RunInsert {
   id?: string;
   user_id: string;
+  project_id: string;
   mode: PitchMode;
   status?: RunStatus;
   error_message?: string | null;
@@ -54,12 +62,22 @@ function withMigrationHint(message: string): string {
     message.includes('column runs.status does not exist') ||
     message.includes('column "status" of relation "runs" does not exist') ||
     message.includes('column runs.meta does not exist') ||
-    message.includes('column "meta" of relation "runs" does not exist')
+    message.includes('column "meta" of relation "runs" does not exist') ||
+    message.includes('column runs.project_id does not exist') ||
+    message.includes('column "project_id" of relation "runs" does not exist')
   ) {
+    if (
+      message.includes('column runs.project_id does not exist') ||
+      message.includes('column "project_id" of relation "runs" does not exist')
+    ) {
+      return `${message}. Apply migration: migrations/24-projects-and-project-scoping.sql`;
+    }
     return `${message}. Apply migration: migrations/08-add-run-lifecycle-columns.sql`;
   }
   return message;
 }
+
+const RUN_SELECT = '*, projects(id,name,type,workflow_mode)';
 
 function normalizeRun(run: RunRecord): RunRecord {
   const normalizedStatus: RunStatus =
@@ -88,7 +106,11 @@ export async function insertRun(supabase: SupabaseClient, run: RunInsert): Promi
     is_fallback: run.is_fallback ?? false,
     meta: run.meta ?? null,
   };
-  const { data, error } = await supabase.from('runs').insert(payload).select('*').single();
+  const { data, error } = await supabase
+    .from('runs')
+    .insert(payload)
+    .select(RUN_SELECT)
+    .single();
   if (error || !data) {
     throw new Error(withMigrationHint(`Failed to insert run: ${error?.message ?? 'unknown error'}`));
   }
@@ -97,9 +119,11 @@ export async function insertRun(supabase: SupabaseClient, run: RunInsert): Promi
 
 export async function listRuns(supabase: SupabaseClient, opts?: {
   mode?: PitchMode;
+  projectId?: string;
   limit?: number;
 }): Promise<RunRecord[]> {
-  let query = supabase.from('runs').select('*').order('created_at', { ascending: false });
+  let query = supabase.from('runs').select(RUN_SELECT).order('created_at', { ascending: false });
+  if (opts?.projectId) query = query.eq('project_id', opts.projectId);
   if (opts?.mode) query = query.eq('mode', opts.mode);
   if (opts?.limit) query = query.limit(opts.limit);
   const { data, error } = await query;
@@ -110,7 +134,7 @@ export async function listRuns(supabase: SupabaseClient, opts?: {
 export async function getRun(supabase: SupabaseClient, runId: string): Promise<RunRecord> {
   const { data, error } = await supabase
     .from('runs')
-    .select('*')
+    .select(RUN_SELECT)
     .eq('id', runId)
     .single();
 
@@ -158,7 +182,7 @@ export async function updateRun(
     .from('runs')
     .update(updates)
     .eq('id', runId)
-    .select('*')
+    .select(RUN_SELECT)
     .single();
 
   if (error || !data) {
@@ -195,8 +219,11 @@ export function computeRunStats(runs: RunRecord[]): RunStats {
   return { totalRuns, averageScore, bestScore, trend };
 }
 
-export async function getRunStats(supabase: SupabaseClient): Promise<RunStats> {
-  const runs = await listRuns(supabase);
+export async function getRunStats(
+  supabase: SupabaseClient,
+  opts?: { mode?: PitchMode; projectId?: string },
+): Promise<RunStats> {
+  const runs = await listRuns(supabase, opts);
   return computeRunStats(runs);
 }
 
@@ -210,6 +237,9 @@ export function toRunResponse(
     createdAt: run.created_at,
     startedAt: run.started_at ?? undefined,
     completedAt: run.completed_at ?? undefined,
+    projectId: run.project_id,
+    projectType: run.projects?.type,
+    projectName: run.projects?.name,
     mode: run.mode,
     status: run.status,
     error: run.error_message ?? undefined,

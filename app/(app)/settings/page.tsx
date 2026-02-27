@@ -135,7 +135,7 @@ function SettingRow({
 export default function SettingsPage() {
   const router = useRouter();
   const { isDark, preference, setTheme } = useTheme();
-  const { settings, adjustTimer, update } = useSettings();
+  const { settings, adjustTimer } = useSettings();
   const achievements = useAchievements();
   const billing = useBilling();
   const onboarding = useOnboarding();
@@ -210,16 +210,10 @@ export default function SettingsPage() {
   const timerSec = settings.timerDuration % 60;
   const formattedTimer = `${timerMin}:${String(timerSec).padStart(2, '0')}`;
 
-  // Mode options
-  const modeOptions: { key: 'elevator' | 'vc_pitch'; label: string }[] = [
-    { key: 'elevator', label: 'Elevator' },
-    { key: 'vc_pitch', label: 'VC Pitch' },
-  ];
-
   // Export data handler
   const handleExport = async () => {
     try {
-      const payload = await fetchEdge('pitch-run').then((r) => r.json());
+      const payload = await fetchEdge('pitch-run', { params: { allProjects: 'true' } }).then((r) => r.json());
       const data = Array.isArray(payload?.runs) ? payload.runs : [];
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -237,7 +231,9 @@ export default function SettingsPage() {
   const handleClearAll = async () => {
     if (!confirm('Delete ALL pitch runs and reset achievements? This cannot be undone.')) return;
     try {
-      const payload = await fetchEdge('pitch-run', { params: { includePending: 'true' } }).then((r) => r.json());
+      const payload = await fetchEdge('pitch-run', {
+        params: { includePending: 'true', allProjects: 'true' },
+      }).then((r) => r.json());
       const allRuns = Array.isArray(payload?.runs) ? payload.runs : [];
       await Promise.all(allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
       achievements.resetAchievements();
@@ -546,30 +542,9 @@ export default function SettingsPage() {
               </div>
             </SettingRow>
 
-            <div className="h-px my-1" style={{ backgroundColor: 'var(--border-color)' }} />
-
-            {/* Default Pitch Mode */}
-            <SettingRow label="Default Pitch Mode" description="Starting mode for new sessions">
-              <div
-                className="inline-flex rounded-lg overflow-hidden"
-                style={{ border: '1px solid var(--border-color)' }}
-              >
-                {modeOptions.map((opt) => (
-                  <button
-                    key={opt.key}
-                    onClick={() => update({ defaultMode: opt.key })}
-                    className="px-3 py-1.5 text-xs font-medium transition-all duration-200"
-                    style={{
-                      backgroundColor: settings.defaultMode === opt.key ? 'rgba(255, 89, 65, 0.12)' : 'transparent',
-                      color: settings.defaultMode === opt.key ? '#ff5941' : 'var(--text-muted)',
-                      borderRight: '1px solid var(--border-color)',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </SettingRow>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Workflow defaults now follow your selected project. Choose project before each session.
+            </p>
           </SectionCard>
 
           {/* ——— Data Management (Danger Zone) ——— */}

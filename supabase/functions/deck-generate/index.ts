@@ -9,6 +9,7 @@ import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '..
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { uploadToStorage, insertDeck, insertSlides } from '../_shared/deck-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
+import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 import type { TemplateId, GenerateDeckRequest } from '../_shared/types.ts';
 
 const VALID_TEMPLATES = new Set<TemplateId>([
@@ -32,6 +33,10 @@ const SLIDE_NAMES = [
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
 const CLAUDE_TIMEOUT_MS = 90_000;
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+}
 
 interface ClaudeResponse {
   content?: Array<{ type?: string; text?: string }>;
@@ -422,6 +427,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json() as Partial<GenerateDeckRequest>;
+    if (body.projectId !== undefined) {
+      if (typeof body.projectId !== 'string' || !isUuid(body.projectId)) {
+        return errorResponse('projectId must be a valid UUID when provided', 400);
+      }
+    }
+    const project = await resolveProjectForRequest(supabase, user.id, {
+      projectId: body.projectId,
+    });
 
     // Validate companyName
     if (!body.companyName || typeof body.companyName !== 'string') {
@@ -482,6 +495,7 @@ Deno.serve(async (req: Request) => {
       pdf_url: pdfUrl,
       slide_count: slides.length,
       thumbnail_url: null,
+      project_id: project.id,
       user_id: user.id,
     });
 
@@ -501,6 +515,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof ProjectNotFoundError) {
+      return errorResponse(error.message, 404);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Generation failed',

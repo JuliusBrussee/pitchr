@@ -52,5 +52,8 @@ verify_jwt = true
 [functions.settings]
 verify_jwt = true
 
+[functions.projects]
+verify_jwt = true
+
 [functions.integration-health]
 verify_jwt = true

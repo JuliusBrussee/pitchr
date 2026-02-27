@@ -139,7 +139,7 @@ export default function ReviewPage() {
             This run is not available in history.
           </p>
           <Link
-            href="/session"
+            href="/session/select-project"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg no-underline font-medium"
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
@@ -155,7 +155,7 @@ export default function ReviewPage() {
       <header className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Link
-            href="/session"
+            href="/session/select-project"
             className="p-2 rounded-xl border no-underline flex items-center justify-center"
             style={{
               backgroundColor: 'var(--bg-surface)',
@@ -176,7 +176,7 @@ export default function ReviewPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/session"
+            href="/session/select-project"
             className="px-3 py-2 rounded-lg border text-sm no-underline"
             style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
           >

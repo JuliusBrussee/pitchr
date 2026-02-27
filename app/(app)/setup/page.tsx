@@ -12,6 +12,8 @@ function SetupPageInner() {
   const { user, isLoading: authLoading } = useAuth();
   const { state, loaded, complete } = useOnboarding();
   const [ready, setReady] = useState(false);
+  const toProjectType = (mode: 'elevator' | 'vc_pitch') =>
+    mode === 'elevator' ? 'elevator_pitch' : 'two_min_pitch';
 
   useEffect(() => {
     if (authLoading || !loaded) return;
@@ -21,7 +23,7 @@ function SetupPageInner() {
     if (state.cameFromTry) {
       const mode = state.preferredMode || 'elevator';
       complete(user.user_metadata?.full_name || '', mode);
-      router.replace(`/session?mode=${mode}`);
+      router.replace(`/session/select-project?projectType=${toProjectType(mode)}`);
       return;
     }
     if (state.isComplete && !isReplay) { router.replace('/dashboard'); return; }
@@ -45,7 +47,7 @@ function SetupPageInner() {
       <OnboardingFlow
         onComplete={(name, mode) => {
           complete(name, mode);
-          router.push(`/session?mode=${mode}`);
+          router.push(`/session/select-project?projectType=${toProjectType(mode)}`);
         }}
         onSkip={() => {
           complete(state.displayName || 'Founder', state.preferredMode);

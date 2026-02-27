@@ -197,7 +197,7 @@ export default function DashboardPage() {
               {formattedDate}
             </p>
           </div>
-          <Link href="/session" className="no-underline">
+          <Link href="/session/select-project" className="no-underline">
             <div className="session-start-wrap" style={{ borderRadius: 12, padding: 2 }}>
               <div className="session-start-glow" />
               <button

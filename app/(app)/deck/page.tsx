@@ -18,6 +18,7 @@ import {
 import { SearchInput, SectionHeader, EmptyState } from '@/views/components/ui';
 import { GenerateDeckModal } from '@/views/components/GenerateDeckModal';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useProject } from '@/views/components/ProjectProvider';
 import type { DeckRecord } from '@/services/deckService';
 import { useTutorial } from '@/hooks/useTutorial';
 
@@ -72,6 +73,7 @@ function timeAgo(dateStr: string): string {
 /* --- Component --- */
 
 export default function DeckPage() {
+  const { activeProjectId, activeProject } = useProject();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
   const [decks, setDecks] = useState<DeckRecord[]>([]);
@@ -84,8 +86,15 @@ export default function DeckPage() {
 
   // Fetch decks
   const fetchDecks = useCallback(async () => {
+    if (!activeProjectId) {
+      setDecks([]);
+      setIsLoading(false);
+      return;
+    }
     try {
-      const res = await fetchEdge('deck-list');
+      const res = await fetchEdge('deck-list', {
+        params: { projectId: activeProjectId },
+      });
       if (!res.ok) throw new Error('Failed to load decks');
       const data = await res.json();
       setDecks(data);
@@ -95,7 +104,7 @@ export default function DeckPage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [activeProjectId]);
 
   useEffect(() => {
     fetchDecks();
@@ -120,12 +129,15 @@ export default function DeckPage() {
   }, []);
 
   // Upload handler
-  const handleUpload = async (file: File) => {
+  const handleUpload = useCallback(async (file: File) => {
     setIsUploading(true);
     setError(null);
     try {
       const formData = new FormData();
       formData.append('file', file);
+      if (activeProjectId) {
+        formData.append('projectId', activeProjectId);
+      }
       const res = await fetchEdge('deck-upload', { method: 'POST', body: formData });
       if (!res.ok) {
         const data = await res.json();
@@ -137,7 +149,7 @@ export default function DeckPage() {
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [activeProjectId, fetchDecks]);
 
   // Delete handler
   const handleDelete = async (deckId: string) => {
@@ -206,6 +218,9 @@ export default function DeckPage() {
             >
               Deck Manager
             </h1>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              {activeProject ? `Project: ${activeProject.name}` : 'No active project'}
+            </p>
           </div>
           <span
             className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full tabular-nums"
@@ -590,6 +605,7 @@ export default function DeckPage() {
         isOpen={isGenerateOpen}
         onClose={() => setIsGenerateOpen(false)}
         onSuccess={() => fetchDecks()}
+        projectId={activeProjectId}
       />
     </main>
   );

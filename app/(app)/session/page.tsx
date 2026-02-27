@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
@@ -16,11 +16,11 @@ import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
+import { useProject } from '@/views/components/ProjectProvider';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
-import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTutorial } from '@/hooks/useTutorial';
 
 export default function SessionPage() {
@@ -39,14 +39,17 @@ export default function SessionPage() {
 
 function SessionPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const media = useMediaStream();
   const session = useSessionState();
   const stt = useSTT();
   const recorder = useRecorder();
   const { runPitchAnalysis, error: runError } = usePitchRun();
+  const {
+    activeProject,
+    activeProjectId,
+    isLoading: isProjectLoading,
+  } = useProject();
   const { setOrbState } = useTheme();
-  const { state: onboardingState } = useOnboarding();
   const { registerPage } = useTutorial('session');
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -62,18 +65,33 @@ function SessionPageContent() {
   const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
-  const modeFromQuery = searchParams.get('mode');
-  const pitchMode: PitchMode =
-    modeFromQuery === 'elevator' || modeFromQuery === 'vc_pitch'
-      ? modeFromQuery
-      : 'vc_pitch';
+  const pitchMode: PitchMode = activeProject?.workflowMode
+    ?? 'vc_pitch';
   const modeConfig = PITCH_MODE_CONFIG[pitchMode];
+  const workflowPromptSummary = activeProject?.type === 'elevator_pitch'
+    ? 'Elevator rubric pack + customer/investor clarity prompt (30s core)'
+    : 'VC rubric pack + investor fundraising prompt (2-minute)';
 
-  // Fetch available decks on mount
   useEffect(() => {
+    if (isProjectLoading) return;
+    if (activeProjectId) return;
+    router.replace('/session/select-project?returnTo=/session');
+  }, [activeProjectId, isProjectLoading, router]);
+
+  // Fetch available decks for the active project
+  useEffect(() => {
+    if (!activeProjectId) {
+      setDecks([]);
+      setSelectedDeckId(null);
+      setIsLoadingDecks(false);
+      return;
+    }
+    setIsLoadingDecks(true);
     (async () => {
       try {
-        const res = await fetchEdge('deck-list');
+        const res = await fetchEdge('deck-list', {
+          params: { projectId: activeProjectId },
+        });
         if (!res.ok) throw new Error('Failed to load decks');
         const data = await res.json();
         setDecks(data);
@@ -83,7 +101,7 @@ function SessionPageContent() {
         setIsLoadingDecks(false);
       }
     })();
-  }, []);
+  }, [activeProjectId]);
 
   const selectedDeck = useMemo(
     () => decks.find((d) => d.id === selectedDeckId) ?? null,
@@ -314,6 +332,7 @@ function SessionPageContent() {
           }
         }
         const result = await runPitchAnalysis({
+          projectId: activeProjectId ?? undefined,
           mode: pitchMode,
           inputType: 'audio',
           transcript,
@@ -333,6 +352,7 @@ function SessionPageContent() {
       }
     })();
   }, [
+    activeProjectId,
     loadDeckText,
     pitchMode,
     recorder,
@@ -346,32 +366,48 @@ function SessionPageContent() {
 
   return (
     <div className="flex gap-4 h-full min-h-0">
-      <SessionCanvas
-        stream={media.stream}
-        isCameraOn={media.isCameraOn}
-        isMicOn={media.isMicOn}
-        toggleCamera={media.toggleCamera}
-        toggleMic={media.toggleMic}
-        isSessionActive={session.isSessionActive}
-        canStopSession={hasStartedRef.current}
-        onStartSession={handleStartSession}
-        onPauseSession={handlePauseSession}
-        onStopSession={handleStopSession}
-        pdfUrl={selectedDeck?.pdf_url ?? null}
-        currentSlide={currentSlide}
-        slideCount={slideCount}
-        onNextSlide={nextSlide}
-        onPrevSlide={prevSlide}
-        renderSlideToCanvas={renderSlideToCanvas}
-        decks={decks}
-        selectedDeckId={selectedDeckId}
-        onSelectDeck={setSelectedDeckId}
-        isLoadingDecks={isLoadingDecks}
-        isLoadingPdf={isLoadingPdf}
-        pdfError={pdfError}
-        elapsedSeconds={session.metrics.durationSecs}
-        targetSeconds={modeConfig.targetDurationSeconds}
-      />
+      <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-2">
+        {activeProject ? (
+          <div
+            className="rounded-xl border px-3 py-2 text-xs flex items-center gap-2 flex-wrap"
+            style={{
+              borderColor: 'var(--border-color)',
+              backgroundColor: 'var(--bg-surface)',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <span>Project: {activeProject.name}</span>
+            <span>Workflow: {modeConfig.label}</span>
+            <span>Judge path: {workflowPromptSummary}</span>
+          </div>
+        ) : null}
+        <SessionCanvas
+          stream={media.stream}
+          isCameraOn={media.isCameraOn}
+          isMicOn={media.isMicOn}
+          toggleCamera={media.toggleCamera}
+          toggleMic={media.toggleMic}
+          isSessionActive={session.isSessionActive}
+          canStopSession={hasStartedRef.current}
+          onStartSession={handleStartSession}
+          onPauseSession={handlePauseSession}
+          onStopSession={handleStopSession}
+          pdfUrl={selectedDeck?.pdf_url ?? null}
+          currentSlide={currentSlide}
+          slideCount={slideCount}
+          onNextSlide={nextSlide}
+          onPrevSlide={prevSlide}
+          renderSlideToCanvas={renderSlideToCanvas}
+          decks={decks}
+          selectedDeckId={selectedDeckId}
+          onSelectDeck={setSelectedDeckId}
+          isLoadingDecks={isLoadingDecks}
+          isLoadingPdf={isLoadingPdf}
+          pdfError={pdfError}
+          elapsedSeconds={session.metrics.durationSecs}
+          targetSeconds={modeConfig.targetDurationSeconds}
+        />
+      </div>
       <div data-tour="tour-session-metrics">
         <MetricsPanel
           metrics={session.metrics}
@@ -384,7 +420,12 @@ function SessionPageContent() {
           checklistSource={stt.checklistSource}
           checklistNextHint={stt.checklistNextHint}
           checklistError={stt.checklistError}
-          sttError={analysisError ?? runError ?? stt.error}
+          sttError={
+            analysisError
+            ?? runError
+            ?? stt.error
+            ?? (!isProjectLoading && !activeProjectId ? 'Select a project before starting a session.' : null)
+          }
           sttSaved={stt.saved && !showAnalyzing}
           isAnalyzing={showAnalyzing}
           analysisError={analysisError ?? runError}

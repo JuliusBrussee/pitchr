@@ -3,7 +3,11 @@
 // Adapts prompts from lib/prompts/ for use in Deno runtime.
 
 import { SAMPLE_RESULT } from './sample-result.ts';
-import type { PitchMode } from './types.ts';
+import type { PitchMode, ProjectTypeId } from './types.ts';
+import {
+  getAnalysisPromptProfile,
+  type AnalysisPromptProfile,
+} from './analysis-profiles.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -126,7 +130,9 @@ export interface AnalyzePitchResult {
 interface AnalyzePitchInput {
   transcript: string;
   mode: PitchMode;
+  projectType?: ProjectTypeId;
   deckText?: string;
+  systemPromptOverride?: string;
 }
 
 const DIAGNOSTIC_LOGS_ENABLED =
@@ -149,25 +155,6 @@ function logDiagnostic(
 // ---------------------------------------------------------------------------
 // Prompt constants (adapted from lib/prompts/)
 // ---------------------------------------------------------------------------
-
-const SYSTEM_PROMPT = `You are a startup pitch coach and investor evaluator.
-
-Your job is to help founders improve quickly with direct, practical feedback.
-Focus on what they should change next, not abstract commentary.
-
-Feedback quality rules:
-- Be specific and actionable.
-- Prefer short, plain language.
-- One clear action per fix.
-- Avoid generic advice (for example: "be more confident").
-- Tie each fix to where it appears in the pitch (opening hook, problem statement, solution, traction, market, ask/close, delivery language).
-- Prioritize by impact on investor decision-making.
-
-Output rules:
-- Return valid JSON only.
-- Do not use markdown.
-- Do not include explanation text outside JSON.
-- Follow the requested schema exactly (field names and value types must match).`;
 
 const RESPONSE_SCHEMA = `{
   "feedback": {
@@ -218,52 +205,15 @@ const RESPONSE_SCHEMA = `{
   }
 }`;
 
-const MODE_CONFIG: Record<PitchMode, {
-  label: string;
-  targetDurationSeconds: number;
-  targetWpm: number;
-  structureBeats: string[];
-}> = {
-  elevator: {
-    label: 'Elevator Pitch',
-    targetDurationSeconds: 38,
-    targetWpm: 150,
-    structureBeats: ['Problem', 'Solution', 'Why Us'],
-  },
-  vc_pitch: {
-    label: 'VC Pitch',
-    targetDurationSeconds: 120,
-    targetWpm: 140,
-    structureBeats: ['Problem', 'Solution', 'Why Now', 'Traction', 'Market', 'Ask'],
-  },
-};
-
-const RUBRIC_TEXT = `1. STRUCTURE (0-20)
-Description: Clear flow with logical transitions and a strong ask at the end.
-Criteria: Problem -> Solution -> Why Now -> Traction -> Ask. Penalize missing beats or circular flow.
-
-2. CLARITY & CONCISION (0-20)
-Description: Direct language, minimal jargon, concise phrasing that is easy to follow.
-Criteria: Every sentence should earn its place. Penalize jargon and unnecessary qualifiers.
-
-3. EVIDENCE & TRACTION (0-20)
-Description: Concrete numbers, milestones, and proof points that build investor confidence.
-Criteria: Reward specific metrics (users, revenue, growth, pilots, customers). Penalize vague claims.
-
-4. MARKET & DIFFERENTIATION (0-20)
-Description: Clear market sizing, competitor framing, and defensible differentiation.
-Criteria: Expect TAM/SAM framing, competitors named, and a clear moat or positioning edge.
-
-5. DELIVERY (0-20)
-Description: Appropriate pace, low filler usage, low repetition, and time-limit compliance.
-Criteria: Use local metrics for pace/fillers/repetition/time-limit adherence.`;
-
 // ---------------------------------------------------------------------------
 // Build user prompt
 // ---------------------------------------------------------------------------
 
-function buildUserPrompt(input: AnalyzePitchInput): string {
-  const config = MODE_CONFIG[input.mode];
+function buildUserPrompt(
+  input: AnalyzePitchInput,
+  profile: AnalysisPromptProfile,
+): string {
+  const config = profile.modeConfig;
 
   const parts = [
     'Task: evaluate this startup pitch and produce feedback + Q&A pack in a single JSON object.',
@@ -274,12 +224,13 @@ function buildUserPrompt(input: AnalyzePitchInput): string {
     `Structure beats: ${config.structureBeats.join(' -> ')}`,
     '',
     'Rubric:',
-    RUBRIC_TEXT,
+    profile.rubricText,
     '',
     'Scoring guidance:',
-    '- Score harshly: 80+ should be rare and reserved for clear proof, clear ask, and clear differentiation.',
-    '- Penalize generic and vague language aggressively.',
-    '- Grade against YC top-decile fundraising quality.',
+    ...profile.scoringGuidance.map((line) => `- ${line}`),
+    '',
+    'Transcript handling:',
+    ...profile.transcriptRules.map((line) => `- ${line}`),
     '',
     'Original transcript:',
     input.transcript || '[empty transcript]',
@@ -604,7 +555,9 @@ function cloneSample(): AnalysisResultV2 {
 
 export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePitchResult> {
   const startedAt = Date.now();
-  const userPrompt = buildUserPrompt(input);
+  const profile = getAnalysisPromptProfile(input.projectType, input.mode);
+  const systemPrompt = input.systemPromptOverride?.trim() || profile.systemPrompt;
+  const userPrompt = buildUserPrompt(input, profile);
 
   // Try Claude first
   let providerUsed = 'anthropic';
@@ -615,7 +568,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     attemptCount += 1;
     llmCallsUsed += 1;
     logDiagnostic('log', '[analysis] calling Claude API...');
-    const rawText = await callClaude(SYSTEM_PROMPT, userPrompt);
+    const rawText = await callClaude(systemPrompt, userPrompt);
     const jsonText = extractJson(rawText);
     const parsed = JSON.parse(jsonText);
     const { feedback, qa_1min } = validateAndNormalize(parsed);
@@ -654,7 +607,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       attemptCount += 1;
       llmCallsUsed += 1;
       logDiagnostic('log', '[analysis] calling Gemini API...');
-      const rawText = await callGemini(SYSTEM_PROMPT, userPrompt);
+      const rawText = await callGemini(systemPrompt, userPrompt);
       const jsonText = extractJson(rawText);
       const parsed = JSON.parse(jsonText);
       const { feedback, qa_1min } = validateAndNormalize(parsed);
