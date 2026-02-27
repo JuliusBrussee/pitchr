@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import type { SectionBeat, SectionFeedback } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
+import { getScoreColor } from '@/views/components/ui/colors';
 
 interface SectionAccordionProps {
   sections?: SectionFeedback[];
@@ -22,15 +23,6 @@ const BEAT_LABELS: Record<string, string> = {
   traction: 'Traction',
   team: 'Team',
   ask: 'The Ask',
-};
-
-const SCORE_COLORS: Record<number, string> = {
-  0: '#ef4444',
-  1: '#ef4444',
-  2: '#f97316',
-  3: '#ffaa33',
-  4: '#3b82f6',
-  5: '#22c55e',
 };
 
 const MODE_BEATS: Record<PitchMode, SectionBeat[]> = {
@@ -162,7 +154,7 @@ export function SectionAccordion({
         {detectedEntries.map((section, index) => {
           const isOpen = openBeat === section.beat;
           const normalizedScore = Math.min(5, Math.max(0, section.score));
-          const scoreColor = SCORE_COLORS[normalizedScore] ?? '#ffaa33';
+          const scoreColor = getScoreColor((normalizedScore / 5) * 100);
           const startSec = resolveBeatStartSec(
             section,
             index,

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Timer, Clock, MessageSquare, TrendingDown } from 'lucide-react';
 import type { FeedbackOutput } from '@/types/analysis-v2';
-import { getScoreColor, getScoreBandLabel, getScoreBgColor, getRubricColor } from '@/views/components/ui/colors';
+import { getScoreColor, getScoreBandLabel, getScoreBgColor } from '@/views/components/ui/colors';
 
 interface ScoreHeroProps {
   feedback: FeedbackOutput;
@@ -150,7 +150,7 @@ export function ScoreHero({ feedback }: ScoreHeroProps) {
           <div className="flex flex-col gap-2">
             {rubricItems.map((item, i) => {
               const pct = clamp(item.max_score > 0 ? item.score / item.max_score : 0, 0, 1);
-              const catColor = getRubricColor(item.category);
+              const catColor = getScoreColor(item.max_score > 0 ? (item.score / item.max_score) * 100 : 0);
               const dashOffset = MINI_C * (1 - pct);
               const label = item.category.replace(/_/g, ' ');
 

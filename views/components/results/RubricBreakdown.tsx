@@ -1,7 +1,7 @@
 'use client';
 
 import type { RubricScore } from '@/types/analysis-v2';
-import { getRubricColor } from '@/views/components/ui/colors';
+import { getScoreColor } from '@/views/components/ui/colors';
 
 interface RubricBreakdownProps {
   breakdown: RubricScore[];
@@ -20,7 +20,7 @@ export function RubricBreakdown({ breakdown }: RubricBreakdownProps) {
     <div className="grid grid-cols-1 gap-2">
       {breakdown.map((item, index) => {
         const pct = clamp(item.max_score > 0 ? item.score / item.max_score : 0, 0, 1);
-        const color = getRubricColor(item.category);
+        const color = getScoreColor(item.max_score > 0 ? (item.score / item.max_score) * 100 : 0);
         const label = item.category.replace(/_/g, ' ');
         const dashOffset = RING_CIRCUMFERENCE * (1 - pct);
 

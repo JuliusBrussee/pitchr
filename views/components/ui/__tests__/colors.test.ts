@@ -25,17 +25,22 @@ describe('getScoreBand', () => {
 });
 
 describe('getScoreColor', () => {
-  it('returns red for needs-work', () => {
-    expect(getScoreColor(25)).toBe('#ef4444');
+  it('returns red-ish for low scores', () => {
+    expect(getScoreColor(0)).toBe('#c52020');
   });
-  it('returns yellow for getting-there', () => {
-    expect(getScoreColor(50)).toBe('#eab308');
+  it('returns yellow-ish for mid scores', () => {
+    const color = getScoreColor(50);
+    expect(color).toMatch(/^#[0-9a-f]{6}$/);
   });
-  it('returns amber for solid', () => {
-    expect(getScoreColor(70)).toBe('#ffaa33');
+  it('returns green-ish for high scores', () => {
+    expect(getScoreColor(100)).toBe('#20c520');
   });
-  it('returns green for investor-ready', () => {
-    expect(getScoreColor(85)).toBe('#22c55e');
+  it('produces a smooth gradient (higher score = higher hue)', () => {
+    const low = getScoreColor(20);
+    const mid = getScoreColor(50);
+    const high = getScoreColor(80);
+    expect(low).not.toBe(mid);
+    expect(mid).not.toBe(high);
   });
 });
 

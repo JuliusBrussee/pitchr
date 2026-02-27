@@ -313,7 +313,7 @@ export function RunDetailModal({ runId, onClose }: RunDetailModalProps) {
                   <div className="flex flex-col gap-3">
                     {feedback.rubric_breakdown.map((item, i) => {
                       const pct = Math.max(0, Math.min(100, (item.score / item.max_score) * 100));
-                      const rubricColor = getRubricColor(item.category);
+                      const rubricColor = getScoreColor(item.max_score > 0 ? (item.score / item.max_score) * 100 : 0);
                       return (
                         <div
                           key={item.category}
