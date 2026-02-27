@@ -8,6 +8,7 @@
     "prebuild": "yarn validate:env && yarn check:encoding",
     "validate:env": "node scripts/validate-env.mjs",
     "prepare:next-cache": "node scripts/prepare-next-cache.mjs",
+    "extract:hero-tiles": "node scripts/extract-hero-presenter-tiles.mjs",
     "fix:encoding": "node scripts/normalize-encoding.mjs",
     "check:encoding": "node scripts/check-encoding.mjs",
     "stt": "cross-env DOTENV_CONFIG_PATH=.env.local tsx stt.ts",
