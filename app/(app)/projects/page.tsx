@@ -20,7 +20,9 @@ export default function ProjectsPage() {
   const [name, setName] = useState('');
   const [type, setType] = useState<ProjectTypeId>('two_min_pitch');
   const [isCreating, setIsCreating] = useState(false);
+  const [isSwitchingCreated, setIsSwitchingCreated] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<{ projectId: string; projectName: string } | null>(null);
 
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) ?? null,
@@ -57,7 +59,7 @@ export default function ProjectsPage() {
               }}
             >
               <CheckCircle2 size={14} />
-              Active: {activeProject.name}
+              Current: {activeProject.name}
             </div>
           ) : null}
         </header>
@@ -103,13 +105,17 @@ export default function ProjectsPage() {
               onClick={async () => {
                 setIsCreating(true);
                 setMutationError(null);
+                setCreateSuccess(null);
                 try {
-                  await createProject({
+                  const createdProject = await createProject({
                     name: name.trim(),
                     type,
-                    setActive: true,
                   });
                   setName('');
+                  setCreateSuccess({
+                    projectId: createdProject.id,
+                    projectName: createdProject.name,
+                  });
                 } catch (caughtError) {
                   setMutationError(
                     caughtError instanceof Error ? caughtError.message : 'Failed to create project.',
@@ -126,9 +132,54 @@ export default function ProjectsPage() {
               }}
             >
               {isCreating ? <Loader2 size={14} className="animate-spin" /> : <FolderPlus size={14} />}
-              Create
+              Create project
             </button>
           </div>
+          {createSuccess ? (
+            <div
+              className="mt-3 rounded-lg border px-3 py-2 text-xs flex items-center justify-between gap-3 flex-wrap"
+              style={{
+                borderColor: 'rgba(34,197,94,0.25)',
+                backgroundColor: 'rgba(34,197,94,0.08)',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <span>
+                Created <strong>{createSuccess.projectName}</strong>.
+              </span>
+              {createSuccess.projectId !== activeProjectId ? (
+                <button
+                  type="button"
+                  disabled={isSwitchingCreated}
+                  onClick={async () => {
+                    setIsSwitchingCreated(true);
+                    setMutationError(null);
+                    try {
+                      await setActiveProject(createSuccess.projectId);
+                      setCreateSuccess(null);
+                    } catch (caughtError) {
+                      setMutationError(
+                        caughtError instanceof Error
+                          ? caughtError.message
+                          : 'Failed to switch project.',
+                      );
+                    } finally {
+                      setIsSwitchingCreated(false);
+                    }
+                  }}
+                  className="inline-flex items-center justify-center rounded-lg px-2.5 py-1 border text-xs font-medium"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-secondary)',
+                    backgroundColor: 'var(--bg-surface)',
+                    opacity: isSwitchingCreated ? 0.7 : 1,
+                  }}
+                >
+                  {isSwitchingCreated ? 'Switching...' : 'Switch now'}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           {mutationError ? (
             <p className="text-xs mt-2" style={{ color: '#ef4444' }}>
               {mutationError}
@@ -169,23 +220,11 @@ export default function ProjectsPage() {
                       className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
                       style={{ color: '#ff5941', backgroundColor: 'rgba(255,89,65,0.12)' }}
                     >
-                      Active
+                      Current
                     </span>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={activeProjectId === project.id}
-                    onClick={() => void setActiveProject(project.id)}
-                    className="px-3 py-1.5 rounded-lg border text-xs font-medium"
-                    style={{
-                      borderColor: 'var(--border-color)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    Set active
-                  </button>
                   {!project.isSeeded ? (
                     <button
                       type="button"
@@ -204,6 +243,10 @@ export default function ProjectsPage() {
             ))
           )}
         </section>
+
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          Switch projects from the sidebar `Current project` picker.
+        </p>
 
         {error ? (
           <p className="text-xs" style={{ color: '#ef4444' }}>

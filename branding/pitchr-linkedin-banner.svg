@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1584" height="396" viewBox="0 0 1584 396" role="img" aria-label="Pitchr LinkedIn banner">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#07090c"/>
+      <stop offset="100%" stop-color="#101218"/>
+    </linearGradient>
+    <radialGradient id="glowCoral" cx="28%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#ff5941" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#ff5941" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowAmber" cx="70%" cy="40%" r="52%">
+      <stop offset="0%" stop-color="#ffaa33" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#ffaa33" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffaa33"/>
+      <stop offset="100%" stop-color="#ff5941"/>
+    </linearGradient>
+    <pattern id="grid" width="56" height="52" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V52" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1584" height="396" fill="url(#bgGrad)"/>
+  <rect width="1584" height="396" fill="url(#glowCoral)"/>
+  <rect width="1584" height="396" fill="url(#glowAmber)"/>
+  <rect width="1584" height="396" fill="url(#grid)" opacity="0.22"/>
+
+  <text x="210" y="82" fill="#ffab78" font-family="Consolas, 'Courier New', monospace" font-size="18" letter-spacing="1.2">AI PITCH COACH FOR FOUNDERS</text>
+  <circle cx="220" cy="126" r="10" fill="#ff5941"/>
+  <text x="240" y="177" fill="#f4f5f8" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="66" font-weight="700">Pitchr</text>
+
+  <text x="210" y="230" fill="#dee2ea" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="28">
+    <tspan x="210" dy="0">Record or paste your pitch. Get investor-grade scoring,</tspan>
+    <tspan x="210" dy="34">ranked fixes, AI rewrites, and delivery metrics in seconds.</tspan>
+  </text>
+
+  <g fill="#121620" stroke="#ffffff" stroke-opacity="0.28">
+    <rect x="210" y="301" width="115" height="40" rx="12"/>
+    <rect x="335" y="301" width="218" height="40" rx="12"/>
+    <rect x="563" y="301" width="163" height="40" rx="12"/>
+    <rect x="736" y="301" width="208" height="40" rx="12"/>
+  </g>
+  <g fill="#eceef3" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="18">
+    <text x="226" y="328">Live STT</text>
+    <text x="351" y="328">Async Analysis Runs</text>
+    <text x="579" y="328">VC Q&amp;A Drills</text>
+    <text x="752" y="328">Deck + Miro Export</text>
+  </g>
+
+  <rect x="1044" y="48" width="480" height="300" rx="22" fill="#080a10" fill-opacity="0.88" stroke="#ffffff" stroke-opacity="0.54" stroke-width="2"/>
+  <rect x="1068" y="72" width="8" height="54" fill="#ff5941"/>
+  <text x="1090" y="94" fill="#f5f6f8" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="26" font-weight="700">Investor-Ready Trajectory</text>
+  <text x="1090" y="122" fill="#c4c9d4" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="18">From rough take to confident close</text>
+
+  <circle cx="1148" cy="220" r="62" fill="none" stroke="#ffffff" stroke-opacity="0.18" stroke-width="12"/>
+  <circle cx="1148" cy="220" r="62" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round"
+          transform="rotate(-90 1148 220)" stroke-dasharray="323.33 389.56"/>
+  <circle cx="1148" cy="220" r="40" fill="#080a10" fill-opacity="0.95" stroke="#ffffff" stroke-opacity="0.28" stroke-width="2"/>
+  <text x="1148" y="220" fill="#fff6f1" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="50" font-weight="700" text-anchor="middle" dominant-baseline="middle">83</text>
+  <text x="1148" y="308" fill="#ffb691" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="12" text-anchor="middle">SCORE</text>
+
+  <g fill="#ffaa33">
+    <circle cx="1271" cy="186" r="3"/>
+    <circle cx="1271" cy="228" r="3"/>
+    <circle cx="1271" cy="270" r="3"/>
+  </g>
+  <g fill="#e2e5ec" font-family="Segoe UI, Arial, Helvetica, sans-serif" font-size="18">
+    <text x="1284" y="197">5-dimension VC scoring</text>
+    <text x="1284" y="239">Prioritized fix list + AI rewrite</text>
+    <text x="1284" y="281">Delivery timing + filler metrics</text>
+  </g>
+
+  <text x="1295" y="375" fill="#ffffff" fill-opacity="0.60" font-family="Consolas, 'Courier New', monospace" font-size="18">pitchr.app</text>
+</svg>

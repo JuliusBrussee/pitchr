@@ -139,11 +139,11 @@ export default function ReviewPage() {
             This run is not available in history.
           </p>
           <Link
-            href="/session/select-project"
+            href="/session"
             className="inline-flex items-center justify-center px-4 py-2 rounded-lg no-underline font-medium"
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
-            Run a Pitch
+            Start New Session
           </Link>
         </section>
       </main>
@@ -155,7 +155,7 @@ export default function ReviewPage() {
       <header className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
           <Link
-            href="/session/select-project"
+            href="/session"
             className="p-2 rounded-xl border no-underline flex items-center justify-center"
             style={{
               backgroundColor: 'var(--bg-surface)',
@@ -176,11 +176,11 @@ export default function ReviewPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href="/session/select-project"
+            href="/session"
             className="px-3 py-2 rounded-lg border text-sm no-underline"
             style={{ color: 'var(--text-secondary)', borderColor: 'var(--border-color)' }}
           >
-            Run Again
+            Start New Session
           </Link>
           <Link
             href={`/results/${run.id}`}

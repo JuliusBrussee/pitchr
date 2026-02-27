@@ -253,8 +253,10 @@ export async function resolveProjectForRequest(
   opts?: {
     projectId?: string;
     mode?: PitchMode;
+    persistResolvedProject?: boolean;
   },
 ): Promise<ProjectRecord> {
+  const persistResolvedProject = opts?.persistResolvedProject === true;
   const projects = await ensureSeedProjects(supabase, userId);
 
   if (opts?.projectId) {
@@ -262,7 +264,9 @@ export async function resolveProjectForRequest(
     if (!project) {
       throw new ProjectNotFoundError(opts.projectId);
     }
-    await setActiveProject(supabase, userId, project.id);
+    if (persistResolvedProject && !project.is_archived) {
+      await setActiveProject(supabase, userId, project.id);
+    }
     return project;
   }
 
@@ -282,7 +286,7 @@ export async function resolveProjectForRequest(
     throw new Error('No project available for this account.');
   }
 
-  if (activeProjectId !== resolved.id) {
+  if (persistResolvedProject && activeProjectId !== resolved.id && !resolved.is_archived) {
     await setActiveProject(supabase, userId, resolved.id);
   }
 

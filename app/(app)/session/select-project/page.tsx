@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowRight, CheckCircle2, Loader2, Radio } from 'lucide-react';
 import { useProject } from '@/views/components/ProjectProvider';
@@ -65,6 +66,22 @@ function SessionProjectSelectPageContent() {
     () => projects.filter((project) => !project.isArchived),
     [projects],
   );
+  const currentProject = useMemo(
+    () => availableProjects.find((project) => project.id === activeProjectId) ?? null,
+    [availableProjects, activeProjectId],
+  );
+  const forceSelection = useMemo(
+    () => requestedProjectType !== null || searchParams.get('force') === 'true',
+    [requestedProjectType, searchParams],
+  );
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (forceSelection) return;
+    if (!currentProject) return;
+    if (returnTo === '/session/select-project') return;
+    router.replace(returnTo);
+  }, [currentProject, forceSelection, isLoading, returnTo, router]);
 
   useEffect(() => {
     if (availableProjects.length === 0) return;
@@ -136,7 +153,18 @@ function SessionProjectSelectPageContent() {
               backgroundColor: 'var(--bg-surface-hover)',
             }}
           >
-            No active projects are available. Create one in Projects before starting a session.
+            <p>No active projects are available. Create one in Projects before starting a session.</p>
+            <Link
+              href="/projects"
+              className="inline-flex items-center justify-center px-3 py-1.5 mt-3 rounded-lg border text-xs no-underline"
+              style={{
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--bg-surface)',
+              }}
+            >
+              Go to Projects
+            </Link>
           </section>
         ) : (
           <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -188,7 +216,7 @@ function SessionProjectSelectPageContent() {
 
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            You can switch projects anytime from the sidebar project selector.
+            Change projects from the sidebar current-project picker.
           </p>
           <button
             type="button"
@@ -220,7 +248,7 @@ function SessionProjectSelectPageContent() {
             }}
           >
             {isContinuing ? <Loader2 size={14} className="animate-spin" /> : <ArrowRight size={14} />}
-            Continue to Session
+            Use this project
           </button>
         </div>
 

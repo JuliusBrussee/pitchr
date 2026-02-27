@@ -43,6 +43,7 @@ import {
 } from '@/lib/analytics';
 import type { RunEconomics } from '@/types/analysis-v2';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { useProject } from '@/views/components/ProjectProvider';
 
 /* ——— Types ——— */
 
@@ -111,6 +112,7 @@ export default function DashboardPage() {
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { state: onboardingState } = useOnboarding();
+  const { activeProjectId } = useProject();
   const [fetchError, setFetchError] = useState(false);
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('dashboard');
@@ -120,8 +122,13 @@ export default function DashboardPage() {
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
+    if (!activeProjectId) {
+      setAllRuns([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    fetchEdge('pitch-run')
+    fetchEdge('pitch-run', { params: { projectId: activeProjectId } })
       .then((r) => r.json())
       .then((payload: { runs?: RunRecord[] }) =>
         setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
@@ -134,7 +141,7 @@ export default function DashboardPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [showTooltip]);
+  }, [activeProjectId, showTooltip]);
 
   useEffect(() => {
     setGreeting(getGreeting());
@@ -197,7 +204,7 @@ export default function DashboardPage() {
               {formattedDate}
             </p>
           </div>
-          <Link href="/session/select-project" className="no-underline">
+          <Link href="/session" className="no-underline">
             <div className="session-start-wrap" style={{ borderRadius: 12, padding: 2 }}>
               <div className="session-start-glow" />
               <button
@@ -207,7 +214,7 @@ export default function DashboardPage() {
                 style={{ borderRadius: 10, padding: '10px 20px' }}
               >
                 <Zap size={16} />
-                Run a Pitch
+                Start Session
               </button>
             </div>
           </Link>

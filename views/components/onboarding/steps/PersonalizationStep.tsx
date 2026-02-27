@@ -142,7 +142,7 @@ export function PersonalizationStep({ onComplete }: PersonalizationStepProps) {
                 boxShadow: '0 0 20px rgba(255, 89, 65, 0.3)',
               }}
             >
-              Run My First Pitch
+              Start My First Session
               <ArrowRight size={20} />
             </button>
 

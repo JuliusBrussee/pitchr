@@ -29,7 +29,7 @@ interface AppSidebarProps {
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { id: 'session', label: 'Live Session', icon: Radio, href: '/session/select-project' },
+  { id: 'session', label: 'Session', icon: Radio, href: '/session' },
   { id: 'history', label: 'History', icon: Clock, href: '/history' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, href: '/progress' },
@@ -80,13 +80,13 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
           className="text-[11px] font-medium block mb-1"
           style={{ color: 'var(--text-muted)' }}
         >
-          Active project
+          Current project
         </label>
         <ProjectSelect
           id="project-switcher"
           compact
-          ariaLabel="Active project"
-          disabled={isProjectLoading || projects.length === 0}
+          ariaLabel="Current project"
+          disabled={isProjectLoading || projects.length === 0 || isSessionActive}
           value={activeProjectId ?? projects[0]?.id ?? ''}
           placeholder={isProjectLoading ? 'Loading projects...' : 'No projects'}
           options={projects.map((project) => ({
@@ -94,10 +94,15 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
             label: project.name,
           }))}
           onChange={(nextProjectId) => {
-            if (!nextProjectId || nextProjectId === activeProjectId) return;
+            if (isSessionActive || !nextProjectId || nextProjectId === activeProjectId) return;
             void setActiveProject(nextProjectId).catch(() => {});
           }}
         />
+        {isSessionActive ? (
+          <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+            End this session to switch projects.
+          </p>
+        ) : null}
       </div>
 
       <nav className="flex flex-col gap-1">
@@ -198,7 +203,7 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
       ) : (
         <div className="session-start-wrap">
           <div className="session-start-glow" />
-          <Link href="/session/select-project" className="session-start-btn no-underline">
+          <Link href="/session" className="session-start-btn no-underline">
             <span className="session-start-btn__icon">
               <Play size={15} fill="currentColor" />
             </span>
