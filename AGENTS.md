@@ -12,7 +12,7 @@ AI pitch coach MVP. Users record/paste a pitch, get scored analysis with fixes a
 
 **Key tasks:** TypeScript types (match PRD Section 7), localStorage CRUD for runs, API route handlers (`app/api/pitch/`), scoring service, audio recording hook.
 
-**Constraints:** UUIDs via `crypto.randomUUID()`, ISO 8601 timestamps, proper HTTP status codes, Supabase client singleton from `lib/supabase.ts`.
+**Constraints:** UUIDs via `crypto.randomUUID()`, ISO 8601 timestamps, proper HTTP status codes, Supabase client singleton from `lib/supabase.ts`..
 
 ## Agent: LLM & Prompts (AI Quality + Integrations)
 
