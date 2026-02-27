@@ -219,7 +219,7 @@ export default function SettingsPage() {
   // Export data handler
   const handleExport = async () => {
     try {
-      const payload = await fetchEdge('pitch-run').then((r) => r.json());
+      const payload = await fetchEdge('pitch-run', { params: { allProjects: 'true' } }).then((r) => r.json());
       const data = Array.isArray(payload?.runs) ? payload.runs : [];
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -237,7 +237,9 @@ export default function SettingsPage() {
   const handleClearAll = async () => {
     if (!confirm('Delete ALL pitch runs and reset achievements? This cannot be undone.')) return;
     try {
-      const payload = await fetchEdge('pitch-run', { params: { includePending: 'true' } }).then((r) => r.json());
+      const payload = await fetchEdge('pitch-run', {
+        params: { includePending: 'true', allProjects: 'true' },
+      }).then((r) => r.json());
       const allRuns = Array.isArray(payload?.runs) ? payload.runs : [];
       await Promise.all(allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
       achievements.resetAchievements();

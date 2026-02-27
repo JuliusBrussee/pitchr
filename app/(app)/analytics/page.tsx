@@ -63,6 +63,8 @@ interface RubricTrendPoint {
   scores: { category: string; score: number; hasData: boolean }[];
 }
 
+type ProjectScope = 'active' | 'all';
+
 /* ——— Helpers ——— */
 
 const DEFAULT_DELIVERY_METRICS: DeliveryMetrics = {
@@ -543,6 +545,7 @@ function computeFillerData(runs: RunRecord[]): {
 
 export default function AnalyticsPage() {
   const [range, setRange] = useState<TimeRange>('7D');
+  const [projectScope, setProjectScope] = useState<ProjectScope>('active');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
@@ -553,7 +556,9 @@ export default function AnalyticsPage() {
   const loadRuns = useCallback(() => {
     setFetchError(false);
     setLoading(true);
-    fetchEdge('pitch-run')
+    fetchEdge('pitch-run', {
+      params: projectScope === 'all' ? { allProjects: 'true' } : undefined,
+    })
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
       .catch(() => {
@@ -564,7 +569,7 @@ export default function AnalyticsPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [showTooltip]);
+  }, [projectScope, showTooltip]);
 
   useEffect(() => {
     loadRuns();
@@ -605,7 +610,28 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
         </div>
-        <TimeRangeSelector value={range} onChange={setRange} />
+        <div className="flex items-center gap-2">
+          <div
+            className="inline-flex rounded-lg border overflow-hidden"
+            style={{ borderColor: 'var(--border-color)' }}
+          >
+            {(['active', 'all'] as ProjectScope[]).map((scope) => (
+              <button
+                key={scope}
+                type="button"
+                onClick={() => setProjectScope(scope)}
+                className="px-3 py-1.5 text-xs font-medium transition-colors"
+                style={{
+                  backgroundColor: projectScope === scope ? 'var(--bg-surface-hover)' : 'transparent',
+                  color: projectScope === scope ? 'var(--text-primary)' : 'var(--text-muted)',
+                }}
+              >
+                {scope === 'active' ? 'Active Project' : 'All Projects'}
+              </button>
+            ))}
+          </div>
+          <TimeRangeSelector value={range} onChange={setRange} />
+        </div>
       </div>
 
       {loading ? (

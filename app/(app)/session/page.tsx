@@ -16,6 +16,7 @@ import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
+import { useProject } from '@/views/components/ProjectProvider';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
@@ -45,6 +46,13 @@ function SessionPageContent() {
   const stt = useSTT();
   const recorder = useRecorder();
   const { runPitchAnalysis, error: runError } = usePitchRun();
+  const {
+    projects,
+    activeProject,
+    activeProjectId,
+    setActiveProject,
+    isLoading: isProjectLoading,
+  } = useProject();
   const { setOrbState } = useTheme();
   const { state: onboardingState } = useOnboarding();
   const { registerPage } = useTutorial('session');
@@ -61,17 +69,39 @@ function SessionPageContent() {
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
   const modeFromQuery = searchParams.get('mode');
-  const pitchMode: PitchMode =
-    modeFromQuery === 'elevator' || modeFromQuery === 'vc_pitch'
-      ? modeFromQuery
-      : 'vc_pitch';
+  const requestedMode = modeFromQuery === 'elevator' || modeFromQuery === 'vc_pitch'
+    ? modeFromQuery
+    : null;
+  const pitchMode: PitchMode = activeProject?.workflowMode
+    ?? requestedMode
+    ?? 'vc_pitch';
   const modeConfig = PITCH_MODE_CONFIG[pitchMode];
 
-  // Fetch available decks on mount
   useEffect(() => {
+    if (!requestedMode) return;
+    if (!activeProject || activeProject.workflowMode === requestedMode) return;
+    const matchingProject = projects.find(
+      (project) => !project.isArchived && project.workflowMode === requestedMode,
+    );
+    if (matchingProject && matchingProject.id !== activeProject.id) {
+      void setActiveProject(matchingProject.id).catch(() => {});
+    }
+  }, [activeProject, projects, requestedMode, setActiveProject]);
+
+  // Fetch available decks for the active project
+  useEffect(() => {
+    if (!activeProjectId) {
+      setDecks([]);
+      setSelectedDeckId(null);
+      setIsLoadingDecks(false);
+      return;
+    }
+    setIsLoadingDecks(true);
     (async () => {
       try {
-        const res = await fetchEdge('deck-list');
+        const res = await fetchEdge('deck-list', {
+          params: { projectId: activeProjectId },
+        });
         if (!res.ok) throw new Error('Failed to load decks');
         const data = await res.json();
         setDecks(data);
@@ -81,7 +111,7 @@ function SessionPageContent() {
         setIsLoadingDecks(false);
       }
     })();
-  }, []);
+  }, [activeProjectId]);
 
   const selectedDeck = useMemo(
     () => decks.find((d) => d.id === selectedDeckId) ?? null,
@@ -291,6 +321,7 @@ function SessionPageContent() {
           }
         }
         const result = await runPitchAnalysis({
+          projectId: activeProjectId ?? undefined,
           mode: pitchMode,
           inputType: 'audio',
           transcript,
@@ -310,6 +341,7 @@ function SessionPageContent() {
       }
     })();
   }, [
+    activeProjectId,
     loadDeckText,
     pitchMode,
     recorder,
@@ -358,7 +390,12 @@ function SessionPageContent() {
           checklistSource={stt.checklistSource}
           checklistNextHint={stt.checklistNextHint}
           checklistError={stt.checklistError}
-          sttError={analysisError ?? runError ?? stt.error}
+          sttError={
+            analysisError
+            ?? runError
+            ?? stt.error
+            ?? (!isProjectLoading && !activeProjectId ? 'Select a project before starting a session.' : null)
+          }
           sttSaved={stt.saved && !showAnalyzing}
           isAnalyzing={showAnalyzing}
           analysisError={analysisError ?? runError}

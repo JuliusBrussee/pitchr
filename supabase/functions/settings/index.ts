@@ -14,6 +14,7 @@ const DEFAULTS = {
   timer_seconds: 300,
   theme: 'system',
   compact_mode: false,
+  active_project_id: null as string | null,
 };
 
 const SETTING_COLUMNS = Object.keys(DEFAULTS) as (keyof typeof DEFAULTS)[];

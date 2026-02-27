@@ -249,7 +249,7 @@ export default function ResultsPage() {
     if (!run || run.status !== 'complete' || achievementCheckDone.current) return;
     achievementCheckDone.current = true;
 
-    fetchEdge('pitch-run')
+    fetchEdge('pitch-run', { params: { allProjects: 'true' } })
       .then((r) => r.json())
       .then((payload: { runs?: Array<{ id: string; mode: string; overallScore: number; createdAt: string; analysis: ProgressRunRecord['analysis'] }> }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];

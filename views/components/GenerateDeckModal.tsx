@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Loader2, Check, Wand2, FileText, Palette } from 'lucide-react';
 import { TEMPLATE_LIST } from '@/config/deckTemplates';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { TemplateId } from '@/types/deckGeneration';
 
 interface GenerateDeckModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  projectId?: string | null;
 }
 
 const GENERATION_STEPS = [
@@ -224,7 +226,7 @@ function GeneratingOverlay({ step }: { step: number }) {
   );
 }
 
-export function GenerateDeckModal({ isOpen, onClose, onSuccess }: GenerateDeckModalProps) {
+export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: GenerateDeckModalProps) {
   const [templateId, setTemplateId] = useState<TemplateId>('minimal-dark');
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
@@ -269,13 +271,14 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess }: GenerateDeckMo
     setError(null);
 
     try {
-      const res = await fetch('/api/deck/generate', {
+      const res = await fetchEdge('deck-generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           companyName: companyName.trim(),
           description: description.trim(),
           templateId,
+          projectId: projectId ?? undefined,
         }),
       });
 

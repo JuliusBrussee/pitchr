@@ -127,6 +127,7 @@ interface AnalyzePitchInput {
   transcript: string;
   mode: PitchMode;
   deckText?: string;
+  systemPromptOverride?: string;
 }
 
 const DIAGNOSTIC_LOGS_ENABLED =
@@ -604,6 +605,7 @@ function cloneSample(): AnalysisResultV2 {
 
 export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePitchResult> {
   const startedAt = Date.now();
+  const systemPrompt = input.systemPromptOverride?.trim() || SYSTEM_PROMPT;
   const userPrompt = buildUserPrompt(input);
 
   // Try Claude first
@@ -615,7 +617,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     attemptCount += 1;
     llmCallsUsed += 1;
     logDiagnostic('log', '[analysis] calling Claude API...');
-    const rawText = await callClaude(SYSTEM_PROMPT, userPrompt);
+    const rawText = await callClaude(systemPrompt, userPrompt);
     const jsonText = extractJson(rawText);
     const parsed = JSON.parse(jsonText);
     const { feedback, qa_1min } = validateAndNormalize(parsed);
@@ -654,7 +656,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       attemptCount += 1;
       llmCallsUsed += 1;
       logDiagnostic('log', '[analysis] calling Gemini API...');
-      const rawText = await callGemini(SYSTEM_PROMPT, userPrompt);
+      const rawText = await callGemini(systemPrompt, userPrompt);
       const jsonText = extractJson(rawText);
       const parsed = JSON.parse(jsonText);
       const { feedback, qa_1min } = validateAndNormalize(parsed);

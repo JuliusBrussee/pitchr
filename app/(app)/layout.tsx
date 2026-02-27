@@ -2,6 +2,7 @@
 
 import { AppSidebar } from '@/views/components/AppSidebar';
 import { SidebarProvider, useSidebar } from '@/views/components/SidebarContext';
+import { ProjectProvider } from '@/views/components/ProjectProvider';
 import { Menu, X } from 'lucide-react';
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
@@ -59,7 +60,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <AppLayoutInner>{children}</AppLayoutInner>
+      <ProjectProvider>
+        <AppLayoutInner>{children}</AppLayoutInner>
+      </ProjectProvider>
     </SidebarProvider>
   );
 }

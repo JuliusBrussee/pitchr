@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useAuth } from '@/views/components/AuthProvider';
+import { useProject } from '@/views/components/ProjectProvider';
 import { StartSessionButton } from '@/views/components/StartSessionButton';
 import { useSidebar } from '@/views/components/SidebarContext';
 
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
 ];
 
 const TOOL_ITEMS = [
+  { id: 'projects', label: 'Projects', icon: FolderOpen, href: '/projects' },
   { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck' },
   { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
@@ -41,6 +43,7 @@ const TOOL_ITEMS = [
 export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
   const { isDark, setTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
   const pathname = usePathname();
   const { closeSidebar } = useSidebar();
 
@@ -70,6 +73,43 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
       </div>
 
       {/* Navigation */}
+      <div className="px-2 mb-3">
+        <label
+          htmlFor="project-switcher"
+          className="text-[11px] font-medium block mb-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Active project
+        </label>
+        <select
+          id="project-switcher"
+          disabled={isProjectLoading || projects.length === 0}
+          value={activeProjectId ?? ''}
+          onChange={(event) => {
+            const nextProjectId = event.target.value;
+            if (!nextProjectId || nextProjectId === activeProjectId) return;
+            void setActiveProject(nextProjectId).catch(() => {});
+          }}
+          className="w-full rounded-lg px-2.5 py-1.5 text-xs border"
+          style={{
+            backgroundColor: 'var(--bg-surface-hover)',
+            color: 'var(--text-primary)',
+            borderColor: 'var(--border-color)',
+          }}
+        >
+          {projects.length === 0 ? (
+            <option value="" disabled>
+              No projects
+            </option>
+          ) : null}
+          {projects.map((project) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon;

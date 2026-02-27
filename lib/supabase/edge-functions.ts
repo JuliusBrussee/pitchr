@@ -120,7 +120,13 @@ export const edgeFunctions = {
       invokeEdgeFunction<T>('pitch-run', { method: 'POST', body }),
 
     /** GET /pitch-run — List pitch runs */
-    list: <T>(params?: { mode?: string; limit?: string; includePending?: string }) =>
+    list: <T>(params?: {
+      mode?: string;
+      limit?: string;
+      includePending?: string;
+      projectId?: string;
+      allProjects?: string;
+    }) =>
       invokeEdgeFunction<T>('pitch-run', {
         params: params as Record<string, string>,
       }),
@@ -141,12 +147,18 @@ export const edgeFunctions = {
 
   pitchRunStats: {
     /** GET /pitch-run-stats — Fetch run stats */
-    get: <T>() => invokeEdgeFunction<T>('pitch-run-stats'),
+    get: <T>(params?: { mode?: string; projectId?: string; allProjects?: string }) =>
+      invokeEdgeFunction<T>('pitch-run-stats', {
+        params: params as Record<string, string>,
+      }),
   },
 
   deckList: {
     /** GET /deck-list — List all decks */
-    get: <T>() => invokeEdgeFunction<T>('deck-list'),
+    get: <T>(params?: { projectId?: string; allProjects?: string }) =>
+      invokeEdgeFunction<T>('deck-list', {
+        params: params as Record<string, string>,
+      }),
   },
 
   deckUpload: {
@@ -235,6 +247,19 @@ export const edgeFunctions = {
     /** GET /integration-health — Check edge integration readiness */
     get: <T>() => invokeEdgeFunction<T>('integration-health'),
   },
+  projects: {
+    /** GET /projects — List projects */
+    list: <T>(params?: { includeArchived?: string }) =>
+      invokeEdgeFunction<T>('projects', {
+        params: params as Record<string, string>,
+      }),
+    /** POST /projects — Create project */
+    create: <T>(body: unknown) =>
+      invokeEdgeFunction<T>('projects', { method: 'POST', body }),
+    /** PATCH /projects — Update project / set active */
+    update: <T>(body: unknown) =>
+      invokeEdgeFunction<T>('projects', { method: 'PATCH', body }),
+  },
 };
 
 /**
@@ -256,4 +281,3 @@ export function getEdgeFunctionUrl(functionName: string, params?: Record<string,
 
   return url.toString();
 }
-
