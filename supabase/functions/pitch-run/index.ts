@@ -227,6 +227,7 @@ async function handlePost(req: Request) {
     const { analysis, fallback } = await analyzePitch({
       transcript: payload.transcript,
       mode,
+      projectType: project.type,
       deckText: payload.deckText,
       systemPromptOverride: analysisSystemPrompt,
     });

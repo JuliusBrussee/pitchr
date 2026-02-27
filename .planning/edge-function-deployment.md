@@ -34,18 +34,26 @@ npx supabase functions deploy <function-name> --no-verify-jwt
 All functions:
 ```bash
 for fn in deck-detail deck-generate deck-list deck-upload \
+  integration-health projects settings \
   miro-fix-board miro-fix-board-markdown miro-fix-board-sync \
   pitch-run pitch-run-detail pitch-run-stats \
-  qna-resources-refresh qna-session qna-session-complete qna-session-detail \
-  settings; do
+  qna-resources-refresh qna-session qna-session-complete qna-session-detail qna-session-expire; do
   npx supabase functions deploy "$fn" --no-verify-jwt
 done
+```
+
+Windows PowerShell helper:
+```powershell
+.\scripts\deploy-edge-functions.ps1
 ```
 
 ## Function Inventory
 
 | Function | Methods | Purpose |
 |----------|---------|---------|
+| projects | GET, POST, PATCH | List/create/update projects and active selection |
+| settings | GET, PATCH | User settings |
+| integration-health | GET | Integration readiness checks |
 | pitch-run | POST, GET | Create analysis run / list runs |
 | pitch-run-detail | GET, DELETE | Single run by ID |
 | pitch-run-stats | GET | Aggregate stats |
@@ -57,10 +65,10 @@ done
 | qna-session-detail | GET, DELETE | Single Q&A session |
 | qna-session-complete | POST | Complete Q&A session |
 | qna-resources-refresh | POST | Refresh Q&A resources |
+| qna-session-expire | POST | Expire stale QA sessions |
 | miro-fix-board | POST | Create Miro fix board |
 | miro-fix-board-markdown | POST | Markdown fix board |
 | miro-fix-board-sync | POST | Sync to Miro |
-| settings | GET, PATCH | User settings |
 
 ## Client-Side Auth Flow
 

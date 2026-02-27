@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { CheckCircle2, FolderPlus, Loader2 } from 'lucide-react';
 import { PROJECT_TYPE_OPTIONS } from '@/config/projectTypes';
 import { useProject } from '@/views/components/ProjectProvider';
+import { ProjectSelect } from '@/views/components/ProjectSelect';
 import type { ProjectTypeId } from '@/types/project';
 
 export default function ProjectsPage() {
@@ -86,22 +87,16 @@ export default function ProjectsPage() {
                 color: 'var(--text-primary)',
               }}
             />
-            <select
+            <ProjectSelect
+              ariaLabel="Project type"
               value={type}
-              onChange={(event) => setType(event.target.value as ProjectTypeId)}
-              className="rounded-lg border px-3 py-2 text-sm"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-              }}
-            >
-              {PROJECT_TYPE_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(nextValue) => setType(nextValue as ProjectTypeId)}
+              options={PROJECT_TYPE_OPTIONS.map((option) => ({
+                value: option.id,
+                label: option.label,
+                description: option.description,
+              }))}
+            />
             <button
               type="button"
               disabled={isCreating || name.trim().length === 0}

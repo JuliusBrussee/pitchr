@@ -110,11 +110,11 @@ describe('calculateDeliveryMetrics', () => {
   });
 
   it('reports within_time_limit correctly for elevator mode', () => {
-    // elevator: min=30, max=45
+    // elevator: min=25, max=35
     const inRange = calculateDeliveryMetrics({
       transcript: 'Some pitch content.',
       mode: 'elevator',
-      durationSeconds: 38,
+      durationSeconds: 30,
     });
     expect(inRange.within_time_limit).toBe(true);
 
@@ -134,15 +134,15 @@ describe('calculateDeliveryMetrics', () => {
   });
 
   it('scores pace component higher when WPM is near target', () => {
-    // elevator target = 150 WPM, 150 words in 60s = 150 WPM
+    // elevator target = 165 WPM, 165 words in 60s = 165 WPM
     const nearTarget = calculateDeliveryMetrics({
-      transcript: Array.from({ length: 150 }, (_, i) => `word${i}`).join(' '),
+      transcript: Array.from({ length: 165 }, (_, i) => `word${i}`).join(' '),
       mode: 'elevator',
       durationSeconds: 60,
     });
     expect(nearTarget.pace_score_component).toBeGreaterThan(0.7);
 
-    // Far from target: 50 words in 60s = 50 WPM (target 150)
+    // Far from target: 50 words in 60s = 50 WPM (target 165)
     const farFromTarget = calculateDeliveryMetrics({
       transcript: Array.from({ length: 50 }, (_, i) => `word${i}`).join(' '),
       mode: 'elevator',
@@ -168,7 +168,7 @@ describe('calculateDeliveryMetrics', () => {
 
   it('handles string-only overload', () => {
     const metrics = calculateDeliveryMetrics('Test transcript for pitch.', 'elevator');
-    expect(metrics.target_wpm).toBe(150); // elevator target
+    expect(metrics.target_wpm).toBe(165); // elevator target
   });
 
   it('handles object overload defaulting to vc_pitch', () => {

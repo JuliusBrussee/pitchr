@@ -2,11 +2,17 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { getEdgeErrorMessage, type EdgeErrorPayload } from '@/lib/supabase/edge-error';
 import type { Project, ProjectPromptOverrides, ProjectTypeId } from '@/types/project';
 
 interface ProjectsResponse {
   projects?: Project[];
   activeProjectId?: string | null;
+}
+
+async function readEdgePayload<T>(response: Response): Promise<T & EdgeErrorPayload> {
+  const payload = await response.json().catch(() => ({}));
+  return payload as T & EdgeErrorPayload;
 }
 
 interface ProjectContextValue {
@@ -46,9 +52,9 @@ const ProjectContext = createContext<ProjectContextValue>({
 
 async function loadProjectsFromEdge(): Promise<{ projects: Project[]; activeProjectId: string | null }> {
   const response = await fetchEdge('projects');
-  const payload = (await response.json()) as ProjectsResponse & { error?: string };
+  const payload = await readEdgePayload<ProjectsResponse>(response);
   if (!response.ok) {
-    throw new Error(payload.error || 'Failed to load projects.');
+    throw new Error(getEdgeErrorMessage(payload, 'Failed to load projects.'));
   }
   return {
     projects: Array.isArray(payload.projects) ? payload.projects : [],
@@ -88,9 +94,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectId, setActive: true }),
     });
-    const payload = (await response.json()) as { activeProjectId?: string | null; error?: string };
+    const payload = await readEdgePayload<{ activeProjectId?: string | null }>(response);
     if (!response.ok) {
-      throw new Error(payload.error || 'Failed to set active project.');
+      throw new Error(getEdgeErrorMessage(payload, 'Failed to set active project.'));
     }
     setActiveProjectId(payload.activeProjectId ?? projectId);
     setError(null);
@@ -112,9 +118,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         setActive: input.setActive,
       }),
     });
-    const payload = (await response.json()) as { activeProjectId?: string | null; error?: string };
+    const payload = await readEdgePayload<{ activeProjectId?: string | null }>(response);
     if (!response.ok) {
-      throw new Error(payload.error || 'Failed to create project.');
+      throw new Error(getEdgeErrorMessage(payload, 'Failed to create project.'));
     }
     await refresh();
     if (payload.activeProjectId) {
@@ -134,9 +140,9 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
-    const payload = (await response.json()) as { activeProjectId?: string | null; error?: string };
+    const payload = await readEdgePayload<{ activeProjectId?: string | null }>(response);
     if (!response.ok) {
-      throw new Error(payload.error || 'Failed to update project.');
+      throw new Error(getEdgeErrorMessage(payload, 'Failed to update project.'));
     }
     await refresh();
     if (payload.activeProjectId !== undefined) {
