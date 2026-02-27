@@ -27,6 +27,8 @@
   --shadow-deep: rgba(0, 0, 0, 0.08);
   --cta-hover-shadow: rgba(0, 0, 0, 0.15);
   --stats-stripe: rgba(0, 0, 0, 0.01);
+  --hero-spotlight: rgba(255, 122, 92, 0.26);
+  --hero-spotlight-edge: rgba(255, 122, 92, 0);
 
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
@@ -58,6 +60,8 @@
   --shadow-deep: rgba(0, 0, 0, 0.4);
   --cta-hover-shadow: rgba(255, 255, 255, 0.2);
   --stats-stripe: rgba(255, 255, 255, 0.01);
+  --hero-spotlight: rgba(255, 106, 42, 0.34);
+  --hero-spotlight-edge: rgba(255, 106, 42, 0);
 }
 
 .landing a { color: inherit; text-decoration: none; }
@@ -89,16 +93,70 @@
 
 /* ═══ HERO ═══ */
 .landing .hero { position: relative; z-index: 2; min-height: 100vh; display: flex; align-items: center; padding: 120px 0 80px; overflow: hidden; }
-.landing .hero-bg { position: absolute; inset: 0; z-index: 0; background: url('/hero-bg-light.png') center right / cover no-repeat; opacity: 0.6; }
+.landing .hero-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url('/hero-bg-light.png');
+  background-position: center right;
+  background-repeat: no-repeat;
+  background-size: cover;
+  will-change: transform, opacity;
+}
 .dark .landing .hero-bg { background-image: url('/hero-bg.png'); }
-.landing .hero-bg::after {
-  content: ''; position: absolute; inset: 0;
+.landing .hero-bg-base {
+  z-index: 0;
+  opacity: 0.62;
+  clip-path: inset(0);
+}
+.landing .hero-bg-base::after {
+  content: '';
+  position: absolute;
+  inset: 0;
   background:
     linear-gradient(to right, var(--bg) 0%, var(--bg) 12%, rgba(var(--bg-rgb), 0.88) 35%, rgba(var(--bg-rgb), 0.4) 58%, rgba(var(--bg-rgb), 0.15) 80%, rgba(var(--bg-rgb), 0.1) 100%),
     linear-gradient(to top, var(--bg) 0%, rgba(var(--bg-rgb), 0.6) 15%, transparent 35%),
     linear-gradient(to bottom, var(--bg) 0%, transparent 12%);
 }
-.landing .hero-inner { position: relative; z-index: 3; max-width: 580px; }
+.landing .hero-presenter-layer {
+  z-index: 1;
+  opacity: 0.82;
+  clip-path: inset(0);
+  transform-origin: 72% 42%;
+  filter: saturate(1.15) brightness(1.08);
+  mix-blend-mode: screen;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.4) 53%, #000 63%, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.4) 53%, #000 63%, #000 100%);
+}
+.landing .hero-spotlight {
+  position: absolute;
+  z-index: 2;
+  width: clamp(360px, 38vw, 560px);
+  aspect-ratio: 1 / 1;
+  right: 7%;
+  top: 13%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--hero-spotlight) 0%, var(--hero-spotlight-edge) 68%);
+  opacity: 0.2;
+  will-change: transform, opacity;
+}
+.landing .hero-mic-pulse {
+  position: absolute;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  right: 24%;
+  top: 34%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255, 138, 66, 0.62);
+  box-shadow: 0 0 0 0 rgba(255, 89, 51, 0.45), 0 0 18px rgba(255, 89, 51, 0.65);
+  opacity: 0;
+  transform: scale(0.82);
+  will-change: transform, opacity;
+}
+.landing .hero-inner { position: relative; z-index: 3; max-width: 580px; will-change: transform, opacity; }
 .landing .hero-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px 5px 10px; border-radius: 100px; border: 1px solid rgba(255,87,51,0.15); background: rgba(255,87,51,0.05); font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 28px; letter-spacing: -0.01em; animation: landingFadeUp 0.5s ease 0.1s both; }
 .landing .hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: landingPulse 2.5s ease-in-out infinite; }
 @keyframes landingPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent); } 50% { opacity: 0.4; box-shadow: 0 0 0px transparent; } }
@@ -106,7 +164,7 @@
 .landing .hero h1 .accent { font-style: italic; }
 .landing .hero-sub { font-size: clamp(16px, 1.8vw, 18px); color: var(--text-secondary); max-width: 460px; line-height: 1.6; letter-spacing: -0.01em; margin-bottom: 36px; animation: landingFadeUp 0.5s ease 0.35s both; }
 .landing .hero-ctas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: landingFadeUp 0.5s ease 0.45s both; }
-.landing .hero-scroll { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: landingFadeUp 0.5s ease 0.8s both; }
+.landing .hero-scroll { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: landingFadeUp 0.5s ease 0.8s both; will-change: transform, opacity; }
 .landing .hero-scroll-text { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
 .landing .hero-scroll-line { width: 1px; height: 32px; background: linear-gradient(to bottom, var(--text-muted), transparent); animation: landingScrollPulse 2s ease-in-out infinite; }
 @keyframes landingScrollPulse { 0%, 100% { opacity: 0.3; transform: scaleY(1); } 50% { opacity: 0.8; transform: scaleY(1.2); transform-origin: top; } }
@@ -683,18 +741,80 @@
   .landing .hero-inner { max-width: 100%; }
   .landing .hero-ctas { justify-content: center; }
   .landing .hero-sub { margin-left: auto; margin-right: auto; }
-  .landing .hero-bg { background-position: center center; opacity: 0.25; }
-  .landing .hero-bg::after { background: radial-gradient(ellipse at center, rgba(var(--bg-rgb), 0.65) 0%, rgba(var(--bg-rgb), 0.92) 70%), linear-gradient(to top, var(--bg) 0%, transparent 25%); }
+  .landing .hero-bg-base {
+    background-position: center center;
+    clip-path: inset(0);
+    opacity: 0.3;
+  }
+  .landing .hero-bg-base::after {
+    background:
+      radial-gradient(ellipse at center, rgba(var(--bg-rgb), 0.65) 0%, rgba(var(--bg-rgb), 0.92) 70%),
+      linear-gradient(to top, var(--bg) 0%, transparent 25%);
+  }
+  .landing .hero-presenter-layer {
+    background-size: cover;
+    background-position: center right;
+    opacity: 0.66;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 56%, rgba(0, 0, 0, 0.35) 70%, #000 84%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, transparent 56%, rgba(0, 0, 0, 0.35) 70%, #000 84%, #000 100%);
+  }
+  .landing .hero-spotlight {
+    width: clamp(260px, 65vw, 380px);
+    right: -8%;
+    top: 34%;
+    opacity: 0.22;
+  }
+  .landing .hero-mic-pulse {
+    right: 22%;
+    top: 45%;
+    width: 18px;
+    height: 18px;
+  }
   .landing .story-text { text-align: center; }
 }
 @media (max-width: 600px) {
   .landing .nav-link { display: none; }
   .landing .story-section { padding: 80px 0; }
   .landing .hero { padding: 100px 0 60px; }
+  .landing .hero-presenter-layer {
+    background-size: cover;
+    background-position: 88% 52%;
+    opacity: 0.58;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 58%, rgba(0, 0, 0, 0.35) 72%, #000 86%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, transparent 58%, rgba(0, 0, 0, 0.35) 72%, #000 86%, #000 100%);
+  }
+  .landing .hero-spotlight {
+    width: clamp(220px, 72vw, 300px);
+    right: -18%;
+    top: 42%;
+  }
+  .landing .hero-mic-pulse {
+    right: 16%;
+    top: 52%;
+    width: 16px;
+    height: 16px;
+  }
   .landing .hero-scroll { display: none; }
   .landing .radar-container { width: 240px; height: 240px; }
   .landing .live-transcript { font-size: 11px; padding: 12px 14px; }
   .landing .stats-inner { gap: 32px; flex-direction: column; }
   .landing .stat-value { font-size: 28px; }
   .landing .testimonial-card { padding: 32px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .hero-bg-base,
+  .landing .hero-presenter-layer,
+  .landing .hero-spotlight,
+  .landing .hero-mic-pulse,
+  .landing .hero-inner,
+  .landing .hero-scroll {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+
+  .landing .hero-mic-pulse {
+    opacity: 0 !important;
+  }
 }

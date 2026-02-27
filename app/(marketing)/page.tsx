@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import Link from 'next/link';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { LandingPricing } from '@/views/components/landing/LandingPricing';
 import './landing.css';
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function LandingPage() {
   const { isDark, setTheme } = useTheme();
@@ -12,6 +16,13 @@ export default function LandingPage() {
   const radarPathRef = useRef<SVGPathElement>(null);
   const ctaContainerRef = useRef<HTMLElement>(null);
   const ctaGlowRef = useRef<HTMLDivElement>(null);
+  const heroSectionRef = useRef<HTMLElement>(null);
+  const heroInnerRef = useRef<HTMLDivElement>(null);
+  const heroBgBaseRef = useRef<HTMLDivElement>(null);
+  const heroPresenterRef = useRef<HTMLDivElement>(null);
+  const heroSpotlightRef = useRef<HTMLDivElement>(null);
+  const heroMicPulseRef = useRef<HTMLDivElement>(null);
+  const heroScrollRef = useRef<HTMLDivElement>(null);
 
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -117,6 +128,183 @@ export default function LandingPage() {
     };
   }, [handleScroll]);
 
+  useEffect(() => {
+    const hero = heroSectionRef.current;
+    const heroBase = heroBgBaseRef.current;
+    const heroPresenter = heroPresenterRef.current;
+    const heroSpotlight = heroSpotlightRef.current;
+    const heroMicPulse = heroMicPulseRef.current;
+    const heroInner = heroInnerRef.current;
+    const heroScroll = heroScrollRef.current;
+
+    if (
+      !hero
+      || !heroBase
+      || !heroPresenter
+      || !heroSpotlight
+      || !heroMicPulse
+      || !heroInner
+      || !heroScroll
+    ) {
+      return;
+    }
+
+    type HeroMotionConfig = {
+      scrub: number;
+      baseDriftY: number;
+      baseScale: number;
+      presenterLeadX: number;
+      presenterLiftY: number;
+      presenterLeadScale: number;
+      presenterLeadRotate: number;
+      presenterExitX: number;
+      presenterExitY: number;
+      presenterExitScale: number;
+      presenterExitAlpha: number;
+      spotlightStart: number;
+      spotlightPeak: number;
+      spotlightScale: number;
+      spotlightExit: number;
+      textRiseY: number;
+      textFadeTo: number;
+    };
+
+    const setupTimeline = (config: HeroMotionConfig) => {
+      gsap.set(heroBase, {
+        transformOrigin: '50% 50%',
+        yPercent: 0,
+        scale: 1,
+      });
+      gsap.set(heroPresenter, {
+        transformOrigin: '72% 42%',
+        xPercent: 0,
+        yPercent: 0,
+        rotation: 0,
+        scale: 1,
+        autoAlpha: 1,
+      });
+      gsap.set(heroSpotlight, {
+        transformOrigin: '50% 50%',
+        autoAlpha: config.spotlightStart,
+        scale: 1,
+        xPercent: 0,
+        yPercent: 0,
+      });
+      gsap.set(heroMicPulse, {
+        autoAlpha: 0,
+        scale: 0.82,
+      });
+      gsap.set(heroInner, {
+        yPercent: 0,
+        autoAlpha: 1,
+      });
+      gsap.set(heroScroll, {
+        autoAlpha: 1,
+        y: 0,
+      });
+
+      const timeline = gsap.timeline({
+        defaults: { ease: 'none' },
+        scrollTrigger: {
+          trigger: hero,
+          start: 'top top',
+          end: 'bottom top',
+          scrub: config.scrub,
+        },
+      });
+
+      timeline
+        .to(heroScroll, { autoAlpha: 0, y: -16, duration: 0.16 }, 0)
+        .to(heroBase, { yPercent: config.baseDriftY, scale: config.baseScale, duration: 1 }, 0)
+        .to(heroSpotlight, { autoAlpha: config.spotlightPeak, scale: config.spotlightScale, duration: 0.34 }, 0.06)
+        .to(heroPresenter, {
+          xPercent: config.presenterLeadX,
+          yPercent: config.presenterLiftY,
+          scale: config.presenterLeadScale,
+          rotation: config.presenterLeadRotate,
+          duration: 0.42,
+        }, 0.18)
+        .to(heroMicPulse, { autoAlpha: 0.72, scale: 1.02, duration: 0.14 }, 0.24)
+        .to(heroMicPulse, { autoAlpha: 0.22, scale: 1.45, duration: 0.2 }, 0.37)
+        .to(heroMicPulse, { autoAlpha: 0.68, scale: 1.04, duration: 0.14 }, 0.56)
+        .to(heroMicPulse, { autoAlpha: 0.18, scale: 1.52, duration: 0.24 }, 0.66)
+        .to(heroInner, { yPercent: -config.textRiseY, autoAlpha: config.textFadeTo, duration: 0.26 }, 0.72)
+        .to(heroPresenter, {
+          xPercent: config.presenterExitX,
+          yPercent: config.presenterExitY,
+          scale: config.presenterExitScale,
+          autoAlpha: config.presenterExitAlpha,
+          duration: 0.2,
+        }, 0.82)
+        .to(heroSpotlight, { autoAlpha: config.spotlightExit, scale: 1.04, duration: 0.18 }, 0.84)
+        .to(heroMicPulse, { autoAlpha: 0, duration: 0.1 }, 0.9);
+
+      return () => {
+        timeline.scrollTrigger?.kill();
+        timeline.kill();
+      };
+    };
+
+    const mm = gsap.matchMedia();
+
+    mm.add('(min-width: 901px) and (prefers-reduced-motion: no-preference)', () =>
+      setupTimeline({
+        scrub: 0.95,
+        baseDriftY: -6,
+        baseScale: 1.03,
+        presenterLeadX: -8,
+        presenterLiftY: -3.5,
+        presenterLeadScale: 1.06,
+        presenterLeadRotate: -1.6,
+        presenterExitX: 5,
+        presenterExitY: 2.4,
+        presenterExitScale: 1.02,
+        presenterExitAlpha: 0.48,
+        spotlightStart: 0.18,
+        spotlightPeak: 0.36,
+        spotlightScale: 1.08,
+        spotlightExit: 0.1,
+        textRiseY: 8,
+        textFadeTo: 0.78,
+      })
+    );
+
+    mm.add('(max-width: 900px) and (prefers-reduced-motion: no-preference)', () =>
+      setupTimeline({
+        scrub: 0.85,
+        baseDriftY: -4,
+        baseScale: 1.02,
+        presenterLeadX: -5,
+        presenterLiftY: -2.4,
+        presenterLeadScale: 1.05,
+        presenterLeadRotate: -1.1,
+        presenterExitX: 4,
+        presenterExitY: 1.8,
+        presenterExitScale: 1.01,
+        presenterExitAlpha: 0.52,
+        spotlightStart: 0.2,
+        spotlightPeak: 0.34,
+        spotlightScale: 1.05,
+        spotlightExit: 0.12,
+        textRiseY: 5,
+        textFadeTo: 0.82,
+      })
+    );
+
+    mm.add('(prefers-reduced-motion: reduce)', () => {
+      gsap.set(heroBase, { clearProps: 'transform' });
+      gsap.set(heroPresenter, { clearProps: 'transform,opacity' });
+      gsap.set(heroSpotlight, { clearProps: 'transform,opacity' });
+      gsap.set(heroInner, { clearProps: 'transform,opacity' });
+      gsap.set(heroScroll, { clearProps: 'transform,opacity' });
+      gsap.set(heroMicPulse, { autoAlpha: 0, clearProps: 'transform' });
+    });
+
+    return () => {
+      mm.revert();
+    };
+  }, []);
+
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -182,9 +370,12 @@ export default function LandingPage() {
       </nav>
 
       {/* ═══ HERO ═══ */}
-      <section className="hero">
-        <div className="hero-bg" />
-        <div className="container hero-inner">
+      <section className="hero" ref={heroSectionRef}>
+        <div className="hero-bg hero-bg-base" ref={heroBgBaseRef} />
+        <div className="hero-bg hero-presenter-layer" ref={heroPresenterRef} />
+        <div className="hero-spotlight" ref={heroSpotlightRef} />
+        <div className="hero-mic-pulse" ref={heroMicPulseRef} />
+        <div className="container hero-inner" ref={heroInnerRef}>
           <div className="hero-badge">
             <div className="hero-badge-dot" />
             AI-Powered Pitch Coaching
@@ -220,7 +411,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="hero-scroll">
+        <div className="hero-scroll" ref={heroScrollRef}>
           <div className="hero-scroll-text">Scroll</div>
           <div className="hero-scroll-line" />
         </div>
