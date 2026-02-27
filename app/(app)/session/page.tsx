@@ -52,6 +52,7 @@ function SessionPageContent() {
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
   const hasStartedRef = useRef(false);
@@ -203,6 +204,7 @@ function SessionPageContent() {
     setAnalysisError(null);
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
+    setIsPaused(false);
 
     const isFirstStart = !hasStartedRef.current;
     if (isFirstStart) {
@@ -226,12 +228,14 @@ function SessionPageContent() {
     session.stopSession();
     stt.pause();
     setShowAnalyzing(false);
+    setIsPaused(true);
   }, [session, stt]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
     stt.stop();
     setShowAnalyzing(true);
+    setIsPaused(false);
     // Do NOT stop the recorder here — the auto-submit effect handles stopping
     // and capturing the blob for upload. Stopping here causes a race condition
     // where the blob is lost before the effect can retrieve it.
@@ -349,6 +353,7 @@ function SessionPageContent() {
         toggleCamera={media.toggleCamera}
         toggleMic={media.toggleMic}
         isSessionActive={session.isSessionActive}
+        canStopSession={hasStartedRef.current}
         onStartSession={handleStartSession}
         onPauseSession={handlePauseSession}
         onStopSession={handleStopSession}
@@ -373,6 +378,7 @@ function SessionPageContent() {
           targetDurationSeconds={modeConfig.targetDurationSeconds}
           checklist={session.checklist}
           isSessionActive={session.isSessionActive}
+          hasStarted={hasStartedRef.current}
           engagementBand={engagementBand}
           isCameraOn={media.isCameraOn}
           checklistSource={stt.checklistSource}

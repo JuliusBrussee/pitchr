@@ -11,6 +11,7 @@ interface SessionCanvasProps {
   toggleCamera: () => void;
   toggleMic: () => void;
   isSessionActive: boolean;
+  canStopSession: boolean;
   onStartSession: () => void;
   onPauseSession: () => void;
   onStopSession: () => void;
@@ -37,6 +38,7 @@ export function SessionCanvas({
   toggleCamera,
   toggleMic,
   isSessionActive,
+  canStopSession,
   onStartSession,
   onPauseSession,
   onStopSession,
@@ -153,7 +155,7 @@ export function SessionCanvas({
           ) : (
             <ControlButton icon={Play} onClick={onStartSession} label="Start session" primary />
           )}
-          {isSessionActive && (
+          {canStopSession && (
             <ControlButton icon={Square} onClick={onStopSession} label="Stop session" danger />
           )}
           <ControlButton icon={SkipForward} onClick={() => onNextSlide?.()} label="Next slide" size={16} />

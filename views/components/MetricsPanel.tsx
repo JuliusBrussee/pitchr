@@ -11,6 +11,7 @@ interface MetricsPanelProps {
   targetDurationSeconds?: number;
   checklist: RealtimeChecklistItemState[];
   isSessionActive: boolean;
+  hasStarted?: boolean;
   engagementBand?: HeadTrackingEngagementBand;
   isCameraOn?: boolean;
   checklistSource?: 'llm' | 'heuristic' | null;
@@ -178,6 +179,7 @@ export function MetricsPanel({
   targetDurationSeconds,
   checklist,
   isSessionActive,
+  hasStarted = false,
   engagementBand = 'no_face',
   isCameraOn = false,
   checklistSource,
@@ -248,26 +250,26 @@ export function MetricsPanel({
         <div className="grid grid-cols-2 gap-3">
           <MetricCard
             label="WPM"
-            value={isSessionActive ? metrics.wpm : '-'}
+            value={hasStarted ? metrics.wpm : '-'}
             accent={metrics.wpm > 160 ? '#f59e0b' : metrics.wpm > 0 && metrics.wpm < 100 ? '#f59e0b' : undefined}
           />
           <MetricCard
             label="Words"
-            value={isSessionActive ? metrics.wordCount : '-'}
+            value={hasStarted ? metrics.wordCount : '-'}
           />
           <MetricCard
             label="Filler Words"
-            value={isSessionActive ? metrics.fillerWords : '-'}
+            value={hasStarted ? metrics.fillerWords : '-'}
             accent={metrics.fillerWords > 5 ? '#ef4444' : undefined}
           />
           <MetricCard
             label="Filler Rate"
-            value={isSessionActive && metrics.wordCount > 0 ? `${metrics.fillerRate}%` : '-'}
+            value={hasStarted && metrics.wordCount > 0 ? `${metrics.fillerRate}%` : '-'}
             accent={metrics.fillerRate > 5 ? '#ef4444' : metrics.fillerRate > 3 ? '#f59e0b' : undefined}
           />
           <MetricCard
             label="Duration"
-            value={isSessionActive ? timerLabel : '-'}
+            value={hasStarted ? timerLabel : '-'}
             accent={isOverrun ? '#ef4444' : undefined}
           />
           <EngagementCard
