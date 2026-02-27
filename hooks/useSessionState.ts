@@ -122,6 +122,8 @@ export function useSessionState(): SessionState {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const sessionStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pausedAtRef = useRef<number>(0);
+  const totalPausedMsRef = useRef<number>(0);
   const lastTranscriptRef = useRef<string>('');
   const lastCommittedTranscriptRef = useRef<string>('');
   const wordCountRef = useRef(0);
@@ -163,7 +165,7 @@ export function useSessionState(): SessionState {
     (nextWordCount: number, nextFillerWords: number) => {
       const nowMs = Date.now();
       const elapsed = sessionStartRef.current
-        ? Math.floor((nowMs - sessionStartRef.current) / 1000)
+        ? Math.floor((nowMs - sessionStartRef.current - totalPausedMsRef.current) / 1000)
         : 0;
 
       setMetrics((prev) => {
@@ -212,7 +214,7 @@ export function useSessionState(): SessionState {
 
     durationIntervalRef.current = setInterval(() => {
       const elapsed = sessionStartRef.current
-        ? Math.floor((Date.now() - sessionStartRef.current) / 1000)
+        ? Math.floor((Date.now() - sessionStartRef.current - totalPausedMsRef.current) / 1000)
         : 0;
       setMetrics((prev) => ({ ...prev, durationSecs: elapsed }));
     }, 1000);
@@ -274,6 +276,8 @@ export function useSessionState(): SessionState {
     setIsSessionActive(true);
     setOrbState('active');
     sessionStartRef.current = Date.now();
+    pausedAtRef.current = 0;
+    totalPausedMsRef.current = 0;
     lastTranscriptRef.current = '';
     lastCommittedTranscriptRef.current = '';
     wordCountRef.current = 0;
@@ -286,6 +290,7 @@ export function useSessionState(): SessionState {
   }, []);
 
   const stopSession = useCallback(() => {
+    pausedAtRef.current = Date.now();
     setIsSessionActive(false);
     setOrbState('idle');
   }, []);
@@ -293,6 +298,10 @@ export function useSessionState(): SessionState {
   const resumeSession = useCallback(() => {
     if (!sessionStartRef.current) {
       sessionStartRef.current = Date.now();
+    }
+    if (pausedAtRef.current > 0) {
+      totalPausedMsRef.current += Date.now() - pausedAtRef.current;
+      pausedAtRef.current = 0;
     }
     setIsSessionActive(true);
     setOrbState('active');
