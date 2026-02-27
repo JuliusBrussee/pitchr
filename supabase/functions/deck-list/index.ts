@@ -6,6 +6,11 @@ import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { listDecks } from '../_shared/deck-service.ts';
+import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+}
 
 Deno.serve(async (req: Request) => {
   const corsResponse = handleCors(req);
@@ -16,12 +21,26 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { supabase } = await getAuthenticatedUser(req);
-    const decks = await listDecks(supabase);
+    const { supabase, user } = await getAuthenticatedUser(req);
+    const url = new URL(req.url);
+    const projectId = url.searchParams.get('projectId');
+    const allProjects = url.searchParams.get('allProjects') === 'true';
+    if (projectId && !isUuid(projectId)) {
+      return errorResponse('projectId query parameter must be a valid UUID.', 400);
+    }
+    const project = allProjects
+      ? null
+      : await resolveProjectForRequest(supabase, user.id, {
+        projectId: projectId ?? undefined,
+      });
+    const decks = await listDecks(supabase, { projectId: project?.id });
     return jsonResponse(decks);
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof ProjectNotFoundError) {
+      return errorResponse(error.message, 404);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to list decks',

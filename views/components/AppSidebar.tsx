@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useAuth } from '@/views/components/AuthProvider';
+import { useProject } from '@/views/components/ProjectProvider';
+import { ProjectSelect } from '@/views/components/ProjectSelect';
 import { StartSessionButton } from '@/views/components/StartSessionButton';
 import { useSidebar } from '@/views/components/SidebarContext';
 
@@ -27,13 +29,14 @@ interface AppSidebarProps {
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { id: 'session', label: 'Live Session', icon: Radio, href: '/session' },
+  { id: 'session', label: 'Live Session', icon: Radio, href: '/session/select-project' },
   { id: 'history', label: 'History', icon: Clock, href: '/history' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, href: '/progress' },
 ];
 
 const TOOL_ITEMS = [
+  { id: 'projects', label: 'Projects', icon: FolderOpen, href: '/projects' },
   { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck' },
   { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
@@ -41,6 +44,7 @@ const TOOL_ITEMS = [
 export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
   const { isDark, setTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
   const pathname = usePathname();
   const { closeSidebar } = useSidebar();
 
@@ -70,10 +74,38 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
       </div>
 
       {/* Navigation */}
+      <div className="px-2 mb-3">
+        <label
+          htmlFor="project-switcher"
+          className="text-[11px] font-medium block mb-1"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Active project
+        </label>
+        <ProjectSelect
+          id="project-switcher"
+          compact
+          ariaLabel="Active project"
+          disabled={isProjectLoading || projects.length === 0}
+          value={activeProjectId ?? projects[0]?.id ?? ''}
+          placeholder={isProjectLoading ? 'Loading projects...' : 'No projects'}
+          options={projects.map((project) => ({
+            value: project.id,
+            label: project.name,
+          }))}
+          onChange={(nextProjectId) => {
+            if (!nextProjectId || nextProjectId === activeProjectId) return;
+            void setActiveProject(nextProjectId).catch(() => {});
+          }}
+        />
+      </div>
+
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const isActive = item.id === 'session'
+            ? pathname.startsWith('/session')
+            : pathname === item.href;
           return (
             <Link
               key={item.id}
@@ -166,7 +198,7 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
       ) : (
         <div className="session-start-wrap">
           <div className="session-start-glow" />
-          <Link href="/session" className="session-start-btn no-underline">
+          <Link href="/session/select-project" className="session-start-btn no-underline">
             <span className="session-start-btn__icon">
               <Play size={15} fill="currentColor" />
             </span>

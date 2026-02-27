@@ -90,7 +90,7 @@ describe('AnalyticsPage', () => {
       expect(screen.queryByText('No sessions to show rubric trends')).toBeNull();
     });
 
-    expect(mockFetchEdge).toHaveBeenCalledWith('pitch-run');
+    expect(mockFetchEdge).toHaveBeenCalledWith('pitch-run', { params: undefined });
     expect(screen.getByText('Score Trend')).toBeTruthy();
     expect(screen.getByText('Rubric Category Trend')).toBeTruthy();
     expect(screen.queryByText('Sessions This Period')).toBeTruthy();

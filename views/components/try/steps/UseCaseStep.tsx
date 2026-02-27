@@ -11,9 +11,9 @@ const MODES = [
   {
     mode: 'elevator' as PitchMode,
     label: 'Elevator Pitch',
-    description: '60-second intro to an investor',
+    description: '30-second intro to an investor',
     icon: Zap,
-    timer: '1 min',
+    timer: '30 sec',
   },
   {
     mode: 'vc_pitch' as PitchMode,

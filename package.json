@@ -18,6 +18,7 @@
     "knowledge:snapshot": "tsx scripts/snapshot-curated-sources.ts",
     "knowledge:build": "tsx scripts/build-knowledge-pack.ts",
     "knowledge:refresh": "yarn knowledge:snapshot && yarn knowledge:build",
+    "batch:elevator": "tsx scripts/run-elevator-batch.ts",
     "calibrate:weights": "tsx scripts/calibrate-weights.ts",
     "build": "yarn prepare:next-cache && cross-env NODE_PATH=./node_modules next build",
     "start": "cross-env NODE_PATH=./node_modules next start",

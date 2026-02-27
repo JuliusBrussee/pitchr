@@ -15,11 +15,11 @@ export const PITCH_MODE_CONFIG: Record<PitchMode, PitchModeConfig> = {
   elevator: {
     id: 'elevator',
     label: 'Elevator Pitch',
-    minDurationSeconds: 30,
-    maxDurationSeconds: 45,
-    targetDurationSeconds: 38,
-    targetWpm: 150,
-    structureBeats: ['Problem', 'Solution', 'Why Us'],
+    minDurationSeconds: 25,
+    maxDurationSeconds: 35,
+    targetDurationSeconds: 30,
+    targetWpm: 165,
+    structureBeats: ['One-liner', 'Problem', 'Solution', 'Proof', 'Ask'],
   },
   vc_pitch: {
     id: 'vc_pitch',

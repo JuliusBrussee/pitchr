@@ -15,8 +15,13 @@ import {
   insertDeck,
   insertSlides,
 } from '../_shared/deck-service.ts';
+import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+}
 
 /* ─── Lightweight PDF text extraction ─── */
 
@@ -265,6 +270,15 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const rawProjectId = formData.get('projectId');
+    const projectId = typeof rawProjectId === 'string' && rawProjectId.trim().length > 0
+      ? rawProjectId.trim()
+      : undefined;
+
+    if (projectId && !isUuid(projectId)) {
+      return errorResponse('projectId must be a valid UUID when provided.', 400);
+    }
+    const project = await resolveProjectForRequest(supabase, user.id, { projectId });
 
     if (!file) {
       return errorResponse('No file provided', 400);
@@ -354,6 +368,7 @@ Deno.serve(async (req: Request) => {
       pdf_url: originalUrl,
       slide_count: slideCount,
       thumbnail_url: null,
+      project_id: project.id,
       user_id: user.id,
     });
 
@@ -364,6 +379,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof ProjectNotFoundError) {
+      return errorResponse(error.message, 404);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Upload failed',

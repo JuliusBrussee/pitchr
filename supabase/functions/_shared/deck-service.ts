@@ -54,11 +54,18 @@ export async function insertSlides(
   if (error) throw new Error(`Failed to insert slides: ${error.message}`);
 }
 
-export async function listDecks(supabase: SupabaseClient): Promise<DeckRecord[]> {
-  const { data, error } = await supabase
+export async function listDecks(
+  supabase: SupabaseClient,
+  opts?: { projectId?: string },
+): Promise<DeckRecord[]> {
+  let query = supabase
     .from('decks')
     .select('*')
     .order('created_at', { ascending: false });
+  if (opts?.projectId) {
+    query = query.eq('project_id', opts.projectId);
+  }
+  const { data, error } = await query;
 
   if (error) throw new Error(`Failed to list decks: ${error.message}`);
   return data;

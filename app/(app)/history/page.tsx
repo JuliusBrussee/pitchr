@@ -44,6 +44,7 @@ interface HistoryRun {
   createdAt: string;
   duration_seconds: number;
   audioUrl?: string;
+  projectName?: string;
   deck?: string;
   dateGroup: 'today' | 'yesterday' | 'thisWeek' | 'earlier';
 }
@@ -55,6 +56,7 @@ interface RunRecord {
   overallScore: number;
   createdAt: string;
   audioUrl?: string;
+  projectName?: string;
   analysis: {
     one_line_verdict: string;
     delivery_metrics: { duration_seconds: number };
@@ -91,6 +93,7 @@ const DATE_GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'earlier'];
 
 type ViewMode = 'list' | 'grid';
 type ModeFilter = 'all' | 'elevator' | 'vc_pitch';
+type ProjectScope = 'active' | 'all';
 
 /* ——— Helpers ——— */
 
@@ -112,6 +115,7 @@ export default function HistoryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
+  const [projectScope, setProjectScope] = useState<ProjectScope>('active');
   const [visibleCount, setVisibleCount] = useState(8);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
@@ -124,7 +128,9 @@ export default function HistoryPage() {
   const loadRuns = useCallback(() => {
     setFetchError(false);
     setLoading(true);
-    fetchEdge('pitch-run')
+    fetchEdge('pitch-run', {
+      params: projectScope === 'all' ? { allProjects: 'true' } : undefined,
+    })
       .then((res) => res.json())
       .then((payload: { runs?: RunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
@@ -138,6 +144,7 @@ export default function HistoryPage() {
           createdAt: r.createdAt,
           duration_seconds: r.analysis.delivery_metrics.duration_seconds,
           audioUrl: r.audioUrl,
+          projectName: r.projectName,
           deck: undefined,
           dateGroup: getDateGroup(r.createdAt),
         }));
@@ -151,7 +158,7 @@ export default function HistoryPage() {
         }
       })
       .finally(() => setLoading(false));
-  }, [showTooltip]);
+  }, [projectScope, showTooltip]);
 
   useEffect(() => {
     loadRuns();
@@ -274,6 +281,19 @@ export default function HistoryPage() {
             className="flex rounded-lg border overflow-hidden flex-shrink-0"
             style={{ borderColor: 'var(--border-color)' }}
           >
+            {(['active', 'all'] as ProjectScope[]).map((scope) => (
+              <button
+                key={scope}
+                onClick={() => setProjectScope(scope)}
+                className="px-3 py-1.5 text-xs font-medium transition-colors duration-150"
+                style={{
+                  backgroundColor: projectScope === scope ? 'var(--bg-surface-hover)' : 'transparent',
+                  color: projectScope === scope ? 'var(--text-primary)' : 'var(--text-muted)',
+                }}
+              >
+                {scope === 'active' ? 'Active Project' : 'All Projects'}
+              </button>
+            ))}
             {modeFilters.map((filter) => {
               const active = modeFilter === filter.value;
               let pillColor = 'var(--text-muted)';
@@ -400,6 +420,11 @@ export default function HistoryPage() {
                             <span className="text-sm font-semibold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
                               Pitch #{run.number}
                             </span>
+                            {projectScope === 'all' && run.projectName ? (
+                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                                {run.projectName}
+                              </span>
+                            ) : null}
                             <TagPill
                               label={getModeLabel(run.mode)}
                               color={getModeColor(run.mode)}
@@ -559,6 +584,11 @@ export default function HistoryPage() {
                               <p className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                                 Pitch #{run.number}
                               </p>
+                              {projectScope === 'all' && run.projectName ? (
+                                <span className="text-[11px] truncate" style={{ color: 'var(--text-muted)' }}>
+                                  {run.projectName}
+                                </span>
+                              ) : null}
                               {run.inputType === 'audio' ? (
                                 <Mic size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                               ) : (

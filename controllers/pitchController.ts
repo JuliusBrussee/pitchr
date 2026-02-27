@@ -100,7 +100,7 @@ function normalizeTranscriptSegments(value: unknown): TranscriptSegment[] | unde
   return segments;
 }
 
-function validateRequest(body: unknown): CreatePitchRunRequest {
+function validateRequest(body: unknown): CreatePitchRunRequest & { mode: PitchMode } {
   if (!body || typeof body !== 'object') {
     throw new PitchValidationError('Request body must be an object.');
   }

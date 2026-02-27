@@ -6,6 +6,24 @@ export type InputType = 'audio' | 'text';
 export type RunStatus = 'queued' | 'running' | 'complete' | 'failed';
 export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b';
 export type Coverage = 'spoken_only' | 'spoken+deck';
+export type ProjectTypeId = 'two_min_pitch' | 'elevator_pitch';
+
+export interface ProjectPromptOverrides {
+  analysis_system_prompt?: string;
+  [key: string]: unknown;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  type: ProjectTypeId;
+  workflowMode: PitchMode;
+  isArchived: boolean;
+  isSeeded: boolean;
+  promptOverrides: ProjectPromptOverrides;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface RunStats {
   totalRuns: number;
@@ -19,6 +37,9 @@ export interface Run {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+  projectId: string;
+  projectType?: ProjectTypeId;
+  projectName?: string;
   mode: PitchMode;
   status: RunStatus;
   error?: string;
@@ -47,6 +68,9 @@ export interface ListPitchRunsResponse {
 export interface CreatePitchRunResponse {
   runId: string;
   status: RunStatus;
+  projectId?: string;
+  projectType?: ProjectTypeId;
+  workflowMode?: PitchMode;
   overallScore?: number;
   fallback?: boolean;
   provider_used?: 'openrouter' | 'anthropic' | 'gemini' | 'none';
@@ -140,6 +164,7 @@ export interface DeckRecord {
   pdf_url: string;
   slide_count: number;
   thumbnail_url: string | null;
+  project_id: string;
   created_at: string;
   user_id?: string;
 }
@@ -195,4 +220,5 @@ export interface GenerateDeckRequest {
   companyName: string;
   description: string;
   templateId: TemplateId;
+  projectId?: string;
 }

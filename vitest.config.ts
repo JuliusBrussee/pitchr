@@ -9,6 +9,8 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
     include: [
+      'lib/**/*.test.ts',
+      'lib/**/*.test.tsx',
       'services/**/*.test.ts',
       'services/**/*.test.tsx',
       'views/**/*.test.ts',

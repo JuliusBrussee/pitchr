@@ -17,6 +17,9 @@ export interface Run {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+  projectId: string;
+  projectType?: 'two_min_pitch' | 'elevator_pitch';
+  projectName?: string;
   mode: PitchMode;
   status: RunStatus;
   error?: string;
@@ -37,7 +40,8 @@ export interface Run {
 }
 
 export interface CreatePitchRunRequest {
-  mode: PitchMode;
+  mode?: PitchMode;
+  projectId?: string;
   transcript: string;
   inputType: InputType;
   audioUrl?: string;
@@ -51,6 +55,9 @@ export interface CreatePitchRunRequest {
 export interface CreatePitchRunResponse {
   runId: string;
   status: RunStatus;
+  projectId?: string;
+  projectType?: 'two_min_pitch' | 'elevator_pitch';
+  workflowMode?: PitchMode;
   analysisVersion?: 'v2';
   coverage?: Coverage;
   outputs?: AnalysisOutputs;
