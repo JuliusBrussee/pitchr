@@ -1,8 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
-let adminClient: ReturnType<typeof createClient> | null = null;
+type AdminSupabaseClient = ReturnType<
+  typeof createClient<any, "public", "public">
+>;
 
-export function createAdminClient() {
+let adminClient: AdminSupabaseClient | null = null;
+
+export function createAdminClient(): AdminSupabaseClient {
   if (adminClient) return adminClient;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,7 +14,7 @@ export function createAdminClient() {
 
   if (!url || !serviceRoleKey) {
     throw new Error(
-      'Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for admin client.',
+      "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for admin client.",
     );
   }
 
@@ -19,7 +23,7 @@ export function createAdminClient() {
       autoRefreshToken: false,
       persistSession: false,
     },
-  });
+  }) as AdminSupabaseClient;
 
   return adminClient;
 }
