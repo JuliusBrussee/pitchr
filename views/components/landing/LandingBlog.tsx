@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
@@ -8,6 +8,7 @@ import type { BlogPostMeta } from '@/types/blog';
 
 export function LandingBlog() {
   const [posts, setPosts] = useState<BlogPostMeta[]>([]);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     fetch('/api/blog/posts')
@@ -16,13 +17,34 @@ export function LandingBlog() {
       .catch(() => {});
   }, []);
 
+  // Self-contained reveal observer since the parent observer runs before this component mounts
+  useEffect(() => {
+    if (posts.length === 0 || !sectionRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.3, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    sectionRef.current.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    return () => observer.disconnect();
+  }, [posts]);
+
   if (posts.length === 0) return null;
 
   const featured = posts[0];
   const secondary = posts.slice(1, 3);
 
   return (
-    <section className="journal-section" id="blog" aria-label="From the Journal">
+    <section className="journal-section" id="blog" aria-label="From the Journal" ref={sectionRef}>
       <div className="container">
         {/* Editorial header */}
         <div className="journal-header reveal">
