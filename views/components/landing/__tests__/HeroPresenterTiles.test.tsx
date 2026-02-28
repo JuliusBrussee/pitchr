@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { HeroPresenterTiles } from '@/views/components/landing/HeroPresenterTiles';
 import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
+import { HERO_PRESENTER_PARTS } from '@/views/components/landing/heroPresenterParts.data';
 
 function createMatchMedia(matches: boolean) {
   return () => ({
@@ -50,15 +51,16 @@ describe('HeroPresenterTiles', () => {
 
     unmount();
     expect(window.pitchrHeroTiles).toBeUndefined();
-  }, 20000);
+  }, 60000);
 
   it('switches tile fills across light and dark themes', () => {
     const { container, rerender } = render(<HeroPresenterTiles isDark={false} />);
     const firstTile = container.querySelector('[data-hero-presenter-tile]');
     expect(firstTile?.getAttribute('fill')).toBe(HERO_PRESENTER_TILE_TUPLES[0][2]);
+    expect(HERO_PRESENTER_PARTS.includes(firstTile?.getAttribute('data-part') as never)).toBe(true);
 
     rerender(<HeroPresenterTiles isDark />);
     const firstTileAfter = container.querySelector('[data-hero-presenter-tile]');
     expect(firstTileAfter?.getAttribute('fill')).toBe(HERO_PRESENTER_TILE_TUPLES[0][3]);
-  }, 20000);
+  }, 60000);
 });

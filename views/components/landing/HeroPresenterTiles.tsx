@@ -7,8 +7,13 @@ import {
   HERO_PRESENTER_TILE_SIZE,
   HERO_PRESENTER_TILE_TUPLES,
 } from '@/views/components/landing/heroPresenterTiles.data';
+import {
+  getHeroPresenterPartByTileIndex,
+  getHeroPresenterTileSeed,
+} from '@/views/components/landing/heroPresenterParts.data';
 import type {
   HeroPresenterTilesController,
+  HeroPresenterPartName,
   HeroPresenterTilesState,
   HeroTileCommandName,
   HeroTileCommandOptions,
@@ -16,6 +21,7 @@ import type {
 
 type HeroPresenterTilesProps = {
   isDark: boolean;
+  maxRenderTiles?: number;
 };
 
 type GsapInstance = (typeof import('gsap'))['default'];
@@ -29,6 +35,8 @@ type ComputedTile = {
   lightFill: string;
   darkFill: string;
   weight: number;
+  part: HeroPresenterPartName;
+  seed: number;
   distance: number;
   angle: number;
 };
@@ -49,7 +57,26 @@ const DEFAULT_EASE = {
 
 const DEFAULT_STAGGER = 0.0012;
 
-function toComputedTiles() {
+function sampleTiles<T>(items: T[], count: number) {
+  if (count <= 0 || items.length === 0) {
+    return [] as T[];
+  }
+
+  if (count >= items.length) {
+    return [...items];
+  }
+
+  const sampled: T[] = [];
+  const stride = items.length / count;
+  for (let index = 0; index < count; index += 1) {
+    const pointer = Math.min(items.length - 1, Math.floor(index * stride));
+    sampled.push(items[pointer]);
+  }
+
+  return sampled;
+}
+
+function toComputedTiles(maxRenderTiles?: number) {
   const base: ComputedTile[] = HERO_PRESENTER_TILE_TUPLES.map((tile, index) => {
     const [x, y, lightFill, darkFill, weight] = tile;
     return {
@@ -61,16 +88,23 @@ function toComputedTiles() {
       lightFill,
       darkFill,
       weight,
+      part: getHeroPresenterPartByTileIndex(index),
+      seed: getHeroPresenterTileSeed(index, x, y),
       distance: 0,
       angle: 0,
     };
   });
 
-  const centroidX = base.reduce((sum, tile) => sum + tile.cx, 0) / base.length;
-  const centroidY = base.reduce((sum, tile) => sum + tile.cy, 0) / base.length;
+  const renderCount = typeof maxRenderTiles === 'number'
+    ? Math.max(1, Math.floor(maxRenderTiles))
+    : base.length;
+  const selected = sampleTiles(base, renderCount);
+
+  const centroidX = selected.reduce((sum, tile) => sum + tile.cx, 0) / selected.length;
+  const centroidY = selected.reduce((sum, tile) => sum + tile.cy, 0) / selected.length;
 
   let maxDistance = 1;
-  for (const tile of base) {
+  for (const tile of selected) {
     const dx = tile.cx - centroidX;
     const dy = tile.cy - centroidY;
     const distance = Math.hypot(dx, dy);
@@ -81,19 +115,22 @@ function toComputedTiles() {
     }
   }
 
-  return { tiles: base, centroidX, centroidY, maxDistance };
+  return { tiles: selected, centroidX, centroidY, maxDistance };
 }
 
 export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesProps>(
-  function HeroPresenterTiles({ isDark }, forwardedRef) {
+  function HeroPresenterTiles({ isDark, maxRenderTiles }, forwardedRef) {
     const rootRef = useRef<HTMLDivElement | null>(null);
-    const tileRefs = useRef<SVGRectElement[]>([]);
+    const tileRefs = useRef<Array<SVGRectElement | null>>([]);
     const gsapRef = useRef<GsapInstance | null>(null);
     const timelineRef = useRef<ReturnType<GsapInstance['timeline']> | null>(null);
     const activeCommandRef = useRef<HeroTileCommandName>('assemble');
     const reducedMotionRef = useRef(false);
 
-    const { tiles, centroidX, centroidY, maxDistance } = useMemo(toComputedTiles, []);
+    const { tiles, centroidX, centroidY, maxDistance } = useMemo(
+      () => toComputedTiles(maxRenderTiles),
+      [maxRenderTiles]
+    );
 
     const setRootRef = useCallback((node: HTMLDivElement | null) => {
       rootRef.current = node;
@@ -121,7 +158,7 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
     }, []);
 
     const runCommand = useCallback((name: HeroTileCommandName, options: HeroTileCommandOptions = {}) => {
-      const nodes = tileRefs.current;
+      const nodes = tileRefs.current.filter((node): node is SVGRectElement => Boolean(node));
       if (nodes.length === 0) {
         return;
       }
@@ -157,17 +194,18 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
               const tile = tiles[index];
               const distanceRatio = tile.distance / maxDistance;
               const drift = radius * (0.35 + (distanceRatio * 0.65));
-              const jitter = (Math.random() - 0.5) * randomness;
+              const jitter = (((tile.seed * 2) - 1) * randomness);
               return (Math.cos(tile.angle) * drift) + jitter;
             },
             y: (index: number) => {
               const tile = tiles[index];
               const distanceRatio = tile.distance / maxDistance;
               const drift = radius * (0.35 + (distanceRatio * 0.65));
-              const jitter = (Math.random() - 0.5) * randomness;
+              const secondarySeed = ((tile.seed * 1.6180339887) % 1);
+              const jitter = (((secondarySeed * 2) - 1) * randomness);
               return (Math.sin(tile.angle) * drift) + jitter;
             },
-            rotation: () => gsap.utils.random(-28, 28),
+            rotation: (index: number) => ((tiles[index].seed - 0.5) * 56),
             scale: (index: number) => 0.88 + (tiles[index].weight * 0.35),
             opacity: (index: number) => 0.55 + (tiles[index].weight * 0.45),
             duration,
@@ -262,7 +300,7 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
     }, []);
 
     useEffect(() => {
-      const nodes = tileRefs.current;
+      const nodes = tileRefs.current.filter((node): node is SVGRectElement => Boolean(node));
       if (nodes.length === 0) {
         return;
       }
@@ -314,13 +352,17 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
               ref={(node) => {
                 if (node) {
                   tileRefs.current[index] = node;
+                } else {
+                  tileRefs.current[index] = null;
                 }
               }}
               className="hero-presenter-tile"
               data-hero-presenter-tile=""
               data-tile-id={tile.id}
+              data-part={tile.part}
               data-base-x={tile.x}
               data-base-y={tile.y}
+              data-weight={tile.weight}
               x={tile.x}
               y={tile.y}
               width={HERO_PRESENTER_TILE_SIZE}

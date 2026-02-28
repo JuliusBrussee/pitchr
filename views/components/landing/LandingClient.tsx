@@ -1,11 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { HeroPresenterTiles } from '@/views/components/landing/HeroPresenterTiles';
 import type { BlogPostMeta } from '@/types/blog';
+import {
+  DELIVERY_WAVE_BARS,
+  resolveTileDensityTier,
+} from '@/views/components/landing/heroDeliveryFunnel.config';
+import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
+import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliveryFunnel';
 import '@/app/(marketing)/landing.css';
 
 const LandingBlog = dynamic(
@@ -20,6 +26,7 @@ const LandingPricing = dynamic(
 
 export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const { isDark, setTheme } = useTheme();
+  const landingRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const radarPathRef = useRef<SVGPathElement>(null);
   const ctaContainerRef = useRef<HTMLElement>(null);
@@ -31,10 +38,73 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const heroSpotlightRef = useRef<HTMLDivElement>(null);
   const heroMicPulseRef = useRef<HTMLDivElement>(null);
   const heroScrollRef = useRef<HTMLDivElement>(null);
+  const deliverySectionRef = useRef<HTMLElement>(null);
+  const deliveryVisualRef = useRef<HTMLDivElement>(null);
+  const deliveryWaveRef = useRef<SVGSVGElement>(null);
+  const deliveryTranscriptRef = useRef<HTMLDivElement>(null);
 
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [waitlistMessage, setWaitlistMessage] = useState('');
+  const [heroTileRenderCap, setHeroTileRenderCap] = useState(420);
+
+  useHeroDeliveryFunnel({
+    landingRef,
+    heroSectionRef,
+    heroInnerRef,
+    heroBgBaseRef,
+    heroPresenterRef,
+    heroSpotlightRef,
+    heroMicPulseRef,
+    heroScrollRef,
+    deliverySectionRef,
+    deliveryVisualRef,
+    deliveryWaveRef,
+    deliveryTranscriptRef,
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    let frame = 0;
+
+    const applyTileCap = () => {
+      const memory = Number((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4);
+      const cores = Number(navigator.hardwareConcurrency ?? 4);
+      const density = resolveTileDensityTier({
+        tileCount: HERO_PRESENTER_TILE_TUPLES.length,
+        viewportWidth: window.innerWidth,
+        deviceMemory: memory,
+        hardwareConcurrency: cores,
+      });
+      setHeroTileRenderCap(density.targetCount);
+    };
+
+    const onResize = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(applyTileCap);
+    };
+
+    applyTileCap();
+    window.addEventListener('resize', onResize, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const getScrollBehavior = () => {
+    if (typeof window === 'undefined') {
+      return 'auto' as const;
+    }
+
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth';
+  };
 
   async function handleWaitlistSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +145,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
 
   function scrollToWaitlist(e: React.MouseEvent) {
     e.preventDefault();
-    document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('waitlist')?.scrollIntoView({ behavior: getScrollBehavior(), block: 'center' });
   }
 
   const handleScroll = useCallback(() => {
@@ -168,202 +238,13 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
     };
   }, [handleScroll]);
 
-  // Dynamically import GSAP only when hero elements are mounted
-  useEffect(() => {
-    const hero = heroSectionRef.current;
-    const heroBase = heroBgBaseRef.current;
-    const heroPresenter = heroPresenterRef.current;
-    const heroSpotlight = heroSpotlightRef.current;
-    const heroMicPulse = heroMicPulseRef.current;
-    const heroInner = heroInnerRef.current;
-    const heroScroll = heroScrollRef.current;
-
-    if (
-      !hero
-      || !heroBase
-      || !heroPresenter
-      || !heroSpotlight
-      || !heroMicPulse
-      || !heroInner
-      || !heroScroll
-    ) {
-      return;
-    }
-
-    let cleanup: (() => void) | undefined;
-
-    Promise.all([
-      import('gsap'),
-      import('gsap/ScrollTrigger'),
-    ]).then(([gsapModule, scrollTriggerModule]) => {
-      const gsap = gsapModule.default;
-      const { ScrollTrigger } = scrollTriggerModule;
-      gsap.registerPlugin(ScrollTrigger);
-
-      type HeroMotionConfig = {
-        scrub: number;
-        baseDriftY: number;
-        baseScale: number;
-        presenterLeadX: number;
-        presenterLiftY: number;
-        presenterLeadScale: number;
-        presenterLeadRotate: number;
-        presenterExitX: number;
-        presenterExitY: number;
-        presenterExitScale: number;
-        presenterExitAlpha: number;
-        spotlightStart: number;
-        spotlightPeak: number;
-        spotlightScale: number;
-        spotlightExit: number;
-        textRiseY: number;
-        textFadeTo: number;
-      };
-
-      const setupTimeline = (config: HeroMotionConfig) => {
-        gsap.set(heroBase, {
-          transformOrigin: '50% 50%',
-          yPercent: 0,
-          scale: 1,
-        });
-        gsap.set(heroPresenter, {
-          transformOrigin: '72% 42%',
-          xPercent: 0,
-          yPercent: 0,
-          rotation: 0,
-          scale: 1,
-          autoAlpha: 1,
-        });
-        gsap.set(heroSpotlight, {
-          transformOrigin: '50% 50%',
-          autoAlpha: config.spotlightStart,
-          scale: 1,
-          xPercent: 0,
-          yPercent: 0,
-        });
-        gsap.set(heroMicPulse, {
-          autoAlpha: 0,
-          scale: 0.82,
-        });
-        gsap.set(heroInner, {
-          yPercent: 0,
-          autoAlpha: 1,
-        });
-        gsap.set(heroScroll, {
-          autoAlpha: 1,
-          y: 0,
-        });
-
-        const timeline = gsap.timeline({
-          defaults: { ease: 'none' },
-          scrollTrigger: {
-            trigger: hero,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: config.scrub,
-          },
-        });
-
-        timeline
-          .to(heroScroll, { autoAlpha: 0, y: -16, duration: 0.16 }, 0)
-          .to(heroBase, { yPercent: config.baseDriftY, scale: config.baseScale, duration: 1 }, 0)
-          .to(heroSpotlight, { autoAlpha: config.spotlightPeak, scale: config.spotlightScale, duration: 0.34 }, 0.06)
-          .to(heroPresenter, {
-            xPercent: config.presenterLeadX,
-            yPercent: config.presenterLiftY,
-            scale: config.presenterLeadScale,
-            rotation: config.presenterLeadRotate,
-            duration: 0.42,
-          }, 0.18)
-          .to(heroMicPulse, { autoAlpha: 0.72, scale: 1.02, duration: 0.14 }, 0.24)
-          .to(heroMicPulse, { autoAlpha: 0.22, scale: 1.45, duration: 0.2 }, 0.37)
-          .to(heroMicPulse, { autoAlpha: 0.68, scale: 1.04, duration: 0.14 }, 0.56)
-          .to(heroMicPulse, { autoAlpha: 0.18, scale: 1.52, duration: 0.24 }, 0.66)
-          .to(heroInner, { yPercent: -config.textRiseY, autoAlpha: config.textFadeTo, duration: 0.26 }, 0.72)
-          .to(heroPresenter, {
-            xPercent: config.presenterExitX,
-            yPercent: config.presenterExitY,
-            scale: config.presenterExitScale,
-            autoAlpha: config.presenterExitAlpha,
-            duration: 0.2,
-          }, 0.82)
-          .to(heroSpotlight, { autoAlpha: config.spotlightExit, scale: 1.04, duration: 0.18 }, 0.84)
-          .to(heroMicPulse, { autoAlpha: 0, duration: 0.1 }, 0.9);
-
-        return () => {
-          timeline.scrollTrigger?.kill();
-          timeline.kill();
-        };
-      };
-
-      const mm = gsap.matchMedia();
-
-      mm.add('(min-width: 901px) and (prefers-reduced-motion: no-preference)', () =>
-        setupTimeline({
-          scrub: 0.95,
-          baseDriftY: -6,
-          baseScale: 1.03,
-          presenterLeadX: -8,
-          presenterLiftY: -3.5,
-          presenterLeadScale: 1.06,
-          presenterLeadRotate: -1.6,
-          presenterExitX: 5,
-          presenterExitY: 2.4,
-          presenterExitScale: 1.02,
-          presenterExitAlpha: 0.48,
-          spotlightStart: 0.18,
-          spotlightPeak: 0.36,
-          spotlightScale: 1.08,
-          spotlightExit: 0.1,
-          textRiseY: 8,
-          textFadeTo: 0.78,
-        })
-      );
-
-      mm.add('(max-width: 900px) and (prefers-reduced-motion: no-preference)', () =>
-        setupTimeline({
-          scrub: 0.85,
-          baseDriftY: -4,
-          baseScale: 1.02,
-          presenterLeadX: -5,
-          presenterLiftY: -2.4,
-          presenterLeadScale: 1.05,
-          presenterLeadRotate: -1.1,
-          presenterExitX: 4,
-          presenterExitY: 1.8,
-          presenterExitScale: 1.01,
-          presenterExitAlpha: 0.52,
-          spotlightStart: 0.2,
-          spotlightPeak: 0.34,
-          spotlightScale: 1.05,
-          spotlightExit: 0.12,
-          textRiseY: 5,
-          textFadeTo: 0.82,
-        })
-      );
-
-      mm.add('(prefers-reduced-motion: reduce)', () => {
-        gsap.set(heroBase, { clearProps: 'transform' });
-        gsap.set(heroPresenter, { clearProps: 'transform,opacity' });
-        gsap.set(heroSpotlight, { clearProps: 'transform,opacity' });
-        gsap.set(heroInner, { clearProps: 'transform,opacity' });
-        gsap.set(heroScroll, { clearProps: 'transform,opacity' });
-        gsap.set(heroMicPulse, { autoAlpha: 0, clearProps: 'transform' });
-      });
-
-      cleanup = () => mm.revert();
-    });
-
-    return () => cleanup?.();
-  }, []);
-
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById(id)?.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' });
   };
 
   return (
-    <div className="landing">
+    <div className="landing" ref={landingRef}>
       <div className="bg-noise" />
 
       {/* ═══ NAV ═══ */}
@@ -427,7 +308,11 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       {/* ═══ HERO ═══ */}
       <section className="hero" ref={heroSectionRef}>
         <div className="hero-bg hero-bg-base" ref={heroBgBaseRef} />
-        <HeroPresenterTiles isDark={isDark} ref={heroPresenterRef} />
+        <HeroPresenterTiles
+          isDark={isDark}
+          ref={heroPresenterRef}
+          maxRenderTiles={heroTileRenderCap}
+        />
         <div className="hero-spotlight" ref={heroSpotlightRef} />
         <div className="hero-mic-pulse" ref={heroMicPulseRef} />
         <div className="container hero-inner" ref={heroInnerRef}>
@@ -473,7 +358,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       </section>
 
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
-      <section className="story-section" id="delivery">
+      <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>
         <div className="container story-grid">
           <div className="story-text reveal">
             <h2>
@@ -488,32 +373,33 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
               {'> Analyzes WPM, Pauses, and Fillers'}
             </p>
           </div>
-          <div className="story-visual reveal">
-            <svg className="waveform-svg" viewBox="0 0 400 100" preserveAspectRatio="xMidYMax meet">
-              {[
-                { x: 20, y: 25, h: 50, d: 0.1 }, { x: 40, y: 10, h: 80, d: 0.3 },
-                { x: 60, y: 30, h: 40, d: 0.5 }, { x: 80, y: 15, h: 70, d: 0.2 },
-                { x: 100, y: 35, h: 30, d: 0.6 }, { x: 120, y: 5, h: 90, d: 0.1 },
-                { x: 140, y: 20, h: 60, d: 0.4 }, { x: 160, y: 40, h: 20, d: 0.7 },
-                { x: 180, y: 10, h: 80, d: 0.3 }, { x: 200, y: 25, h: 50, d: 0.5 },
-                { x: 220, y: 15, h: 70, d: 0.2 }, { x: 240, y: 5, h: 90, d: 0.8 },
-                { x: 260, y: 30, h: 40, d: 0.1 }, { x: 280, y: 20, h: 60, d: 0.4 },
-                { x: 300, y: 10, h: 80, d: 0.6 }, { x: 320, y: 35, h: 30, d: 0.3 },
-                { x: 340, y: 15, h: 70, d: 0.5 }, { x: 360, y: 25, h: 50, d: 0.2 },
-              ].map((bar) => (
+          <div className="story-visual reveal" ref={deliveryVisualRef}>
+            <svg
+              className="waveform-svg"
+              ref={deliveryWaveRef}
+              viewBox="0 0 400 100"
+              preserveAspectRatio="xMidYMax meet"
+            >
+              {DELIVERY_WAVE_BARS.map((bar) => (
                 <rect
                   key={bar.x}
+                  data-wave-bar=""
                   x={bar.x}
                   y={bar.y}
                   width="8"
                   height={bar.h}
                   rx="4"
                   className="wave-bar"
-                  style={{ animationDelay: `${bar.d}s` }}
+                  style={{
+                    animationDelay: `${bar.d}s`,
+                    '--bar-scale-limit': `${Math.max(0.48, ((bar.y + bar.h) - 2) / bar.h)}`,
+                    '--bar-gain': `${0.76 + ((((bar.x / 20) % 5) * 0.04) + ((bar.h / 100) * 0.08))}`,
+                    '--bar-tempo': `${0.88 + (((bar.x / 20) % 4) * 0.04)}`,
+                  } as CSSProperties}
                 />
               ))}
             </svg>
-            <div className="live-transcript">
+            <div className="live-transcript" ref={deliveryTranscriptRef}>
               &quot;We are{' '}
               <span className="strike">
                 um, basically
