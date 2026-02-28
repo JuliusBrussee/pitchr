@@ -5,9 +5,28 @@ import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { getEdgeErrorMessage, type EdgeErrorPayload } from '@/lib/supabase/edge-error';
 import type { Project, ProjectPromptOverrides, ProjectTypeId } from '@/types/project';
 
+const CACHE_KEY = 'pitchr_active_project';
+
 interface ProjectsResponse {
   projects?: Project[];
   activeProjectId?: string | null;
+}
+
+function getCachedActiveProjectId(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return localStorage.getItem(CACHE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function setCachedActiveProjectId(id: string | null): void {
+  if (typeof window === 'undefined') return;
+  try {
+    if (id) localStorage.setItem(CACHE_KEY, id);
+    else localStorage.removeItem(CACHE_KEY);
+  } catch { /* ignore */ }
 }
 
 async function readEdgePayload<T>(response: Response): Promise<T & EdgeErrorPayload> {
@@ -74,9 +93,14 @@ async function loadProjectsFromEdge(): Promise<{ projects: Project[]; activeProj
 
 export function ProjectProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectIdRaw] = useState<string | null>(() => getCachedActiveProjectId());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const setActiveProjectId = useCallback((id: string | null) => {
+    setActiveProjectIdRaw(id);
+    setCachedActiveProjectId(id);
+  }, []);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -92,7 +116,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [setActiveProjectId]);
 
   useEffect(() => {
     void refresh();
@@ -110,7 +134,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     }
     setActiveProjectId(payload.activeProjectId ?? projectId);
     setError(null);
-  }, []);
+  }, [setActiveProjectId]);
 
   const createProject = useCallback(async (input: {
     name: string;
@@ -140,7 +164,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
       throw new Error('Failed to create project.');
     }
     return payload.project;
-  }, [refresh]);
+  }, [refresh, setActiveProjectId]);
 
   const updateProject = useCallback(async (input: {
     projectId: string;
@@ -162,7 +186,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
     if (payload.activeProjectId !== undefined) {
       setActiveProjectId(payload.activeProjectId);
     }
-  }, [refresh]);
+  }, [refresh, setActiveProjectId]);
 
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) ?? null,

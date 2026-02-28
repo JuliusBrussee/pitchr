@@ -93,6 +93,25 @@ Set via `npx supabase secrets set KEY=VALUE`. Required:
 | ELEVENLABS_API_KEY_TTS | Text-to-speech |
 | ELEVENLABS_VOICE_ID | TTS voice |
 
+## CORS Configuration
+
+All edge functions share CORS headers from `supabase/functions/_shared/cors.ts`.
+
+### Access-Control-Max-Age (Critical for Performance)
+
+The `Access-Control-Max-Age: 86400` header tells the browser to cache CORS preflight (OPTIONS)
+responses for 24 hours. **Without this, every cross-origin request triggers a fresh preflight
+round-trip to the edge function**, adding 1-2s of latency per request due to cold starts.
+
+This was the root cause of 1+ minute page loads in Feb 2026 — multiple data-fetching calls on
+each page (pitch-run, projects) each triggered their own uncached preflight, compounding to
+massive delays.
+
+### After Changing CORS Headers
+
+Any change to `cors.ts` requires **redeploying all edge functions** (see deploy commands above).
+The browser caches preflights per-origin per-path, so only redeployed functions serve the new headers.
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
@@ -101,3 +120,5 @@ Set via `npx supabase secrets set KEY=VALUE`. Required:
 | 401 "Authentication required" | No/expired JWT in request | Check `fetchEdge` auth flow, ensure user is logged in |
 | 401 "Missing Authorization header" | `getSession()` returned null | Fixed: `fetchEdge` now retries with `getUser()` |
 | "Pitch analysis failed" (generic) | Error message not surfaced | Fixed: `usePitchRun.ts` now checks `payload.message` too |
+| Slow page loads, many pending preflight requests | Missing `Access-Control-Max-Age` in CORS headers | Fixed: Added `86400` to `cors.ts`, redeploy all functions |
+| Infinite fetch loops on page components | Unstable `showTooltip` in `useCallback` deps | Fixed: Use ref pattern (`showTooltipRef`) instead of direct dep |

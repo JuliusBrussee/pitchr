@@ -110,6 +110,8 @@ export default function DashboardPage() {
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('dashboard');
   const statsRef = useRef<HTMLDivElement | null>(null);
+  const showTooltipRef = useRef(showTooltip);
+  showTooltipRef.current = showTooltip;
 
   const showSkeleton = useDelayedLoading(loading);
 
@@ -130,11 +132,11 @@ export default function DashboardPage() {
         setAllRuns([]);
         setFetchError(true);
         if (statsRef.current) {
-          showTooltip(statsRef.current, 'error', 'Failed to load your pitch runs. Check your connection and try again.');
+          showTooltipRef.current(statsRef.current, 'error', 'Failed to load your pitch runs. Check your connection and try again.');
         }
       })
       .finally(() => setLoading(false));
-  }, [activeProjectId, showTooltip]);
+  }, [activeProjectId]);
 
   useEffect(() => {
     setGreeting(getGreeting());
