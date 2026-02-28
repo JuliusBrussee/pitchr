@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { LandingPricing } from '@/views/components/landing/LandingPricing';
+import { LandingBlog } from '@/views/components/landing/LandingBlog';
 import { HeroPresenterTiles } from '@/views/components/landing/HeroPresenterTiles';
 import './landing.css';
 
@@ -602,6 +603,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ═══ BLOG ═══ */}
+      <LandingBlog />
 
       {/* ═══ PRICING ═══ */}
       <LandingPricing />
