@@ -587,21 +587,19 @@ export function useShareCard() {
     setState((s) => ({ ...s, lastSharedPlatform: 'download' }));
   }, [generateImage]);
 
-  const shareToLinkedIn = useCallback(async (data: ShareCardData) => {
-    await generateImage(data);
+  const shareToLinkedIn = useCallback((data: ShareCardData) => {
     const text = encodeURIComponent(getShareText(data));
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(getShareUrl())}&summary=${text}`;
     window.open(url, '_blank', 'noopener,noreferrer,width=600,height=600');
     setState((s) => ({ ...s, lastSharedPlatform: 'linkedin' }));
-  }, [generateImage]);
+  }, []);
 
-  const shareToX = useCallback(async (data: ShareCardData) => {
-    await generateImage(data);
+  const shareToX = useCallback((data: ShareCardData) => {
     const text = encodeURIComponent(getShareText(data));
     const url = `https://x.com/intent/tweet?text=${text}`;
     window.open(url, '_blank', 'noopener,noreferrer,width=600,height=600');
     setState((s) => ({ ...s, lastSharedPlatform: 'x' }));
-  }, [generateImage]);
+  }, []);
 
   const shareNative = useCallback(async (data: ShareCardData) => {
     try {
@@ -632,10 +630,10 @@ export function useShareCard() {
     try {
       switch (platform) {
         case 'linkedin':
-          await shareToLinkedIn(data);
+          shareToLinkedIn(data);
           break;
         case 'x':
-          await shareToX(data);
+          shareToX(data);
           break;
         case 'instagram':
           await shareNative(data);

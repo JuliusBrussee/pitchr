@@ -237,6 +237,7 @@ export default function ResultsPage() {
   const [miroCreateError, setMiroCreateError] = useState<string | null>(null);
   const [miroCreateMessage, setMiroCreateMessage] = useState<string | null>(null);
   const miroPollIntervalMs = useMemo(() => getMiroPollIntervalMs(), []);
+  const [sessionDelta, setSessionDelta] = useState<{ points: number; sessions: number } | null>(null);
   const achievements = useAchievements();
   const achievementCheckDone = useRef(false);
   const { registerPage } = useTutorial('results');
@@ -271,6 +272,19 @@ export default function ResultsPage() {
           },
         }));
         achievements.processRuns(normalized);
+
+        // Compute session delta for share card from the same data
+        if (data.length >= 2) {
+          const sorted = [...data].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
+          const firstScore = sorted[0].overallScore;
+          const currentScore = run.outputs?.feedback?.overall_score ?? run.analysis?.overall_score ?? 0;
+          const delta = currentScore - firstScore;
+          if (delta !== 0) {
+            setSessionDelta({ points: delta, sessions: data.length });
+          }
+        }
       })
       .catch(() => {});
   }, [run?.status, achievements.processRuns]);
@@ -763,7 +777,7 @@ export default function ResultsPage() {
       </div>
 
       {/* ━━━ Share Score Card ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      <ShareScoreCard feedback={feedback} run={run} />
+      <ShareScoreCard feedback={feedback} run={run} sessionDelta={sessionDelta} />
 
       {/* ━━━ TIER 2: Actionable Insights ━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />

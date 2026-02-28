@@ -6,11 +6,11 @@ import type { FeedbackOutput } from '@/types/analysis-v2';
 import type { Run } from '@/types/pitch';
 import { useShareCard, type ShareCardData, type SharePlatform } from '@/hooks/useShareCard';
 import { getScoreColor, getScoreBandLabel } from '@/views/components/ui/colors';
-import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 interface ShareScoreCardProps {
   feedback: FeedbackOutput;
   run: Run;
+  sessionDelta?: { points: number; sessions: number } | null;
 }
 
 function XLogo({ size = 16 }: { size?: number }) {
@@ -31,10 +31,8 @@ function InstagramLogo({ size = 16 }: { size?: number }) {
   );
 }
 
-export function ShareScoreCard({ feedback, run }: ShareScoreCardProps) {
+export function ShareScoreCard({ feedback, run, sessionDelta }: ShareScoreCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [sessionDelta, setSessionDelta] = useState<{ points: number; sessions: number } | null>(null);
-  const [deltaLoaded, setDeltaLoaded] = useState(false);
   const [justShared, setJustShared] = useState<SharePlatform | null>(null);
   const shareTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,33 +41,6 @@ export function ShareScoreCard({ feedback, run }: ShareScoreCardProps) {
   const score = feedback.overall_score;
   const scoreColor = getScoreColor(score);
   const bandLabel = getScoreBandLabel(score);
-
-  // Load session delta from run history
-  useEffect(() => {
-    if (deltaLoaded) return;
-    setDeltaLoaded(true);
-
-    fetchEdge('pitch-run', { params: { projectId: run.projectId } })
-      .then((res) => res.json())
-      .then((payload: { runs?: Array<{ id: string; overallScore: number; createdAt: string }> }) => {
-        const runs = payload.runs ?? [];
-        if (runs.length < 2) return;
-
-        // Sort chronologically
-        const sorted = [...runs].sort(
-          (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        );
-
-        const firstScore = sorted[0].overallScore;
-        const currentScore = score;
-        const delta = currentScore - firstScore;
-
-        if (delta !== 0) {
-          setSessionDelta({ points: delta, sessions: sorted.length });
-        }
-      })
-      .catch(() => {});
-  }, [deltaLoaded, run.projectId, score]);
 
   const shareData = useMemo<ShareCardData>(() => ({
     score,

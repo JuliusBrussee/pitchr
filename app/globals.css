@@ -2921,7 +2921,7 @@ html.dark body {
 
 .share-scorecard-enter {
   animation: shareCardEnter 0.4s ease-out both;
-  animation-delay: 1.6s;
+  animation-delay: 0.3s;
 }
 
 .share-scorecard-expand {
