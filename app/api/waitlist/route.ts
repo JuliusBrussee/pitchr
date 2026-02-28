@@ -6,14 +6,25 @@ const MAX_EMAIL_LENGTH = 254; // RFC 5321
 const MAX_FIELD_LENGTH = 512;
 
 interface WaitlistInsertRow {
-  id: string;
+  id?: string;
   email: string;
-  unsubscribe_token: string;
-  welcome_email_sent_at: string | null;
+  unsubscribe_token?: string | null;
+  welcome_email_sent_at?: string | null;
   unsubscribed_at?: string | null;
 }
 
-async function sendWelcomeEmailIfNeeded(row: WaitlistInsertRow) {
+interface PostgrestLikeError {
+  code?: string;
+  message?: string;
+}
+
+function isMissingColumnError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const value = error as PostgrestLikeError;
+  return value.code === '42703' || value.message?.includes('does not exist') === true;
+}
+
+async function sendWelcomeEmailIfNeeded(row: WaitlistInsertRow, canPersistSendState: boolean) {
   if (row.welcome_email_sent_at) return;
 
   try {
@@ -26,12 +37,20 @@ async function sendWelcomeEmailIfNeeded(row: WaitlistInsertRow) {
     return;
   }
 
+  if (!canPersistSendState || !row.id) {
+    return;
+  }
+
   try {
     const supabase = createAdminClient();
-    await supabase
+    const { error } = await supabase
       .from('waitlist')
       .update({ welcome_email_sent_at: new Date().toISOString() })
       .eq('id', row.id);
+
+    if (error && !isMissingColumnError(error)) {
+      console.error('[waitlist] Failed to persist welcome_email_sent_at:', error);
+    }
   } catch (error) {
     console.error('[waitlist] Failed to persist welcome_email_sent_at:', error);
   }
@@ -69,7 +88,7 @@ export async function POST(request: NextRequest) {
       request.headers.get('x-real-ip') ??
       null;
 
-    const row = {
+    const baseRow = {
       email,
       referrer: truncate(body.referrer),
       utm_source: truncate(body.utm_source),
@@ -78,27 +97,53 @@ export async function POST(request: NextRequest) {
       landing_page: truncate(body.landing_page),
       user_agent: request.headers.get('user-agent')?.slice(0, MAX_FIELD_LENGTH) ?? null,
       ip_address: ip,
+    };
+
+    const newsletterRow = {
+      ...baseRow,
       newsletter_opt_in: body?.newsletter_opt_in !== false,
     };
 
     const supabase = createAdminClient();
-    const { data, error } = await supabase
+    let canPersistSendState = true;
+    let { data, error } = await supabase
       .from('waitlist')
-      .insert(row)
+      .insert(newsletterRow)
       .select('id, email, unsubscribe_token, welcome_email_sent_at, unsubscribed_at')
       .single();
+
+    // Backward compatibility: some environments still have legacy waitlist schema.
+    if (error && isMissingColumnError(error)) {
+      canPersistSendState = false;
+      const legacyInsert = await supabase
+        .from('waitlist')
+        .insert(baseRow)
+        .select('id, email')
+        .single();
+      data = legacyInsert.data as WaitlistInsertRow | null;
+      error = legacyInsert.error;
+    }
 
     if (error) {
       // Unique constraint violation = already on waitlist
       if (error.code === '23505') {
-        const { data: existing } = await supabase
+        let existingResult = await supabase
           .from('waitlist')
           .select('id, email, unsubscribe_token, welcome_email_sent_at, unsubscribed_at')
           .eq('email', email)
           .maybeSingle();
 
-        if (existing) {
-          const existingRow = existing as WaitlistInsertRow;
+        if (existingResult.error && isMissingColumnError(existingResult.error)) {
+          canPersistSendState = false;
+          existingResult = await supabase
+            .from('waitlist')
+            .select('id, email')
+            .eq('email', email)
+            .maybeSingle();
+        }
+
+        if (existingResult.data) {
+          const existingRow = existingResult.data as WaitlistInsertRow;
           if (existingRow.unsubscribed_at && body?.newsletter_opt_in !== false) {
             await supabase
               .from('waitlist')
@@ -108,7 +153,7 @@ export async function POST(request: NextRequest) {
               })
               .eq('id', existingRow.id);
           }
-          await sendWelcomeEmailIfNeeded(existingRow);
+          await sendWelcomeEmailIfNeeded(existingRow, canPersistSendState);
         }
 
         return NextResponse.json(
@@ -122,7 +167,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await sendWelcomeEmailIfNeeded(data as WaitlistInsertRow);
+    await sendWelcomeEmailIfNeeded(data as WaitlistInsertRow, canPersistSendState);
 
     return NextResponse.json(
       { message: 'You\'re on the list! Check your inbox for a confirmation email.' },

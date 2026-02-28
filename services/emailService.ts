@@ -21,7 +21,7 @@ export interface EmailSendResult {
 
 export interface WaitlistWelcomeEmailParams {
   email: string;
-  unsubscribeToken: string;
+  unsubscribeToken?: string | null;
 }
 
 function getEnv(name: string): string {
@@ -84,7 +84,9 @@ export async function sendWaitlistWelcomeEmail(
   params: WaitlistWelcomeEmailParams,
 ): Promise<EmailSendResult> {
   const appBaseUrl = getAppBaseUrl();
-  const unsubscribeUrl = `${appBaseUrl}/api/newsletter/unsubscribe?token=${params.unsubscribeToken}`;
+  const unsubscribeUrl = params.unsubscribeToken
+    ? `${appBaseUrl}/api/newsletter/unsubscribe?token=${params.unsubscribeToken}`
+    : null;
 
   const subject = 'You are on the Pitchr waitlist';
   const html = `
@@ -96,19 +98,26 @@ export async function sendWaitlistWelcomeEmail(
       <p style="margin: 0 0 12px;">
         You will also get a weekly product update with progress on features, releases, and launch timing.
       </p>
-      <p style="margin: 24px 0 0; font-size: 12px; color: #6b7280;">
-        Don&apos;t want updates? <a href="${unsubscribeUrl}" style="color: #6b7280;">Unsubscribe</a>
-      </p>
+      ${unsubscribeUrl
+        ? `<p style="margin: 24px 0 0; font-size: 12px; color: #6b7280;">
+            Don&apos;t want updates? <a href="${unsubscribeUrl}" style="color: #6b7280;">Unsubscribe</a>
+          </p>`
+        : ''}
     </div>
   `;
 
-  const text = [
+  const textParts = [
     'Thanks for joining Pitchr.',
     'You are officially on the waitlist.',
     'We will email you first when early access opens.',
     'You will also get a weekly product update with development progress.',
-    `Unsubscribe: ${unsubscribeUrl}`,
-  ].join('\n\n');
+  ];
+
+  if (unsubscribeUrl) {
+    textParts.push(`Unsubscribe: ${unsubscribeUrl}`);
+  }
+
+  const text = textParts.join('\n\n');
 
   return sendEmail({
     to: params.email,
