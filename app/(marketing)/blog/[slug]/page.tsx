@@ -8,6 +8,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypePrettyCode from 'rehype-pretty-code';
 import { notFound } from 'next/navigation';
 import { getAllPosts, getPostBySlug, getRelatedPosts } from '@/lib/blog';
+import { getBlogAuthor } from '@/lib/blogAuthors';
 import { mdxComponents } from '@/views/components/blog/MDXComponents';
 import { TableOfContents } from '@/views/components/blog/TableOfContents';
 import { ReadingProgress } from '@/views/components/blog/ReadingProgress';
@@ -28,6 +29,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return {};
 
   const { meta } = post;
+  const baseUrl = 'https://pitchr.app';
+  const coverImageUrl = meta.coverImage
+    ? (meta.coverImage.startsWith('http') ? meta.coverImage : `${baseUrl}${meta.coverImage}`)
+    : null;
   return {
     title: `${meta.title} — Pitchr Blog`,
     description: meta.excerpt,
@@ -39,13 +44,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: meta.lastModified || meta.date,
       authors: [meta.author],
       tags: meta.tags,
-      ...(meta.coverImage ? { images: [{ url: meta.coverImage }] } : {}),
+      ...(coverImageUrl ? { images: [{ url: coverImageUrl }] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title: meta.title,
       description: meta.excerpt,
+      ...(coverImageUrl ? { images: [coverImageUrl] } : {}),
     },
+    authors: [{ name: meta.author }],
   };
 }
 
@@ -55,6 +62,7 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) notFound();
 
   const { meta, content } = post;
+  const authorProfile = getBlogAuthor(meta.author);
   const related = getRelatedPosts(slug, meta.category);
 
   // Extract FAQ pairs from content (matches **Q: ...** / A: ... pattern)
@@ -69,6 +77,9 @@ export default async function BlogPostPage({ params }: Props) {
   }
 
   const baseUrl = 'https://pitchr.app';
+  const coverImageUrl = meta.coverImage
+    ? (meta.coverImage.startsWith('http') ? meta.coverImage : `${baseUrl}${meta.coverImage}`)
+    : null;
 
   // JSON-LD structured data — content is from our own frontmatter, not user input
   const schemas: Record<string, unknown>[] = [
@@ -79,7 +90,14 @@ export default async function BlogPostPage({ params }: Props) {
       description: meta.excerpt,
       datePublished: meta.date,
       dateModified: meta.lastModified || meta.date,
-      author: { '@type': 'Organization', name: meta.author },
+      author: authorProfile
+        ? {
+            '@type': 'Person',
+            name: authorProfile.name,
+            description: authorProfile.bio,
+            ...(authorProfile.sameAs ? { sameAs: authorProfile.sameAs } : {}),
+          }
+        : { '@type': 'Person', name: meta.author },
       publisher: {
         '@type': 'Organization',
         name: 'Pitchr',
@@ -89,7 +107,7 @@ export default async function BlogPostPage({ params }: Props) {
         '@type': 'WebPage',
         '@id': `${baseUrl}/blog/${slug}`,
       },
-      ...(meta.coverImage ? { image: meta.coverImage } : {}),
+      ...(coverImageUrl ? { image: coverImageUrl } : {}),
     },
     {
       '@context': 'https://schema.org',
@@ -146,6 +164,11 @@ export default async function BlogPostPage({ params }: Props) {
           </span>
           <span className="blog-post-author">by {meta.author}</span>
         </div>
+        {authorProfile && (
+          <p className="blog-post-author-bio">
+            <strong>{authorProfile.role}.</strong> {authorProfile.bio}
+          </p>
+        )}
       </header>
 
       {meta.coverImage && (

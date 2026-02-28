@@ -706,6 +706,22 @@
   font-weight: 500;
 }
 
+.blog-post-author-bio {
+  margin: 18px auto 0;
+  max-width: 680px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--gradient-subtle);
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.blog-post-author-bio strong {
+  color: var(--text);
+}
+
 /* ── Cover image ── */
 .blog-post-cover {
   position: relative;
