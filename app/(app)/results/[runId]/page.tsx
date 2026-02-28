@@ -15,6 +15,7 @@ import {
   RewriteDiffPanel,
   ScoreHero,
   SectionAccordion,
+  ShareScoreCard,
   TopFixes,
   VocabDiagnostics,
 } from '@/views/components/results';
@@ -760,6 +761,9 @@ export default function ResultsPage() {
       <div data-tour="tour-results-score">
         <ScoreHero feedback={feedback} />
       </div>
+
+      {/* ━━━ Share Score Card ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <ShareScoreCard feedback={feedback} run={run} />
 
       {/* ━━━ TIER 2: Actionable Insights ━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />
