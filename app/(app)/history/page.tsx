@@ -124,6 +124,8 @@ export default function HistoryPage() {
   const { registerPage } = useTutorial('history');
   const runListRef = useRef<HTMLDivElement | null>(null);
   const showSkeleton = useDelayedLoading(loading);
+  const showTooltipRef = useRef(showTooltip);
+  showTooltipRef.current = showTooltip;
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -159,11 +161,11 @@ export default function HistoryPage() {
         setRuns([]);
         setFetchError(true);
         if (runListRef.current) {
-          showTooltip(runListRef.current, 'error', 'Failed to load pitch history. Check your connection and try again.');
+          showTooltipRef.current(runListRef.current, 'error', 'Failed to load pitch history. Check your connection and try again.');
         }
       })
       .finally(() => setLoading(false));
-  }, [activeProjectId, showTooltip]);
+  }, [activeProjectId]);
 
   useEffect(() => {
     loadRuns();

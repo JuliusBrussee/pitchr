@@ -85,11 +85,13 @@ export default function ProgressPage() {
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('progress');
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const showTooltipRef = useRef(showTooltip);
+  showTooltipRef.current = showTooltip;
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
     setLoading(true);
-    fetchEdge('pitch-run')
+    fetchEdge('pitch-run', { params: { allProjects: 'true', summary: 'true' } })
       .then((r) => r.json())
       .then((payload: { runs?: RawRunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];
@@ -99,11 +101,11 @@ export default function ProgressPage() {
         setRuns([]);
         setFetchError(true);
         if (containerRef.current) {
-          showTooltip(containerRef.current, 'error', 'Failed to load progress data. Check your connection and try again.');
+          showTooltipRef.current(containerRef.current, 'error', 'Failed to load progress data. Check your connection and try again.');
         }
       })
       .finally(() => setLoading(false));
-  }, [showTooltip]);
+  }, []);
 
   useEffect(() => {
     loadRuns();

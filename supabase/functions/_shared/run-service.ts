@@ -78,6 +78,7 @@ function withMigrationHint(message: string): string {
 }
 
 const RUN_SELECT = '*, projects(id,name,type,workflow_mode)';
+const RUN_SELECT_SUMMARY = 'id, project_id, mode, status, error_message, started_at, completed_at, overall_score, analysis, meta, is_fallback, created_at, deck_id, projects(id,name,type,workflow_mode)';
 
 function normalizeRun(run: RunRecord): RunRecord {
   const normalizedStatus: RunStatus =
@@ -121,8 +122,10 @@ export async function listRuns(supabase: SupabaseClient, opts?: {
   mode?: PitchMode;
   projectId?: string;
   limit?: number;
+  summary?: boolean;
 }): Promise<RunRecord[]> {
-  let query = supabase.from('runs').select(RUN_SELECT).order('created_at', { ascending: false });
+  const select = opts?.summary ? RUN_SELECT_SUMMARY : RUN_SELECT;
+  let query = supabase.from('runs').select(select).order('created_at', { ascending: false });
   if (opts?.projectId) query = query.eq('project_id', opts.projectId);
   if (opts?.mode) query = query.eq('mode', opts.mode);
   if (opts?.limit) query = query.limit(opts.limit);

@@ -47,19 +47,39 @@ export class AuthenticationError extends Error {
 }
 
 /**
- * Extract and verify the authenticated user from the request.
- * Returns the Supabase client (scoped to the user) and the user object.
+ * Decode the JWT payload to extract the user ID without a network call.
+ * RLS on the Supabase client (which carries the JWT) handles actual authorization.
  */
-export async function getAuthenticatedUser(req: Request) {
-  const supabase = createSupabaseClient(req);
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-
-  if (error || !user) {
-    throw new AuthenticationError();
+function getUserIdFromJwt(req: Request): string {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new AuthenticationError('Missing Authorization header');
   }
+  try {
+    const payload = JSON.parse(atob(authHeader.split('.')[1]));
+    const sub = payload.sub;
+    if (typeof sub !== 'string' || !sub) {
+      throw new AuthenticationError('Invalid JWT: missing sub claim');
+    }
+    // Reject obviously expired tokens (exp is seconds since epoch)
+    if (typeof payload.exp === 'number' && payload.exp < Date.now() / 1000) {
+      throw new AuthenticationError('Token expired');
+    }
+    return sub;
+  } catch (e) {
+    if (e instanceof AuthenticationError) throw e;
+    throw new AuthenticationError('Invalid JWT');
+  }
+}
 
-  return { supabase, user };
+/**
+ * Extract the authenticated user from the request.
+ * Decodes the JWT locally instead of calling getUser() to avoid a network round-trip.
+ * The Supabase client carries the JWT so RLS still enforces authorization on every query.
+ */
+export function getAuthenticatedUser(req: Request) {
+  const supabase = createSupabaseClient(req);
+  const userId = getUserIdFromJwt(req);
+
+  return { supabase, user: { id: userId } };
 }

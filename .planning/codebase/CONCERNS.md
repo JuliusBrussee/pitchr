@@ -92,6 +92,17 @@
 
 ## Performance Bottlenecks
 
+**CORS Preflight Overhead on Edge Functions (FIXED):**
+- Problem: Without `Access-Control-Max-Age`, every cross-origin fetch to an edge function triggered a fresh OPTIONS preflight request. Cold-start preflights took 1-2s each, and pages making 3-5 concurrent data fetches could stall for 1+ minutes.
+- Files: `supabase/functions/_shared/cors.ts`, all edge function `index.ts` files
+- Fix: Added `Access-Control-Max-Age: 86400` to shared CORS headers. Browser now caches preflights for 24h after the first request.
+- Note: Any change to `cors.ts` requires redeploying all edge functions.
+
+**Unstable useCallback Dependencies in Data-Fetching Pages (FIXED):**
+- Problem: `showTooltip` (from `useSmartTooltip`) was listed as a `useCallback` dependency for `loadRuns` in dashboard, progress, history, and analytics pages. If the reference ever became unstable (e.g., due to context value changes), it would recreate `loadRuns`, re-trigger the `useEffect`, and fire duplicate fetch requests.
+- Files: `app/(app)/dashboard/page.tsx`, `app/(app)/progress/page.tsx`, `app/(app)/history/page.tsx`, `app/(app)/analytics/page.tsx`
+- Fix: Replaced direct `showTooltip` dependency with a ref (`showTooltipRef`). Callbacks only used in error paths should never drive re-execution of data-fetching effects.
+
 **LLM Response Latency on Cold Start:**
 - Problem: First pitch analysis request waits for LLM initialization + response (typically 5-30 seconds depending on provider)
 - Files: `services/analysisService.ts` (lines 247-329, `analyzeWithContext`), `services/judgeAgentService.ts` (LLM call)

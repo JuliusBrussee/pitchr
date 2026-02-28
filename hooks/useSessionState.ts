@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { createInitialChecklistState } from '@/config/realtimeChecklist';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
 import type { PitchMode } from '@/types/pitch';
-import { OrbState } from '@/views/components/SiriBubble';
+import type { OrbState } from '@/views/components/SiriBubble';
 
 export interface MetricValues {
   wpm: number;
