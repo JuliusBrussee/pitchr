@@ -1,7 +1,6 @@
 'use client';
 
 import { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react';
-import gsap from 'gsap';
 import {
   HERO_PRESENTER_SOURCE_HEIGHT,
   HERO_PRESENTER_SOURCE_WIDTH,
@@ -18,6 +17,8 @@ import type {
 type HeroPresenterTilesProps = {
   isDark: boolean;
 };
+
+type GsapInstance = (typeof import('gsap'))['default'];
 
 type ComputedTile = {
   id: number;
@@ -87,7 +88,8 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
   function HeroPresenterTiles({ isDark }, forwardedRef) {
     const rootRef = useRef<HTMLDivElement | null>(null);
     const tileRefs = useRef<SVGRectElement[]>([]);
-    const timelineRef = useRef<gsap.core.Timeline | null>(null);
+    const gsapRef = useRef<GsapInstance | null>(null);
+    const timelineRef = useRef<ReturnType<GsapInstance['timeline']> | null>(null);
     const activeCommandRef = useRef<HeroTileCommandName>('assemble');
     const reducedMotionRef = useRef(false);
 
@@ -110,6 +112,14 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
       timelineRef.current = null;
     }, []);
 
+    const withGsap = useCallback(async (callback: (gsap: GsapInstance) => void) => {
+      if (!gsapRef.current) {
+        const gsapModule = await import('gsap');
+        gsapRef.current = gsapModule.default;
+      }
+      callback(gsapRef.current);
+    }, []);
+
     const runCommand = useCallback((name: HeroTileCommandName, options: HeroTileCommandOptions = {}) => {
       const nodes = tileRefs.current;
       if (nodes.length === 0) {
@@ -118,107 +128,108 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
 
       activeCommandRef.current = name;
       killTimeline();
+      void withGsap((gsap) => {
+        const duration = reducedMotionRef.current
+          ? 0
+          : options.duration ?? DEFAULT_DURATION[name];
+        const ease = options.ease ?? DEFAULT_EASE[name];
+        const stagger = options.stagger ?? DEFAULT_STAGGER;
 
-      const duration = reducedMotionRef.current
-        ? 0
-        : options.duration ?? DEFAULT_DURATION[name];
-      const ease = options.ease ?? DEFAULT_EASE[name];
-      const stagger = options.stagger ?? DEFAULT_STAGGER;
+        if (name === 'assemble') {
+          timelineRef.current = gsap.timeline().to(nodes, {
+            x: 0,
+            y: 0,
+            rotation: 0,
+            scale: 1,
+            opacity: 1,
+            duration,
+            ease,
+            stagger,
+          });
+          return;
+        }
 
-      if (name === 'assemble') {
+        if (name === 'explode') {
+          const radius = options.radius ?? 88;
+          const randomness = options.randomness ?? 20;
+          timelineRef.current = gsap.timeline().to(nodes, {
+            x: (index: number) => {
+              const tile = tiles[index];
+              const distanceRatio = tile.distance / maxDistance;
+              const drift = radius * (0.35 + (distanceRatio * 0.65));
+              const jitter = (Math.random() - 0.5) * randomness;
+              return (Math.cos(tile.angle) * drift) + jitter;
+            },
+            y: (index: number) => {
+              const tile = tiles[index];
+              const distanceRatio = tile.distance / maxDistance;
+              const drift = radius * (0.35 + (distanceRatio * 0.65));
+              const jitter = (Math.random() - 0.5) * randomness;
+              return (Math.sin(tile.angle) * drift) + jitter;
+            },
+            rotation: () => gsap.utils.random(-28, 28),
+            scale: (index: number) => 0.88 + (tiles[index].weight * 0.35),
+            opacity: (index: number) => 0.55 + (tiles[index].weight * 0.45),
+            duration,
+            ease,
+            stagger,
+          });
+          return;
+        }
+
+        if (name === 'swirl') {
+          const rotations = options.rotations ?? 1.25;
+          const radius = options.radius ?? 36;
+          timelineRef.current = gsap.timeline().to(nodes, {
+            x: (index: number) => {
+              const tile = tiles[index];
+              const dx = tile.cx - centroidX;
+              const turn = rotations * Math.PI * 2 * (1 - (tile.distance / maxDistance));
+              const nextAngle = tile.angle + turn;
+              const nextX = Math.cos(nextAngle) * tile.distance;
+              return (nextX - dx) + (Math.cos(nextAngle) * radius * 0.16);
+            },
+            y: (index: number) => {
+              const tile = tiles[index];
+              const dy = tile.cy - centroidY;
+              const turn = rotations * Math.PI * 2 * (1 - (tile.distance / maxDistance));
+              const nextAngle = tile.angle + turn;
+              const nextY = Math.sin(nextAngle) * tile.distance;
+              return (nextY - dy) + (Math.sin(nextAngle) * radius * 0.16);
+            },
+            rotation: (index: number) => {
+              const tile = tiles[index];
+              return rotations * 130 * (1 - (tile.distance / maxDistance));
+            },
+            scale: (index: number) => 0.94 + (tiles[index].weight * 0.2),
+            opacity: 1,
+            duration,
+            ease,
+            stagger,
+          });
+          return;
+        }
+
+        const amplitude = options.amplitude ?? 17;
+        const frequency = options.frequency ?? 0.085;
         timelineRef.current = gsap.timeline().to(nodes, {
-          x: 0,
-          y: 0,
-          rotation: 0,
+          x: (index: number) => {
+            const tile = tiles[index];
+            return Math.sin((tile.y * frequency) + (index * frequency)) * (amplitude * 0.45);
+          },
+          y: (index: number) => {
+            const tile = tiles[index];
+            return Math.cos((tile.x * frequency) + (index * frequency)) * amplitude;
+          },
+          rotation: (index: number) => Math.sin(index * frequency) * 10,
           scale: 1,
           opacity: 1,
           duration,
           ease,
-          stagger,
+          stagger: stagger * 0.75,
         });
-        return;
-      }
-
-      if (name === 'explode') {
-        const radius = options.radius ?? 88;
-        const randomness = options.randomness ?? 20;
-        timelineRef.current = gsap.timeline().to(nodes, {
-          x: (index: number) => {
-            const tile = tiles[index];
-            const distanceRatio = tile.distance / maxDistance;
-            const drift = radius * (0.35 + (distanceRatio * 0.65));
-            const jitter = (Math.random() - 0.5) * randomness;
-            return (Math.cos(tile.angle) * drift) + jitter;
-          },
-          y: (index: number) => {
-            const tile = tiles[index];
-            const distanceRatio = tile.distance / maxDistance;
-            const drift = radius * (0.35 + (distanceRatio * 0.65));
-            const jitter = (Math.random() - 0.5) * randomness;
-            return (Math.sin(tile.angle) * drift) + jitter;
-          },
-          rotation: () => gsap.utils.random(-28, 28),
-          scale: (index: number) => 0.88 + (tiles[index].weight * 0.35),
-          opacity: (index: number) => 0.55 + (tiles[index].weight * 0.45),
-          duration,
-          ease,
-          stagger,
-        });
-        return;
-      }
-
-      if (name === 'swirl') {
-        const rotations = options.rotations ?? 1.25;
-        const radius = options.radius ?? 36;
-        timelineRef.current = gsap.timeline().to(nodes, {
-          x: (index: number) => {
-            const tile = tiles[index];
-            const dx = tile.cx - centroidX;
-            const turn = rotations * Math.PI * 2 * (1 - (tile.distance / maxDistance));
-            const nextAngle = tile.angle + turn;
-            const nextX = Math.cos(nextAngle) * tile.distance;
-            return (nextX - dx) + (Math.cos(nextAngle) * radius * 0.16);
-          },
-          y: (index: number) => {
-            const tile = tiles[index];
-            const dy = tile.cy - centroidY;
-            const turn = rotations * Math.PI * 2 * (1 - (tile.distance / maxDistance));
-            const nextAngle = tile.angle + turn;
-            const nextY = Math.sin(nextAngle) * tile.distance;
-            return (nextY - dy) + (Math.sin(nextAngle) * radius * 0.16);
-          },
-          rotation: (index: number) => {
-            const tile = tiles[index];
-            return rotations * 130 * (1 - (tile.distance / maxDistance));
-          },
-          scale: (index: number) => 0.94 + (tiles[index].weight * 0.2),
-          opacity: 1,
-          duration,
-          ease,
-          stagger,
-        });
-        return;
-      }
-
-      const amplitude = options.amplitude ?? 17;
-      const frequency = options.frequency ?? 0.085;
-      timelineRef.current = gsap.timeline().to(nodes, {
-        x: (index: number) => {
-          const tile = tiles[index];
-          return Math.sin((tile.y * frequency) + (index * frequency)) * (amplitude * 0.45);
-        },
-        y: (index: number) => {
-          const tile = tiles[index];
-          return Math.cos((tile.x * frequency) + (index * frequency)) * amplitude;
-        },
-        rotation: (index: number) => Math.sin(index * frequency) * 10,
-        scale: 1,
-        opacity: 1,
-        duration,
-        ease,
-        stagger: stagger * 0.75,
       });
-    }, [centroidX, centroidY, killTimeline, maxDistance, tiles]);
+    }, [centroidX, centroidY, killTimeline, maxDistance, tiles, withGsap]);
 
     const reset = useCallback(() => {
       runCommand('assemble', { duration: DEFAULT_DURATION.assemble });
@@ -255,15 +266,17 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
       if (nodes.length === 0) {
         return;
       }
-      gsap.set(nodes, {
-        x: 0,
-        y: 0,
-        rotation: 0,
-        scale: 1,
-        opacity: 1,
-        transformOrigin: '50% 50%',
+      void withGsap((gsap) => {
+        gsap.set(nodes, {
+          x: 0,
+          y: 0,
+          rotation: 0,
+          scale: 1,
+          opacity: 1,
+          transformOrigin: '50% 50%',
+        });
       });
-    }, []);
+    }, [withGsap]);
 
     useEffect(() => {
       if (typeof window === 'undefined') {
