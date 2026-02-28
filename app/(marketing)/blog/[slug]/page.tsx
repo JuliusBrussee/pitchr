@@ -1,15 +1,16 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { notFound } from 'next/navigation';
 import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypePrettyCode from 'rehype-pretty-code';
+import { notFound } from 'next/navigation';
 import { getAllPosts, getPostBySlug, getRelatedPosts } from '@/lib/blog';
 import { mdxComponents } from '@/views/components/blog/MDXComponents';
 import { TableOfContents } from '@/views/components/blog/TableOfContents';
+import { ReadingProgress } from '@/views/components/blog/ReadingProgress';
 import { BlogCard } from '@/views/components/blog/BlogCard';
 import '../blog.css';
 
@@ -55,8 +56,8 @@ export default async function BlogPostPage({ params }: Props) {
   const { meta, content } = post;
   const related = getRelatedPosts(slug, meta.category);
 
-  // JSON-LD structured data for SEO — content is from our own frontmatter, not user input
-  const jsonLd = {
+  // JSON-LD structured data — content is from our own frontmatter, not user input
+  const jsonLdString = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Article',
     headline: meta.title,
@@ -64,19 +65,20 @@ export default async function BlogPostPage({ params }: Props) {
     datePublished: meta.date,
     author: { '@type': 'Person', name: meta.author },
     ...(meta.coverImage ? { image: meta.coverImage } : {}),
-  };
+  });
 
   return (
     <div className="blog-post">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <ReadingProgress />
+
+      <script type="application/ld+json" suppressHydrationWarning>
+        {jsonLdString}
+      </script>
 
       <header className="blog-post-header">
         <Link href="/blog" className="blog-back-link">
-          <ArrowLeft size={16} />
-          Back to blog
+          <ArrowLeft size={14} />
+          Back to journal
         </Link>
         <span className="blog-post-category">{meta.category}</span>
         <h1 className="blog-post-title">{meta.title}</h1>
@@ -133,7 +135,7 @@ export default async function BlogPostPage({ params }: Props) {
 
       {related.length > 0 && (
         <section className="blog-related">
-          <h3 className="blog-related-title">Related articles</h3>
+          <h3 className="blog-related-title">Continue reading</h3>
           <div className="blog-related-grid">
             {related.map((p) => (
               <BlogCard key={p.slug} post={p} />

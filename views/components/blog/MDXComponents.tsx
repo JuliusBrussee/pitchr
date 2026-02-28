@@ -37,7 +37,7 @@ function Quote({ children, author }: { children: React.ReactNode; author?: strin
   return (
     <blockquote className="blog-quote">
       {children}
-      {author && <cite className="blog-quote-author">&mdash; {author}</cite>}
+      {author && <cite className="blog-quote-author">{author}</cite>}
     </blockquote>
   );
 }

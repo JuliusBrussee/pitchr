@@ -42,7 +42,7 @@ export function TableOfContents() {
   if (headings.length === 0) return null;
 
   return (
-    <nav className="blog-toc">
+    <nav className="blog-toc" aria-label="Table of contents">
       <h4 className="blog-toc-title">On this page</h4>
       <ul className="blog-toc-list">
         {headings.map((h) => (

@@ -336,6 +336,9 @@ export default function LandingPage() {
             <a href="#pricing" className="nav-link" onClick={(e) => scrollToSection(e, 'pricing')}>
               Pricing
             </a>
+            <Link href="/blog" className="nav-link">
+              Journal
+            </Link>
             <button
               className="theme-toggle"
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
@@ -688,6 +691,9 @@ export default function LandingPage() {
             <a href="#pricing" className="footer-link" onClick={(e) => scrollToSection(e, 'pricing')}>
               Pricing
             </a>
+            <Link href="/blog" className="footer-link">
+              Journal
+            </Link>
           </div>
         </div>
       </footer>

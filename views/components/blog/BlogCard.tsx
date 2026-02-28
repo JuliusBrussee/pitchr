@@ -1,11 +1,15 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Calendar, Clock } from 'lucide-react';
 import type { BlogPostMeta } from '@/types/blog';
 
-export function BlogCard({ post }: { post: BlogPostMeta }) {
+export function BlogCard({ post, index }: { post: BlogPostMeta; index?: number }) {
   return (
     <Link href={`/blog/${post.slug}`} className="blog-card">
+      {index !== undefined && (
+        <span className="blog-card-number">
+          {String(index).padStart(2, '0')}
+        </span>
+      )}
       <div className="blog-card-image-wrap">
         {post.coverImage ? (
           <Image
@@ -25,15 +29,14 @@ export function BlogCard({ post }: { post: BlogPostMeta }) {
         <p className="blog-card-excerpt">{post.excerpt}</p>
         <div className="blog-card-meta">
           <span className="blog-card-meta-item">
-            <Calendar size={14} />
             {new Date(post.date).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
             })}
           </span>
+          <span className="blog-card-meta-dot" />
           <span className="blog-card-meta-item">
-            <Clock size={14} />
             {post.readingTime} min read
           </span>
         </div>
