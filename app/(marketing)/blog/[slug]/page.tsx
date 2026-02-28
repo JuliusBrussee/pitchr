@@ -65,14 +65,41 @@ export default async function BlogPostPage({ params }: Props) {
   const authorProfile = getBlogAuthor(meta.author);
   const related = getRelatedPosts(slug, meta.category);
 
-  // Extract FAQ pairs from content (matches **Q: ...** / A: ... pattern)
+  // Extract FAQ pairs from content (supports <FAQItem /> components and legacy markdown)
   const faqPairs: { question: string; answer: string }[] = [];
-  const faqMatch = content.match(/## FAQ[\s\S]*$/);
-  if (faqMatch) {
-    const faqRegex = /\*\*Q:\s*(.+?)\*\*\s*\nA:\s*(.+?)(?=\n\n|\n\*\*Q:|\s*$)/g;
-    let m;
-    while ((m = faqRegex.exec(faqMatch[0])) !== null) {
-      faqPairs.push({ question: m[1].trim(), answer: m[2].trim() });
+  const normalizeFaqText = (value: string): string =>
+    value
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const faqComponentRegex = /<FAQItem\b([\s\S]*?)>([\s\S]*?)<\/FAQItem>/g;
+  let componentMatch;
+  while ((componentMatch = faqComponentRegex.exec(content)) !== null) {
+    const attrs = componentMatch[1];
+    const answerRaw = componentMatch[2];
+    const questionMatch = attrs.match(/question=(?:"([^"]+)"|'([^']+)')/);
+    const question = questionMatch?.[1] || questionMatch?.[2] || '';
+    const answer = normalizeFaqText(answerRaw);
+    if (question && answer) {
+      faqPairs.push({ question: question.trim(), answer });
+    }
+  }
+
+  if (faqPairs.length === 0) {
+    const faqMatch = content.match(/## FAQ[\s\S]*$/);
+    if (faqMatch) {
+      const faqRegex = /\*\*Q:\s*(.+?)\*\*\s*\nA:\s*(.+?)(?=\n\n|\n\*\*Q:|\s*$)/g;
+      let legacyMatch;
+      while ((legacyMatch = faqRegex.exec(faqMatch[0])) !== null) {
+        faqPairs.push({
+          question: legacyMatch[1].trim(),
+          answer: normalizeFaqText(legacyMatch[2]),
+        });
+      }
     }
   }
 

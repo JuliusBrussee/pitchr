@@ -42,11 +42,37 @@ function Quote({ children, author }: { children: React.ReactNode; author?: strin
   );
 }
 
+function FAQSection({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="blog-faq" aria-label="Frequently asked questions">
+      <div className="blog-faq-kicker">Founder FAQ</div>
+      <div className="blog-faq-grid">{children}</div>
+    </section>
+  );
+}
+
+function FAQItem({
+  question,
+  children,
+}: {
+  question: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <details className="blog-faq-item">
+      <summary className="blog-faq-question">{question}</summary>
+      <div className="blog-faq-answer">{children}</div>
+    </details>
+  );
+}
+
 export const mdxComponents: MDXComponents = {
   Callout,
   BlogImage,
   YouTube,
   Quote,
+  FAQSection,
+  FAQItem,
   h1: (props) => <h1 className="blog-h1" {...props} />,
   h2: (props) => <h2 className="blog-h2" {...props} />,
   h3: (props) => <h3 className="blog-h3" {...props} />,
