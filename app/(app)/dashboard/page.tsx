@@ -121,7 +121,7 @@ export default function DashboardPage() {
       return;
     }
     setLoading(true);
-    fetchEdge('pitch-run', { params: { projectId: activeProjectId } })
+    fetchEdge('pitch-run', { params: { projectId: activeProjectId, summary: 'true' } })
       .then((r) => r.json())
       .then((payload: { runs?: RunRecord[] }) =>
         setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),

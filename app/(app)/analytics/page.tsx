@@ -561,7 +561,7 @@ export default function AnalyticsPage() {
     }
     setLoading(true);
     fetchEdge('pitch-run', {
-      params: { projectId: activeProjectId },
+      params: { projectId: activeProjectId, summary: 'true' },
     })
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))

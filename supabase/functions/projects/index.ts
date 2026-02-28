@@ -13,7 +13,6 @@ import {
   ensureSeedProjects,
   getActiveProjectId,
   getProjectById,
-  listProjectRecords,
   ProjectNotFoundError,
   resolveProjectForRequest,
   setActiveProject,
@@ -32,15 +31,24 @@ async function handleGet(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const includeArchived = url.searchParams.get('includeArchived') === 'true';
 
-  await ensureSeedProjects(supabase, user.id);
-  const projects = await listProjectRecords(supabase, user.id, { includeArchived: true });
-  let activeProjectId = await getActiveProjectId(supabase, user.id);
-  const activeExists = activeProjectId && projects.some((project) => project.id === activeProjectId);
+  // Run seed check and active project lookup in parallel
+  const [projects, activeId] = await Promise.all([
+    ensureSeedProjects(supabase, user.id),
+    getActiveProjectId(supabase, user.id),
+  ]);
+
+  let activeProjectId = activeId;
+  const activeExists = activeProjectId && projects.some((project) => project.id === activeProjectId && !project.is_archived);
   if (!activeExists) {
-    const fallback = await resolveProjectForRequest(supabase, user.id, {
-      persistResolvedProject: true,
-    });
-    activeProjectId = fallback.id;
+    // Resolve a fallback from the already-loaded projects list
+    const nonArchived = projects.filter((p) => !p.is_archived);
+    const fallback = nonArchived.find((p) => p.type === 'two_min_pitch') ?? nonArchived[0] ?? projects[0];
+    if (fallback) {
+      activeProjectId = fallback.id;
+      await setActiveProject(supabase, user.id, fallback.id);
+    } else {
+      activeProjectId = null;
+    }
   }
 
   return jsonResponse({

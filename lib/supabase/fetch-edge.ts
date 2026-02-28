@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 let cachedToken: string | null = null;
 let cacheExpiresAt = 0;
 let pendingAuth: Promise<string | null> | null = null;
-const AUTH_CACHE_MS = 5_000;
+const AUTH_CACHE_MS = 30_000;
 
 /**
  * Build a full edge function URL.

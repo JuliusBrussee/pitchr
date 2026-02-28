@@ -89,7 +89,7 @@ export default function ProgressPage() {
   const loadRuns = useCallback(() => {
     setFetchError(false);
     setLoading(true);
-    fetchEdge('pitch-run')
+    fetchEdge('pitch-run', { params: { allProjects: 'true', summary: 'true' } })
       .then((r) => r.json())
       .then((payload: { runs?: RawRunRecord[] }) => {
         const data = Array.isArray(payload.runs) ? payload.runs : [];

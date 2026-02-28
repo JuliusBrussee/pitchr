@@ -109,19 +109,22 @@ async function handleGet(req: Request) {
   const allProjects = url.searchParams.get('allProjects') === 'true';
   const limitParam = url.searchParams.get('limit');
   const includePending = url.searchParams.get('includePending') === 'true';
+  const summary = url.searchParams.get('summary') === 'true';
   const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
   const parsedMode = mode === 'elevator' || mode === 'vc_pitch' ? mode : undefined;
   if (projectId && !isUuid(projectId)) {
     return errorResponse('projectId query parameter must be a valid UUID.', 400);
   }
 
-  const resolvedProject = allProjects
-    ? null
-    : await resolveProjectForRequest(supabase, user.id, { projectId: projectId ?? undefined, mode: parsedMode });
+  // When filtering by project, resolve it; otherwise skip the waterfall entirely
+  const resolvedProjectId = allProjects
+    ? undefined
+    : projectId ?? (await resolveProjectForRequest(supabase, user.id, { mode: parsedMode })).id;
 
   const allRuns = await listRuns(supabase, {
     mode: parsedMode,
-    projectId: resolvedProject?.id,
+    projectId: resolvedProjectId,
+    summary,
   });
   const visibleRuns = includePending
     ? allRuns
@@ -131,6 +134,7 @@ async function handleGet(req: Request) {
       ? visibleRuns.slice(0, limit)
       : visibleRuns;
 
+  // Fetch QA summaries in parallel with building the response
   let qaSummariesByRunId = new Map<string, NonNullable<Run['qaSessionsSummary']>>();
   try {
     qaSummariesByRunId = await listQASessionSummariesByRunIds(supabase, runs.map((run) => run.id));
