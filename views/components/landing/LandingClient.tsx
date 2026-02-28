@@ -1,12 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { HeroPresenterTiles } from '@/views/components/landing/HeroPresenterTiles';
-import type { HeroPresenterPartName } from '@/types/heroPresenterTiles';
 import type { BlogPostMeta } from '@/types/blog';
+import {
+  DELIVERY_WAVE_BARS,
+  resolveTileDensityTier,
+} from '@/views/components/landing/heroDeliveryFunnel.config';
+import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
+import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliveryFunnel';
 import '@/app/(marketing)/landing.css';
 
 const LandingBlog = dynamic(
@@ -19,20 +24,9 @@ const LandingPricing = dynamic(
   { ssr: false }
 );
 
-const DELIVERY_WAVE_BARS = [
-  { x: 20, y: 25, h: 50, d: 0.1 }, { x: 40, y: 10, h: 80, d: 0.3 },
-  { x: 60, y: 30, h: 40, d: 0.5 }, { x: 80, y: 15, h: 70, d: 0.2 },
-  { x: 100, y: 35, h: 30, d: 0.6 }, { x: 120, y: 5, h: 90, d: 0.1 },
-  { x: 140, y: 20, h: 60, d: 0.4 }, { x: 160, y: 40, h: 20, d: 0.7 },
-  { x: 180, y: 10, h: 80, d: 0.3 }, { x: 200, y: 25, h: 50, d: 0.5 },
-  { x: 220, y: 15, h: 70, d: 0.2 }, { x: 240, y: 5, h: 90, d: 0.8 },
-  { x: 260, y: 30, h: 40, d: 0.1 }, { x: 280, y: 20, h: 60, d: 0.4 },
-  { x: 300, y: 10, h: 80, d: 0.6 }, { x: 320, y: 35, h: 30, d: 0.3 },
-  { x: 340, y: 15, h: 70, d: 0.5 }, { x: 360, y: 25, h: 50, d: 0.2 },
-] as const;
-
 export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const { isDark, setTheme } = useTheme();
+  const landingRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
   const radarPathRef = useRef<SVGPathElement>(null);
   const ctaContainerRef = useRef<HTMLElement>(null);
@@ -44,11 +38,6 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const heroSpotlightRef = useRef<HTMLDivElement>(null);
   const heroMicPulseRef = useRef<HTMLDivElement>(null);
   const heroScrollRef = useRef<HTMLDivElement>(null);
-  const heroBridgeLayerRef = useRef<HTMLDivElement>(null);
-  const heroBridgePrimaryRef = useRef<SVGPathElement>(null);
-  const heroBridgeSecondaryRef = useRef<SVGPathElement>(null);
-  const heroBridgePrimarySignalRef = useRef<SVGPathElement>(null);
-  const heroBridgeSecondarySignalRef = useRef<SVGPathElement>(null);
   const deliverySectionRef = useRef<HTMLElement>(null);
   const deliveryVisualRef = useRef<HTMLDivElement>(null);
   const deliveryWaveRef = useRef<SVGSVGElement>(null);
@@ -57,6 +46,65 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [waitlistMessage, setWaitlistMessage] = useState('');
+  const [heroTileRenderCap, setHeroTileRenderCap] = useState(420);
+
+  useHeroDeliveryFunnel({
+    landingRef,
+    heroSectionRef,
+    heroInnerRef,
+    heroBgBaseRef,
+    heroPresenterRef,
+    heroSpotlightRef,
+    heroMicPulseRef,
+    heroScrollRef,
+    deliverySectionRef,
+    deliveryVisualRef,
+    deliveryWaveRef,
+    deliveryTranscriptRef,
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    let frame = 0;
+
+    const applyTileCap = () => {
+      const memory = Number((navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4);
+      const cores = Number(navigator.hardwareConcurrency ?? 4);
+      const density = resolveTileDensityTier({
+        tileCount: HERO_PRESENTER_TILE_TUPLES.length,
+        viewportWidth: window.innerWidth,
+        deviceMemory: memory,
+        hardwareConcurrency: cores,
+      });
+      setHeroTileRenderCap(density.targetCount);
+    };
+
+    const onResize = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(applyTileCap);
+    };
+
+    applyTileCap();
+    window.addEventListener('resize', onResize, { passive: true });
+
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  const getScrollBehavior = () => {
+    if (typeof window === 'undefined') {
+      return 'auto' as const;
+    }
+
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth';
+  };
 
   async function handleWaitlistSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,7 +145,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
 
   function scrollToWaitlist(e: React.MouseEvent) {
     e.preventDefault();
-    document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('waitlist')?.scrollIntoView({ behavior: getScrollBehavior(), block: 'center' });
   }
 
   const handleScroll = useCallback(() => {
@@ -190,535 +238,13 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
     };
   }, [handleScroll]);
 
-  // Dynamically import GSAP only when hero elements are mounted
-  useEffect(() => {
-    const hero = heroSectionRef.current;
-    const heroBase = heroBgBaseRef.current;
-    const heroPresenter = heroPresenterRef.current;
-    const heroSpotlight = heroSpotlightRef.current;
-    const heroMicPulse = heroMicPulseRef.current;
-    const heroInner = heroInnerRef.current;
-    const heroScroll = heroScrollRef.current;
-    const heroBridgeLayer = heroBridgeLayerRef.current;
-    const heroBridgePrimary = heroBridgePrimaryRef.current;
-    const heroBridgeSecondary = heroBridgeSecondaryRef.current;
-    const heroBridgePrimarySignal = heroBridgePrimarySignalRef.current;
-    const heroBridgeSecondarySignal = heroBridgeSecondarySignalRef.current;
-    const deliverySection = deliverySectionRef.current;
-    const deliveryVisual = deliveryVisualRef.current;
-    const deliveryWave = deliveryWaveRef.current;
-    const deliveryTranscript = deliveryTranscriptRef.current;
-
-    if (
-      !hero
-      || !heroBase
-      || !heroPresenter
-      || !heroSpotlight
-      || !heroMicPulse
-      || !heroInner
-      || !heroScroll
-      || !heroBridgeLayer
-      || !heroBridgePrimary
-      || !heroBridgeSecondary
-      || !heroBridgePrimarySignal
-      || !heroBridgeSecondarySignal
-      || !deliverySection
-      || !deliveryVisual
-      || !deliveryWave
-      || !deliveryTranscript
-    ) {
-      return;
-    }
-
-    let cleanup: (() => void) | undefined;
-
-    Promise.all([
-      import('gsap'),
-      import('gsap/ScrollTrigger'),
-    ]).then(([gsapModule, scrollTriggerModule]) => {
-      const gsap = gsapModule.default;
-      const { ScrollTrigger } = scrollTriggerModule;
-      gsap.registerPlugin(ScrollTrigger);
-
-      type HeroMotionConfig = {
-        scrub: number;
-        arcScale: number;
-        liftScale: number;
-        bridgeOpacity: number;
-        signalIntensity: number;
-        motifDepth: number;
-      };
-
-      type PresenterTileMetrics = {
-        baseX: number;
-        baseY: number;
-        part: HeroPresenterPartName;
-        seed: number;
-        anticipationX: number;
-        anticipationY: number;
-        anticipationRotation: number;
-        anticipationScale: number;
-        disperseX: number;
-        disperseY: number;
-        disperseRotation: number;
-        disperseScale: number;
-        disperseOpacity: number;
-        resolveX: number;
-        resolveY: number;
-        resolveRotation: number;
-        resolveScale: number;
-        resolveOpacity: number;
-      };
-
-      const tileNodes = Array.from(
-        heroPresenter.querySelectorAll<SVGRectElement>('[data-hero-presenter-tile]')
-      );
-
-      if (tileNodes.length === 0) {
-        return;
-      }
-
-      const parseTileValue = (value: string | undefined, fallback = 0) => {
-        if (!value) {
-          return fallback;
-        }
-
-        const parsed = Number(value);
-        return Number.isFinite(parsed) ? parsed : fallback;
-      };
-
-      const computeTileSeed = (id: number, x: number, y: number) => {
-        const raw = Math.sin(
-          ((id + 1) * 12.9898)
-            + (x * 0.01523)
-            + (y * 0.00917)
-        ) * 43758.5453;
-
-        return raw - Math.floor(raw);
-      };
-
-      const tileSource = tileNodes.map((node, index) => {
-        const id = parseTileValue(node.dataset.tileId, index);
-        const x = parseTileValue(node.dataset.baseX, 0);
-        const y = parseTileValue(node.dataset.baseY, 0);
-
-        return {
-          id,
-          x,
-          y,
-          weight: parseTileValue(node.dataset.weight, 0.5),
-          seed: computeTileSeed(id, x, y),
-          part: (node.dataset.part as HeroPresenterPartName | undefined) ?? 'torso',
-        };
-      });
-
-      const setBridgeSignal = (signalPath: SVGPathElement, pathLength: number) => {
-        const segmentLength = Math.max(pathLength * 0.18, 84);
-        const gapLength = Math.max(pathLength - segmentLength, 1);
-        gsap.set(signalPath, {
-          strokeDasharray: `${segmentLength} ${gapLength}`,
-          strokeDashoffset: pathLength,
-        });
-      };
-
-      const setupTimeline = (config: HeroMotionConfig) => {
-        const presenterSvg = heroPresenter.querySelector('svg');
-        const viewBox = presenterSvg?.viewBox.baseVal;
-        const sourceWidth = viewBox?.width || 1536;
-        const sourceHeight = viewBox?.height || 1024;
-
-        const partMotion: Record<HeroPresenterPartName, {
-          x: number;
-          y: number;
-          arc: number;
-          lift: number;
-          spin: number;
-          scale: number;
-        }> = {
-          head: { x: 1190, y: 210, arc: 56, lift: 54, spin: 18, scale: 1.04 },
-          torso: { x: 1200, y: 430, arc: 42, lift: 32, spin: 10, scale: 1.02 },
-          leadArm: { x: 1042, y: 390, arc: 74, lift: 42, spin: -24, scale: 1.05 },
-          mic: { x: 1168, y: 360, arc: 94, lift: 60, spin: 34, scale: 1.09 },
-          legs: { x: 1190, y: 662, arc: 38, lift: 20, spin: 8, scale: 0.98 },
-          highlights: { x: 1292, y: 392, arc: 84, lift: 26, spin: 28, scale: 1.02 },
-        };
-
-        const waveformRegion = {
-          x: sourceWidth * 0.66,
-          y: sourceHeight * 0.67,
-          width: sourceWidth * 0.24,
-          height: sourceHeight * 0.16,
-        };
-
-        const transcriptRegion = {
-          x: sourceWidth * 0.58,
-          y: sourceHeight * 0.76,
-          width: sourceWidth * 0.28,
-          height: sourceHeight * 0.13,
-        };
-
-        const transcriptCols = 34;
-        const transcriptRows = 13;
-
-        const tileMetrics: PresenterTileMetrics[] = tileSource.map((tile) => {
-          const partStyle = partMotion[tile.part] ?? partMotion.torso;
-          const seed = tile.seed;
-          const phase = (seed * Math.PI * 2)
-            + (tile.x * 0.0042)
-            + (tile.y * 0.0028);
-
-          const radial = partStyle.arc * config.arcScale * (0.55 + (seed * 0.65));
-          const anticipationX = Math.sin(phase) * 4.2 * config.arcScale;
-          const anticipationY = (Math.cos(phase * 0.9) * 3.2 * config.arcScale)
-            - ((tile.part === 'mic' ? 4 : 1.6) * config.liftScale);
-
-          const disperseX = (Math.cos(phase + (seed * 1.45)) * radial)
-            + (Math.sin((tile.y * 0.018) + (seed * 7.3)) * partStyle.arc * 0.24 * config.arcScale);
-          const disperseY = (Math.sin(phase * 0.76) * radial * 0.35)
-            - (partStyle.lift * config.liftScale * (0.55 + (seed * 0.45)));
-          const disperseRotation = (partStyle.spin * (0.52 + (seed * 0.72)))
-            + (Math.sin(phase) * 7.5);
-          const disperseScale = partStyle.scale + ((seed - 0.5) * 0.14);
-          const disperseOpacity = 0.66 + (seed * 0.28);
-
-          const resolveToWave = tile.part === 'mic'
-            || tile.part === 'highlights'
-            || tile.part === 'head'
-            || (tile.part === 'leadArm' && seed > 0.42);
-
-          let targetX = 0;
-          let targetY = 0;
-          let resolveScale = 1;
-          let resolveOpacity = 1;
-          let resolveRotation = 0;
-
-          if (resolveToWave) {
-            const bar = DELIVERY_WAVE_BARS[tile.id % DELIVERY_WAVE_BARS.length];
-            const barX = waveformRegion.x + ((bar.x / 400) * waveformRegion.width);
-            const barTop = waveformRegion.y + ((bar.y / 100) * waveformRegion.height);
-            const barBottom = waveformRegion.y + (((bar.y + bar.h) / 100) * waveformRegion.height);
-            const stripe = (((tile.id * 7) % 10) + (seed * 1.5)) / 10;
-
-            targetX = barX + ((seed - 0.5) * 6);
-            targetY = barBottom - (stripe * (barBottom - barTop))
-              + (Math.sin((seed * Math.PI * 2) + (bar.x * 0.1)) * 2.4);
-            resolveScale = (0.82 + (seed * 0.2)) * config.motifDepth;
-            resolveOpacity = 0.52 + (seed * 0.36);
-            resolveRotation = (seed - 0.5) * 12;
-          } else {
-            const transcriptSlot = (tile.id * 13) % (transcriptCols * transcriptRows);
-            const col = transcriptSlot % transcriptCols;
-            const row = Math.floor(transcriptSlot / transcriptCols);
-
-            const cellWidth = transcriptRegion.width / transcriptCols;
-            const cellHeight = transcriptRegion.height / transcriptRows;
-
-            targetX = transcriptRegion.x + (col * cellWidth) + ((seed - 0.5) * 4);
-            targetY = transcriptRegion.y + (row * cellHeight)
-              + (Math.sin((col * 0.55) + (seed * 5.4)) * 1.8);
-            resolveScale = (0.72 + (seed * 0.2)) * config.motifDepth;
-            resolveOpacity = 0.38 + (seed * 0.3);
-            resolveRotation = (seed - 0.5) * 8;
-          }
-
-          return {
-            baseX: tile.x,
-            baseY: tile.y,
-            part: tile.part,
-            seed,
-            anticipationX,
-            anticipationY,
-            anticipationRotation: (seed - 0.5) * 4.6,
-            anticipationScale: 0.99 + (seed * 0.02),
-            disperseX,
-            disperseY,
-            disperseRotation,
-            disperseScale,
-            disperseOpacity,
-            resolveX: targetX - tile.x,
-            resolveY: targetY - tile.y,
-            resolveRotation,
-            resolveScale,
-            resolveOpacity,
-          };
-        });
-
-        const applyBridgeGeometry = () => {
-          const layerRect = heroBridgeLayer.getBoundingClientRect();
-          const micRect = heroMicPulse.getBoundingClientRect();
-          const waveRect = deliveryWave.getBoundingClientRect();
-          const transcriptRect = deliveryTranscript.getBoundingClientRect();
-
-          const maxY = Math.max(waveRect.bottom, transcriptRect.bottom, micRect.bottom) - layerRect.top;
-          heroBridgeLayer.style.setProperty('--hero-bridge-height', `${Math.ceil(maxY + 180)}px`);
-
-          const resizedLayerRect = heroBridgeLayer.getBoundingClientRect();
-
-          const startX = (micRect.left + (micRect.width / 2)) - resizedLayerRect.left;
-          const startY = (micRect.top + (micRect.height / 2)) - resizedLayerRect.top;
-          const waveX = (waveRect.left + (waveRect.width * 0.42)) - resizedLayerRect.left;
-          const waveY = (waveRect.top + (waveRect.height * 0.56)) - resizedLayerRect.top;
-          const transcriptX = (transcriptRect.left + (transcriptRect.width * 0.52)) - resizedLayerRect.left;
-          const transcriptY = (transcriptRect.top + (transcriptRect.height * 0.22)) - resizedLayerRect.top;
-
-          const primaryPath = [
-            `M ${startX.toFixed(2)} ${startY.toFixed(2)}`,
-            `C ${(startX - (92 * config.arcScale)).toFixed(2)} ${(startY + (148 * config.liftScale)).toFixed(2)}`,
-            `${(waveX + (142 * config.arcScale)).toFixed(2)} ${(waveY - (132 * config.liftScale)).toFixed(2)}`,
-            `${waveX.toFixed(2)} ${waveY.toFixed(2)}`,
-          ].join(' ');
-
-          const branchStartX = startX + ((waveX - startX) * 0.62);
-          const branchStartY = startY + ((waveY - startY) * 0.62);
-          const secondaryPath = [
-            `M ${branchStartX.toFixed(2)} ${branchStartY.toFixed(2)}`,
-            `C ${(branchStartX + (92 * config.arcScale)).toFixed(2)} ${(branchStartY + (52 * config.liftScale)).toFixed(2)}`,
-            `${(transcriptX - (96 * config.arcScale)).toFixed(2)} ${(transcriptY - (72 * config.liftScale)).toFixed(2)}`,
-            `${transcriptX.toFixed(2)} ${transcriptY.toFixed(2)}`,
-          ].join(' ');
-
-          heroBridgePrimary.setAttribute('d', primaryPath);
-          heroBridgeSecondary.setAttribute('d', secondaryPath);
-          heroBridgePrimarySignal.setAttribute('d', primaryPath);
-          heroBridgeSecondarySignal.setAttribute('d', secondaryPath);
-
-          return {
-            primaryLength: heroBridgePrimary.getTotalLength(),
-            secondaryLength: heroBridgeSecondary.getTotalLength(),
-          };
-        };
-
-        gsap.set(heroBase, {
-          transformOrigin: '50% 50%',
-          yPercent: 0,
-          scale: 1,
-        });
-        gsap.set(heroPresenter, {
-          transformOrigin: '72% 42%',
-          xPercent: 0,
-          yPercent: 0,
-          rotation: 0,
-          scale: 1,
-          autoAlpha: 1,
-        });
-        gsap.set(heroSpotlight, {
-          transformOrigin: '50% 50%',
-          autoAlpha: 0.18,
-          scale: 1,
-          xPercent: 0,
-          yPercent: 0,
-        });
-        gsap.set(heroMicPulse, {
-          autoAlpha: 0,
-          scale: 0.82,
-        });
-        gsap.set(heroInner, {
-          yPercent: 0,
-          autoAlpha: 1,
-        });
-        gsap.set(heroScroll, {
-          autoAlpha: 1,
-          y: 0,
-        });
-        gsap.set(tileNodes, {
-          x: 0,
-          y: 0,
-          rotation: 0,
-          scale: 1,
-          opacity: 1,
-        });
-        gsap.set(heroBridgeLayer, { autoAlpha: 0 });
-        gsap.set([heroBridgePrimary, heroBridgeSecondary], {
-          autoAlpha: 0.1,
-        });
-        gsap.set([heroBridgePrimarySignal, heroBridgeSecondarySignal], {
-          autoAlpha: 0,
-        });
-        gsap.set(deliveryVisual, {
-          transformOrigin: '50% 50%',
-          scale: 0.985,
-        });
-        gsap.set(deliveryWave, {
-          transformOrigin: '50% 70%',
-          scale: 0.84,
-          autoAlpha: 0.64,
-        });
-        gsap.set(deliveryTranscript, {
-          autoAlpha: 0.62,
-          y: 18,
-        });
-
-        const bridgeLengths = applyBridgeGeometry();
-        setBridgeSignal(heroBridgePrimarySignal, bridgeLengths.primaryLength);
-        setBridgeSignal(heroBridgeSecondarySignal, bridgeLengths.secondaryLength);
-
-        const timeline = gsap.timeline({
-          defaults: { ease: 'none' },
-          scrollTrigger: {
-            trigger: hero,
-            start: 'top top',
-            endTrigger: deliverySection,
-            end: 'top 55%',
-            scrub: config.scrub,
-            invalidateOnRefresh: true,
-            onRefresh: () => {
-              const refreshed = applyBridgeGeometry();
-              setBridgeSignal(heroBridgePrimarySignal, refreshed.primaryLength);
-              setBridgeSignal(heroBridgeSecondarySignal, refreshed.secondaryLength);
-            },
-          },
-        });
-
-        timeline
-          .to(heroScroll, { autoAlpha: 0, y: -16, duration: 0.16 }, 0)
-          .to(heroBase, { yPercent: -5.5 * config.liftScale, scale: 1.026, duration: 1 }, 0)
-          .to(heroSpotlight, { autoAlpha: 0.42 * config.signalIntensity, scale: 1.1, duration: 0.34 }, 0.06)
-          .to(heroPresenter, {
-            xPercent: -6.4 * config.arcScale,
-            yPercent: -3.1 * config.liftScale,
-            scale: 1.05,
-            rotation: -1.2 * config.signalIntensity,
-            duration: 0.4,
-          }, 0.16)
-          .to(heroMicPulse, { autoAlpha: 0.84 * config.signalIntensity, scale: 1.05, duration: 0.12 }, 0.2)
-          .to(heroMicPulse, { autoAlpha: 0.28, scale: 1.38, duration: 0.2 }, 0.34)
-          .to(heroMicPulse, { autoAlpha: 0.78 * config.signalIntensity, scale: 1.08, duration: 0.16 }, 0.52)
-          .to(heroMicPulse, { autoAlpha: 0.18, scale: 1.62, duration: 0.22 }, 0.66)
-          .to(tileNodes, {
-            x: (index: number) => tileMetrics[index].anticipationX,
-            y: (index: number) => tileMetrics[index].anticipationY,
-            rotation: (index: number) => tileMetrics[index].anticipationRotation,
-            scale: (index: number) => tileMetrics[index].anticipationScale,
-            opacity: 1,
-            duration: 0.2,
-            ease: 'sine.out',
-            stagger: 0.00065,
-          }, 0)
-          .to(tileNodes, {
-            x: (index: number) => tileMetrics[index].disperseX,
-            y: (index: number) => tileMetrics[index].disperseY,
-            rotation: (index: number) => tileMetrics[index].disperseRotation,
-            scale: (index: number) => tileMetrics[index].disperseScale,
-            opacity: (index: number) => tileMetrics[index].disperseOpacity,
-            duration: 0.48,
-            ease: 'power2.inOut',
-            stagger: 0.00085,
-          }, 0.2)
-          .to(heroInner, { yPercent: -7.2 * config.liftScale, autoAlpha: 0.79, duration: 0.26 }, 0.72)
-          .to(heroPresenter, {
-            xPercent: 3.4 * config.arcScale,
-            yPercent: 2.2 * config.liftScale,
-            scale: 1.01,
-            autoAlpha: 0.76,
-            duration: 0.24,
-          }, 0.82)
-          .to(tileNodes, {
-            x: (index: number) => tileMetrics[index].resolveX,
-            y: (index: number) => tileMetrics[index].resolveY,
-            rotation: (index: number) => tileMetrics[index].resolveRotation,
-            scale: (index: number) => tileMetrics[index].resolveScale,
-            opacity: (index: number) => tileMetrics[index].resolveOpacity,
-            duration: 0.28,
-            ease: 'power3.inOut',
-            stagger: 0.0008,
-          }, 0.68)
-          .to(heroBridgeLayer, { autoAlpha: 1, duration: 0.08 }, 0.22)
-          .to([heroBridgePrimary, heroBridgeSecondary], {
-            autoAlpha: config.bridgeOpacity,
-            duration: 0.22,
-          }, 0.24)
-          .to(heroBridgePrimarySignal, {
-            autoAlpha: 1,
-            strokeDashoffset: 0,
-            duration: 0.5,
-            ease: 'none',
-          }, 0.26)
-          .to(heroBridgeSecondarySignal, {
-            autoAlpha: 0.95,
-            strokeDashoffset: 0,
-            duration: 0.44,
-            ease: 'none',
-          }, 0.44)
-          .to(deliveryVisual, {
-            scale: 1,
-            duration: 0.24,
-          }, 0.76)
-          .to(deliveryWave, {
-            scale: 1,
-            autoAlpha: 1,
-            duration: 0.28,
-            ease: 'power2.out',
-          }, 0.76)
-          .to(deliveryTranscript, {
-            y: 0,
-            autoAlpha: 1,
-            duration: 0.24,
-            ease: 'power2.out',
-          }, 0.8)
-          .to([heroBridgePrimary, heroBridgeSecondary], { autoAlpha: 0.22, duration: 0.14 }, 0.9)
-          .to(heroSpotlight, { autoAlpha: 0.08, scale: 1.05, duration: 0.18 }, 0.84)
-          .to([heroBridgePrimarySignal, heroBridgeSecondarySignal], { autoAlpha: 0.28, duration: 0.12 }, 0.9)
-          .to(heroMicPulse, { autoAlpha: 0, duration: 0.1 }, 0.9);
-
-        return () => {
-          timeline.scrollTrigger?.kill();
-          timeline.kill();
-        };
-      };
-
-      const mm = gsap.matchMedia();
-
-      mm.add('(min-width: 901px) and (prefers-reduced-motion: no-preference)', () =>
-        setupTimeline({
-          scrub: 1,
-          arcScale: 1,
-          liftScale: 1,
-          bridgeOpacity: 0.76,
-          signalIntensity: 1,
-          motifDepth: 1,
-        })
-      );
-
-      mm.add('(max-width: 900px) and (prefers-reduced-motion: no-preference)', () =>
-        setupTimeline({
-          scrub: 0.9,
-          arcScale: 0.82,
-          liftScale: 0.78,
-          bridgeOpacity: 0.72,
-          signalIntensity: 0.9,
-          motifDepth: 0.88,
-        })
-      );
-
-      mm.add('(prefers-reduced-motion: reduce)', () => {
-        gsap.set(heroBase, { clearProps: 'transform' });
-        gsap.set(heroPresenter, { clearProps: 'transform,opacity' });
-        gsap.set(heroSpotlight, { clearProps: 'transform,opacity' });
-        gsap.set(heroInner, { clearProps: 'transform,opacity' });
-        gsap.set(heroScroll, { clearProps: 'transform,opacity' });
-        gsap.set(heroMicPulse, { autoAlpha: 0, clearProps: 'transform' });
-        gsap.set(heroBridgeLayer, { autoAlpha: 0 });
-        gsap.set([heroBridgePrimary, heroBridgeSecondary, heroBridgePrimarySignal, heroBridgeSecondarySignal], {
-          autoAlpha: 0,
-        });
-        gsap.set(deliveryVisual, { clearProps: 'transform' });
-        gsap.set(deliveryWave, { clearProps: 'transform,opacity' });
-        gsap.set(deliveryTranscript, { clearProps: 'transform,opacity' });
-      });
-
-      cleanup = () => mm.revert();
-    });
-
-    return () => cleanup?.();
-  }, []);
-
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById(id)?.scrollIntoView({ behavior: getScrollBehavior(), block: 'start' });
   };
 
   return (
-    <div className="landing">
+    <div className="landing" ref={landingRef}>
       <div className="bg-noise" />
 
       {/* ═══ NAV ═══ */}
@@ -782,7 +308,11 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       {/* ═══ HERO ═══ */}
       <section className="hero" ref={heroSectionRef}>
         <div className="hero-bg hero-bg-base" ref={heroBgBaseRef} />
-        <HeroPresenterTiles isDark={isDark} ref={heroPresenterRef} />
+        <HeroPresenterTiles
+          isDark={isDark}
+          ref={heroPresenterRef}
+          maxRenderTiles={heroTileRenderCap}
+        />
         <div className="hero-spotlight" ref={heroSpotlightRef} />
         <div className="hero-mic-pulse" ref={heroMicPulseRef} />
         <div className="container hero-inner" ref={heroInnerRef}>
@@ -828,16 +358,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       </section>
 
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
-      <div className="hero-delivery-bridge" ref={heroBridgeLayerRef} aria-hidden="true">
-        <svg className="hero-delivery-bridge-svg" role="presentation">
-          <path className="hero-bridge-rail hero-bridge-primary" ref={heroBridgePrimaryRef} />
-          <path className="hero-bridge-rail hero-bridge-secondary" ref={heroBridgeSecondaryRef} />
-          <path className="hero-bridge-signal hero-bridge-primary-signal" ref={heroBridgePrimarySignalRef} />
-          <path className="hero-bridge-signal hero-bridge-secondary-signal" ref={heroBridgeSecondarySignalRef} />
-        </svg>
-      </div>
-
-      <section className="story-section" id="delivery" ref={deliverySectionRef}>
+      <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>
         <div className="container story-grid">
           <div className="story-text reveal">
             <h2>
@@ -862,13 +383,19 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
               {DELIVERY_WAVE_BARS.map((bar) => (
                 <rect
                   key={bar.x}
+                  data-wave-bar=""
                   x={bar.x}
                   y={bar.y}
                   width="8"
                   height={bar.h}
                   rx="4"
                   className="wave-bar"
-                  style={{ animationDelay: `${bar.d}s` }}
+                  style={{
+                    animationDelay: `${bar.d}s`,
+                    '--bar-scale-limit': `${Math.max(0.48, ((bar.y + bar.h) - 2) / bar.h)}`,
+                    '--bar-gain': `${0.76 + ((((bar.x / 20) % 5) * 0.04) + ((bar.h / 100) * 0.08))}`,
+                    '--bar-tempo': `${0.88 + (((bar.x / 20) % 4) * 0.04)}`,
+                  } as CSSProperties}
                 />
               ))}
             </svg>
