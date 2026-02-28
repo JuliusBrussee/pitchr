@@ -1,23 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import type { BlogPostMeta } from '@/types/blog';
+import '@/app/(marketing)/blog/blog.css';
 
-export function LandingBlog() {
-  const [posts, setPosts] = useState<BlogPostMeta[]>([]);
+export function LandingBlog({ posts }: { posts: BlogPostMeta[] }) {
   const sectionRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    fetch('/api/blog/posts')
-      .then((r) => r.json())
-      .then(setPosts)
-      .catch(() => {});
-  }, []);
-
-  // Self-contained reveal observer since the parent observer runs before this component mounts
   useEffect(() => {
     if (posts.length === 0 || !sectionRef.current) return;
 

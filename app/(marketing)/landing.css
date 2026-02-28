@@ -97,13 +97,13 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url('/hero-bg-light.png');
+  background-image: url('/hero-bg-light.webp');
   background-position: center right;
   background-repeat: no-repeat;
   background-size: cover;
   will-change: transform, opacity;
 }
-.dark .landing .hero-bg { background-image: url('/hero-bg.png'); }
+.dark .landing .hero-bg { background-image: url('/hero-bg.webp'); }
 .landing .hero-bg-base {
   z-index: 0;
   opacity: 0.62;
