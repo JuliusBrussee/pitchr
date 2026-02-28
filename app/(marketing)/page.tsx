@@ -9,6 +9,7 @@ import { LandingPricing } from '@/views/components/landing/LandingPricing';
 import { LandingBlog } from '@/views/components/landing/LandingBlog';
 import { HeroPresenterTiles } from '@/views/components/landing/HeroPresenterTiles';
 import './landing.css';
+import './blog/blog.css';
 
 gsap.registerPlugin(ScrollTrigger);
 
