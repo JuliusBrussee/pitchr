@@ -106,6 +106,9 @@ Optional:
 - `PLACE_HOLDER_PITCH`
 - `PORT` (STT backend)
 - `NEXT_PUBLIC_WS_URL`
+- `APP_BASE_URL` (for email links)
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO`
+- `NEWSLETTER_CRON_BEARER_TOKEN` (Supabase Edge secret for newsletter cron auth)
 - `MIRO_ENABLED`, `MIRO_PROVIDER`, `MIRO_ACCESS_TOKEN`, `MIRO_TEAM_ID`
 - `MIRO_HYBRID_VISUAL_MODE` (`true` by default; set `false` to disable second visual pass)
 - `PAID_ENABLED` (`true` to enable Paid AI sync)
@@ -158,6 +161,15 @@ Live VC Q&A:
 - `GET /api/qna/session/[qaSessionId]` -> fetch persisted QA session state/summary
 - `POST /api/qna/session/[qaSessionId]/complete` -> persist turns/transcript/evaluation
 - `POST /api/qna/resources/refresh` -> process queued knowledge gaps asynchronously
+
+Waitlist + newsletter:
+
+- `POST /api/waitlist` -> add email to waitlist and send welcome email
+- `GET /api/newsletter/unsubscribe?token=...` -> one-click unsubscribe
+- `POST /api/newsletter/unsubscribe` -> API unsubscribe with `{ token }`
+- `POST /functions/v1/newsletter-send` -> send scheduled weekly newsletter campaigns
+
+Setup guide: `docs/waitlist-email-newsletter.md`
 
 ## Paid AI Integration (Optional)
 
