@@ -42,8 +42,10 @@ export function getScoreBandLabel(score: number): string {
   return labels[band];
 }
 
+export const MARKET_ORANGE = '#f97316';
+
 export function getModeColor(mode: PitchMode): string {
-  return mode === 'elevator' ? '#f97316' : '#ff5941';
+  return mode === 'elevator' ? MARKET_ORANGE : ACCENT;
 }
 
 export function getModeBgColor(mode: PitchMode): string {
@@ -55,12 +57,26 @@ export function getModeLabel(mode: PitchMode): string {
   return mode === 'elevator' ? 'Elevator' : 'VC Pitch';
 }
 
+/* ——— Shared palette ——— */
+
+export const ACCENT = '#ff5941';
+export const ACCENT_SECONDARY = '#ffaa33';
+export const ACCENT_DARK = '#e63b26';
+export const SUCCESS = '#22c55e';
+export const DANGER = '#ef4444';
+export const WARNING = '#f59e0b';
+
+/** Append hex alpha to a color, e.g. withAlpha('#ff5941', '1a') */
+export function withAlpha(hex: string, alpha: string): string {
+  return `${hex}${alpha}`;
+}
+
 export const RUBRIC_COLORS: Record<string, string> = {
-  structure: '#ff5941',
-  clarity: '#ffaa33',
-  evidence: '#22c55e',
-  market: '#f97316',
-  delivery: '#ef4444',
+  structure: ACCENT,
+  clarity: ACCENT_SECONDARY,
+  evidence: SUCCESS,
+  market: MARKET_ORANGE,
+  delivery: DANGER,
 };
 
 export function getRubricColor(category: string): string {
