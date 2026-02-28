@@ -1,6 +1,7 @@
 export interface BlogPostMeta {
   title: string;
   date: string;
+  lastModified?: string;
   author: string;
   category: string;
   tags?: string[];

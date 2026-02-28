@@ -23,6 +23,7 @@ export function getAllPosts(): BlogPostMeta[] {
     return {
       title: data.title,
       date: data.date,
+      lastModified: data.lastModified || null,
       author: data.author,
       category: data.category,
       tags: data.tags || [],
@@ -48,6 +49,7 @@ export function getPostBySlug(slug: string): BlogPost | null {
     meta: {
       title: data.title,
       date: data.date,
+      lastModified: data.lastModified || null,
       author: data.author,
       category: data.category,
       tags: data.tags || [],

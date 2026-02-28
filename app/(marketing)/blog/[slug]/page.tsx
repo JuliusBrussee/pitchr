@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: meta.excerpt,
       type: 'article',
       publishedTime: meta.date,
+      modifiedTime: meta.lastModified || meta.date,
       authors: [meta.author],
       tags: meta.tags,
       ...(meta.coverImage ? { images: [{ url: meta.coverImage }] } : {}),
@@ -56,16 +57,64 @@ export default async function BlogPostPage({ params }: Props) {
   const { meta, content } = post;
   const related = getRelatedPosts(slug, meta.category);
 
+  // Extract FAQ pairs from content (matches **Q: ...** / A: ... pattern)
+  const faqPairs: { question: string; answer: string }[] = [];
+  const faqMatch = content.match(/## FAQ[\s\S]*$/);
+  if (faqMatch) {
+    const faqRegex = /\*\*Q:\s*(.+?)\*\*\s*\nA:\s*(.+?)(?=\n\n|\n\*\*Q:|\s*$)/g;
+    let m;
+    while ((m = faqRegex.exec(faqMatch[0])) !== null) {
+      faqPairs.push({ question: m[1].trim(), answer: m[2].trim() });
+    }
+  }
+
+  const baseUrl = 'https://pitchr.app';
+
   // JSON-LD structured data — content is from our own frontmatter, not user input
-  const jsonLdString = JSON.stringify({
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: meta.title,
-    description: meta.excerpt,
-    datePublished: meta.date,
-    author: { '@type': 'Person', name: meta.author },
-    ...(meta.coverImage ? { image: meta.coverImage } : {}),
-  });
+  const schemas: Record<string, unknown>[] = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: meta.title,
+      description: meta.excerpt,
+      datePublished: meta.date,
+      dateModified: meta.lastModified || meta.date,
+      author: { '@type': 'Organization', name: meta.author },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Pitchr',
+        url: baseUrl,
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${baseUrl}/blog/${slug}`,
+      },
+      ...(meta.coverImage ? { image: meta.coverImage } : {}),
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${baseUrl}/blog` },
+        { '@type': 'ListItem', position: 3, name: meta.title, item: `${baseUrl}/blog/${slug}` },
+      ],
+    },
+  ];
+
+  if (faqPairs.length > 0) {
+    schemas.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqPairs.map((faq) => ({
+        '@type': 'Question',
+        name: faq.question,
+        acceptedAnswer: { '@type': 'Answer', text: faq.answer },
+      })),
+    });
+  }
+
+  const jsonLdString = JSON.stringify(schemas);
 
   return (
     <div className="blog-post">
