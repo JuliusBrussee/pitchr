@@ -155,7 +155,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
           {/* Score */}
           <span
             className="text-sm font-bold tabular-nums"
-            style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+            style={{ color: 'var(--text-primary)' }}
           >
             {category.currentAvg.toFixed(1)}
             <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>/20</span>
@@ -166,7 +166,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
       {/* Progress track */}
       <div className="relative mb-2">
         {/* Band zones background */}
-        <div className="flex h-3 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-color)' }}>
+        <div className="flex h-3.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--border-color)' }}>
           {BANDS.map((band) => {
             const bandWidth = ((band.max - band.min) / 20) * 100;
             return (
@@ -185,7 +185,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
 
         {/* Filled progress */}
         <div
-          className="absolute top-0 left-0 h-3 rounded-full animate-bar-fill"
+          className="absolute top-0 left-0 h-3.5 rounded-full animate-bar-fill"
           style={{
             width: `${position}%`,
             background: `linear-gradient(90deg, ${catColor}60, ${catColor})`,
@@ -221,10 +221,10 @@ function SkillTrack({ category, index }: SkillTrackProps) {
               style={{ width: `${bandWidth}%` }}
             >
               <span
-                className="text-[9px] font-medium"
+                className="text-[10px] font-medium"
                 style={{
                   color: isCurrentBand ? band.color : 'var(--text-muted)',
-                  opacity: isCurrentBand ? 1 : 0.5,
+                  opacity: isCurrentBand ? 1 : 0.6,
                 }}
               >
                 {band.label}
@@ -268,7 +268,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
             </div>
             <div
               className="text-xs font-bold tabular-nums"
-              style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+              style={{ color: 'var(--text-primary)' }}
             >
               {category.bestScore.toFixed(1)}
             </div>
@@ -281,8 +281,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
               className="text-xs font-bold tabular-nums"
               style={{
                 color: category.delta > 0 ? '#22c55e' : category.delta < 0 ? '#ef4444' : 'var(--text-primary)',
-                fontFamily: 'JetBrains Mono, monospace',
-              }}
+                              }}
             >
               {category.delta > 0 ? '+' : ''}{category.delta.toFixed(1)}
             </div>
@@ -293,7 +292,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
             </div>
             <div
               className="text-xs font-bold tabular-nums"
-              style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+              style={{ color: 'var(--text-primary)' }}
             >
               {category.sessionCount}
             </div>
@@ -306,8 +305,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
               className="text-xs font-bold tabular-nums"
               style={{
                 color: nextBand ? nextBand.color : 'var(--text-primary)',
-                fontFamily: 'JetBrains Mono, monospace',
-              }}
+                              }}
             >
               {pointsToNext ? `${pointsToNext} pts` : 'Max'}
             </div>

@@ -58,7 +58,7 @@ function StatItem({
       <div className="min-w-0">
         <div
           className="text-xs font-bold tabular-nums"
-          style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+          style={{ color: 'var(--text-primary)' }}
         >
           {value}
         </div>
@@ -76,27 +76,45 @@ function StatItem({
 /* ——— Mini Trend Bar ——— */
 
 function TrendBar({ history }: { history: { score: number }[] }) {
-  if (history.length < 3) return null;
+  if (history.length < 2) {
+    return (
+      <div
+        className="flex items-center justify-center h-8 text-[10px]"
+        style={{ color: 'var(--text-muted)' }}
+      >
+        Complete more sessions to see trends
+      </div>
+    );
+  }
 
   const recent = history.slice(-8);
-  const max = Math.max(...recent.map((h) => h.score));
+  const max = Math.max(...recent.map((h) => h.score), 1);
 
   return (
-    <div className="flex items-end gap-0.5 h-6">
+    <div className="flex items-end gap-1 h-8">
       {recent.map((h, i) => {
         const height = max > 0 ? (h.score / max) * 100 : 0;
         const isLast = i === recent.length - 1;
+        const isFirst = i === 0;
         return (
-          <div
-            key={i}
-            className="rounded-sm flex-1 transition-all duration-500"
-            style={{
-              height: `${Math.max(height, 8)}%`,
-              backgroundColor: isLast ? '#ff5941' : 'var(--border-color)',
-              opacity: isLast ? 1 : 0.4 + (i / recent.length) * 0.6,
-              minWidth: 3,
-            }}
-          />
+          <div key={i} className="flex-1 flex flex-col items-center gap-0.5" style={{ minWidth: 4 }}>
+            {(isFirst || isLast) && (
+              <span
+                className="text-[8px] font-bold tabular-nums leading-none"
+                style={{ color: isLast ? '#ff5941' : 'var(--text-muted)' }}
+              >
+                {h.score}
+              </span>
+            )}
+            <div
+              className="w-full rounded-sm transition-all duration-500"
+              style={{
+                height: `${Math.max(height, 12)}%`,
+                backgroundColor: isLast ? '#ff5941' : 'var(--border-color)',
+                opacity: isLast ? 1 : 0.3 + (i / recent.length) * 0.7,
+              }}
+            />
+          </div>
         );
       })}
     </div>
@@ -229,7 +247,7 @@ export function MomentumPanel({ progress, animationDelay }: MomentumPanelProps) 
                 <ArrowUp size={14} style={{ color: '#22c55e' }} />
                 <span
                   className="text-2xl font-bold tabular-nums"
-                  style={{ color: '#22c55e', fontFamily: 'JetBrains Mono, monospace' }}
+                  style={{ color: '#22c55e' }}
                 >
                   +{biggestWin.delta.toFixed(1)}
                 </span>
@@ -253,7 +271,7 @@ export function MomentumPanel({ progress, animationDelay }: MomentumPanelProps) 
                     </span>
                     <p className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--text-primary)' }}>
                       {weakest.label}
-                      <span style={{ color: 'var(--text-muted)' }}> \u2014 {weakest.currentAvg.toFixed(1)}/20</span>
+                      <span style={{ color: 'var(--text-muted)' }}>{' \u2014 '}{weakest.currentAvg.toFixed(1)}/20</span>
                     </p>
                   </div>
                 </div>

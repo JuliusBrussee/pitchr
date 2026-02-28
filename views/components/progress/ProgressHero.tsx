@@ -99,13 +99,13 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
       {/* Center content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className="text-4xl font-bold tabular-nums"
-          style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+          className="text-[42px] font-bold tabular-nums leading-none"
+          style={{ color: 'var(--text-primary)' }}
         >
           {score}
         </span>
         <span
-          className="text-[10px] font-medium uppercase tracking-widest"
+          className="text-[11px] font-medium uppercase tracking-widest mt-0.5"
           style={{ color: 'var(--text-muted)' }}
         >
           / 100
@@ -142,7 +142,7 @@ function XPBar({
         </span>
         <span
           className="text-[10px] font-bold tabular-nums"
-          style={{ color: 'var(--text-secondary)', fontFamily: 'JetBrains Mono, monospace' }}
+          style={{ color: 'var(--text-secondary)' }}
         >
           {current}/{max + 1}
         </span>
@@ -260,11 +260,10 @@ export function ProgressHero({ progress, latestScore, animationDelay }: Progress
 
           {/* Level name */}
           <h2
-            className="text-2xl mt-2 mb-0.5"
+            className="text-2xl font-bold mt-2 mb-0.5"
             style={{
               color: 'var(--text-primary)',
-              fontFamily: 'Instrument Serif, Georgia, serif',
-              fontStyle: 'italic',
+              letterSpacing: '-0.02em',
             }}
           >
             {level.name}

@@ -176,7 +176,7 @@ export function CategoryProgressCard({ category, animationDelay }: CategoryProgr
         </div>
         <span
           className="text-sm font-bold tabular-nums"
-          style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+          style={{ color: 'var(--text-primary)' }}
         >
           {category.currentAvg.toFixed(1)}
           <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>/{category.maxScore}</span>
@@ -189,39 +189,41 @@ export function CategoryProgressCard({ category, animationDelay }: CategoryProgr
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      <div
+        className="grid grid-cols-3 gap-2 mb-3 py-2.5 rounded-lg"
+        style={{ backgroundColor: 'var(--bg-surface-hover)' }}
+      >
         <div className="text-center">
-          <div className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
             Best
           </div>
           <div
-            className="text-xs font-bold tabular-nums"
-            style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+            className="text-sm font-bold tabular-nums"
+            style={{ color: 'var(--text-primary)' }}
           >
             {category.bestScore.toFixed(1)}
           </div>
         </div>
-        <div className="text-center">
-          <div className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>
+        <div className="text-center" style={{ borderLeft: '1px solid var(--border-color)', borderRight: '1px solid var(--border-color)' }}>
+          <div className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
             Change
           </div>
           <div
-            className="text-xs font-bold tabular-nums"
+            className="text-sm font-bold tabular-nums"
             style={{
               color: category.delta > 0 ? '#22c55e' : category.delta < 0 ? '#ef4444' : 'var(--text-primary)',
-              fontFamily: 'JetBrains Mono, monospace',
             }}
           >
             {category.delta > 0 ? '+' : ''}{category.delta.toFixed(1)}
           </div>
         </div>
         <div className="text-center">
-          <div className="text-[10px] font-medium mb-0.5" style={{ color: 'var(--text-muted)' }}>
+          <div className="text-[10px] font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
             Sessions
           </div>
           <div
-            className="text-xs font-bold tabular-nums"
-            style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono, monospace' }}
+            className="text-sm font-bold tabular-nums"
+            style={{ color: 'var(--text-primary)' }}
           >
             {category.sessionCount}
           </div>

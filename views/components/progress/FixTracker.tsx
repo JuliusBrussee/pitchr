@@ -12,9 +12,9 @@ interface FixTrackerProps {
 
 type FixFilter = 'all' | 'open' | 'resolved';
 
-const IMPACT_STYLES: Record<string, { color: string; bg: string; label: string }> = {
-  high: { color: '#ef4444', bg: 'rgba(239,68,68,0.10)', label: 'High' },
-  medium: { color: '#ffaa33', bg: 'rgba(255,170,51,0.10)', label: 'Med' },
+const IMPACT_STYLES: Record<string, { color: string; bg: string; label: string; bold?: boolean }> = {
+  high: { color: '#ef4444', bg: 'rgba(239,68,68,0.15)', label: 'HIGH', bold: true },
+  medium: { color: '#ffaa33', bg: 'rgba(255,170,51,0.10)', label: 'MED' },
   low: { color: '#6b7280', bg: 'rgba(107,114,128,0.10)', label: 'Low' },
 };
 
@@ -113,9 +113,10 @@ export function FixTracker({ fixes }: FixTrackerProps) {
                 key={fix.id}
                 className="rounded-lg border transition-all duration-200 cursor-pointer animate-fade-in-up"
                 style={{
-                  borderColor: 'var(--border-color)',
+                  borderColor: !fix.resolved && fix.impact === 'high' ? `${catColor}20` : 'var(--border-color)',
                   borderLeftWidth: 3,
                   borderLeftColor: fix.resolved ? '#22c55e' : catColor,
+                  backgroundColor: !fix.resolved && fix.impact === 'high' ? `${catColor}04` : undefined,
                   animationDelay: `${index * 40}ms`,
                   animationFillMode: 'both',
                 }}
@@ -148,7 +149,7 @@ export function FixTracker({ fixes }: FixTrackerProps) {
                       {CATEGORY_LABELS[fix.category] ?? fix.category}
                     </span>
                     <span
-                      className="text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded"
+                      className={`text-[10px] uppercase px-1.5 py-0.5 rounded ${impact.bold ? 'font-bold' : 'font-semibold'}`}
                       style={{ color: impact.color, backgroundColor: impact.bg }}
                     >
                       {impact.label}

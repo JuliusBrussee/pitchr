@@ -37,7 +37,7 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
   const maxScore = 100;
   const svgWidth = 600;
   const svgHeight = 200;
-  const padding = { top: 12, right: 24, bottom: 32, left: 44 };
+  const padding = { top: 12, right: 80, bottom: 32, left: 44 };
   const chartWidth = svgWidth - padding.left - padding.right;
   const chartHeight = svgHeight - padding.top - padding.bottom;
 
@@ -99,11 +99,12 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
               />
               {/* Zone label on right edge */}
               <text
-                x={padding.left + chartWidth + 2}
+                x={padding.left + chartWidth + 6}
                 y={(y1 + y2) / 2 + 3}
-                fontSize={7}
-                fill={`${zone.color}60`}
+                fontSize={8.5}
+                fill={`${zone.color}80`}
                 fontFamily="inherit"
+                fontWeight="500"
                 textAnchor="start"
               >
                 {zone.label}
@@ -137,7 +138,7 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
               textAnchor="end"
               fontSize={9}
               fill="var(--text-muted)"
-              fontFamily="JetBrains Mono, monospace"
+              fontFamily="inherit"
             >
               {val}
             </text>
@@ -208,7 +209,7 @@ export function ScoreTimeline({ data }: ScoreTimelineProps) {
                   fontSize={10}
                   fontWeight="700"
                   fill={getScoreColor(p.score)}
-                  fontFamily="JetBrains Mono, monospace"
+                  fontFamily="inherit"
                 >
                   {p.score}
                 </text>
