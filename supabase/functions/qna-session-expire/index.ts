@@ -50,12 +50,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const stale = (sessions ?? []) as StaleSessionRow[];
-    let expiredCount = 0;
-    let billedSeconds = 0;
-
-    for (const session of stale) {
+    // Build list of sessions to expire with computed billing info
+    const toExpire = stale.flatMap((session) => {
       const startedAtMs = Date.parse(session.started_at);
-      if (!Number.isFinite(startedAtMs)) continue;
+      if (!Number.isFinite(startedAtMs)) return [];
 
       const elapsedSeconds = (now.getTime() - startedAtMs) / 1000;
       const durationLimit =
@@ -67,39 +65,57 @@ Deno.serve(async (req: Request) => {
           ? session.meta.grace_period_seconds as number
           : 10;
 
-      // Only expire if past duration limit + buffer
-      if (elapsedSeconds <= durationLimit + STALE_BUFFER_SECONDS) continue;
+      if (elapsedSeconds <= durationLimit + STALE_BUFFER_SECONDS) return [];
 
-      // Bill the capped duration (not the full elapsed time since they were idle)
       const cappedDuration = Math.min(Math.round(elapsedSeconds), durationLimit);
       const isGrace = cappedDuration <= gracePeriod;
       const billable = isGrace ? 0 : cappedDuration;
 
-      // Record billing
-      if (billable > 0) {
-        await recordQaSecondsUsage(supabase, session.user_id, billable);
-        billedSeconds += billable;
+      return [{ session, cappedDuration, isGrace, billable, elapsedSeconds }];
+    });
+
+    // Process all stale sessions in parallel
+    const results = await Promise.allSettled(
+      toExpire.map(async ({ session, cappedDuration, isGrace, billable, elapsedSeconds }) => {
+        const ops: Promise<unknown>[] = [];
+
+        if (billable > 0) {
+          ops.push(recordQaSecondsUsage(supabase, session.user_id, billable));
+        }
+
+        ops.push(
+          supabase
+            .from('qa_sessions')
+            .update({
+              status: 'expired',
+              completed_at: now.toISOString(),
+              duration_seconds: cappedDuration,
+              meta: {
+                ...(session.meta ?? {}),
+                expired_by_server: true,
+                billable_seconds: billable,
+                grace_period_applied: isGrace,
+                server_expire_elapsed: Math.round(elapsedSeconds),
+              },
+              updated_at: now.toISOString(),
+            })
+            .eq('id', session.id),
+        );
+
+        await Promise.all(ops);
+        return billable;
+      }),
+    );
+
+    let expiredCount = 0;
+    let billedSeconds = 0;
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        expiredCount++;
+        billedSeconds += result.value;
+      } else {
+        console.error('[qna-session-expire] failed to expire session', result.reason);
       }
-
-      // Mark session as expired
-      await supabase
-        .from('qa_sessions')
-        .update({
-          status: 'expired',
-          completed_at: now.toISOString(),
-          duration_seconds: cappedDuration,
-          meta: {
-            ...(session.meta ?? {}),
-            expired_by_server: true,
-            billable_seconds: billable,
-            grace_period_applied: isGrace,
-            server_expire_elapsed: Math.round(elapsedSeconds),
-          },
-          updated_at: now.toISOString(),
-        })
-        .eq('id', session.id);
-
-      expiredCount++;
     }
 
     return jsonResponse({

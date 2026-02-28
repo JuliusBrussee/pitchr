@@ -87,24 +87,26 @@ export async function ensureSeedProjects(
     (type) => !seededTypes.has(type),
   );
 
-  if (missingSeedTypes.length > 0) {
-    const inserts = missingSeedTypes.map((type) => {
-      const config = PROJECT_TYPE_CONFIG[type];
-      return {
-        user_id: userId,
-        name: config.seedName,
-        type: config.id,
-        workflow_mode: config.workflowMode,
-        is_seeded: true,
-        is_archived: false,
-        prompt_overrides: {},
-      };
-    });
+  if (missingSeedTypes.length === 0) {
+    return existing;
+  }
 
-    const { error } = await supabase.from('projects').insert(inserts);
-    if (error) {
-      throw new Error(`Failed to seed projects: ${error.message}`);
-    }
+  const inserts = missingSeedTypes.map((type) => {
+    const config = PROJECT_TYPE_CONFIG[type];
+    return {
+      user_id: userId,
+      name: config.seedName,
+      type: config.id,
+      workflow_mode: config.workflowMode,
+      is_seeded: true,
+      is_archived: false,
+      prompt_overrides: {},
+    };
+  });
+
+  const { error } = await supabase.from('projects').insert(inserts);
+  if (error) {
+    throw new Error(`Failed to seed projects: ${error.message}`);
   }
 
   return listProjectRecords(supabase, userId, { includeArchived: true });

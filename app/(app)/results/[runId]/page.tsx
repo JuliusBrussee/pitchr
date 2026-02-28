@@ -15,6 +15,7 @@ import {
   RewriteDiffPanel,
   ScoreHero,
   SectionAccordion,
+  ShareScoreCard,
   TopFixes,
   VocabDiagnostics,
 } from '@/views/components/results';
@@ -236,6 +237,7 @@ export default function ResultsPage() {
   const [miroCreateError, setMiroCreateError] = useState<string | null>(null);
   const [miroCreateMessage, setMiroCreateMessage] = useState<string | null>(null);
   const miroPollIntervalMs = useMemo(() => getMiroPollIntervalMs(), []);
+  const [sessionDelta, setSessionDelta] = useState<{ points: number; sessions: number } | null>(null);
   const achievements = useAchievements();
   const achievementCheckDone = useRef(false);
   const { registerPage } = useTutorial('results');
@@ -270,6 +272,19 @@ export default function ResultsPage() {
           },
         }));
         achievements.processRuns(normalized);
+
+        // Compute session delta for share card from the same data
+        if (data.length >= 2) {
+          const sorted = [...data].sort(
+            (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+          );
+          const firstScore = sorted[0].overallScore;
+          const currentScore = run.outputs?.feedback?.overall_score ?? run.analysis?.overall_score ?? 0;
+          const delta = currentScore - firstScore;
+          if (delta !== 0) {
+            setSessionDelta({ points: delta, sessions: data.length });
+          }
+        }
       })
       .catch(() => {});
   }, [run?.status, achievements.processRuns]);
@@ -608,7 +623,24 @@ export default function ResultsPage() {
   /* ── Loading state ───────────────────────────────────────── */
 
   if (loading) {
-    return <AnalyzingOverlay isVisible />;
+    // Only show the full analyzing overlay when we know the run is actively
+    // queued/running (i.e. a fresh session still being processed). During the
+    // initial fetch (run is null) — e.g. navigating from history — show a
+    // lightweight loader instead to avoid a jarring flash.
+    if (run && (run.status === 'queued' || run.status === 'running')) {
+      return <AnalyzingOverlay isVisible />;
+    }
+    return (
+      <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-4 h-4 rounded-full animate-pulse"
+            style={{ backgroundColor: 'var(--text-muted)', opacity: 0.5 }}
+          />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading results...</p>
+        </div>
+      </main>
+    );
   }
 
   /* ── Failed state ────────────────────────────────────────── */
@@ -760,6 +792,9 @@ export default function ResultsPage() {
       <div data-tour="tour-results-score">
         <ScoreHero feedback={feedback} />
       </div>
+
+      {/* ━━━ Share Score Card ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      <ShareScoreCard feedback={feedback} run={run} sessionDelta={sessionDelta} />
 
       {/* ━━━ TIER 2: Actionable Insights ━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />
