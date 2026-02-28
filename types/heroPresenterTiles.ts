@@ -1,4 +1,11 @@
 export type HeroTileCommandName = 'assemble' | 'explode' | 'swirl' | 'wave';
+export type HeroPresenterPartName =
+  | 'head'
+  | 'torso'
+  | 'leadArm'
+  | 'mic'
+  | 'legs'
+  | 'highlights';
 
 export type HeroPresenterTileTuple = readonly [
   x: number,

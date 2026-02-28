@@ -8,8 +8,13 @@ import {
   HERO_PRESENTER_TILE_SIZE,
   HERO_PRESENTER_TILE_TUPLES,
 } from '@/views/components/landing/heroPresenterTiles.data';
+import {
+  getHeroPresenterPartByTileIndex,
+  getHeroPresenterTileSeed,
+} from '@/views/components/landing/heroPresenterParts.data';
 import type {
   HeroPresenterTilesController,
+  HeroPresenterPartName,
   HeroPresenterTilesState,
   HeroTileCommandName,
   HeroTileCommandOptions,
@@ -28,6 +33,8 @@ type ComputedTile = {
   lightFill: string;
   darkFill: string;
   weight: number;
+  part: HeroPresenterPartName;
+  seed: number;
   distance: number;
   angle: number;
 };
@@ -60,6 +67,8 @@ function toComputedTiles() {
       lightFill,
       darkFill,
       weight,
+      part: getHeroPresenterPartByTileIndex(index),
+      seed: getHeroPresenterTileSeed(index, x, y),
       distance: 0,
       angle: 0,
     };
@@ -147,17 +156,18 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
             const tile = tiles[index];
             const distanceRatio = tile.distance / maxDistance;
             const drift = radius * (0.35 + (distanceRatio * 0.65));
-            const jitter = (Math.random() - 0.5) * randomness;
+            const jitter = (((tile.seed * 2) - 1) * randomness);
             return (Math.cos(tile.angle) * drift) + jitter;
           },
           y: (index: number) => {
             const tile = tiles[index];
             const distanceRatio = tile.distance / maxDistance;
             const drift = radius * (0.35 + (distanceRatio * 0.65));
-            const jitter = (Math.random() - 0.5) * randomness;
+            const secondarySeed = ((tile.seed * 1.6180339887) % 1);
+            const jitter = (((secondarySeed * 2) - 1) * randomness);
             return (Math.sin(tile.angle) * drift) + jitter;
           },
-          rotation: () => gsap.utils.random(-28, 28),
+          rotation: (index: number) => ((tiles[index].seed - 0.5) * 56),
           scale: (index: number) => 0.88 + (tiles[index].weight * 0.35),
           opacity: (index: number) => 0.55 + (tiles[index].weight * 0.45),
           duration,
@@ -306,8 +316,10 @@ export const HeroPresenterTiles = forwardRef<HTMLDivElement, HeroPresenterTilesP
               className="hero-presenter-tile"
               data-hero-presenter-tile=""
               data-tile-id={tile.id}
+              data-part={tile.part}
               data-base-x={tile.x}
               data-base-y={tile.y}
+              data-weight={tile.weight}
               x={tile.x}
               y={tile.y}
               width={HERO_PRESENTER_TILE_SIZE}
