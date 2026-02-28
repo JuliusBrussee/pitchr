@@ -6,16 +6,10 @@ import { useTutorial } from '@/hooks/useTutorial';
 import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import {
   TrendingUp,
-  Flame,
-  Target,
-  ArrowUp,
-  ArrowDown,
-  Minus,
-  BarChart3,
+  Radio,
 } from 'lucide-react';
 import {
   GlassCard,
-  StatCard,
   SectionHeader,
   EmptyState,
   Skeleton,
@@ -24,7 +18,9 @@ import {
   useDelayedLoading,
 } from '@/views/components/ui';
 import {
-  ProgressKanban,
+  ProgressHero,
+  SkillLadder,
+  MomentumPanel,
   CategoryProgressCard,
   FixTracker,
   ScoreTimeline,
@@ -33,7 +29,6 @@ import { AchievementSummary } from '@/views/components/achievements';
 import { useAchievements } from '@/hooks/useAchievements';
 import { computeProgress } from '@/lib/progress';
 import type { ProgressRunRecord, ProgressSummary } from '@/lib/progress';
-import { getScoreBandLabel } from '@/views/components/ui/colors';
 
 /* ——— Types ——— */
 
@@ -89,7 +84,7 @@ export default function ProgressPage() {
   const [fetchError, setFetchError] = useState(false);
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('progress');
-  const statsContainerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -103,8 +98,8 @@ export default function ProgressPage() {
       .catch(() => {
         setRuns([]);
         setFetchError(true);
-        if (statsContainerRef.current) {
-          showTooltip(statsContainerRef.current, 'error', 'Failed to load progress data. Check your connection and try again.');
+        if (containerRef.current) {
+          showTooltip(containerRef.current, 'error', 'Failed to load progress data. Check your connection and try again.');
         }
       })
       .finally(() => setLoading(false));
@@ -141,6 +136,7 @@ export default function ProgressPage() {
     return (
       <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
         <Skeleton className="h-8 w-40" />
+        <SkeletonCard />
         <SkeletonStatRow />
         <SkeletonCard />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -152,7 +148,7 @@ export default function ProgressPage() {
   }
 
   return (
-    <main className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
+    <main ref={containerRef} className="flex-1 overflow-y-auto min-h-0 min-w-0 flex flex-col gap-5 pr-1">
       {/* ——— Header ——— */}
       <div
         className="flex items-center justify-between animate-fade-in-up"
@@ -168,10 +164,25 @@ export default function ProgressPage() {
               Progress
             </h1>
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              Track your pitch improvement journey
+              Your pitch training progression
             </p>
           </div>
         </div>
+
+        {progress.totalSessions > 0 && (
+          <a
+            href="/session"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+            style={{
+              backgroundColor: '#ff5941',
+              color: '#ffffff',
+              boxShadow: '0 0 12px rgba(255,89,65,0.3)',
+            }}
+          >
+            <Radio size={13} />
+            Practice
+          </a>
+        )}
       </div>
 
       {progress.totalSessions === 0 ? (
@@ -198,105 +209,44 @@ export default function ProgressPage() {
         </GlassCard>
       ) : (
         <>
-          {/* ——— Stat Cards ——— */}
-          <div ref={statsContainerRef} data-tour="tour-progress-stats" className="grid grid-cols-4 gap-4">
-            <StatCard
-              label="Current Score"
-              value={`${latestScore}/100`}
-              icon={<Target size={16} />}
+          {/* ——— Level Hero ——— */}
+          <div data-tour="tour-progress-level">
+            <ProgressHero
+              progress={progress}
+              latestScore={latestScore}
               animationDelay="60ms"
-            />
-            <StatCard
-              label="Overall Change"
-              value={`${progress.overallDelta > 0 ? '+' : ''}${progress.overallDelta} pts`}
-              icon={
-                progress.overallDelta > 0 ? (
-                  <ArrowUp size={16} />
-                ) : progress.overallDelta < 0 ? (
-                  <ArrowDown size={16} />
-                ) : (
-                  <Minus size={16} />
-                )
-              }
-              animationDelay="120ms"
-            />
-            <StatCard
-              label="Current Streak"
-              value={`${progress.currentStreak} run${progress.currentStreak !== 1 ? 's' : ''}`}
-              icon={<Flame size={16} />}
-              animationDelay="180ms"
-            />
-            <StatCard
-              label="Sessions"
-              value={String(progress.totalSessions)}
-              icon={<BarChart3 size={16} />}
-              animationDelay="240ms"
             />
           </div>
 
-          {/* ——— Score Band Summary ——— */}
-          <GlassCard animationDelay="280ms">
-            <div className="flex items-center justify-between mb-2">
-              <SectionHeader>Current Level</SectionHeader>
-              <span
-                className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{
-                  backgroundColor:
-                    latestScore >= 80
-                      ? 'rgba(34,197,94,0.12)'
-                      : latestScore >= 60
-                        ? 'rgba(59,130,246,0.12)'
-                        : latestScore >= 40
-                          ? 'rgba(234,179,8,0.12)'
-                          : 'rgba(239,68,68,0.12)',
-                  color:
-                    latestScore >= 80
-                      ? '#22c55e'
-                      : latestScore >= 60
-                        ? '#3b82f6'
-                        : latestScore >= 40
-                          ? '#eab308'
-                          : '#ef4444',
-                }}
-              >
-                {getScoreBandLabel(latestScore)}
+          {/* ——— Momentum Panel ——— */}
+          <MomentumPanel
+            progress={progress}
+            animationDelay="140ms"
+          />
+
+          {/* ——— Skill Progression Ladder ——— */}
+          <div data-tour="tour-progress-skills">
+            <div
+              className="flex items-center justify-between mb-1 animate-fade-in-up"
+              style={{ animationDelay: '200ms', animationFillMode: 'both' }}
+            >
+              <SectionHeader>Skill Progression</SectionHeader>
+              <span className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
+                Tap any skill for details
               </span>
             </div>
-            <p
-              className="text-xs mb-1"
-              style={{ color: 'var(--text-secondary)' }}
-            >
-              {latestScore >= 80
-                ? 'Your pitch is investor-ready. Focus on maintaining consistency.'
-                : latestScore >= 60
-                  ? 'Solid foundation. Address your weakest categories to reach investor-ready.'
-                  : latestScore >= 40
-                    ? 'Making progress. The Kanban board below shows what to focus on next.'
-                    : 'Early stages. Keep practicing and watch your skills move across the board.'}
-            </p>
-          </GlassCard>
-
-          {/* ——— Skill Kanban Board ——— */}
-          <div data-tour="tour-progress-kanban">
-          <GlassCard animationDelay="320ms">
-            <SectionHeader className="mb-4">Skill Board</SectionHeader>
-            <p
-              className="text-xs mb-4 -mt-2"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Each rubric skill moves through bands as you improve. Track your
-              strengths and weak areas at a glance.
-            </p>
-            <ProgressKanban categories={progress.categories} />
-          </GlassCard>
+            <SkillLadder
+              categories={progress.categories}
+              animationDelay="220ms"
+            />
           </div>
 
           {/* ——— Score Timeline ——— */}
           <div data-tour="tour-progress-timeline">
-          <GlassCard animationDelay="380ms">
-            <SectionHeader className="mb-4">Score Timeline</SectionHeader>
-            <ScoreTimeline data={progress.overallTrend} />
-          </GlassCard>
+            <GlassCard animationDelay="380ms">
+              <SectionHeader className="mb-4">Score Timeline</SectionHeader>
+              <ScoreTimeline data={progress.overallTrend} />
+            </GlassCard>
           </div>
 
           {/* ——— Category Deep-Dive ——— */}
@@ -304,7 +254,7 @@ export default function ProgressPage() {
             <SectionHeader className="mb-3">
               <span
                 className="animate-fade-in-up"
-                style={{ animationDelay: '420ms', animationFillMode: 'both' }}
+                style={{ animationDelay: '440ms', animationFillMode: 'both' }}
               >
                 Category Breakdown
               </span>
@@ -314,14 +264,14 @@ export default function ProgressPage() {
                 <CategoryProgressCard
                   key={cat.id}
                   category={cat}
-                  animationDelay={`${440 + i * 60}ms`}
+                  animationDelay={`${460 + i * 60}ms`}
                 />
               ))}
             </div>
           </div>
 
           {/* ——— Fix Tracker ——— */}
-          <GlassCard animationDelay="720ms">
+          <GlassCard animationDelay="760ms">
             <FixTracker fixes={progress.fixes} />
             <p
               className="text-[10px] mt-3 italic"
@@ -332,7 +282,7 @@ export default function ProgressPage() {
           </GlassCard>
 
           {/* ——— Achievements ——— */}
-          <GlassCard animationDelay="780ms">
+          <GlassCard animationDelay="820ms">
             <AchievementSummary
               state={achievements.state}
               progress={achievements.progress}

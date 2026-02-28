@@ -60,6 +60,70 @@ html.dark body {
   animation: fadeInUp 0.3s ease-out;
 }
 
+/* ——— Progress Page Animations ——— */
+
+@keyframes scoreRingFill {
+  from { stroke-dashoffset: var(--ring-circumference, 440); }
+  to { stroke-dashoffset: var(--ring-offset, 440); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes barFillSlide {
+  from { width: 0%; }
+}
+
+@keyframes markerSlide {
+  from { left: 0%; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes drawLine {
+  from { stroke-dashoffset: var(--line-length, 1000); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes subtleBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow-color, transparent); }
+  50% { box-shadow: 0 0 20px 2px var(--glow-color, transparent); }
+}
+
+.animate-score-ring {
+  animation: scoreRingFill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-bar-fill {
+  animation: barFillSlide 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-marker-slide {
+  animation: markerSlide 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.4s ease-out;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: subtleBreathe 4s ease-in-out infinite;
+}
+
 /* ——— Pricing Grid & Card Styles ——— */
 
 .pricing-grid {
