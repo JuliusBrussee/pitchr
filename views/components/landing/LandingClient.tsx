@@ -111,8 +111,39 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       },
       { threshold: 0.3, rootMargin: '0px 0px -50px 0px' }
     );
+    const observedRevealNodes = new WeakSet<Element>();
+    const observeRevealNodes = (root: ParentNode) => {
+      root.querySelectorAll('.landing .reveal').forEach((el) => {
+        if (observedRevealNodes.has(el)) {
+          return;
+        }
+        observedRevealNodes.add(el);
+        observer.observe(el);
+      });
+    };
 
-    document.querySelectorAll('.landing .reveal').forEach((el) => observer.observe(el));
+    observeRevealNodes(document);
+
+    const landingRoot = document.querySelector('.landing');
+    const mutationObserver = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        mutation.addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) {
+            return;
+          }
+
+          if (node.matches('.landing .reveal') && !observedRevealNodes.has(node)) {
+            observedRevealNodes.add(node);
+            observer.observe(node);
+          }
+
+          observeRevealNodes(node);
+        });
+      }
+    });
+    if (landingRoot) {
+      mutationObserver.observe(landingRoot, { childList: true, subtree: true });
+    }
 
     // Nav scroll effect
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -131,6 +162,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
 
     return () => {
       observer.disconnect();
+      mutationObserver.disconnect();
       window.removeEventListener('scroll', handleScroll);
       ctaContainer?.removeEventListener('mousemove', handleMouseMove);
     };
