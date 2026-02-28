@@ -608,7 +608,24 @@ export default function ResultsPage() {
   /* ── Loading state ───────────────────────────────────────── */
 
   if (loading) {
-    return <AnalyzingOverlay isVisible />;
+    // Only show the full analyzing overlay when we know the run is actively
+    // queued/running (i.e. a fresh session still being processed). During the
+    // initial fetch (run is null) — e.g. navigating from history — show a
+    // lightweight loader instead to avoid a jarring flash.
+    if (run && (run.status === 'queued' || run.status === 'running')) {
+      return <AnalyzingOverlay isVisible />;
+    }
+    return (
+      <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-4 h-4 rounded-full animate-pulse"
+            style={{ backgroundColor: 'var(--text-muted)', opacity: 0.5 }}
+          />
+          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading results...</p>
+        </div>
+      </main>
+    );
   }
 
   /* ── Failed state ────────────────────────────────────────── */

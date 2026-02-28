@@ -7,6 +7,12 @@
 
 import { createClient } from '@/lib/supabase/client';
 
+/** Cached auth token to avoid repeated getSession/getUser calls on the same page load. */
+let cachedToken: string | null = null;
+let cacheExpiresAt = 0;
+let pendingAuth: Promise<string | null> | null = null;
+const AUTH_CACHE_MS = 5_000;
+
 /**
  * Build a full edge function URL.
  */
@@ -32,27 +38,50 @@ export function edgeFunctionUrl(
 }
 
 /**
+ * Resolve the current access token, with a short-lived cache so concurrent
+ * fetchEdge calls on the same page mount share a single auth round-trip.
+ */
+async function resolveAccessToken(): Promise<string | null> {
+  if (cachedToken && Date.now() < cacheExpiresAt) {
+    return cachedToken;
+  }
+
+  // Deduplicate concurrent callers — only one auth request in flight.
+  if (pendingAuth) return pendingAuth;
+
+  pendingAuth = (async () => {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      cachedToken = session.access_token;
+      cacheExpiresAt = Date.now() + AUTH_CACHE_MS;
+      return cachedToken;
+    }
+
+    // getSession can return null when the stored session is stale or expired.
+    // Calling getUser triggers a token refresh and re-populates the session.
+    await supabase.auth.getUser();
+    const { data: { session: refreshed } } = await supabase.auth.getSession();
+    cachedToken = refreshed?.access_token ?? null;
+    cacheExpiresAt = Date.now() + AUTH_CACHE_MS;
+    return cachedToken;
+  })();
+
+  try {
+    return await pendingAuth;
+  } finally {
+    pendingAuth = null;
+  }
+}
+
+/**
  * Get auth headers for edge function calls.
  * Includes the Supabase anon key and the user's JWT.
  */
 export async function getEdgeHeaders(
   extraHeaders?: Record<string, string>,
 ): Promise<Record<string, string>> {
-  const supabase = createClient();
-
-  // Try getSession first (reads from storage, no network call).
-  // If it returns null, fall back to getUser() which refreshes the token.
-  let accessToken: string | undefined;
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    accessToken = session.access_token;
-  } else {
-    // getSession can return null when the stored session is stale or expired.
-    // Calling getUser triggers a token refresh and re-populates the session.
-    await supabase.auth.getUser();
-    const { data: { session: refreshed } } = await supabase.auth.getSession();
-    accessToken = refreshed?.access_token;
-  }
+  const accessToken = await resolveAccessToken();
 
   const headers: Record<string, string> = {
     'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
