@@ -143,13 +143,13 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background-image: url('/hero-bg-light.png');
+  background-image: url('/hero-bg-light.webp');
   background-position: center right;
   background-repeat: no-repeat;
   background-size: cover;
   will-change: transform, opacity;
 }
-.dark .landing .hero-bg { background-image: url('/hero-bg.png'); }
+.dark .landing .hero-bg { background-image: url('/hero-bg.webp'); }
 .landing .hero-bg-base {
   z-index: 0;
   opacity: 0.62;
@@ -165,18 +165,7 @@
     linear-gradient(to bottom, var(--bg) 0%, transparent 12%);
 }
 .landing .hero-presenter-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.82;
-  clip-path: inset(0);
-  transform-origin: 72% 42%;
-  filter: saturate(1.15) brightness(1.08);
-  mix-blend-mode: screen;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.4) 53%, #000 63%, #000 100%);
-  mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.4) 53%, #000 63%, #000 100%);
-  will-change: transform, opacity;
+  display: none;
 }
 .landing .hero-presenter-svg {
   width: 100%;

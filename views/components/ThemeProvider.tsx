@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { OrbState } from '@/views/components/SiriBubble';
+import type { OrbState } from '@/views/components/SiriBubble';
 
 // Aura color mappings matching SiriBubble states
 const AURA_COLORS: Record<OrbState, { primary: string; secondary: string }> = {

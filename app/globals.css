@@ -60,6 +60,106 @@ html.dark body {
   animation: fadeInUp 0.3s ease-out;
 }
 
+/* ——— Momentum Panel Animations ——— */
+
+@keyframes momentumStatReveal {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes trendLineReveal {
+  from { opacity: 0; stroke-dasharray: 200; stroke-dashoffset: 200; }
+  to { opacity: 1; stroke-dasharray: 200; stroke-dashoffset: 0; }
+}
+
+@keyframes trendAreaReveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes trendDotPop {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes winGlowPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+@keyframes deltaCountUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes focusBarFill {
+  from { width: 0%; }
+}
+
+/* ——— Progress Page Animations ——— */
+
+@keyframes scoreRingFill {
+  from { stroke-dashoffset: var(--ring-circumference, 440); }
+  to { stroke-dashoffset: var(--ring-offset, 440); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes barFillSlide {
+  from { width: 0%; }
+}
+
+@keyframes markerSlide {
+  from { left: 0%; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes drawLine {
+  from { stroke-dashoffset: var(--line-length, 1000); }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes subtleBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 var(--glow-color, transparent); }
+  50% { box-shadow: 0 0 20px 2px var(--glow-color, transparent); }
+}
+
+.animate-score-ring {
+  animation: scoreRingFill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-bar-fill {
+  animation: barFillSlide 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-marker-slide {
+  animation: markerSlide 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.4s ease-out;
+}
+
+.animate-glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: subtleBreathe 4s ease-in-out infinite;
+}
+
 /* ——— Pricing Grid & Card Styles ——— */
 
 .pricing-grid {
@@ -289,6 +389,146 @@ html.dark body {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0;
   }
+}
+
+/* ——— Dashboard Performance Arena ——— */
+
+/* Score ring fill animation */
+.dash-score-ring-fill {
+  animation: dashRingFill 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.3s backwards;
+}
+
+@keyframes dashRingFill {
+  from { stroke-dashoffset: 502.65; }
+}
+
+/* Score glow pulse */
+.dash-score-glow {
+  animation: dashGlowPulse 3s ease-in-out infinite;
+}
+
+@keyframes dashGlowPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Score counter entrance */
+.dash-score-counter {
+  animation: dashCounterPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s backwards;
+}
+
+@keyframes dashCounterPop {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Delta badge slide */
+.dash-delta-badge {
+  animation: dashDeltaSlide 0.4s ease-out 1.4s backwards;
+}
+
+@keyframes dashDeltaSlide {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Coach card gradient border shimmer */
+.dash-coach-card {
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.dash-coach-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(255, 89, 65, 0.08);
+}
+
+.dash-coach-icon {
+  animation: dashCoachPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes dashCoachPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 89, 65, 0.2); }
+  50% { box-shadow: 0 0 12px 4px rgba(255, 89, 65, 0.15); }
+}
+
+/* Sparkline draw animation */
+.dash-sparkline-line {
+  animation: dashSparkDraw 1s ease-out 0.4s backwards;
+}
+
+@keyframes dashSparkDraw {
+  from {
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+  }
+}
+
+.dash-sparkline-area {
+  animation: dashSparkFade 0.8s ease-out 0.6s backwards;
+}
+
+@keyframes dashSparkFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Radar chart shape animation */
+.dash-radar-shape {
+  animation: dashRadarDraw 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.5s backwards;
+  transform-origin: center;
+}
+
+@keyframes dashRadarDraw {
+  from { opacity: 0; transform: scale(0.3); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.dash-radar-dot {
+  animation: dashRadarDot 0.3s ease-out backwards;
+}
+
+.dash-radar-dot:nth-child(1) { animation-delay: 0.8s; }
+.dash-radar-dot:nth-child(2) { animation-delay: 0.9s; }
+.dash-radar-dot:nth-child(3) { animation-delay: 1.0s; }
+.dash-radar-dot:nth-child(4) { animation-delay: 1.1s; }
+.dash-radar-dot:nth-child(5) { animation-delay: 1.2s; }
+
+@keyframes dashRadarDot {
+  from { opacity: 0; r: 0; }
+  to { opacity: 1; }
+}
+
+/* Rubric row expand */
+.dash-rubric-expand {
+  animation: dashRubricExpand 0.25s ease-out;
+}
+
+@keyframes dashRubricExpand {
+  from { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; }
+  to { opacity: 1; max-height: 120px; }
+}
+
+/* Glass card hover depth */
+.dash-hover-depth {
+  transition: transform 0.2s ease, box-shadow 0.25s ease;
+}
+
+.dash-hover-depth:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+.dark .dash-hover-depth:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Session start button enhanced glow */
+.dash-start-session {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dash-start-session:hover {
+  transform: scale(1.02);
 }
 
 /* ——— End Session Button ——— */
@@ -2689,4 +2929,42 @@ html.dark body {
   .qa-latency-group {
     display: none;
   }
+}
+
+/* ——— Share Score Card ——— */
+
+@keyframes shareCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shareCardExpand {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.share-scorecard-enter {
+  animation: shareCardEnter 0.4s ease-out both;
+  animation-delay: 0.3s;
+}
+
+.share-scorecard-expand {
+  animation: shareCardExpand 0.25s ease-out both;
+}
+
+.share-card-preview {
+  animation: shareCardEnter 0.3s ease-out both;
+  animation-delay: 0.1s;
 }

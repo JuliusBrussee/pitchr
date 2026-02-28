@@ -57,3 +57,6 @@ verify_jwt = true
 
 [functions.integration-health]
 verify_jwt = true
+
+[functions.newsletter-send]
+verify_jwt = false

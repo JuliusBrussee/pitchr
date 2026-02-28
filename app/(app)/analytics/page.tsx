@@ -551,6 +551,8 @@ export default function AnalyticsPage() {
   const { showTooltip } = useSmartTooltip();
   const analyticsRef = useRef<HTMLDivElement | null>(null);
   const showSkeleton = useDelayedLoading(loading);
+  const showTooltipRef = useRef(showTooltip);
+  showTooltipRef.current = showTooltip;
 
   const loadRuns = useCallback(() => {
     setFetchError(false);
@@ -561,7 +563,7 @@ export default function AnalyticsPage() {
     }
     setLoading(true);
     fetchEdge('pitch-run', {
-      params: { projectId: activeProjectId },
+      params: { projectId: activeProjectId, summary: 'true' },
     })
       .then((r) => r.json())
       .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
@@ -569,11 +571,11 @@ export default function AnalyticsPage() {
         setAllRuns([]);
         setFetchError(true);
         if (analyticsRef.current) {
-          showTooltip(analyticsRef.current, 'error', 'Failed to load analytics data. Check your connection and try again.');
+          showTooltipRef.current(analyticsRef.current, 'error', 'Failed to load analytics data. Check your connection and try again.');
         }
       })
       .finally(() => setLoading(false));
-  }, [activeProjectId, showTooltip]);
+  }, [activeProjectId]);
 
   useEffect(() => {
     loadRuns();

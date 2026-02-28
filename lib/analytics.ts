@@ -120,3 +120,135 @@ export function computeRecommendations(rubric: RubricCategory[]): Recommendation
     tag: cat.id,
   }));
 }
+
+/* ——— Coach Summary ——— */
+
+export interface CoachSummary {
+  headline: string;
+  detail: string;
+  recommendation: string;
+  estimatedMinutes: number;
+}
+
+export function computeCoachSummary(rubric: RubricCategory[], averageScore: number, totalRuns: number): CoachSummary {
+  const sorted = [...rubric].sort((a, b) => a.score / a.maxScore - b.score / b.maxScore);
+  const weakest = sorted[0];
+  const strongest = sorted[sorted.length - 1];
+
+  if (totalRuns === 0) {
+    return {
+      headline: 'Ready to start your pitch journey?',
+      detail: 'Run your first session to get personalized coaching insights.',
+      recommendation: 'Record or paste your pitch to begin.',
+      estimatedMinutes: 5,
+    };
+  }
+
+  const weakPct = Math.round((weakest.score / weakest.maxScore) * 100);
+  const strongPct = Math.round((strongest.score / strongest.maxScore) * 100);
+  const potentialGain = Math.round((1 - weakest.score / weakest.maxScore) * 20);
+
+  let headline: string;
+  if (averageScore >= 80) {
+    headline = `You're in investor-ready territory. Fine-tune ${weakest.label.toLowerCase()} to perfect your pitch.`;
+  } else if (averageScore >= 60) {
+    headline = `${weakest.label} is your bottleneck. Fixing this could raise your score by ${potentialGain}+ points.`;
+  } else if (averageScore >= 40) {
+    headline = `Focus on ${weakest.label.toLowerCase()} — it's holding back an otherwise ${strongPct >= 70 ? 'strong' : 'improving'} pitch.`;
+  } else {
+    headline = `Your ${strongest.label.toLowerCase()} shows promise. Build on that foundation.`;
+  }
+
+  const detail = strongPct > weakPct * 1.5
+    ? `Your ${strongest.label.toLowerCase()} is ${Math.round(strongPct / Math.max(weakPct, 1))}x stronger than ${weakest.label.toLowerCase()}.`
+    : `Balanced profile — small improvements across categories will compound fast.`;
+
+  return {
+    headline,
+    detail,
+    recommendation: `${Math.max(5, Math.round(potentialGain / 3))}-minute focused ${weakest.id} drill recommended.`,
+    estimatedMinutes: Math.max(5, Math.round(potentialGain / 3)),
+  };
+}
+
+/* ——— Trend Data ——— */
+
+export interface TrendPoint {
+  score: number;
+  date: string;
+  runId: string;
+}
+
+export interface ScoreTrend {
+  points: TrendPoint[];
+  delta: number;
+  isImproving: boolean;
+  bestImprovement: { from: number; to: number; label: string } | null;
+}
+
+export function computeScoreTrend(runs: { id: string; overallScore: number; createdAt: string }[]): ScoreTrend {
+  const sorted = [...runs].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const points: TrendPoint[] = sorted.slice(-10).map((r) => ({
+    score: r.overallScore,
+    date: r.createdAt,
+    runId: r.id,
+  }));
+
+  const delta = points.length >= 2
+    ? points[points.length - 1].score - points[points.length - 2].score
+    : 0;
+
+  let bestImprovement: ScoreTrend['bestImprovement'] = null;
+  for (let i = 1; i < points.length; i++) {
+    const diff = points[i].score - points[i - 1].score;
+    if (diff > 0 && (!bestImprovement || diff > (bestImprovement.to - bestImprovement.from))) {
+      bestImprovement = {
+        from: points[i - 1].score,
+        to: points[i].score,
+        label: `+${diff} points`,
+      };
+    }
+  }
+
+  return {
+    points,
+    delta,
+    isImproving: delta > 0,
+    bestImprovement,
+  };
+}
+
+/* ——— Streak ——— */
+
+export function computeStreak(runs: { createdAt: string }[]): number {
+  if (runs.length === 0) return 0;
+  const sorted = [...runs].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let streak = 0;
+  let checkDate = new Date(today);
+
+  for (let dayBack = 0; dayBack < 365; dayBack++) {
+    const dayStart = new Date(checkDate);
+    dayStart.setDate(dayStart.getDate() - dayBack);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const hasRun = sorted.some((r) => {
+      const d = new Date(r.createdAt);
+      return d >= dayStart && d < dayEnd;
+    });
+
+    if (hasRun) {
+      streak++;
+    } else if (dayBack === 0) {
+      continue;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}

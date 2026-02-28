@@ -291,36 +291,47 @@ export async function recordQaSecondsUsage(
   const rounded = Math.round(seconds);
   if (rounded === 0) return;
 
-  // Atomically increment day pass QA seconds if active
-  const dayPass = await getActiveDayPass(supabase, userId);
-  if (dayPass) {
-    const { error: rpcError } = await supabase.rpc('increment_day_pass_qa_seconds', {
-      pass_id: dayPass.id,
-      additional_seconds: rounded,
-    });
+  // Fetch day pass and subscription in parallel
+  const [dayPass, { data: sub }] = await Promise.all([
+    getActiveDayPass(supabase, userId),
+    supabase
+      .from('subscriptions')
+      .select('current_period_start, current_period_end')
+      .eq('user_id', userId)
+      .single(),
+  ]);
 
-    if (rpcError) {
-      console.error(`[billing] atomic day pass QA seconds increment failed for ${dayPass.id}:`, rpcError.message);
-      throw new Error(`Failed to record day pass QA seconds: ${rpcError.message}`);
-    }
+  const ops: Promise<unknown>[] = [];
+
+  // Atomically increment day pass QA seconds if active
+  if (dayPass) {
+    ops.push(
+      supabase.rpc('increment_day_pass_qa_seconds', {
+        pass_id: dayPass.id,
+        additional_seconds: rounded,
+      }).then(({ error: rpcError }) => {
+        if (rpcError) {
+          console.error(`[billing] atomic day pass QA seconds increment failed for ${dayPass.id}:`, rpcError.message);
+          throw new Error(`Failed to record day pass QA seconds: ${rpcError.message}`);
+        }
+      }),
+    );
   }
 
-  // Always record in usage_events for period tracking
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('current_period_start, current_period_end')
-    .eq('user_id', userId)
-    .single();
-
+  // Record in usage_events for period tracking
   const defaultBounds = getDefaultPeriodBounds();
   const periodStart = sub?.current_period_start ?? defaultBounds.start;
   const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
-  await supabase.from('usage_events').insert({
-    user_id: userId,
-    resource: 'qa_seconds',
-    quantity: rounded,
-    period_start: periodStart,
-    period_end: periodEnd,
-  });
+  ops.push(
+    supabase.from('usage_events').insert({
+      user_id: userId,
+      resource: 'qa_seconds',
+      quantity: rounded,
+      period_start: periodStart,
+      period_end: periodEnd,
+    }),
+  );
+
+  await Promise.all(ops);
 }

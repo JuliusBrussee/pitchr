@@ -3,9 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
-  Target,
-  TrendingUp,
-  Trophy,
   Zap,
   Calendar,
   Timer,
@@ -17,11 +14,9 @@ import { useTutorial } from '@/hooks/useTutorial';
 import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import {
   GlassCard,
-  StatCard,
   ScoreBadge,
   TagPill,
   SectionHeader,
-  CategoryBar,
   InsightCard,
   RecommendationCard,
   EmptyState,
@@ -33,17 +28,24 @@ import {
   getModeColor,
   getModeBgColor,
   getModeLabel,
-  getRubricColor,
 } from '@/views/components/ui';
 import type { PitchMode } from '@/views/components/ui/colors';
 import {
   computeRubricAverages,
   computeInsights,
   computeRecommendations,
+  computeCoachSummary,
+  computeScoreTrend,
+  computeStreak,
 } from '@/lib/analytics';
 import type { RunEconomics } from '@/types/analysis-v2';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useProject } from '@/views/components/ProjectProvider';
+import { ScoreRing } from '@/views/components/dashboard/ScoreRing';
+import { CoachSummary } from '@/views/components/dashboard/CoachSummary';
+import { Sparkline } from '@/views/components/dashboard/Sparkline';
+import { RadarChart } from '@/views/components/dashboard/RadarChart';
+import { StreakBadge } from '@/views/components/dashboard/StreakBadge';
 
 /* ——— Types ——— */
 
@@ -95,15 +97,6 @@ function formatRunDate(iso: string): string {
   });
 }
 
-function formatUsd(amount: number): string {
-  return amount.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: amount < 1 ? 4 : 2,
-    maximumFractionDigits: amount < 1 ? 6 : 2,
-  });
-}
-
 /* ——— Page Component ——— */
 
 export default function DashboardPage() {
@@ -117,6 +110,8 @@ export default function DashboardPage() {
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('dashboard');
   const statsRef = useRef<HTMLDivElement | null>(null);
+  const showTooltipRef = useRef(showTooltip);
+  showTooltipRef.current = showTooltip;
 
   const showSkeleton = useDelayedLoading(loading);
 
@@ -128,7 +123,7 @@ export default function DashboardPage() {
       return;
     }
     setLoading(true);
-    fetchEdge('pitch-run', { params: { projectId: activeProjectId } })
+    fetchEdge('pitch-run', { params: { projectId: activeProjectId, summary: 'true' } })
       .then((r) => r.json())
       .then((payload: { runs?: RunRecord[] }) =>
         setAllRuns(Array.isArray(payload.runs) ? payload.runs : []),
@@ -137,11 +132,11 @@ export default function DashboardPage() {
         setAllRuns([]);
         setFetchError(true);
         if (statsRef.current) {
-          showTooltip(statsRef.current, 'error', 'Failed to load your pitch runs. Check your connection and try again.');
+          showTooltipRef.current(statsRef.current, 'error', 'Failed to load your pitch runs. Check your connection and try again.');
         }
       })
       .finally(() => setLoading(false));
-  }, [activeProjectId, showTooltip]);
+  }, [activeProjectId]);
 
   useEffect(() => {
     setGreeting(getGreeting());
@@ -153,6 +148,7 @@ export default function DashboardPage() {
     registerPage('dashboard');
   }, [registerPage]);
 
+  /* ——— Computed Metrics ——— */
   const totalRuns = allRuns.length;
   const averageScore = totalRuns > 0
     ? Math.round(allRuns.reduce((s, r) => s + r.overallScore, 0) / totalRuns)
@@ -160,18 +156,26 @@ export default function DashboardPage() {
   const bestScore = totalRuns > 0
     ? Math.max(...allRuns.map((r) => r.overallScore))
     : 0;
-  const totalMoneySavedUsd = Math.round(
-    allRuns.reduce((sum, run) => sum + (run.meta?.economics?.money_saved_vs_coach_usd ?? 0), 0) * 100,
-  ) / 100;
-  const totalAiSpendUsd = Math.round(
-    allRuns.reduce((sum, run) => sum + (run.meta?.economics?.estimated_cost_usd ?? 0), 0) * 1_000_000,
-  ) / 1_000_000;
-  const netSavingsUsd = Math.round((totalMoneySavedUsd - totalAiSpendUsd) * 100) / 100;
 
   const rubricCategories = useMemo(() => computeRubricAverages(allRuns), [allRuns]);
   const insights = useMemo(() => computeInsights(rubricCategories), [rubricCategories]);
   const recommendations = useMemo(() => computeRecommendations(rubricCategories), [rubricCategories]);
+  const coachSummary = useMemo(
+    () => computeCoachSummary(rubricCategories, averageScore, totalRuns),
+    [rubricCategories, averageScore, totalRuns],
+  );
+  const scoreTrend = useMemo(() => computeScoreTrend(allRuns), [allRuns]);
+  const streak = useMemo(() => computeStreak(allRuns), [allRuns]);
   const recentRuns = allRuns.slice(0, 3);
+
+  // Delta from last two runs
+  const sortedByDate = useMemo(
+    () => [...allRuns].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [allRuns],
+  );
+  const scoreDelta = sortedByDate.length >= 2
+    ? sortedByDate[0].overallScore - sortedByDate[1].overallScore
+    : 0;
 
   return (
     <main
@@ -204,7 +208,7 @@ export default function DashboardPage() {
               {formattedDate}
             </p>
           </div>
-          <Link href="/session" className="no-underline">
+          <Link href="/session" className="no-underline dash-start-session">
             <div className="session-start-wrap" style={{ borderRadius: 12, padding: 2 }}>
               <div className="session-start-glow" />
               <button
@@ -220,7 +224,7 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {/* ——— Stat Cards Row ——— */}
+        {/* ——— Loading / Empty / Data States ——— */}
         {loading ? (
           showSkeleton ? (
             <>
@@ -262,73 +266,125 @@ export default function DashboardPage() {
           </GlassCard>
         ) : (
           <>
-        <div ref={statsRef} data-tour="tour-dashboard-stats" className="grid grid-cols-3 gap-4">
-          <StatCard
-            label="Total Runs"
-            value={String(totalRuns)}
-            icon={<Target size={16} />}
-            animationDelay="0.08s"
-          />
-          <StatCard
-            label="Average Score"
-            value={`${averageScore}/100`}
-            icon={<TrendingUp size={16} />}
-            animationDelay="0.14s"
-          />
-          <StatCard
-            label="Best Score"
-            value={`${bestScore}/100`}
-            icon={<Trophy size={16} />}
-            animationDelay="0.20s"
-          />
-        </div>
+            {/* ——— AI Coach Summary ——— */}
+            <CoachSummary summary={coachSummary} hasRuns={totalRuns > 0} />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            label="Total Money Saved"
-            value={formatUsd(totalMoneySavedUsd)}
-            icon={<Zap size={16} />}
-            animationDelay="0.24s"
-
-          />
-          <StatCard
-            label="Total AI Spend"
-            value={formatUsd(totalAiSpendUsd)}
-            icon={<Timer size={16} />}
-            animationDelay="0.28s"
-
-          />
-          <StatCard
-            label="Net Savings (Est.)"
-            value={formatUsd(netSavingsUsd)}
-            icon={<TrendingUp size={16} />}
-            animationDelay="0.32s"
-
-          />
-        </div>
-
-            {/* ——— Rubric Breakdown ——— */}
-            <div data-tour="tour-dashboard-rubric">
-            <GlassCard animationDelay="0.26s">
-              <SectionHeader className="mb-4">Rubric Breakdown</SectionHeader>
-              <div className="flex flex-col gap-3.5">
-                {rubricCategories.map((cat, i) => (
-                  <CategoryBar
-                    key={cat.id}
-                    label={cat.label}
-                    score={cat.score}
-                    maxScore={cat.maxScore}
-                    color={getRubricColor(cat.id)}
-                    delay={i}
+            {/* ——— Hero: Score Ring + Trend + Streak ——— */}
+            <div
+              ref={statsRef}
+              data-tour="tour-dashboard-stats"
+              className="grid grid-cols-1 md:grid-cols-2 gap-6"
+            >
+              {/* Score Ring Hero */}
+              <div
+                className="rounded-2xl border p-6 flex flex-col items-center justify-center animate-fade-in-up dash-hover-depth"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  backdropFilter: 'blur(var(--blur-strength))',
+                  WebkitBackdropFilter: 'blur(var(--blur-strength))',
+                  borderColor: 'var(--border-color)',
+                  animationDelay: '0.08s',
+                  animationFillMode: 'both',
+                }}
+              >
+                <ScoreRing
+                  score={averageScore}
+                  delta={scoreDelta}
+                  totalRuns={totalRuns}
+                />
+                <div className="mt-4">
+                  <StreakBadge
+                    streak={streak}
+                    totalRuns={totalRuns}
+                    bestScore={bestScore}
                   />
-                ))}
+                </div>
               </div>
-            </GlassCard>
+
+              {/* Right column: Sparkline + Quick Stats */}
+              <div className="flex flex-col gap-4">
+                <Sparkline trend={scoreTrend} />
+
+                {/* Mini stat pills */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div
+                    className="rounded-xl border p-3 text-center animate-fade-in-up dash-hover-depth"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-color)',
+                      animationDelay: '0.24s',
+                      animationFillMode: 'both',
+                    }}
+                  >
+                    <span
+                      className="text-xs font-semibold uppercase tracking-wider block mb-1"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Best
+                    </span>
+                    <span
+                      className="text-xl font-bold tabular-nums"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {bestScore}
+                    </span>
+                  </div>
+                  <div
+                    className="rounded-xl border p-3 text-center animate-fade-in-up dash-hover-depth"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-color)',
+                      animationDelay: '0.28s',
+                      animationFillMode: 'both',
+                    }}
+                  >
+                    <span
+                      className="text-xs font-semibold uppercase tracking-wider block mb-1"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Average
+                    </span>
+                    <span
+                      className="text-xl font-bold tabular-nums"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {averageScore}
+                    </span>
+                  </div>
+                  <div
+                    className="rounded-xl border p-3 text-center animate-fade-in-up dash-hover-depth"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-color)',
+                      animationDelay: '0.32s',
+                      animationFillMode: 'both',
+                    }}
+                  >
+                    <span
+                      className="text-xs font-semibold uppercase tracking-wider block mb-1"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      Sessions
+                    </span>
+                    <span
+                      className="text-xl font-bold tabular-nums"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      {totalRuns}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ——— Radar Chart Rubric ——— */}
+            <div data-tour="tour-dashboard-rubric">
+              <RadarChart categories={rubricCategories} />
             </div>
 
             {/* ——— Top Insights + Practice Recommendations ——— */}
-            <div className="grid grid-cols-2 gap-4">
-              <GlassCard animationDelay="0.32s">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <GlassCard animationDelay="0.32s" className="dash-hover-depth">
                 <SectionHeader className="mb-4">Top Insights</SectionHeader>
                 <div className="flex flex-col gap-3">
                   {insights.map((insight, i) => (
@@ -338,14 +394,14 @@ export default function DashboardPage() {
               </GlassCard>
 
               <div data-tour="tour-dashboard-recommendations">
-              <GlassCard animationDelay="0.38s">
-                <SectionHeader className="mb-4">Practice Recommendations</SectionHeader>
-                <div className="flex flex-col gap-3">
-                  {recommendations.map((rec, i) => (
-                    <RecommendationCard key={i} {...rec} delay={i} />
-                  ))}
-                </div>
-              </GlassCard>
+                <GlassCard animationDelay="0.38s" className="dash-hover-depth">
+                  <SectionHeader className="mb-4">Recommended Focus</SectionHeader>
+                  <div className="flex flex-col gap-3">
+                    {recommendations.map((rec, i) => (
+                      <RecommendationCard key={i} {...rec} delay={i} />
+                    ))}
+                  </div>
+                </GlassCard>
               </div>
             </div>
 
@@ -375,7 +431,7 @@ export default function DashboardPage() {
                     className="no-underline block"
                   >
                     <div
-                      className="group rounded-xl border p-4 transition-all duration-200 cursor-pointer animate-fade-in-up"
+                      className="group rounded-xl border p-4 transition-all duration-200 cursor-pointer animate-fade-in-up dash-hover-depth"
                       style={{
                         backgroundColor: 'var(--bg-surface)',
                         borderColor: 'var(--border-color)',

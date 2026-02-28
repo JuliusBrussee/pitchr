@@ -1,13 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import {
-  DrawingUtils,
-  FaceLandmarker,
-  FilesetResolver,
-  type FaceLandmarkerResult,
-  type Matrix,
+import type {
+  DrawingUtils as DrawingUtilsType,
+  FaceLandmarker as FaceLandmarkerType,
+  FaceLandmarkerResult,
+  Matrix,
 } from "@mediapipe/tasks-vision";
+
+/** Lazy-loaded MediaPipe runtime — only fetched when head tracking starts. */
+let _mediapipe: typeof import("@mediapipe/tasks-vision") | null = null;
+async function loadMediaPipe() {
+  if (!_mediapipe) {
+    _mediapipe = await import("@mediapipe/tasks-vision");
+  }
+  return _mediapipe;
+}
 import {
   BAND_WINDOW_MS,
   classifyEngagementBand,
@@ -156,12 +164,14 @@ const INITIAL_METRICS: HeadTrackingMetrics = {
   fps: 0,
 };
 
-let filesetResolverPromise: ReturnType<typeof FilesetResolver.forVisionTasks> | null = null;
+let filesetResolverPromise: Promise<unknown> | null = null;
 
 function getFilesetResolver() {
   if (!filesetResolverPromise) {
-    filesetResolverPromise = FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+    filesetResolverPromise = loadMediaPipe().then((mp) =>
+      mp.FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
+      )
     );
   }
   return filesetResolverPromise;
@@ -506,7 +516,8 @@ function ensureCanvasSize(video: HTMLVideoElement, canvas: HTMLCanvasElement) {
   return resized;
 }
 
-async function createFaceLandmarkerWithFallback(filesetResolver: Awaited<ReturnType<typeof getFilesetResolver>>) {
+async function createFaceLandmarkerWithFallback(filesetResolver: unknown) {
+  const mp = await loadMediaPipe();
   const baseOptions = {
     modelAssetPath:
       "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
@@ -523,12 +534,12 @@ async function createFaceLandmarkerWithFallback(filesetResolver: Awaited<ReturnT
   };
 
   try {
-    return await FaceLandmarker.createFromOptions(filesetResolver, {
+    return await mp.FaceLandmarker.createFromOptions(filesetResolver as Parameters<typeof mp.FaceLandmarker.createFromOptions>[0], {
       baseOptions: { ...baseOptions, delegate: "GPU" },
       ...commonOptions,
     });
   } catch {
-    return FaceLandmarker.createFromOptions(filesetResolver, {
+    return mp.FaceLandmarker.createFromOptions(filesetResolver as Parameters<typeof mp.FaceLandmarker.createFromOptions>[0], {
       baseOptions: { ...baseOptions, delegate: "CPU" },
       ...commonOptions,
     });
@@ -591,10 +602,10 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
   const rafRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const ownsStreamRef = useRef(false);
-  const landmarkerRef = useRef<FaceLandmarker | null>(null);
+  const landmarkerRef = useRef<FaceLandmarkerType | null>(null);
 
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
-  const drawingUtilsRef = useRef<DrawingUtils | null>(null);
+  const drawingUtilsRef = useRef<DrawingUtilsType | null>(null);
 
   const poseEmaRef = useRef({ yaw: 0, pitch: 0, roll: 0, hasPose: false });
   const yawBalanceRef = useRef<YawBalanceState>(newYawBalanceState());
@@ -806,7 +817,8 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
         const ctx = canvasRef.current.getContext("2d");
         if (ctx) {
           ctxRef.current = ctx;
-          drawingUtilsRef.current = new DrawingUtils(ctx);
+          const mp = await loadMediaPipe();
+          drawingUtilsRef.current = new mp.DrawingUtils(ctx);
         }
       }
 
@@ -1000,7 +1012,7 @@ export function useHeadTracking(options: UseHeadTrackingOptions) {
           }
 
           if (shouldDraw && drawingUtils) {
-            drawingUtils.drawConnectors(results.faceLandmarks[0], FaceLandmarker.FACE_LANDMARKS_TESSELATION, { lineWidth: 1 });
+            drawingUtils.drawConnectors(results.faceLandmarks[0], _mediapipe!.FaceLandmarker.FACE_LANDMARKS_TESSELATION, { lineWidth: 1 });
           }
         } else {
           const sinceFaceMs = now - lastFaceSeenTsRef.current;
