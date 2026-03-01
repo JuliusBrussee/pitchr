@@ -47,6 +47,7 @@ export interface CreatePitchRunRequest {
   audioUrl?: string;
   deckId?: string;
   deckText?: string;
+  contextDocumentIds?: string[];
   transcriptSegments?: TranscriptSegment[];
   stage?: PitchStage;
   regenerate?: 'feedback' | 'qa_1min';

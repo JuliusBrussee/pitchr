@@ -17,6 +17,10 @@ import { analyzePitch } from '../_shared/analysis-service.ts';
 import { SAMPLE_RESULT } from '../_shared/sample-result.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
+import {
+  getDefaultContextDocumentIds,
+  getContextBlocks,
+} from '../_shared/project-document-service.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
 
 class RateLimitError extends Error {
@@ -86,6 +90,16 @@ function validateRequest(body: unknown): any {
   ) {
     throw new PitchValidationError('regenerate must be feedback or qa_1min when provided.');
   }
+  if (payload.contextDocumentIds !== undefined) {
+    if (!Array.isArray(payload.contextDocumentIds)) {
+      throw new PitchValidationError('contextDocumentIds must be an array when provided.');
+    }
+    for (const id of payload.contextDocumentIds) {
+      if (typeof id !== 'string' || !isUuid(id)) {
+        throw new PitchValidationError('Each contextDocumentIds entry must be a valid UUID.');
+      }
+    }
+  }
 
   return {
     mode: payload.mode as PitchMode | undefined,
@@ -95,6 +109,7 @@ function validateRequest(body: unknown): any {
     audioUrl: payload.audioUrl as string | undefined,
     deckId: payload.deckId as string | undefined,
     deckText: (payload.deckText as string | undefined)?.trim() || undefined,
+    contextDocumentIds: payload.contextDocumentIds as string[] | undefined,
     transcriptSegments: payload.transcriptSegments,
     stage: payload.stage,
     regenerate: payload.regenerate,
@@ -175,6 +190,32 @@ async function handlePost(req: Request) {
       ? project.prompt_overrides.analysis_system_prompt
       : undefined;
 
+  // Resolve context document IDs
+  // undefined = use project defaults, [] = no docs, [...] = specific docs
+  let resolvedContextDocumentIds: string[] = [];
+  let documentContextText: string | undefined;
+  try {
+    if (payload.contextDocumentIds === undefined) {
+      resolvedContextDocumentIds = await getDefaultContextDocumentIds(supabase, project.id);
+    } else {
+      resolvedContextDocumentIds = payload.contextDocumentIds;
+    }
+
+    if (resolvedContextDocumentIds.length > 0) {
+      const blocks = await getContextBlocks(supabase, resolvedContextDocumentIds, { maxBlocks: 40 });
+      if (blocks.length > 0) {
+        documentContextText = blocks
+          .map((b) => b.block_text)
+          .join('\n\n');
+      }
+    }
+  } catch (contextErr) {
+    console.warn('[pitch-run] failed to load context documents', {
+      error: contextErr instanceof Error ? contextErr.message : String(contextErr),
+    });
+    // Continue without context — non-fatal
+  }
+
   // Rate limit check
   const adminClient = createAdminClient();
   const usageCheck = await checkUsageLimit(adminClient, user.id, 'run');
@@ -233,6 +274,7 @@ async function handlePost(req: Request) {
       mode,
       projectType: project.type,
       deckText: payload.deckText,
+      documentContextText,
       systemPromptOverride: analysisSystemPrompt,
     });
 

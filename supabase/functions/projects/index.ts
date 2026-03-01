@@ -7,7 +7,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
-import { isProjectTypeId } from '../_shared/project-config.ts';
+import { isProjectTypeId, PROJECT_TYPE_CONFIG } from '../_shared/project-config.ts';
 import {
   createProject,
   ensureSeedProjects,
@@ -19,8 +19,37 @@ import {
   toProject,
   updateProject,
 } from '../_shared/project-service.ts';
+import { getAnalysisPromptProfile } from '../_shared/analysis-profiles.ts';
 
 class ProjectValidationError extends Error {}
+
+function generateProjectPrompt(
+  profile: ReturnType<typeof getAnalysisPromptProfile>,
+  contextNotes: string,
+  criteria: string[],
+): string {
+  const parts = [profile.systemPrompt];
+
+  if (contextNotes) {
+    parts.push('', 'Project context notes:', contextNotes);
+  }
+
+  if (criteria.length > 0) {
+    parts.push(
+      '',
+      'Perfect pitch criteria for this project:',
+      ...criteria.map((c, i) => `${i + 1}. ${c}`),
+    );
+  }
+
+  parts.push(
+    '',
+    `Scoring profile: ${profile.modeConfig.label}`,
+    `Target duration: ${profile.modeConfig.targetDurationSeconds}s, target WPM: ${profile.modeConfig.targetWpm}`,
+  );
+
+  return parts.join('\n');
+}
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
@@ -117,14 +146,49 @@ async function handlePatch(req: Request): Promise<Response> {
   }
 
   let project = await getProjectById(supabase, user.id, projectId);
-  project = await updateProject(supabase, user.id, projectId, {
-    name: typeof body.name === 'string' ? body.name : undefined,
-    isArchived: typeof body.isArchived === 'boolean' ? body.isArchived : undefined,
-    promptOverrides:
+
+  // Handle prompt reset action
+  if (body.action === 'reset_prompt') {
+    const profile = getAnalysisPromptProfile(project.type, project.workflow_mode);
+    const contextNotes = typeof body.project_context_notes === 'string'
+      ? body.project_context_notes.trim()
+      : (project.prompt_overrides?.project_context_notes as string | undefined) ?? '';
+    const criteria = Array.isArray(body.perfect_pitch_criteria)
+      ? body.perfect_pitch_criteria.filter((c: unknown) => typeof c === 'string' && c.trim())
+      : (project.prompt_overrides?.perfect_pitch_criteria as string[] | undefined) ?? [];
+
+    const generatedPrompt = generateProjectPrompt(profile, contextNotes, criteria);
+    const newOverrides = {
+      ...(project.prompt_overrides ?? {}),
+      analysis_system_prompt: generatedPrompt,
+      analysis_prompt_mode: 'auto' as const,
+      analysis_prompt_template_version: 'v1',
+      analysis_prompt_generated_at: new Date().toISOString(),
+      project_context_notes: contextNotes || undefined,
+      perfect_pitch_criteria: criteria.length > 0 ? criteria : undefined,
+    };
+
+    project = await updateProject(supabase, user.id, projectId, {
+      promptOverrides: newOverrides,
+    });
+  } else {
+    // Standard update
+    const promptOverrides =
       body.promptOverrides && typeof body.promptOverrides === 'object'
         ? body.promptOverrides as Record<string, unknown>
-        : undefined,
-  });
+        : undefined;
+
+    // If custom prompt is provided, mark as custom mode
+    if (promptOverrides?.analysis_system_prompt && typeof promptOverrides.analysis_system_prompt === 'string') {
+      promptOverrides.analysis_prompt_mode = 'custom';
+    }
+
+    project = await updateProject(supabase, user.id, projectId, {
+      name: typeof body.name === 'string' ? body.name : undefined,
+      isArchived: typeof body.isArchived === 'boolean' ? body.isArchived : undefined,
+      promptOverrides,
+    });
+  }
 
   const setActive = body.setActive === true;
   if (setActive) {

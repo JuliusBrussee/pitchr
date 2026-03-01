@@ -5,6 +5,7 @@ import { CheckCircle2, FolderPlus, Loader2 } from 'lucide-react';
 import { PROJECT_TYPE_OPTIONS } from '@/config/projectTypes';
 import { useProject } from '@/views/components/ProjectProvider';
 import { ProjectSelect } from '@/views/components/ProjectSelect';
+import { ContextSourcesManager } from '@/views/components/ContextSourcesManager';
 import type { ProjectTypeId } from '@/types/project';
 
 export default function ProjectsPage() {
@@ -243,6 +244,10 @@ export default function ProjectsPage() {
             ))
           )}
         </section>
+
+        {activeProject ? (
+          <ContextSourcesManager projectId={activeProject.id} />
+        ) : null}
 
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           Switch projects from the sidebar `Current project` picker.

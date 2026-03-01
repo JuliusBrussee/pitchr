@@ -18,6 +18,8 @@ import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useProject } from '@/views/components/ProjectProvider';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
+import { useProjectDocuments } from '@/hooks/useProjectDocuments';
+import { ContextDocPicker } from '@/views/components/ContextDocPicker';
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
@@ -61,6 +63,10 @@ function SessionPageContent() {
   const autoSubmitLockRef = useRef(false);
   const hasStartedRef = useRef(false);
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
+
+  // Context documents state
+  const { documents: contextDocs, isLoading: isLoadingDocs } = useProjectDocuments(sessionProjectId);
+  const [contextDocumentIds, setContextDocumentIds] = useState<string[] | undefined>(undefined);
 
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
@@ -337,6 +343,7 @@ function SessionPageContent() {
           audioUrl,
           deckId: selectedDeckId ?? undefined,
           deckText,
+          contextDocumentIds,
           transcriptSegments: stt.transcriptSegments,
         });
         router.push(`/results/${result.runId}`);
@@ -351,6 +358,7 @@ function SessionPageContent() {
     })();
   }, [
     sessionProjectId,
+    contextDocumentIds,
     loadDeckText,
     pitchMode,
     recorder,
@@ -391,6 +399,16 @@ function SessionPageContent() {
           elapsedSeconds={session.metrics.durationSecs}
           targetSeconds={modeConfig.targetDurationSeconds}
         />
+        {!session.isSessionActive && contextDocs.length > 0 ? (
+          <div className="flex items-center gap-2">
+            <ContextDocPicker
+              documents={contextDocs}
+              isLoading={isLoadingDocs}
+              selectedIds={contextDocumentIds}
+              onChange={setContextDocumentIds}
+            />
+          </div>
+        ) : null}
       </div>
       <div data-tour="tour-session-metrics">
         <MetricsPanel

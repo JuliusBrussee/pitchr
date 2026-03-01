@@ -23,6 +23,7 @@ export interface RubricScore {
   score: number;
   max_score: number;
   rationale: string;
+  evidence_refs?: SourceReference[];
 }
 
 export interface Fix {
@@ -31,6 +32,7 @@ export interface Fix {
   issue: string;
   fix: string;
   impact: FixImpact;
+  evidence_refs?: SourceReference[];
 }
 
 export interface FillerWord {
@@ -204,6 +206,28 @@ export interface Citation {
   excerpt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Source reference types for project context documents
+// ---------------------------------------------------------------------------
+
+export type SourceReferenceType = 'slide' | 'document_block';
+
+export interface SourceReference {
+  source_type: SourceReferenceType;
+  source_id: string;
+  source_name: string;
+  block_id?: string;
+  slide_num?: number;
+  snippet: string;
+  relevance: 'high' | 'medium' | 'low';
+}
+
+export interface DocumentContextSummary {
+  document_ids_used: string[];
+  total_blocks_included: number;
+  context_source_names: string[];
+}
+
 export interface StageExpectation {
   stage: PitchStage;
   expectations: string[];
@@ -356,6 +380,7 @@ export interface AnalysisResultV2 {
   meta: AnalysisMeta;
   analysis: FeedbackOutput;
   fallback?: boolean;
+  document_context_used?: DocumentContextSummary;
 }
 
 export interface BeatMatch {

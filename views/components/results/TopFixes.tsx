@@ -2,6 +2,7 @@
 
 import { ArrowRight } from 'lucide-react';
 import type { Fix, FixImpact } from '@/types/analysis-v2';
+import { SourceRefChips } from '@/views/components/results/SourceRefChips';
 
 interface TopFixesProps {
   fixes: Fix[];
@@ -59,6 +60,7 @@ export function TopFixes({ fixes }: TopFixesProps) {
                 {fix.fix}
               </p>
             </div>
+            <SourceRefChips refs={fix.evidence_refs} />
           </div>
         );
       })}

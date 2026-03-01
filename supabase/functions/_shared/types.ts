@@ -8,9 +8,34 @@ export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b';
 export type Coverage = 'spoken_only' | 'spoken+deck';
 export type ProjectTypeId = 'two_min_pitch' | 'elevator_pitch';
 
+export type AnalysisPromptMode = 'auto' | 'custom';
+
 export interface ProjectPromptOverrides {
   analysis_system_prompt?: string;
+  analysis_prompt_mode?: AnalysisPromptMode;
+  analysis_prompt_template_version?: string;
+  analysis_prompt_generated_at?: string;
+  project_context_notes?: string;
+  perfect_pitch_criteria?: string[];
   [key: string]: unknown;
+}
+
+export type DocumentSourceType = 'word_doc' | 'plain_text';
+export type DocumentStatus = 'processing' | 'ready' | 'failed';
+
+export interface ProjectDocumentResponse {
+  id: string;
+  project_id: string;
+  name: string;
+  source_type: DocumentSourceType;
+  status: DocumentStatus;
+  error_message: string | null;
+  file_url: string | null;
+  file_size_bytes: number | null;
+  is_default_context: boolean;
+  block_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Project {

@@ -260,6 +260,50 @@ export const edgeFunctions = {
     update: <T>(body: unknown) =>
       invokeEdgeFunction<T>('projects', { method: 'PATCH', body }),
   },
+
+  projectDocUpload: {
+    /** POST /project-doc-upload — Upload DOCX file */
+    upload: <T>(formData: FormData) =>
+      invokeEdgeFunctionFormData<T>('project-doc-upload', formData),
+
+    /** POST /project-doc-upload — Paste text as document */
+    pasteText: <T>(body: { projectId?: string; name: string; text: string }) =>
+      invokeEdgeFunction<T>('project-doc-upload', { method: 'POST', body }),
+  },
+
+  projectDocList: {
+    /** GET /project-doc-list — List project context documents */
+    get: <T>(params?: { projectId?: string }) =>
+      invokeEdgeFunction<T>('project-doc-list', {
+        params: params as Record<string, string>,
+      }),
+  },
+
+  projectDocDetail: {
+    /** GET /project-doc-detail — Get document with blocks */
+    get: <T>(documentId: string) =>
+      invokeEdgeFunction<T>('project-doc-detail', {
+        params: { documentId },
+      }),
+
+    /** DELETE /project-doc-detail — Delete a document */
+    delete: <T>(documentId: string) =>
+      invokeEdgeFunction<T>('project-doc-detail', {
+        method: 'DELETE',
+        params: { documentId },
+      }),
+
+    /** PATCH /project-doc-detail — Update document (toggle default, rename) */
+    update: <T>(body: {
+      documentId: string;
+      is_default_context?: boolean;
+      name?: string;
+    }) =>
+      invokeEdgeFunction<T>('project-doc-detail', {
+        method: 'PATCH',
+        body,
+      }),
+  },
 };
 
 /**

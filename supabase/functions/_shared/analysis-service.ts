@@ -132,6 +132,7 @@ interface AnalyzePitchInput {
   mode: PitchMode;
   projectType?: ProjectTypeId;
   deckText?: string;
+  documentContextText?: string;
   systemPromptOverride?: string;
 }
 
@@ -238,6 +239,20 @@ function buildUserPrompt(
 
   if (input.deckText) {
     parts.push('', 'Deck text:', input.deckText);
+  }
+
+  if (input.documentContextText) {
+    parts.push(
+      '',
+      'Project context documents (reference materials uploaded by the founder):',
+      input.documentContextText,
+      '',
+      'Context document instructions:',
+      '- Use the context documents to ground your feedback in the founder\'s specific business details.',
+      '- When a rubric score or fix is informed by context, note the connection in the rationale.',
+      '- If the pitch contradicts or misrepresents facts from the context documents, flag this in fixes.',
+      '- If the context documents are irrelevant to the pitch content, score based on the transcript alone.',
+    );
   }
 
   parts.push(

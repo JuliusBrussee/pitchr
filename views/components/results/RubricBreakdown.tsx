@@ -2,6 +2,7 @@
 
 import type { RubricScore } from '@/types/analysis-v2';
 import { getScoreColor } from '@/views/components/ui/colors';
+import { SourceRefChips } from '@/views/components/results/SourceRefChips';
 
 interface RubricBreakdownProps {
   breakdown: RubricScore[];
@@ -87,6 +88,7 @@ export function RubricBreakdown({ breakdown }: RubricBreakdownProps) {
               >
                 {item.rationale}
               </p>
+              <SourceRefChips refs={item.evidence_refs} />
             </div>
           </article>
         );
