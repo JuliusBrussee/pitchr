@@ -32,7 +32,26 @@ function isAuthRoute(pathname: string): boolean {
   );
 }
 
+function requiresAuthLookup(pathname: string): boolean {
+  return isProtectedRoute(pathname) || isAuthRoute(pathname);
+}
+
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Redirect blocked routes (signup) to waitlist without auth lookup.
+  if (BLOCKED_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    url.hash = 'waitlist';
+    return NextResponse.redirect(url);
+  }
+
+  // Public routes skip Supabase auth resolution to avoid request-time latency.
+  if (!requiresAuthLookup(pathname)) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -59,16 +78,6 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-
-  // Redirect blocked routes (signup) to waitlist
-  if (BLOCKED_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'))) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/';
-    url.hash = 'waitlist';
-    return NextResponse.redirect(url);
-  }
 
   // Redirect unauthenticated users away from protected routes
   if (!user && isProtectedRoute(pathname)) {
