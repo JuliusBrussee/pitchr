@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { ThemeProvider } from '@/views/components/ThemeProvider';
-import { AuthProvider } from '@/views/components/AuthProvider';
-import { TutorialProvider } from '@/views/components/TutorialProvider';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
@@ -70,9 +68,7 @@ export default function RootLayout({
           </>
         )}
         <ThemeProvider>
-          <AuthProvider>
-            <TutorialProvider>{children}</TutorialProvider>
-          </AuthProvider>
+          {children}
         </ThemeProvider>
       </body>
     </html>

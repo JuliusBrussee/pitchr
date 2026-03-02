@@ -46,7 +46,8 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const [waitlistEmail, setWaitlistEmail] = useState('');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [waitlistMessage, setWaitlistMessage] = useState('');
-  const [heroTileRenderCap, setHeroTileRenderCap] = useState(420);
+  const [heroTileRenderCap, setHeroTileRenderCap] = useState(180);
+  const [heroFunnelEnabled, setHeroFunnelEnabled] = useState(false);
 
   useHeroDeliveryFunnel({
     landingRef,
@@ -61,6 +62,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
     deliveryVisualRef,
     deliveryWaveRef,
     deliveryTranscriptRef,
+    enabled: heroFunnelEnabled,
   });
 
   useEffect(() => {
@@ -79,7 +81,15 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
         deviceMemory: memory,
         hardwareConcurrency: cores,
       });
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const shouldEnableFunnel = !prefersReducedMotion
+        && window.innerWidth >= 1200
+        && memory >= 8
+        && cores >= 8
+        && density.tier === 'max';
+
       setHeroTileRenderCap(density.targetCount);
+      setHeroFunnelEnabled(shouldEnableFunnel);
     };
 
     const onResize = () => {

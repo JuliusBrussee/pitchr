@@ -28,7 +28,7 @@ describe('heroDeliveryFunnel.config', () => {
     }
   });
 
-  it('uses the full tile set on high-end desktop', () => {
+  it('caps tile count even on high-end desktop to protect first-load performance', () => {
     const density = resolveTileDensityTier({
       tileCount: 1201,
       viewportWidth: 1366,
@@ -37,7 +37,7 @@ describe('heroDeliveryFunnel.config', () => {
     });
 
     expect(density.tier).toBe('max');
-    expect(density.targetCount).toBe(1201);
+    expect(density.targetCount).toBe(560);
   });
 
   it('caps tile count on constrained desktop and mobile', () => {
@@ -48,7 +48,7 @@ describe('heroDeliveryFunnel.config', () => {
       hardwareConcurrency: 4,
     });
     expect(desktop.tier).toBe('balanced');
-    expect(desktop.targetCount).toBe(820);
+    expect(desktop.targetCount).toBe(300);
 
     const mobile = resolveTileDensityTier({
       tileCount: 1201,
@@ -57,7 +57,7 @@ describe('heroDeliveryFunnel.config', () => {
       hardwareConcurrency: 4,
     });
     expect(mobile.tier).toBe('mobile');
-    expect(mobile.targetCount).toBe(320);
+    expect(mobile.targetCount).toBe(140);
   });
 
   it('maps delivery power from 0 to 1', () => {

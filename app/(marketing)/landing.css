@@ -90,10 +90,22 @@
 .landing .accent { color: var(--accent); }
 
 /* ═══ BG EFFECTS ═══ */
-.landing .bg-noise { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.018; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-repeat: repeat; background-size: 128px 128px; }
+.landing .bg-noise {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.022;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.08) 1px, transparent 0);
+  background-size: 6px 6px;
+}
+.dark .landing .bg-noise { opacity: 0.016; }
+@media (max-width: 900px), (prefers-reduced-motion: reduce) {
+  .landing .bg-noise { display: none; }
+}
 
 /* ═══ NAV ═══ */
-.landing .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 14px 0; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: var(--nav-bg); border-bottom: 1px solid var(--border); transition: padding 0.3s ease, background 0.3s ease; }
+.landing .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 14px 0; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); background: var(--nav-bg); border-bottom: 1px solid var(--border); transition: padding 0.3s ease, background 0.3s ease; }
 .landing .nav.scrolled { padding: 10px 0; }
 .landing .nav-inner { display: flex; align-items: center; justify-content: space-between; }
 .landing .nav-logo { font-weight: 700; font-size: 18px; letter-spacing: -0.04em; display: flex; align-items: center; gap: 8px; }
@@ -121,7 +133,6 @@
   background-position: center right;
   background-repeat: no-repeat;
   background-size: cover;
-  will-change: transform, opacity;
 }
 .dark .landing .hero-bg { background-image: url('/hero-bg.webp'); }
 .landing .hero-bg-base {
@@ -161,7 +172,6 @@
   overflow: visible;
   display: block;
   opacity: 0.92;
-  will-change: transform, opacity;
   -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.48) 67%, #000 82%, #000 100%);
   mask-image: linear-gradient(to right, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.48) 67%, #000 82%, #000 100%);
 }
@@ -187,7 +197,6 @@
   pointer-events: none;
   background: radial-gradient(circle, var(--hero-spotlight) 0%, var(--hero-spotlight-edge) 68%);
   opacity: 0.2;
-  will-change: transform, opacity;
 }
 .landing .hero-mic-pulse {
   position: absolute;
@@ -202,9 +211,8 @@
   box-shadow: 0 0 0 0 rgba(255, 89, 51, 0.45), 0 0 18px rgba(255, 89, 51, 0.65);
   opacity: 0;
   transform: scale(0.82);
-  will-change: transform, opacity;
 }
-.landing .hero-inner { position: relative; z-index: 3; max-width: 580px; will-change: transform, opacity; }
+.landing .hero-inner { position: relative; z-index: 3; max-width: 580px; }
 .landing .hero-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px 5px 10px; border-radius: 100px; border: 1px solid rgba(255,87,51,0.15); background: rgba(255,87,51,0.05); font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 28px; letter-spacing: -0.01em; animation: landingFadeUp 0.5s ease 0.1s both; }
 .landing .hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: landingPulse 2.5s ease-in-out infinite; }
 @keyframes landingPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent); } 50% { opacity: 0.4; box-shadow: 0 0 0px transparent; } }
@@ -212,7 +220,7 @@
 .landing .hero h1 .accent { font-style: italic; }
 .landing .hero-sub { font-size: clamp(16px, 1.8vw, 18px); color: var(--text-secondary); max-width: 460px; line-height: 1.6; letter-spacing: -0.01em; margin-bottom: 36px; animation: landingFadeUp 0.5s ease 0.35s both; }
 .landing .hero-ctas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: landingFadeUp 0.5s ease 0.45s both; }
-.landing .hero-scroll { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: landingFadeUp 0.5s ease 0.8s both; will-change: transform, opacity; }
+.landing .hero-scroll { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: landingFadeUp 0.5s ease 0.8s both; }
 .landing .hero-scroll-text { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
 .landing .hero-scroll-line { width: 1px; height: 32px; background: linear-gradient(to bottom, var(--text-muted), transparent); animation: landingScrollPulse 2s ease-in-out infinite; }
 @keyframes landingScrollPulse { 0%, 100% { opacity: 0.3; transform: scaleY(1); } 50% { opacity: 0.8; transform: scaleY(1.2); transform-origin: top; } }
