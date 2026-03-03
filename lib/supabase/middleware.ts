@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+// Keep in sync with the matcher in middleware.ts.
 const PROTECTED_ROUTES = [
   '/dashboard',
   '/session',
