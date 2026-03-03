@@ -31,6 +31,8 @@ Phase 4 (Polish & Engagement)
   Wave 4.1: [Streak System] [Badge System]             ← depend on Phase 3
   Wave 4.2: [Billing Integration] [Notifications]      ← depend on streak/badge
   Wave 4.3: [E2E Tests]                                ← depend on everything
+
+PHASE 5, use frontend design skill to give a once over on all the ui elements
 ```
 
 ---

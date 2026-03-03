@@ -443,14 +443,11 @@
 /* Card grid */
 .landing .lp-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
-  align-items: stretch;
-  max-width: 960px;
+  max-width: 1120px;
   margin: 0 auto;
+  align-items: stretch;
 }
 
 /* Card base */
@@ -778,12 +775,12 @@
 }
 
 /* Pricing responsive */
-@media (max-width: 900px) {
+@media (max-width: 1080px) {
   .landing .lp-grid {
     grid-template-columns: 1fr;
-    max-width: 400px;
+    max-width: 420px;
     margin: 0 auto;
-    gap: 32px;
+    gap: 28px;
   }
 
   .landing .lp-card[data-plan="pro"] {
@@ -867,231 +864,110 @@
   margin-top: 1px;
 }
 
-/* Credits section below plan cards */
-.landing .lp-credits-section {
-  margin-top: 56px;
-  text-align: center;
+/* ——— Credits card (3rd column) ——— */
+.landing .lp-card-credits {
+  border-color: rgba(255, 170, 51, 0.18);
 }
 
-.landing .lp-credits-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-bottom: 28px;
+.landing .lp-card-credits:hover {
+  border-color: rgba(255, 170, 51, 0.32);
 }
 
-.landing .lp-credits-header-icon {
+.landing .lp-badge-credits {
+  background: linear-gradient(135deg, #ff9100, #ffaa33);
+  color: #fff;
+}
+
+/* Credit packs list inside the card */
+.landing .lp-credit-packs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.landing .lp-credit-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
+  justify-content: space-between;
+  padding: 8px 12px;
   border-radius: 10px;
-  background: linear-gradient(135deg, rgba(255, 89, 65, 0.12), rgba(255, 170, 51, 0.08));
-  color: #ff5941;
-  flex-shrink: 0;
+  background: var(--surface-soft);
+  border: 1px solid transparent;
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.landing .lp-credits-title {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-size: 22px;
-  font-weight: 400;
+.landing .lp-credit-row:hover {
+  border-color: var(--border);
+}
+
+.landing .lp-credit-row-best {
+  border-color: rgba(255, 89, 65, 0.2);
+  background: rgba(255, 89, 65, 0.04);
+}
+
+.dark .landing .lp-credit-row-best {
+  background: rgba(255, 89, 65, 0.06);
+}
+
+.landing .lp-credit-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.landing .lp-credit-row-name {
+  font-size: 12px;
+  font-weight: 700;
   color: var(--text);
-  text-align: left;
   letter-spacing: -0.01em;
 }
 
-.landing .lp-credits-subtitle {
-  font-size: 13px;
-  color: var(--text-secondary);
-  text-align: left;
-  line-height: 1.4;
-  margin-top: 2px;
+.landing .lp-credit-row-count {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
-/* Credit pack grid */
-.landing .lp-credit-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-/* Individual credit pack card */
-.landing .lp-credit-pack {
-  position: relative;
+.landing .lp-credit-row-right {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 20px 16px 18px;
-  border-radius: 14px;
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
-  overflow: hidden;
-  /* Reserve space for the savings badge so all cards align equally */
-  padding-top: 42px;
+  gap: 6px;
 }
 
-.landing .lp-credit-pack:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+.landing .lp-credit-row-price {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
 }
 
-.landing .lp-credit-pack-best {
-  border-color: rgba(255, 89, 65, 0.3);
-  background: linear-gradient(180deg, rgba(255, 89, 65, 0.04), var(--card-bg));
-  box-shadow: 0 0 20px rgba(255, 89, 65, 0.06);
-}
-
-.landing .lp-credit-pack-best:hover {
-  box-shadow: 0 8px 32px rgba(255, 89, 65, 0.1);
-}
-
-.landing .lp-credit-pack-accent {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #ff5941, #ffaa33, transparent);
-}
-
-/* Savings badge — positioned absolutely so all cards align */
-.landing .lp-credit-savings {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 100px;
+.landing .lp-credit-row-save {
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
+  letter-spacing: 0.02em;
+  padding: 2px 6px;
+  border-radius: 100px;
   background: rgba(255, 170, 51, 0.1);
   color: #f59e0b;
 }
 
-.landing .lp-credit-savings-high {
+.landing .lp-credit-row-save-high {
   background: rgba(34, 197, 94, 0.1);
   color: #22c55e;
 }
 
-.landing .lp-credit-pack-name {
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
-}
-
-.landing .lp-credit-pack-amount {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.landing .lp-credit-pack-coin {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(255, 89, 65, 0.1);
-  color: #ff5941;
-}
-
-.landing .lp-credit-pack-number {
-  font-size: 26px;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  line-height: 1;
-}
-
-.landing .lp-credit-pack-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.landing .lp-credit-pack-price {
-  font-size: 20px;
-  font-weight: 700;
-  color: #ff5941;
-  letter-spacing: -0.02em;
-}
-
-.landing .lp-credit-pack-rate {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.landing .lp-credit-pack-cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  margin-top: 6px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  background: rgba(255, 89, 65, 0.08);
-  color: #ff5941;
-  border: 1px solid rgba(255, 89, 65, 0.15);
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease;
-}
-
-.landing .lp-credit-pack-cta:hover {
-  transform: scale(1.03);
-  background: rgba(255, 89, 65, 0.12);
-}
-
-.landing .lp-credit-pack-cta-best {
-  background: linear-gradient(135deg, #ff5941, #e63b26);
-  color: #fff;
-  border: none;
-  box-shadow: 0 2px 12px rgba(255, 89, 65, 0.3);
-}
-
-.landing .lp-credit-pack-cta-best:hover {
-  box-shadow: 0 4px 16px rgba(255, 89, 65, 0.4);
-  background: linear-gradient(135deg, #ff5941, #e63b26);
-}
-
+/* ——— Responsive ——— */
 @media (max-width: 600px) {
-  .landing .lp-credit-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+
+  .landing .lp-credit-meter-number {
+    font-size: 24px;
   }
 
-  .landing .lp-credits-header {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .landing .lp-credits-title,
-  .landing .lp-credits-subtitle {
-    text-align: center;
-  }
-
-  .landing .lp-credit-pack-number {
-    font-size: 22px;
+  .landing .lp-credit-body {
+    padding: 14px 16px;
+    gap: 8px;
   }
 }
 

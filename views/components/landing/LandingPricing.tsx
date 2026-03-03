@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, X, Zap, ArrowRight, Coins, TrendingDown, Sparkles } from 'lucide-react';
+import { Check, X, Zap, ArrowRight, Coins } from 'lucide-react';
 import { BILLING_PLANS, CREDIT_PACKS_STATIC, MONTHLY_CREDITS, CREDIT_COSTS } from '@/config/billing';
 import { buildFeatureList, buildExcludedFeatures } from '@/config/billing-features';
 import type { BillingPlan, BillingInterval } from '@/types/billing';
@@ -124,50 +124,92 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
   );
 }
 
-function LandingCreditPack({ pack, index }: { pack: typeof CREDIT_PACKS_STATIC[number]; index: number }) {
-  const perCredit = (pack.priceUsd / pack.credits).toFixed(2);
-  const savingsPct = Math.round((1 - pack.priceUsd / pack.credits) * 100);
-  const isBestValue = pack.slug === 'marathon';
-
+function LandingCreditsCard() {
   return (
     <div
-      className={`lp-credit-pack reveal ${isBestValue ? 'lp-credit-pack-best' : ''}`}
-      style={{ transitionDelay: `${index * 80}ms` }}
+      className="lp-card lp-card-credits reveal"
+      style={{ transitionDelay: '200ms' }}
     >
-      {/* Best value accent bar */}
-      {isBestValue && <div className="lp-credit-pack-accent" />}
-
-      {/* Savings badge */}
-      {savingsPct > 0 && (
-        <div className={`lp-credit-savings ${savingsPct >= 40 ? 'lp-credit-savings-high' : ''}`}>
-          <TrendingDown size={8} />
-          Save {savingsPct}%
-        </div>
-      )}
-
-      <p className="lp-credit-pack-name">{pack.name}</p>
-
-      <div className="lp-credit-pack-amount">
-        <div className="lp-credit-pack-coin">
-          <Coins size={11} />
-        </div>
-        <span className="lp-credit-pack-number">{pack.credits}</span>
-        <span className="lp-credit-pack-label">credits</span>
+      {/* Badge */}
+      <div className="lp-badge lp-badge-credits">
+        <Coins size={10} />
+        Pay as you go
       </div>
 
-      <p className="lp-credit-pack-price">${pack.priceUsd}</p>
-      <p className="lp-credit-pack-rate">${perCredit}/credit</p>
+      {/* Header */}
+      <div className="lp-card-header">
+        <h3 className="lp-plan-name">Credits</h3>
+        <p className="lp-plan-desc">Buy once, use anytime — no subscription</p>
+      </div>
 
+      {/* Price range */}
+      <div className="lp-price-block">
+        <span className="lp-price">$5–$35</span>
+        <span className="lp-price-period">/pack</span>
+        <p className="lp-price-note">Credits never expire</p>
+      </div>
+
+      {/* Credit packs list */}
+      <div className="lp-credit-packs-list">
+        {CREDIT_PACKS_STATIC.map((pack) => {
+          const perCredit = (pack.priceUsd / pack.credits).toFixed(2);
+          const savingsPct = Math.round((1 - pack.priceUsd / pack.credits) * 100);
+          const isBest = pack.slug === 'marathon';
+          return (
+            <div key={pack.slug} className={`lp-credit-row ${isBest ? 'lp-credit-row-best' : ''}`}>
+              <div className="lp-credit-row-left">
+                <span className="lp-credit-row-name">{pack.name}</span>
+                <span className="lp-credit-row-count">{pack.credits} cr</span>
+              </div>
+              <div className="lp-credit-row-right">
+                <span className="lp-credit-row-price">${pack.priceUsd}</span>
+                {savingsPct > 0 && (
+                  <span className={`lp-credit-row-save ${savingsPct >= 40 ? 'lp-credit-row-save-high' : ''}`}>
+                    −{savingsPct}%
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Divider */}
+      <div className="lp-divider" />
+
+      {/* Features */}
+      <ul className="lp-features">
+        <li className="lp-feature">
+          <div className="lp-feature-icon">
+            <Check size={11} strokeWidth={3} />
+          </div>
+          <span className="lp-feature-text">{CREDIT_COSTS.pitchAnalysis} cr per analysis</span>
+        </li>
+        <li className="lp-feature">
+          <div className="lp-feature-icon">
+            <Check size={11} strokeWidth={3} />
+          </div>
+          <span className="lp-feature-text">{CREDIT_COSTS.deckGeneration} cr per deck generation</span>
+        </li>
+        <li className="lp-feature">
+          <div className="lp-feature-icon">
+            <Check size={11} strokeWidth={3} />
+          </div>
+          <span className="lp-feature-text">Works with any plan</span>
+        </li>
+      </ul>
+
+      {/* CTA */}
       <a
         href="#waitlist"
-        className={`lp-credit-pack-cta ${isBestValue ? 'lp-credit-pack-cta-best' : ''}`}
+        className="lp-cta lp-cta-free"
         onClick={(e) => {
           e.preventDefault();
           document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }}
       >
         Buy Credits
-        <ArrowRight size={10} />
+        <ArrowRight size={14} className="lp-cta-arrow" />
       </a>
     </div>
   );
@@ -208,32 +250,12 @@ export function LandingPricing() {
           </div>
         </div>
 
-        {/* Cards — 2 plans side by side */}
+        {/* 3-col grid: Free | Pro | Credits */}
         <div className="lp-grid">
           {plans.map((plan, i) => (
             <LandingPlanCard key={plan.id} plan={plan} interval={interval} delay={i * 100} />
           ))}
-        </div>
-
-        {/* Credit packs section */}
-        <div className="lp-credits-section reveal">
-          <div className="lp-credits-header">
-            <div className="lp-credits-header-icon">
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <h3 className="lp-credits-title">Or buy credits as you go</h3>
-              <p className="lp-credits-subtitle">
-                No subscription required — credits never expire. Use {CREDIT_COSTS.pitchAnalysis} credit per analysis, {CREDIT_COSTS.deckGeneration} for deck generation.
-              </p>
-            </div>
-          </div>
-
-          <div className="lp-credit-grid">
-            {CREDIT_PACKS_STATIC.map((pack, i) => (
-              <LandingCreditPack key={pack.slug} pack={pack} index={i} />
-            ))}
-          </div>
+          <LandingCreditsCard />
         </div>
       </div>
     </section>
