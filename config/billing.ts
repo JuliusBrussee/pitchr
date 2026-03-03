@@ -1,4 +1,4 @@
-import type { BillingPlan, BillingPlanId, PlanLimits, PlanPricing } from '@/types/billing';
+import type { BillingPlan, BillingPlanId, CreditCosts, CreditPack, CreditResource, PlanLimits, PlanPricing } from '@/types/billing';
 
 /* ——————————————————————————————————————————————————————————
  * Billing Plans Configuration
@@ -165,3 +165,47 @@ const DEV_USER_IDS: Set<string> = new Set(
 export function isDevUser(userId: string): boolean {
   return DEV_USER_IDS.has(userId);
 }
+
+/* ——— Credit System Config ——— */
+
+/** Cost in credits for each resource type */
+export const CREDIT_COSTS: CreditCosts = {
+  pitchAnalysis: 1,
+  deckUpload: 1,
+  qaSession: 1,
+  deckGeneration: 2,
+};
+
+/** Monthly credit allotment per plan */
+export const MONTHLY_CREDITS: Record<BillingPlanId, number> = {
+  free: 3,
+  day_pass: 0,
+  pro: 60,
+};
+
+/** Map CreditResource to its cost */
+export function getCreditCost(resource: CreditResource): number {
+  const map: Record<CreditResource, number> = {
+    pitch_analysis: CREDIT_COSTS.pitchAnalysis,
+    deck_upload: CREDIT_COSTS.deckUpload,
+    qa_session: CREDIT_COSTS.qaSession,
+    deck_generation: CREDIT_COSTS.deckGeneration,
+  };
+  return map[resource];
+}
+
+/** Features unlocked for free users who have purchased credit packs */
+export const CREDIT_PACK_FEATURES = {
+  sectionFeedback: true,
+  vocabularyMetrics: true,
+  historicalLinks: false,
+  deckGeneration: true,
+} as const;
+
+/** Static credit pack data for UI display before DB loads */
+export const CREDIT_PACKS_STATIC: Omit<CreditPack, 'id'>[] = [
+  { name: 'Starter', slug: 'starter', credits: 5, priceUsd: 5, stripePriceId: process.env.STRIPE_CREDIT_STARTER_PRICE_ID ?? null, active: true, sortOrder: 1 },
+  { name: 'Prep', slug: 'prep', credits: 15, priceUsd: 12, stripePriceId: process.env.STRIPE_CREDIT_PREP_PRICE_ID ?? null, active: true, sortOrder: 2 },
+  { name: 'Sprint', slug: 'sprint', credits: 30, priceUsd: 20, stripePriceId: process.env.STRIPE_CREDIT_SPRINT_PRICE_ID ?? null, active: true, sortOrder: 3 },
+  { name: 'Marathon', slug: 'marathon', credits: 60, priceUsd: 35, stripePriceId: process.env.STRIPE_CREDIT_MARATHON_PRICE_ID ?? null, active: true, sortOrder: 4 },
+];

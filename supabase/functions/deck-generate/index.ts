@@ -418,7 +418,7 @@ Deno.serve(async (req: Request) => {
 
     // Rate limit check for deck generation
     const adminClient = createAdminClient();
-    const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck');
+    const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck_generation');
     if (!usageCheck.allowed) {
       return errorResponse(
         `Deck generation limit reached (${usageCheck.used}/${usageCheck.limit}). Upgrade your plan for more decks.`,
@@ -506,8 +506,8 @@ Deno.serve(async (req: Request) => {
     }));
     await insertSlides(supabase, deck.id, slideRows);
 
-    // Record usage after successful generation
-    await recordUsageEvent(adminClient, user.id, 'deck');
+    // Record usage after successful generation (2 credits for deck generation)
+    await recordUsageEvent(adminClient, user.id, 'deck_generation');
 
     console.log('[deck-generate] deck created', deck.id);
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, X, Clock, Zap, ArrowRight } from 'lucide-react';
-import { BILLING_PLANS } from '@/config/billing';
+import { BILLING_PLANS, CREDIT_PACKS_STATIC } from '@/config/billing';
 import { buildFeatureList, buildExcludedFeatures } from '@/config/billing-features';
 import type { BillingPlan, BillingInterval } from '@/types/billing';
 
@@ -175,6 +175,35 @@ export function LandingPricing() {
           {plans.map((plan, i) => (
             <LandingPlanCard key={plan.id} plan={plan} interval={interval} delay={i * 100} />
           ))}
+        </div>
+
+        {/* Credit packs section */}
+        <div className="reveal" style={{ marginTop: '48px', textAlign: 'center' }}>
+          <p className="section-desc" style={{ marginBottom: '24px' }}>
+            Or buy credits as you go — no subscription required
+          </p>
+          <div className="lp-credit-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px', maxWidth: '640px', margin: '0 auto' }}>
+            {CREDIT_PACKS_STATIC.map((pack) => (
+              <div
+                key={pack.slug}
+                className="lp-card reveal"
+                style={{ padding: '20px', textAlign: 'center' }}
+              >
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>
+                  {pack.name}
+                </p>
+                <p style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {pack.credits} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--text-secondary)' }}>credits</span>
+                </p>
+                <p style={{ fontSize: '18px', fontWeight: 600, color: '#ff5941', margin: '4px 0' }}>
+                  ${pack.priceUsd}
+                </p>
+                <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                  ${(pack.priceUsd / pack.credits).toFixed(2)}/credit
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

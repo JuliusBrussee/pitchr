@@ -26,9 +26,9 @@ import { useBilling } from '@/hooks/useBilling';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTutorial } from '@/hooks/useTutorial';
 import { AchievementGrid } from '@/views/components/achievements';
-import { SubscriptionBadge, UsageBar, PlanCard } from '@/views/components/billing';
+import { SubscriptionBadge, UsageBar, PlanCard, CreditBalance, CreditPackCard } from '@/views/components/billing';
 import { useRouter } from 'next/navigation';
-import { getAllPlans } from '@/config/billing';
+import { getAllPlans, CREDIT_PACKS_STATIC } from '@/config/billing';
 import type { BillingPlanId, BillingInterval } from '@/types/billing';
 import type { ProgressRunRecord } from '@/lib/progress';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
@@ -143,6 +143,7 @@ export default function SettingsPage() {
 
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [isCreditPackLoading, setIsCreditPackLoading] = useState(false);
 
   // Fetch runs for achievement computation
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
@@ -368,6 +369,39 @@ export default function SettingsPage() {
                     <UsageBar label="Q&A Time (seconds)" used={billing.usage.qaSecondsUsed} limit={billing.usage.qaSecondsLimit} />
                   </div>
                 )}
+
+                {/* Credit balance */}
+                {billing.credits && (
+                  <CreditBalance credits={billing.credits} />
+                )}
+
+                {/* Credit packs */}
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+                    Buy Credits
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {CREDIT_PACKS_STATIC.map((pack) => (
+                      <CreditPackCard
+                        key={pack.slug}
+                        name={pack.name}
+                        credits={pack.credits}
+                        priceUsd={pack.priceUsd}
+                        isLoading={isCreditPackLoading}
+                        onPurchase={async () => {
+                          try {
+                            setIsCreditPackLoading(true);
+                            await billing.purchaseCreditPack(pack.slug);
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : 'Purchase failed');
+                          } finally {
+                            setIsCreditPackLoading(false);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
 
                 {/* Pricing section header */}
                 <div className="text-center pt-2">

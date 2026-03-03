@@ -10,7 +10,9 @@ import {
   resolveSubscriptionPlan,
   purchaseDayPass,
 } from '@/services/billingService';
-import type { SubscriptionStatus } from '@/types/billing';
+import { addPurchasedCredits, resetMonthlyCredits } from '@/services/creditService';
+import { MONTHLY_CREDITS } from '@/config/billing';
+import type { BillingPlanId, SubscriptionStatus } from '@/types/billing';
 
 /**
  * POST /api/billing/webhook
@@ -132,6 +134,25 @@ async function handleCheckoutCompleted(admin: ReturnType<typeof createAdminClien
     return;
   }
 
+  // Handle credit pack one-time payments
+  if (session.mode === 'payment' && session.metadata?.product_type === 'credit_pack') {
+    const userId = session.metadata?.user_id ?? await getUserIdByStripeCustomerId(admin, customerId);
+    if (!userId) {
+      console.error('[billing/webhook] no user found for credit pack payment:', customerId);
+      return;
+    }
+
+    const packCredits = parseInt(session.metadata?.pack_credits ?? '0', 10);
+    const packSlug = session.metadata?.pack_slug ?? 'unknown';
+    const paymentIntentId = session.payment_intent as string | null;
+
+    if (packCredits > 0) {
+      await addPurchasedCredits(admin, userId, packCredits, paymentIntentId ?? '', packSlug);
+      console.log('[billing/webhook] credit pack purchased', { userId, packSlug, packCredits });
+    }
+    return;
+  }
+
   // Handle subscription checkout
   const subscriptionId = session.subscription as string;
   if (!customerId || !subscriptionId) return;
@@ -176,6 +197,9 @@ async function handleSubscriptionChange(admin: ReturnType<typeof createAdminClie
 
   const status: SubscriptionStatus = statusMap[sub.status] ?? 'active';
 
+  const periodStart = new Date(sub.current_period_start * 1000).toISOString();
+  const periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+
   await upsertSubscription(admin, {
     userId,
     planId,
@@ -183,13 +207,17 @@ async function handleSubscriptionChange(admin: ReturnType<typeof createAdminClie
     stripeCustomerId: customerId,
     stripeSubscriptionId: sub.id,
     stripePriceId: priceId,
-    currentPeriodStart: new Date(sub.current_period_start * 1000).toISOString(),
-    currentPeriodEnd: new Date(sub.current_period_end * 1000).toISOString(),
+    currentPeriodStart: periodStart,
+    currentPeriodEnd: periodEnd,
     cancelAtPeriodEnd: sub.cancel_at_period_end ?? false,
     trialEnd: sub.trial_end
       ? new Date(sub.trial_end * 1000).toISOString()
       : null,
   });
+
+  // Reset monthly credits for the new billing period
+  const monthlyLimit = MONTHLY_CREDITS[planId as BillingPlanId] ?? 3;
+  await resetMonthlyCredits(admin, userId, monthlyLimit, periodStart, periodEnd);
 
   console.log('[billing/webhook] subscription updated', {
     userId,
@@ -207,6 +235,11 @@ async function handleSubscriptionDeleted(admin: ReturnType<typeof createAdminCli
   if (!userId) return;
 
   await downgradeToFree(admin, userId);
+
+  // Reset to free tier monthly credits (3)
+  const now = new Date();
+  const freeEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  await resetMonthlyCredits(admin, userId, MONTHLY_CREDITS.free, now.toISOString(), freeEnd.toISOString());
 
   console.log('[billing/webhook] subscription deleted, downgraded to free', {
     userId,

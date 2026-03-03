@@ -45,11 +45,24 @@ interface DayPassInfo {
   runsLimit: number;
 }
 
+export interface CreditInfo {
+  userId: string;
+  monthlyCredits: number;
+  monthlyCreditsLimit: number;
+  purchasedCredits: number;
+  bonusCredits: number;
+  bonusCreditsExpiresAt: string | null;
+  totalAvailable: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
 interface BillingState {
   subscription: SubscriptionInfo | null;
   usage: UsageInfo | null;
   limits: PlanLimitsInfo | null;
   dayPass: DayPassInfo | null;
+  credits: CreditInfo | null;
   isLoading: boolean;
   error: string | null;
 }
@@ -60,6 +73,7 @@ export function useBilling() {
     usage: null,
     limits: null,
     dayPass: null,
+    credits: null,
     isLoading: true,
     error: null,
   });
@@ -75,6 +89,7 @@ export function useBilling() {
         usage: data.usage,
         limits: data.limits,
         dayPass: data.dayPass ?? null,
+        credits: data.credits ?? null,
         isLoading: false,
         error: null,
       });
@@ -139,11 +154,28 @@ export function useBilling() {
     [],
   );
 
+  const purchaseCreditPack = useCallback(async (packSlug: string) => {
+    const res = await fetch('/api/billing/credits', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packSlug }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Credit pack purchase failed');
+    }
+
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+  }, []);
+
   return {
     ...state,
     refresh: fetchBilling,
     startCheckout,
     openPortal,
     checkUsage,
+    purchaseCreditPack,
   };
 }

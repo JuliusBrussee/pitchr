@@ -101,7 +101,7 @@ export interface UsagePeriod {
 
 export interface UsageCheckResult {
   allowed: boolean;
-  resource: 'runs' | 'decks' | 'qa_seconds';
+  resource: 'runs' | 'decks' | 'qa_seconds' | 'deck_generation';
   used: number;
   limit: number | null;
   remaining: number | null;
@@ -134,4 +134,61 @@ export interface BillingPortalResult {
 export interface CheckoutResult {
   url: string;
   sessionId: string;
+}
+
+/* ——— Credit System Types ——— */
+
+export type CreditType = 'monthly' | 'purchased' | 'bonus' | 'refund';
+
+export type CreditResource = 'pitch_analysis' | 'deck_upload' | 'qa_session' | 'deck_generation';
+
+export interface CreditBalance {
+  userId: string;
+  monthlyCredits: number;
+  monthlyCreditsLimit: number;
+  purchasedCredits: number;
+  bonusCredits: number;
+  bonusCreditsExpiresAt: string | null;
+  totalAvailable: number;
+  periodStart: string;
+  periodEnd: string;
+}
+
+export interface CreditTransaction {
+  id: string;
+  userId: string;
+  amount: number;
+  balanceAfter: number;
+  creditType: CreditType;
+  source: string;
+  referenceId: string | null;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface CreditPack {
+  id: string;
+  name: string;
+  slug: string;
+  credits: number;
+  priceUsd: number;
+  stripePriceId: string | null;
+  active: boolean;
+  sortOrder: number;
+}
+
+export interface CreditCosts {
+  pitchAnalysis: number;
+  deckUpload: number;
+  qaSession: number;
+  deckGeneration: number;
+}
+
+export interface CreditCheckResult {
+  allowed: boolean;
+  creditsRequired: number;
+  totalAvailable: number;
+  monthlyCredits: number;
+  purchasedCredits: number;
+  bonusCredits: number;
 }

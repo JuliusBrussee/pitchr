@@ -151,6 +151,34 @@ async function processQueuedRun(
 
     console.error('[pitch-run] background analysis failed', { runId: input.runId, error: message });
 
+    // Refund credits for non-day-pass users on analysis failure
+    try {
+      const dayPass = await supabaseAdmin
+        .from('day_passes')
+        .select('id')
+        .eq('user_id', input.userId)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+        .single();
+
+      if (!dayPass.data) {
+        await supabaseAdmin.rpc('refund_credits', {
+          p_user_id: input.userId,
+          p_amount: 1,
+          p_source: 'pitch_analysis_refund',
+          p_reference_id: input.runId,
+          p_description: 'Refund for failed pitch analysis',
+        });
+        console.log('[pitch-run] credits refunded for failed analysis', { runId: input.runId });
+      }
+    } catch (refundError) {
+      console.error('[pitch-run] failed to refund credits', {
+        runId: input.runId,
+        error: refundError instanceof Error ? refundError.message : String(refundError),
+      });
+    }
+
     try {
       await updateRun(supabaseAdmin, input.runId, {
         status: 'failed',

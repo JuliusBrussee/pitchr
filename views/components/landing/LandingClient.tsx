@@ -24,6 +24,11 @@ const LandingPricing = dynamic(
   { ssr: false }
 );
 
+const LaunchCountdown = dynamic(
+  () => import('@/views/components/landing/LaunchCountdown').then((m) => m.LaunchCountdown),
+  { ssr: false }
+);
+
 export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const { isDark, setTheme } = useTheme();
   const landingRef = useRef<HTMLDivElement>(null);
@@ -366,6 +371,9 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
           <div className="hero-scroll-line" />
         </div>
       </section>
+
+      {/* ═══ LAUNCH COUNTDOWN ═══ */}
+      <LaunchCountdown onCtaClick={scrollToWaitlist} />
 
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
       <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>

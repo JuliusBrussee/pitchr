@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   BillingPlanId,
+  CreditResource,
   DayPass,
   QaBudgetInfo,
   Subscription,
@@ -9,7 +10,9 @@ import type {
   UsagePeriod,
 } from '@/types/billing';
 import {
+  CREDIT_PACK_FEATURES,
   DAY_PASS_DURATION_HOURS,
+  getCreditCost,
   getPlanLimits,
   isDevUser,
   planIdFromStripePriceId,
@@ -20,6 +23,11 @@ import {
   createCheckoutSession,
   createPortalSession,
 } from '@/services/stripeService';
+import {
+  checkCredits,
+  consumeCredits,
+  hasPurchasedCredits,
+} from '@/services/creditService';
 
 /* ——————————————————————————————————————————————————————————
  * Billing Service
@@ -378,13 +386,32 @@ export async function checkDayPassUsage(
 export async function recordUsage(
   supabase: SupabaseClient,
   userId: string,
-  resource: 'run' | 'deck',
+  resource: 'run' | 'deck' | 'deck_generation',
 ): Promise<void> {
+  // Check if user has an active day pass — if so, use day pass tracking
+  const dayPass = await getActiveDayPass(supabase, userId);
+  if (dayPass && resource !== 'deck_generation') {
+    const dayPassResource = resource === 'run' ? 'run' : 'deck';
+    await recordDayPassUsage(supabase, dayPass.id, dayPassResource);
+  } else {
+    // Consume credits for non-day-pass users
+    const creditResource = RESOURCE_TO_CREDIT[resource === 'run' ? 'runs' : resource === 'deck' ? 'decks' : 'deck_generation'];
+    if (creditResource) {
+      try {
+        await consumeCredits(supabase, userId, creditResource);
+      } catch {
+        // Credit consumption is best-effort; analytics event still recorded
+      }
+    }
+  }
+
+  // Always insert usage_events for analytics tracking
   const sub = await getOrCreateSubscription(supabase, userId);
+  const analyticsResource = resource === 'deck_generation' ? 'deck' : resource;
 
   await supabase.from('usage_events').insert({
     user_id: userId,
-    resource,
+    resource: analyticsResource,
     period_start: sub.currentPeriodStart,
     period_end: sub.currentPeriodEnd,
   });
@@ -421,10 +448,18 @@ export async function getUsage(
 
 /* ——— Rate Limit Checks ——— */
 
+/** Map legacy resource names to CreditResource */
+const RESOURCE_TO_CREDIT: Record<string, CreditResource> = {
+  runs: 'pitch_analysis',
+  decks: 'deck_upload',
+  qa_seconds: 'qa_session',
+  deck_generation: 'deck_generation',
+};
+
 export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
-  resource: 'runs' | 'decks' | 'qa_seconds',
+  resource: 'runs' | 'decks' | 'qa_seconds' | 'deck_generation',
 ): Promise<UsageCheckResult> {
   // Dev accounts bypass all usage limits
   if (isDevUser(userId)) {
@@ -432,20 +467,41 @@ export async function checkUsageLimit(
   }
 
   // Check active day pass first — it takes priority over subscription limits
-  const dayPassResult = await checkDayPassUsage(supabase, userId, resource);
-  if (dayPassResult) return dayPassResult;
+  if (resource !== 'deck_generation') {
+    const dayPassResult = await checkDayPassUsage(supabase, userId, resource);
+    if (dayPassResult) return dayPassResult;
+  }
 
+  // Credit-based check
+  const creditResource = RESOURCE_TO_CREDIT[resource];
+  if (creditResource) {
+    const creditResult = await checkCredits(supabase, userId, creditResource);
+    if (creditResult.totalAvailable > 0 || creditResult.allowed) {
+      const cost = getCreditCost(creditResource);
+      return {
+        allowed: creditResult.allowed,
+        resource,
+        used: cost,
+        limit: creditResult.totalAvailable + cost,
+        remaining: creditResult.totalAvailable,
+        planId: 'free',
+      };
+    }
+  }
+
+  // Fall back to legacy usage-event counting
   const sub = await getOrCreateSubscription(supabase, userId);
   const usage = await getUsage(supabase, userId);
   const limits = getPlanLimits(sub.planId);
 
-  const resourceMap = {
+  const resourceMap: Record<string, { used: number; limit: number | null }> = {
     runs: { used: usage.runsUsed, limit: limits.runsPerPeriod },
     decks: { used: usage.decksUsed, limit: limits.decksPerPeriod },
     qa_seconds: { used: usage.qaSecondsUsed, limit: limits.qaSecondsPerPeriod },
+    deck_generation: { used: usage.decksUsed, limit: limits.decksPerPeriod },
   };
 
-  const { used, limit } = resourceMap[resource];
+  const { used, limit } = resourceMap[resource] ?? { used: 0, limit: 0 };
   const allowed = limit === null || used < limit;
   const remaining = limit === null ? null : Math.max(0, limit - used);
 
@@ -517,6 +573,7 @@ export async function recordQaSecondsUsage(
 
 /**
  * Check if a feature is available on the user's plan.
+ * Free users who have purchased credit packs get access to certain features.
  */
 export async function checkFeatureAccess(
   supabase: SupabaseClient,
@@ -527,7 +584,15 @@ export async function checkFeatureAccess(
 
   const sub = await getOrCreateSubscription(supabase, userId);
   const limits = getPlanLimits(sub.planId);
-  return limits[feature];
+  if (limits[feature]) return true;
+
+  // Free users with purchased credits get credit pack features
+  if (sub.planId === 'free' && CREDIT_PACK_FEATURES[feature]) {
+    const hasPurchased = await hasPurchasedCredits(supabase, userId);
+    if (hasPurchased) return true;
+  }
+
+  return false;
 }
 
 /* ——— Webhook Helpers ——— */
