@@ -56,21 +56,21 @@ export function resolveTileDensityTier(input: TileDensityInput): TileDensityResu
 
   if (!isMobile) {
     if (deviceMemory >= 8 && cores >= 8) {
-      return { targetCount: tileCount, tier: 'max' };
+      return { targetCount: Math.min(tileCount, 560), tier: 'max' };
     }
 
     if (deviceMemory >= 6 && cores >= 6) {
-      return { targetCount: Math.min(tileCount, 1000), tier: 'high' };
+      return { targetCount: Math.min(tileCount, 420), tier: 'high' };
     }
 
-    return { targetCount: Math.min(tileCount, 820), tier: 'balanced' };
+    return { targetCount: Math.min(tileCount, 300), tier: 'balanced' };
   }
 
   if (deviceMemory >= 6 && cores >= 6) {
-    return { targetCount: Math.min(tileCount, 480), tier: 'mobile' };
+    return { targetCount: Math.min(tileCount, 220), tier: 'mobile' };
   }
 
-  return { targetCount: Math.min(tileCount, 320), tier: 'mobile' };
+  return { targetCount: Math.min(tileCount, 140), tier: 'mobile' };
 }
 
 export type PowerMappingConfig = {

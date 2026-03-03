@@ -1,5 +1,7 @@
 'use client';
 
+import { AuthProvider } from '@/views/components/AuthProvider';
+import { TutorialProvider } from '@/views/components/TutorialProvider';
 import { AppSidebar } from '@/views/components/AppSidebar';
 import { SidebarProvider, useSidebar } from '@/views/components/SidebarContext';
 import { ProjectProvider } from '@/views/components/ProjectProvider';
@@ -59,10 +61,14 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <ProjectProvider>
-        <AppLayoutInner>{children}</AppLayoutInner>
-      </ProjectProvider>
-    </SidebarProvider>
+    <AuthProvider>
+      <TutorialProvider>
+        <SidebarProvider>
+          <ProjectProvider>
+            <AppLayoutInner>{children}</AppLayoutInner>
+          </ProjectProvider>
+        </SidebarProvider>
+      </TutorialProvider>
+    </AuthProvider>
   );
 }

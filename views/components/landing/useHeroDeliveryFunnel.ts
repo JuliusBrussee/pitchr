@@ -20,6 +20,7 @@ type LandingHeroDeliveryFunnelRefs = {
   deliveryVisualRef: MutableRefObject<HTMLDivElement | null>;
   deliveryWaveRef: MutableRefObject<SVGSVGElement | null>;
   deliveryTranscriptRef: MutableRefObject<HTMLDivElement | null>;
+  enabled?: boolean;
 };
 
 type HeroTileSource = {
@@ -136,6 +137,7 @@ export function useHeroDeliveryFunnel({
   deliveryVisualRef,
   deliveryWaveRef,
   deliveryTranscriptRef,
+  enabled = true,
 }: LandingHeroDeliveryFunnelRefs) {
   useEffect(() => {
     const landing = landingRef.current;
@@ -165,6 +167,14 @@ export function useHeroDeliveryFunnel({
       || !deliveryWave
       || !deliveryTranscript
     ) {
+      return;
+    }
+
+    if (!enabled) {
+      landing.style.setProperty('--scene-blend', '0');
+      deliverySection.classList.remove('is-wave-active');
+      deliverySection.style.setProperty('--voice-power', '0');
+      deliverySection.style.setProperty('--voice-amp', '0.58');
       return;
     }
 
@@ -260,7 +270,8 @@ export function useHeroDeliveryFunnel({
         });
       });
 
-      const animatedIndexSet = sampleAnimatedNodeIndices(tileNodes.length, isMobile ? 160 : 320);
+      const animatedTargetCount = isMobile ? 96 : 180;
+      const animatedIndexSet = sampleAnimatedNodeIndices(tileNodes.length, animatedTargetCount);
       const animatedEntries = tileNodes
         .map((node, index) => ({ node, index }))
         .filter((entry) => animatedIndexSet.has(entry.index))
@@ -669,5 +680,6 @@ export function useHeroDeliveryFunnel({
     deliveryVisualRef,
     deliveryWaveRef,
     deliveryTranscriptRef,
+    enabled,
   ]);
 }

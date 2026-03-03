@@ -5,16 +5,22 @@ export async function middleware(request: NextRequest) {
   return await updateSession(request);
 }
 
+// Keep in sync with PROTECTED_ROUTES, AUTH_ROUTES, and BLOCKED_ROUTES in lib/supabase/middleware.ts.
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico (favicon)
-     * - Static assets (svg, png, jpg, etc.)
-     * - GLSL shader files
-     */
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|glsl)$).*)',
+    '/signup/:path*',
+    '/login/:path*',
+    '/auth/:path*',
+    '/dashboard/:path*',
+    '/session/:path*',
+    '/history/:path*',
+    '/analytics/:path*',
+    '/results/:path*',
+    '/review/:path*',
+    '/deck/:path*',
+    '/qa/:path*',
+    '/settings/:path*',
+    '/projects/:path*',
+    '/demo/:path*',
   ],
 };
