@@ -5,6 +5,7 @@ export async function middleware(request: NextRequest) {
   return await updateSession(request);
 }
 
+// Keep in sync with PROTECTED_ROUTES, AUTH_ROUTES, and BLOCKED_ROUTES in lib/supabase/middleware.ts.
 export const config = {
   matcher: [
     '/signup/:path*',
