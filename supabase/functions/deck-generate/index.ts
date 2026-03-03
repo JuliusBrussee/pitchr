@@ -507,7 +507,7 @@ Deno.serve(async (req: Request) => {
     await insertSlides(supabase, deck.id, slideRows);
 
     // Record usage after successful generation (2 credits for deck generation)
-    await recordUsageEvent(adminClient, user.id, 'deck_generation');
+    await recordUsageEvent(adminClient, user.id, 'deck_generation', deck.id);
 
     console.log('[deck-generate] deck created', deck.id);
 

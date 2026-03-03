@@ -27,7 +27,7 @@ CREATE TABLE credit_transactions (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   amount INTEGER NOT NULL,
   balance_after INTEGER NOT NULL,
-  credit_type TEXT NOT NULL CHECK (credit_type IN ('monthly', 'purchased', 'bonus', 'refund')),
+  credit_type TEXT NOT NULL CHECK (credit_type IN ('monthly', 'purchased', 'bonus', 'refund', 'consumption')),
   source TEXT NOT NULL,
   reference_id TEXT,
   description TEXT,
@@ -139,9 +139,27 @@ BEGIN
                  + (v_balance.purchased_credits - v_from_purchased)
                  + (v_effective_bonus - v_from_bonus);
 
-  -- Record transaction
-  INSERT INTO credit_transactions (user_id, amount, balance_after, credit_type, source, reference_id, description)
-  VALUES (p_user_id, -p_amount, v_total_after, 'monthly', p_source, p_reference_id, p_description);
+  -- Record transaction(s) per pool consumed
+  IF v_from_monthly > 0 THEN
+    INSERT INTO credit_transactions (user_id, amount, balance_after, credit_type, source, reference_id, description)
+    VALUES (p_user_id, -v_from_monthly, v_total_after, 'monthly', p_source, p_reference_id, p_description);
+  END IF;
+
+  IF v_from_purchased > 0 THEN
+    INSERT INTO credit_transactions (user_id, amount, balance_after, credit_type, source, reference_id, description)
+    VALUES (p_user_id, -v_from_purchased, v_total_after, 'purchased', p_source, p_reference_id, p_description);
+  END IF;
+
+  IF v_from_bonus > 0 THEN
+    INSERT INTO credit_transactions (user_id, amount, balance_after, credit_type, source, reference_id, description)
+    VALUES (p_user_id, -v_from_bonus, v_total_after, 'bonus', p_source, p_reference_id, p_description);
+  END IF;
+
+  -- Fallback: if somehow no pool was consumed (shouldn't happen), record as consumption
+  IF v_from_monthly = 0 AND v_from_purchased = 0 AND v_from_bonus = 0 THEN
+    INSERT INTO credit_transactions (user_id, amount, balance_after, credit_type, source, reference_id, description)
+    VALUES (p_user_id, -p_amount, v_total_after, 'consumption', p_source, p_reference_id, p_description);
+  END IF;
 
   RETURN v_total_after;
 END;

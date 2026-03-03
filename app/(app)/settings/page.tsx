@@ -388,6 +388,7 @@ export default function SettingsPage() {
                         credits={pack.credits}
                         priceUsd={pack.priceUsd}
                         isLoading={isCreditPackLoading}
+                        isBestValue={pack.slug === 'marathon'}
                         onPurchase={async () => {
                           try {
                             setIsCreditPackLoading(true);
@@ -461,7 +462,7 @@ export default function SettingsPage() {
 
                 {/* Plan cards grid */}
                 <div className="pricing-grid grid gap-4 items-stretch pt-1">
-                  {getAllPlans().map((plan) => (
+                  {getAllPlans().filter((p) => p.id !== 'day_pass').map((plan) => (
                     <PlanCard
                       key={plan.id}
                       plan={plan}

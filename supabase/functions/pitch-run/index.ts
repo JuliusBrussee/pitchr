@@ -310,7 +310,7 @@ async function handlePost(req: Request) {
 
   // Record usage eagerly so concurrent requests cannot bypass the limit.
   try {
-    await recordUsageEvent(adminClient, user.id, 'run');
+    await recordUsageEvent(adminClient, user.id, 'run', runId);
   } catch (usageErr) {
     console.error('[pitch-run] failed to record usage event eagerly', {
       error: usageErr instanceof Error ? usageErr.message : String(usageErr),

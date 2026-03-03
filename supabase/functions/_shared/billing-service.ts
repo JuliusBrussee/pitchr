@@ -180,6 +180,14 @@ export async function checkUsageLimit(
     .eq('user_id', userId)
     .single<CreditBalanceRow>();
 
+  // Fetch subscription to get actual planId
+  const { data: subForPlan } = await supabase
+    .from('subscriptions')
+    .select('plan_id')
+    .eq('user_id', userId)
+    .single<{ plan_id: string }>();
+  const actualPlanId: BillingPlanId = subForPlan && isValidPlan(subForPlan.plan_id) ? subForPlan.plan_id : 'free';
+
   if (creditBalance) {
     const effectiveBonus = creditBalance.bonus_credits > 0
       && (!creditBalance.bonus_credits_expires_at || new Date(creditBalance.bonus_credits_expires_at) > new Date())
@@ -189,22 +197,15 @@ export async function checkUsageLimit(
     if (totalAvailable > 0) {
       return {
         allowed: totalAvailable >= creditCost,
-        planId: 'free',
+        planId: actualPlanId,
         used: creditCost,
         limit: totalAvailable + creditCost,
         remaining: totalAvailable,
       };
     }
   } else {
-    // Auto-create credit balance for user
-    const { data: sub } = await supabase
-      .from('subscriptions')
-      .select('plan_id')
-      .eq('user_id', userId)
-      .single<{ plan_id: string }>();
-
-    const planId: BillingPlanId = sub && isValidPlan(sub.plan_id) ? sub.plan_id : 'free';
-    const monthlyLimit = MONTHLY_CREDITS[planId];
+    // Auto-create credit balance for user (reuse actualPlanId from above)
+    const monthlyLimit = MONTHLY_CREDITS[actualPlanId];
     const now = new Date();
     const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
@@ -219,7 +220,7 @@ export async function checkUsageLimit(
     if (monthlyLimit >= creditCost) {
       return {
         allowed: true,
-        planId,
+        planId: actualPlanId,
         used: creditCost,
         limit: monthlyLimit + creditCost,
         remaining: monthlyLimit,
@@ -343,6 +344,7 @@ export async function recordUsageEvent(
   supabase: SupabaseClient,
   userId: string,
   resource: 'run' | 'deck' | 'deck_generation',
+  referenceId?: string,
 ): Promise<void> {
   // Check if user has an active day pass — if so, use day pass tracking
   if (resource !== 'deck_generation') {
@@ -356,27 +358,31 @@ export async function recordUsageEvent(
     } else {
       // Consume credits for non-day-pass users
       const creditCost = CREDIT_COSTS[resource] ?? 1;
-      try {
-        await supabase.rpc('consume_credits', {
-          p_user_id: userId,
-          p_amount: creditCost,
-          p_source: resource,
-        });
-      } catch {
-        // Credit consumption is best-effort; analytics event still recorded
+      const { data: consumeResult, error: consumeErr } = await supabase.rpc('consume_credits', {
+        p_user_id: userId,
+        p_amount: creditCost,
+        p_source: resource,
+        p_reference_id: referenceId ?? null,
+      });
+      if (consumeErr) {
+        console.error('[billing] credit consumption failed for', userId, resource, consumeErr.message);
+      } else if ((consumeResult as number) < 0) {
+        console.warn('[billing] insufficient credits for', userId, resource);
       }
     }
   } else {
     // deck_generation always uses credits (no day pass equivalent)
     const creditCost = CREDIT_COSTS[resource] ?? 2;
-    try {
-      await supabase.rpc('consume_credits', {
-        p_user_id: userId,
-        p_amount: creditCost,
-        p_source: resource,
-      });
-    } catch {
-      // Credit consumption is best-effort
+    const { data: consumeResult, error: consumeErr } = await supabase.rpc('consume_credits', {
+      p_user_id: userId,
+      p_amount: creditCost,
+      p_source: resource,
+      p_reference_id: referenceId ?? null,
+    });
+    if (consumeErr) {
+      console.error('[billing] credit consumption failed for', userId, resource, consumeErr.message);
+    } else if ((consumeResult as number) < 0) {
+      console.warn('[billing] insufficient credits for', userId, resource);
     }
   }
 

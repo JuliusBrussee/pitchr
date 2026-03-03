@@ -1,8 +1,9 @@
 'use client';
 
-import { Check, Clock, X, Zap, ArrowRight } from 'lucide-react';
+import { Check, X, Zap, ArrowRight, Coins } from 'lucide-react';
 import type { BillingPlan, BillingInterval, BillingPlanId } from '@/types/billing';
 import { buildFeatureList, buildExcludedFeatures } from '@/config/billing-features';
+import { MONTHLY_CREDITS, CREDIT_COSTS } from '@/config/billing';
 
 interface PlanCardProps {
   plan: BillingPlan;
@@ -10,8 +11,6 @@ interface PlanCardProps {
   currentPlanId: BillingPlanId;
   isLoading: boolean;
   onSelect: (planId: BillingPlanId, interval: BillingInterval) => void;
-  /** Whether the user has an active day pass */
-  isDayPassActive?: boolean;
 }
 
 export function PlanCard({
@@ -20,12 +19,9 @@ export function PlanCard({
   currentPlanId,
   isLoading,
   onSelect,
-  isDayPassActive,
 }: PlanCardProps) {
   const isCurrent = plan.id === currentPlanId;
   const isFree = plan.id === 'free';
-  const isDayPass = plan.oneTime === true;
-  const isDayPassCard = plan.id === 'day_pass';
   const isPro = plan.featured;
 
   const price = interval === 'year' ? plan.pricing.yearly : plan.pricing.monthly;
@@ -35,18 +31,14 @@ export function PlanCard({
   const features = buildFeatureList(plan);
   const excludedFeatures = buildExcludedFeatures(plan);
 
-  const isDisabled = isCurrent || isLoading || isFree || (isDayPassCard && isDayPassActive);
-  const ctaLabel = isDayPassCard && isDayPassActive
-    ? 'Pass Active'
-    : isCurrent
-      ? 'Current Plan'
-      : isFree
-        ? 'Free Forever'
-        : isLoading
-          ? 'Loading...'
-          : isDayPass
-            ? 'Buy Day Pass'
-            : 'Upgrade to Pro';
+  const isDisabled = isCurrent || isLoading || isFree;
+  const ctaLabel = isCurrent
+    ? 'Current Plan'
+    : isFree
+      ? 'Free Forever'
+      : isLoading
+        ? 'Loading...'
+        : 'Upgrade to Pro';
 
   return (
     <div
@@ -57,21 +49,17 @@ export function PlanCard({
           : 'var(--bg-surface)',
         borderColor: isPro
           ? 'rgba(255, 89, 65, 0.4)'
-          : isDayPassCard
-            ? 'rgba(255, 170, 51, 0.3)'
-            : 'var(--border-color)',
+          : 'var(--border-color)',
         borderWidth: isPro ? '1.5px' : '1px',
         borderStyle: 'solid',
         boxShadow: isPro
           ? '0 0 40px rgba(255, 89, 65, 0.12), 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06)'
-          : isDayPassCard
-            ? '0 4px 20px rgba(255, 170, 51, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)'
-            : '0 2px 8px rgba(0, 0, 0, 0.03)',
+          : '0 2px 8px rgba(0, 0, 0, 0.03)',
         transform: isPro ? 'scale(1.02)' : 'scale(1)',
         zIndex: isPro ? 2 : 1,
       }}
     >
-      {/* Pro glow ring - subtle animated gradient border effect */}
+      {/* Pro glow ring */}
       {isPro && (
         <div
           className="absolute -inset-px rounded-2xl pointer-events-none pricing-glow"
@@ -99,21 +87,6 @@ export function PlanCard({
         >
           <Zap size={11} fill="#fff" />
           Most Popular
-        </div>
-      )}
-
-      {isDayPassCard && !isPro && (
-        <div
-          className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-4 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
-          style={{
-            background: 'linear-gradient(135deg, #ffaa33, #f59e0b)',
-            color: '#fff',
-            boxShadow: '0 2px 12px rgba(255, 170, 51, 0.35)',
-            letterSpacing: '0.08em',
-          }}
-        >
-          <Clock size={11} />
-          Pitch Day
         </div>
       )}
 
@@ -146,23 +119,6 @@ export function PlanCard({
             <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
               /forever
             </span>
-          </div>
-        ) : isDayPass ? (
-          <div>
-            <div className="flex items-baseline gap-1">
-              <span
-                className="text-4xl font-extrabold tracking-tight"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                ${plan.pricing.monthly}
-              </span>
-              <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
-                /24 hours
-              </span>
-            </div>
-            <p className="text-[11px] mt-1.5 font-medium" style={{ color: '#f59e0b' }}>
-              One-time purchase — no subscription
-            </p>
           </div>
         ) : (
           <div>
@@ -197,27 +153,46 @@ export function PlanCard({
         style={{
           background: isPro
             ? 'linear-gradient(90deg, transparent, rgba(255, 89, 65, 0.2), transparent)'
-            : isDayPassCard
-              ? 'linear-gradient(90deg, transparent, rgba(255, 170, 51, 0.2), transparent)'
-              : 'var(--border-color)',
+            : 'var(--border-color)',
         }}
       />
 
+      {/* Credits callout */}
+      <div
+        className="flex items-center gap-3 rounded-lg px-3 py-2.5 mb-5"
+        style={{
+          background: isPro
+            ? 'linear-gradient(135deg, rgba(255, 89, 65, 0.08), rgba(255, 170, 51, 0.05))'
+            : 'var(--bg-surface-hover)',
+          border: isPro
+            ? '1px solid rgba(255, 89, 65, 0.15)'
+            : '1px solid var(--border-color)',
+        }}
+      >
+        <div
+          className="flex items-center justify-center w-8 h-8 rounded-lg flex-shrink-0"
+          style={{
+            background: isPro
+              ? 'linear-gradient(135deg, rgba(255, 89, 65, 0.15), rgba(255, 170, 51, 0.1))'
+              : 'var(--bg-primary)',
+            border: isPro ? 'none' : '1px solid var(--border-color)',
+          }}
+        >
+          <Coins size={14} style={{ color: isPro ? '#ff5941' : 'var(--text-secondary)' }} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[12px] font-bold" style={{ color: 'var(--text-primary)' }}>
+            {MONTHLY_CREDITS[plan.id]} credits/mo
+          </p>
+          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+            {isFree ? `${CREDIT_COSTS.pitchAnalysis} credit per analysis` : `${CREDIT_COSTS.deckGeneration} credits for deck gen`}
+            {isPro && ' · Buy more anytime'}
+          </p>
+        </div>
+      </div>
+
       {/* Features */}
       <ul className="flex-1 space-y-3 mb-6">
-        {isDayPass && (
-          <li className="flex items-start gap-2.5">
-            <div
-              className="flex items-center justify-center w-5 h-5 rounded-full flex-shrink-0 mt-px"
-              style={{ backgroundColor: 'rgba(255, 170, 51, 0.15)' }}
-            >
-              <Clock size={11} style={{ color: '#ffaa33' }} />
-            </div>
-            <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {plan.durationHours}-hour full access window
-            </span>
-          </li>
-        )}
         {features.map((feature) => (
           <li key={feature} className="flex items-start gap-2.5">
             <div
@@ -225,16 +200,14 @@ export function PlanCard({
               style={{
                 backgroundColor: isPro
                   ? 'rgba(255, 89, 65, 0.12)'
-                  : isDayPassCard
-                    ? 'rgba(255, 170, 51, 0.1)'
-                    : 'var(--bg-surface-hover)',
+                  : 'var(--bg-surface-hover)',
               }}
             >
               <Check
                 size={11}
                 strokeWidth={3}
                 style={{
-                  color: isPro ? '#ff5941' : isDayPassCard ? '#ffaa33' : 'var(--text-secondary)',
+                  color: isPro ? '#ff5941' : 'var(--text-secondary)',
                 }}
               />
             </div>
@@ -268,24 +241,20 @@ export function PlanCard({
             ? 'var(--bg-surface-hover)'
             : isPro
               ? 'linear-gradient(135deg, #ff5941, #e63b26)'
-              : isDayPassCard
-                ? 'linear-gradient(135deg, #ffaa33, #f59e0b)'
-                : 'transparent',
+              : 'transparent',
           color: isDisabled
             ? 'var(--text-muted)'
-            : isPro || isDayPassCard
+            : isPro
               ? '#fff'
               : 'var(--text-primary)',
-          border: isDisabled || isPro || isDayPassCard
+          border: isDisabled || isPro
             ? 'none'
             : '1.5px solid var(--border-color)',
           boxShadow: isDisabled
             ? 'none'
             : isPro
               ? '0 4px 16px rgba(255, 89, 65, 0.3)'
-              : isDayPassCard
-                ? '0 4px 16px rgba(255, 170, 51, 0.25)'
-                : 'none',
+              : 'none',
           opacity: isDisabled ? 0.5 : 1,
         }}
       >
@@ -300,4 +269,3 @@ export function PlanCard({
     </div>
   );
 }
-

@@ -82,10 +82,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!user.email) {
+      return NextResponse.json(
+        { error: 'Email required for purchases' },
+        { status: 400 },
+      );
+    }
+
     const customerId = await getOrCreateStripeCustomer(
       admin,
       user.id,
-      user.email!,
+      user.email,
     );
 
     const origin = request.headers.get('origin') ?? 'http://localhost:3000';

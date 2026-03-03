@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react';
 
-const LAUNCH_MS = new Date('2026-03-13T09:00:00').getTime();
+const LAUNCH_MS = new Date('2026-03-13T09:00:00-04:00').getTime();
 
 function remaining() {
   const d = Math.max(0, LAUNCH_MS - Date.now());

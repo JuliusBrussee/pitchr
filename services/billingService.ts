@@ -397,10 +397,9 @@ export async function recordUsage(
     // Consume credits for non-day-pass users
     const creditResource = RESOURCE_TO_CREDIT[resource === 'run' ? 'runs' : resource === 'deck' ? 'decks' : 'deck_generation'];
     if (creditResource) {
-      try {
-        await consumeCredits(supabase, userId, creditResource);
-      } catch {
-        // Credit consumption is best-effort; analytics event still recorded
+      const result = await consumeCredits(supabase, userId, creditResource);
+      if (!result.success) {
+        console.warn('[billing] credit consumption failed for', userId, creditResource);
       }
     }
   }
@@ -472,6 +471,9 @@ export async function checkUsageLimit(
     if (dayPassResult) return dayPassResult;
   }
 
+  // Fetch subscription once for both credit-based and legacy checks
+  const sub = await getOrCreateSubscription(supabase, userId);
+
   // Credit-based check
   const creditResource = RESOURCE_TO_CREDIT[resource];
   if (creditResource) {
@@ -484,13 +486,12 @@ export async function checkUsageLimit(
         used: cost,
         limit: creditResult.totalAvailable + cost,
         remaining: creditResult.totalAvailable,
-        planId: 'free',
+        planId: sub.planId,
       };
     }
   }
 
   // Fall back to legacy usage-event counting
-  const sub = await getOrCreateSubscription(supabase, userId);
   const usage = await getUsage(supabase, userId);
   const limits = getPlanLimits(sub.planId);
 
