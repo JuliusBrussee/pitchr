@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { activateNextChallenge } from '@/services/challengeService';
+import { processWeekEnd, createNewWeekLeagues } from '@/services/leagueService';
 
 /* ——————————————————————————————————————————————————————————
  * POST /api/arena/cron/weekly
@@ -28,11 +29,20 @@ export async function POST(request: NextRequest) {
     // 1. Transition challenges: complete current, activate next
     const newChallenge = await activateNextChallenge(admin);
 
-    // 2. Phase 3 will add: leagueService.processWeekEnd() and createNewWeekLeagues()
+    // 2. Process league week end (calculate rankings, promotions/demotions)
+    await processWeekEnd(admin);
+
+    // 3. Create new week leagues (matchmaking + new league/membership rows)
+    const now = new Date();
+    const jan1 = new Date(now.getFullYear(), 0, 1);
+    const days = Math.floor((now.getTime() - jan1.getTime()) / 86400000);
+    const newWeekNumber = Math.ceil((days + jan1.getDay() + 1) / 7);
+    await createNewWeekLeagues(admin, newWeekNumber, now.getFullYear());
 
     return NextResponse.json({
       success: true,
       newChallenge: newChallenge ? { id: newChallenge.id, title: newChallenge.title } : null,
+      leagueProcessed: true,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
