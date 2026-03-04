@@ -1,9 +1,14 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWaitlistWelcomeEmail } from "@/services/emailService";
 
 const MAX_EMAIL_LENGTH = 254; // RFC 5321
 const MAX_FIELD_LENGTH = 512;
+
+type WaitlistSupabaseClient = ReturnType<
+  typeof createClient<any, "public", "public">
+>;
 
 interface WaitlistInsertRow {
   id: string;
@@ -18,6 +23,18 @@ interface PostgrestLikeError {
   message?: string;
   details?: string | null;
   hint?: string | null;
+}
+
+interface WaitlistClientContext {
+  supabase: WaitlistSupabaseClient;
+  canReadRows: boolean;
+  canPersistSendState: boolean;
+}
+
+interface WelcomeEmailSendResult {
+  attempted: boolean;
+  sent: boolean;
+  errorMessage?: string;
 }
 
 function isMissingColumnError(error: unknown): boolean {
@@ -47,6 +64,27 @@ function isAdminClientConfigError(error: unknown): boolean {
   );
 }
 
+function isPublicClientConfigError(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message.includes(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    )
+  );
+}
+
+function toPostgrestError(error: unknown): PostgrestLikeError | null {
+  if (!error || typeof error !== "object") return null;
+  return error as PostgrestLikeError;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  const value = toPostgrestError(error);
+  if (value?.message) return value.message;
+  return "Unknown error";
+}
+
 function logWaitlistError(context: string, error: unknown) {
   if (error && typeof error === "object") {
     const value = error as PostgrestLikeError;
@@ -61,11 +99,55 @@ function logWaitlistError(context: string, error: unknown) {
   console.error(`[waitlist] ${context}`, error);
 }
 
+function createPublicWaitlistClient(): WaitlistSupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!url || !anonKey) {
+    throw new Error(
+      "Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY for waitlist client.",
+    );
+  }
+
+  return createClient(url, anonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }) as WaitlistSupabaseClient;
+}
+
+function createWaitlistClientContext(): WaitlistClientContext {
+  try {
+    return {
+      supabase: createAdminClient() as WaitlistSupabaseClient,
+      canReadRows: true,
+      canPersistSendState: true,
+    };
+  } catch (error) {
+    if (!isAdminClientConfigError(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[waitlist] SUPABASE_SERVICE_ROLE_KEY missing on server; using anon waitlist insert fallback.",
+    );
+
+    return {
+      supabase: createPublicWaitlistClient(),
+      canReadRows: false,
+      canPersistSendState: false,
+    };
+  }
+}
+
 async function sendWelcomeEmailIfNeeded(
   row: WaitlistInsertRow,
-  canPersistSendState: boolean,
-) {
-  if (row.welcome_email_sent_at) return;
+  context: WaitlistClientContext,
+): Promise<WelcomeEmailSendResult> {
+  if (row.welcome_email_sent_at) {
+    return { attempted: false, sent: true };
+  }
 
   try {
     await sendWaitlistWelcomeEmail({
@@ -73,17 +155,24 @@ async function sendWelcomeEmailIfNeeded(
       unsubscribeToken: row.unsubscribe_token,
     });
   } catch (error) {
-    console.error("[waitlist] Failed to send welcome email:", error);
-    return;
+    const message = getErrorMessage(error);
+    console.error("[waitlist] Failed to send welcome email:", {
+      email: row.email,
+      message,
+    });
+    return {
+      attempted: true,
+      sent: false,
+      errorMessage: message,
+    };
   }
 
-  if (!canPersistSendState || !row.id) {
-    return;
+  if (!context.canPersistSendState || !row.id) {
+    return { attempted: true, sent: true };
   }
 
   try {
-    const supabase = createAdminClient();
-    const { error } = await supabase
+    const { error } = await context.supabase
       .from("waitlist")
       .update({ welcome_email_sent_at: new Date().toISOString() })
       .eq("id", row.id);
@@ -97,6 +186,8 @@ async function sendWelcomeEmailIfNeeded(
   } catch (error) {
     console.error("[waitlist] Failed to persist welcome_email_sent_at:", error);
   }
+
+  return { attempted: true, sent: true };
 }
 
 export async function POST(request: NextRequest) {
@@ -114,7 +205,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- Validate email ---
     const rawEmail = body?.email;
     if (!rawEmail || typeof rawEmail !== "string") {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
@@ -134,7 +224,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // --- Collect analytics metadata ---
     const truncate = (val: unknown): string | null => {
       if (typeof val !== "string" || !val.trim()) return null;
       return val.trim().slice(0, MAX_FIELD_LENGTH);
@@ -144,6 +233,7 @@ export async function POST(request: NextRequest) {
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       request.headers.get("x-real-ip") ??
       null;
+    const generatedUnsubscribeToken = crypto.randomUUID();
 
     const baseRow = {
       email,
@@ -160,52 +250,102 @@ export async function POST(request: NextRequest) {
     const newsletterRow = {
       ...baseRow,
       newsletter_opt_in: body?.newsletter_opt_in !== false,
+      unsubscribe_token: generatedUnsubscribeToken,
     };
 
-    const supabase = createAdminClient();
-    let canPersistSendState = true;
-    const insertResult = await supabase
-      .from("waitlist")
-      .insert(newsletterRow)
-      .select(
-        "id, email, unsubscribe_token, welcome_email_sent_at, unsubscribed_at",
-      )
-      .single();
-    let data = insertResult.data as WaitlistInsertRow | null;
-    let error = insertResult.error;
+    const context = createWaitlistClientContext();
+    const { supabase } = context;
+    let canPersistSendState = context.canPersistSendState;
 
-    // Backward compatibility: some environments still have legacy waitlist schema.
-    if (error && isMissingColumnError(error)) {
-      console.warn(
-        "[waitlist] Falling back to legacy insert shape (missing newsletter columns).",
-      );
-      canPersistSendState = false;
-      const legacyInsert = await supabase
-        .from("waitlist")
-        .insert(baseRow)
-        .select("id, email")
-        .single();
-      data = legacyInsert.data as WaitlistInsertRow | null;
-      error = legacyInsert.error;
-    }
+    let data: WaitlistInsertRow | null = null;
+    let error: PostgrestLikeError | null = null;
 
-    // Older waitlist tables may only have an email column.
-    if (error && isMissingColumnError(error)) {
-      console.warn(
-        "[waitlist] Falling back to email-only insert shape (missing analytics columns).",
-      );
-      const minimalInsert = await supabase
+    if (context.canReadRows) {
+      const insertResult = await supabase
         .from("waitlist")
-        .insert({ email })
-        .select("id, email")
+        .insert(newsletterRow)
+        .select(
+          "id, email, unsubscribe_token, welcome_email_sent_at, unsubscribed_at",
+        )
         .single();
-      data = minimalInsert.data as WaitlistInsertRow | null;
-      error = minimalInsert.error;
+      data = insertResult.data as WaitlistInsertRow | null;
+      error = insertResult.error as PostgrestLikeError | null;
+
+      if (error && isMissingColumnError(error)) {
+        console.warn(
+          "[waitlist] Falling back to legacy insert shape (missing newsletter columns).",
+        );
+        canPersistSendState = false;
+        const legacyInsert = await supabase
+          .from("waitlist")
+          .insert(baseRow)
+          .select("id, email")
+          .single();
+        data = legacyInsert.data as WaitlistInsertRow | null;
+        error = legacyInsert.error as PostgrestLikeError | null;
+      }
+
+      if (error && isMissingColumnError(error)) {
+        console.warn(
+          "[waitlist] Falling back to email-only insert shape (missing analytics columns).",
+        );
+        const minimalInsert = await supabase
+          .from("waitlist")
+          .insert({ email })
+          .select("id, email")
+          .single();
+        data = minimalInsert.data as WaitlistInsertRow | null;
+        error = minimalInsert.error as PostgrestLikeError | null;
+      }
+    } else {
+      const insertResult = await supabase
+        .from("waitlist")
+        .insert(newsletterRow);
+      error = insertResult.error as PostgrestLikeError | null;
+      if (!error) {
+        data = {
+          id: "",
+          email,
+          unsubscribe_token: generatedUnsubscribeToken,
+          welcome_email_sent_at: null,
+          unsubscribed_at: null,
+        };
+      }
+
+      if (error && isMissingColumnError(error)) {
+        const legacyInsert = await supabase.from("waitlist").insert(baseRow);
+        error = legacyInsert.error as PostgrestLikeError | null;
+        if (!error) {
+          data = {
+            id: "",
+            email,
+            welcome_email_sent_at: null,
+          };
+        }
+      }
+
+      if (error && isMissingColumnError(error)) {
+        const minimalInsert = await supabase.from("waitlist").insert({ email });
+        error = minimalInsert.error as PostgrestLikeError | null;
+        if (!error) {
+          data = {
+            id: "",
+            email,
+            welcome_email_sent_at: null,
+          };
+        }
+      }
     }
 
     if (error) {
-      // Unique constraint violation = already on waitlist
       if (error.code === "23505") {
+        if (!context.canReadRows) {
+          return NextResponse.json(
+            { message: "You're already on the waitlist!" },
+            { status: 200 },
+          );
+        }
+
         const existingResult = await supabase
           .from("waitlist")
           .select(
@@ -252,7 +392,21 @@ export async function POST(request: NextRequest) {
               })
               .eq("id", existingRow.id);
           }
-          await sendWelcomeEmailIfNeeded(existingRow, canPersistSendState);
+
+          const resendResult = await sendWelcomeEmailIfNeeded(existingRow, {
+            ...context,
+            canPersistSendState,
+          });
+
+          if (resendResult.attempted && !resendResult.sent) {
+            return NextResponse.json(
+              {
+                message:
+                  "You're already on the waitlist. Confirmation email resend is temporarily unavailable.",
+              },
+              { status: 200 },
+            );
+          }
         }
 
         return NextResponse.json(
@@ -260,6 +414,7 @@ export async function POST(request: NextRequest) {
           { status: 200 },
         );
       }
+
       logWaitlistError("Failed to insert waitlist row.", error);
       if (isMissingRelationError(error)) {
         return NextResponse.json(
@@ -276,10 +431,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await sendWelcomeEmailIfNeeded(
-      data as WaitlistInsertRow,
+    const insertedRow = (data ?? {
+      id: "",
+      email,
+      unsubscribe_token: generatedUnsubscribeToken,
+      welcome_email_sent_at: null,
+    }) as WaitlistInsertRow;
+
+    const emailSendResult = await sendWelcomeEmailIfNeeded(insertedRow, {
+      ...context,
       canPersistSendState,
-    );
+    });
+
+    if (emailSendResult.attempted && !emailSendResult.sent) {
+      return NextResponse.json(
+        {
+          message:
+            "You're on the list. Confirmation email delivery is temporarily unavailable.",
+        },
+        { status: 201 },
+      );
+    }
 
     return NextResponse.json(
       {
@@ -290,15 +462,17 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     logWaitlistError("Unhandled waitlist POST error.", error);
-    if (isAdminClientConfigError(error)) {
+
+    if (isAdminClientConfigError(error) || isPublicClientConfigError(error)) {
       return NextResponse.json(
         {
           error:
-            "Waitlist server configuration is incomplete. Set SUPABASE_SERVICE_ROLE_KEY.",
+            "Waitlist server configuration is incomplete. Set Supabase URL/key variables on Vercel.",
         },
         { status: 500 },
       );
     }
+
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 },
