@@ -88,32 +88,49 @@ export async function sendWaitlistWelcomeEmail(
     ? `${appBaseUrl}/api/newsletter/unsubscribe?token=${params.unsubscribeToken}`
     : null;
 
-  const subject = 'You are on the Pitchr waitlist';
+  const subject = 'Welcome to Pitchr - you are on the early-access list';
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #111827;">
-      <h2 style="margin: 0 0 12px;">Thanks for joining Pitchr</h2>
+      <h2 style="margin: 0 0 12px;">You are in. Thanks for joining Pitchr.</h2>
       <p style="margin: 0 0 12px;">
-        You are officially on the waitlist. We will email you first when early access opens.
+        Pitchr helps you practice high-stakes pitches with clear scoring, ranked fixes, and rewrites. We are opening access in small waves, and waitlist members get invited first.
       </p>
+      <p style="margin: 0 0 8px;"><strong>What happens next:</strong></p>
+      <ul style="margin: 0 0 12px 20px; padding: 0;">
+        <li style="margin: 0 0 6px;">You will get one short build update each week with what shipped and what is next.</li>
+        <li style="margin: 0 0 6px;">When your cohort opens, we will send your invite link by email first.</li>
+        <li style="margin: 0;">If updates are not useful, you can unsubscribe in one click any time.</li>
+      </ul>
       <p style="margin: 0 0 12px;">
-        You will also get a weekly product update with progress on features, releases, and launch timing.
+        Want to shape the product? Hit reply and tell us your biggest pitch challenge in one sentence. We read every response.
       </p>
-      ${unsubscribeUrl
-        ? `<p style="margin: 24px 0 0; font-size: 12px; color: #6b7280;">
-            Don&apos;t want updates? <a href="${unsubscribeUrl}" style="color: #6b7280;">Unsubscribe</a>
+      <p style="margin: 0;">- Team Pitchr</p>
+      ${
+        unsubscribeUrl
+          ? `<p style="margin: 24px 0 0; font-size: 12px; color: #6b7280;">
+            We only use this email for waitlist updates and early-access invites. <a href="${unsubscribeUrl}" style="color: #6b7280;">Unsubscribe</a>
           </p>`
-        : ''}
+          : ''
+      }
     </div>
   `;
 
   const textParts = [
-    'Thanks for joining Pitchr.',
-    'You are officially on the waitlist.',
-    'We will email you first when early access opens.',
-    'You will also get a weekly product update with development progress.',
+    'You are in. Thanks for joining Pitchr.',
+    'Pitchr helps you practice high-stakes pitches with clear scoring, ranked fixes, and rewrites.',
+    'We are opening access in small waves, and waitlist members get invited first.',
+    'What happens next:',
+    '- You will get one short build update each week with what shipped and what is next.',
+    '- When your cohort opens, we will send your invite link by email first.',
+    '- If updates are not useful, you can unsubscribe in one click any time.',
+    'Want to shape the product? Hit reply and tell us your biggest pitch challenge in one sentence. We read every response.',
+    '- Team Pitchr',
   ];
 
   if (unsubscribeUrl) {
+    textParts.push(
+      'We only use this email for waitlist updates and early-access invites.',
+    );
     textParts.push(`Unsubscribe: ${unsubscribeUrl}`);
   }
 
