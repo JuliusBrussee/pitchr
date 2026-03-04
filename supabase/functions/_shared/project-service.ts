@@ -1,5 +1,5 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
-import type { PitchMode, Project, ProjectPromptOverrides } from './types.ts';
+import type { Project, ProjectPromptOverrides } from './types.ts';
 
 export class ProjectNotFoundError extends Error {
   constructor(projectId: string) {
@@ -32,10 +32,7 @@ function toProjectResponse(project: ProjectRecord): Project {
     targetMarket: project.target_market ?? null,
     keyMetrics: project.key_metrics ?? null,
     extraNotes: project.extra_notes ?? null,
-    type: (project.type as Project['type']) ?? undefined,
-    workflowMode: (project.workflow_mode as PitchMode) ?? undefined,
     isArchived: project.is_archived,
-    isSeeded: project.is_seeded,
     promptOverrides: (project.prompt_overrides ?? {}) as ProjectPromptOverrides,
     createdAt: project.created_at,
     updatedAt: project.updated_at,

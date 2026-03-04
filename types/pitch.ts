@@ -18,7 +18,6 @@ export interface Run {
   startedAt?: string;
   completedAt?: string;
   projectId: string;
-  projectType?: 'two_min_pitch' | 'elevator_pitch';
   projectName?: string;
   mode: PitchMode;
   status: RunStatus;
@@ -56,8 +55,6 @@ export interface CreatePitchRunResponse {
   runId: string;
   status: RunStatus;
   projectId?: string;
-  projectType?: 'two_min_pitch' | 'elevator_pitch';
-  workflowMode?: PitchMode;
   analysisVersion?: 'v2';
   coverage?: Coverage;
   outputs?: AnalysisOutputs;

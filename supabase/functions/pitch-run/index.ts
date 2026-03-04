@@ -96,7 +96,6 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
 interface ProcessQueuedRunInput {
   runId: string;
   userId: string;
-  projectType: 'two_min_pitch' | 'elevator_pitch';
   mode: PitchMode;
   transcript: string;
   deckText?: string;
@@ -128,7 +127,6 @@ async function processQueuedRun(
     const { analysis, fallback } = await analyzePitch({
       transcript: input.transcript,
       mode: input.mode,
-      projectType: input.projectType,
       deckText: input.deckText,
       systemPromptOverride: input.systemPromptOverride,
     });
@@ -351,7 +349,6 @@ async function handlePost(req: Request) {
     processQueuedRun(adminClient, {
       runId,
       userId: user.id,
-      projectType: project.type,
       mode,
       transcript: payload.transcript,
       deckText: payload.deckText,
@@ -364,7 +361,6 @@ async function handlePost(req: Request) {
       runId: run.id,
       status: 'queued',
       projectId: project.id,
-      projectType: project.type,
       workflowMode: mode,
     },
     202,

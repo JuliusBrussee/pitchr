@@ -3,7 +3,7 @@
 // Adapts prompts from lib/prompts/ for use in Deno runtime.
 
 import { SAMPLE_RESULT } from './sample-result.ts';
-import type { PitchMode, ProjectTypeId } from './types.ts';
+import type { PitchMode } from './types.ts';
 import {
   getAnalysisPromptProfile,
   type AnalysisPromptProfile,
@@ -130,7 +130,6 @@ export interface AnalyzePitchResult {
 interface AnalyzePitchInput {
   transcript: string;
   mode: PitchMode;
-  projectType?: ProjectTypeId;
   deckText?: string;
   systemPromptOverride?: string;
 }
@@ -555,7 +554,7 @@ function cloneSample(): AnalysisResultV2 {
 
 export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePitchResult> {
   const startedAt = Date.now();
-  const profile = getAnalysisPromptProfile(input.projectType, input.mode);
+  const profile = getAnalysisPromptProfile(input.mode);
   const systemPrompt = input.systemPromptOverride?.trim() || profile.systemPrompt;
   const userPrompt = buildUserPrompt(input, profile);
 
