@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type');
 
-    if (!type || !['league', 'alltime', 'challenge'].includes(type)) {
+    if (!type || !['league', 'alltime', 'challenge', 'challenges'].includes(type)) {
       return NextResponse.json(
-        { error: 'Invalid or missing type parameter. Must be one of: league, alltime, challenge' },
+        { error: 'Invalid or missing type parameter. Must be one of: league, alltime, challenge, challenges' },
         { status: 400 },
       );
     }
@@ -63,6 +63,35 @@ export async function GET(request: NextRequest) {
       const leaderboard = await getLeaderboard(admin, sortParam, limit);
 
       return NextResponse.json({ leaderboard });
+    }
+
+    /* ——— Challenge list ——— */
+    if (type === 'challenges') {
+      const { data: challenges, error: challengesError } = await admin
+        .from('arena_challenges')
+        .select('id, title, challenge_type, status, starts_at, ends_at, participant_count, week_number, year')
+        .in('status', ['active', 'completed'])
+        .order('starts_at', { ascending: false })
+        .limit(10);
+
+      if (challengesError) {
+        console.error('[arena/leaderboard] challenges list error:', challengesError);
+        return NextResponse.json({ error: 'Failed to fetch challenges' }, { status: 500 });
+      }
+
+      return NextResponse.json({
+        challenges: (challenges ?? []).map((c) => ({
+          id: c.id,
+          title: c.title,
+          challengeType: c.challenge_type,
+          status: c.status,
+          startsAt: c.starts_at,
+          endsAt: c.ends_at,
+          participantCount: c.participant_count,
+          weekNumber: c.week_number,
+          year: c.year,
+        })),
+      });
     }
 
     /* ——— Challenge leaderboard ——— */
