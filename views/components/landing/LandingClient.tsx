@@ -24,6 +24,8 @@ const LandingPricing = dynamic(
   { ssr: false }
 );
 
+const PRIVACY_NOTICE_VERSION = process.env.NEXT_PUBLIC_GDPR_POLICY_VERSION || '2026-03-04';
+
 export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const { isDark, setTheme } = useTheme();
   const landingRef = useRef<HTMLDivElement>(null);
@@ -44,6 +46,8 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const deliveryTranscriptRef = useRef<HTMLDivElement>(null);
 
   const [waitlistEmail, setWaitlistEmail] = useState('');
+  const [waitlistPrivacyAck, setWaitlistPrivacyAck] = useState(false);
+  const [waitlistNewsletterOptIn, setWaitlistNewsletterOptIn] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [waitlistMessage, setWaitlistMessage] = useState('');
   const [heroTileRenderCap, setHeroTileRenderCap] = useState(180);
@@ -119,6 +123,11 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   async function handleWaitlistSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!waitlistEmail.trim()) return;
+    if (!waitlistPrivacyAck) {
+      setWaitlistStatus('error');
+      setWaitlistMessage('Please acknowledge the privacy notice to continue.');
+      return;
+    }
 
     setWaitlistStatus('loading');
     try {
@@ -135,6 +144,9 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
           utm_medium: params.get('utm_medium') || null,
           utm_campaign: params.get('utm_campaign') || null,
           landing_page: window.location.pathname,
+          privacy_notice_acknowledged: waitlistPrivacyAck,
+          privacy_notice_version: PRIVACY_NOTICE_VERSION,
+          newsletter_opt_in: waitlistNewsletterOptIn,
         }),
       });
       const data = await res.json();
@@ -611,6 +623,27 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
                   </span>
                 </button>
               </div>
+              <label className="mt-3 text-xs flex items-start gap-2" style={{ color: 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={waitlistPrivacyAck}
+                  onChange={(event) => setWaitlistPrivacyAck(event.target.checked)}
+                  required
+                  className="mt-0.5"
+                />
+                <span>
+                  I have read the <Link href="/privacy" className="underline">Privacy Notice</Link>.
+                </span>
+              </label>
+              <label className="mt-2 text-xs flex items-start gap-2" style={{ color: 'var(--text-muted)' }}>
+                <input
+                  type="checkbox"
+                  checked={waitlistNewsletterOptIn}
+                  onChange={(event) => setWaitlistNewsletterOptIn(event.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>Send me product updates by email (optional).</span>
+              </label>
               {waitlistStatus === 'error' && (
                 <p className="waitlist-error">{waitlistMessage}</p>
               )}
