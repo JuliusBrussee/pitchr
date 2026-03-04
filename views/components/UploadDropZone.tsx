@@ -142,10 +142,7 @@ export function UploadDropZone({ file, onFileSelect, onFileRemove, disabled = fa
           onClick={handleRemove}
           disabled={disabled}
           className="p-1.5 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
-          style={{
-            color: 'var(--text-muted)',
-            focusRingColor: '#ff5941',
-          }}
+          style={{ color: 'var(--text-muted)' }}
           aria-label="Remove selected file"
         >
           <X size={16} />

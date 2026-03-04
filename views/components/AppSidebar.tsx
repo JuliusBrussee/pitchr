@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
   Radio,
-  Upload,
   Clock,
   BarChart3,
   TrendingUp,
@@ -32,7 +31,6 @@ interface AppSidebarProps {
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { id: 'session', label: 'Session', icon: Radio, href: '/session' },
-  { id: 'upload', label: 'Upload', icon: Upload, href: '/upload' },
   { id: 'history', label: 'History', icon: Clock, href: '/history' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, href: '/progress' },

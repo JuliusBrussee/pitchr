@@ -1,198 +1,118 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-02-22
+**Analysis Date:** 2026-03-04
 
 ## Naming Patterns
 
 **Files:**
-- Components: PascalCase (e.g., `MetricsPanel.tsx`, `SessionCanvas.tsx`)
-- Hooks: camelCase with `use` prefix (e.g., `useSessionState.ts`, `useMediaStream.ts`)
-- Services: camelCase with `Service` suffix (e.g., `analysisService.ts`, `deckService.ts`)
-- Types/Interfaces: PascalCase (e.g., `SessionState`, `MetricValues`)
-- Tests: `__tests__/[name].test.ts(x)` or `__tests__/[name].spec.ts(x)` (co-located with source)
+- Next App Router reserved files are used as-is: `app/(app)/dashboard/page.tsx`, `app/(app)/layout.tsx`, `app/api/billing/credits/route.ts`.
+- UI component files use PascalCase: `views/components/results/ScoreDashboard.tsx`, `views/components/ProjectSelect.tsx`.
+- Hook files use `use` + camelCase: `hooks/usePitchRun.ts`, `hooks/useSessionState.ts`.
+- Service files use camelCase, commonly with `Service` suffix: `services/analysisService.ts`, `services/pitchRunQueueService.ts`.
+- Type/domain files are lower-case or kebab-case by domain: `types/analysis-v2.ts`, `types/pitch.ts`, `types/deckGeneration.ts`.
 
 **Functions:**
-- Components: PascalCase exports (e.g., `export function MetricsPanel()`)
-- Hooks: `use` prefix + camelCase (e.g., `export function useSessionState()`)
-- Regular functions: camelCase (e.g., `countFillerWords`, `formatDuration`)
-- Event handlers: `on` prefix + camelCase (e.g., `onModeChange`, `onClick`)
+- Exported functions are usually named function declarations (`export async function ...`) in services/routes: `services/runService.ts`, `app/api/deck/generate/route.ts`.
+- Internal helpers use `function` declarations with descriptive verbs (`normalizeRubric`, `mergeDeliveryEvents`) in `services/analysisService.ts`.
+- Type guards use `isX` naming (`isPitchMode`, `isInputType`) in `controllers/pitchController.ts`.
+- API handlers are uppercase HTTP verbs (`GET`, `POST`) in `app/api/**/route.ts`.
 
 **Variables:**
-- Regular variables: camelCase (e.g., `selectedMode`, `isSessionActive`)
-- State booleans: `is` prefix (e.g., `isSessionActive`, `isCameraOn`, `isRecording`)
-- Refs: camelCase + `Ref` suffix (e.g., `videoRef`, `sessionStartRef`, `durationIntervalRef`)
-- Constants: UPPER_SNAKE_CASE (e.g., `FILLER_WORDS`, `ENGAGEMENT_LABELS`)
+- Local/state variables are camelCase (`runId`, `displayScore`, `allRuns`) in `hooks/usePitchRun.ts` and `views/components/results/ScoreDashboard.tsx`.
+- Booleans prefer `is/has/can` prefixes (`isAnalyzing`, `isDeckCategory`, `canPersistSendState`) in `hooks/usePitchRun.ts`, `services/analysisService.ts`, `app/api/waitlist/route.ts`.
+- Constants use UPPER_SNAKE_CASE (`SPOKEN_CATEGORY_ORDER`, `VALID_TEMPLATES`, `MAX_EMAIL_LENGTH`) in `services/analysisService.ts`, `app/api/deck/generate/route.ts`, `app/api/waitlist/route.ts`.
+- React refs use `Ref` suffix (`rafRef`, `statsRef`, `showTooltipRef`) in `views/components/results/ScoreDashboard.tsx` and `app/(app)/dashboard/page.tsx`.
 
-**Types/Interfaces:**
-- PascalCase (e.g., `MetricValues`, `InsightEntry`, `SessionState`)
-- Optional fields use `?` (e.g., `audioUrl?: string`)
-- Union types clearly expressed (e.g., `type PitchMode = 'elevator' | 'vc_pitch'`)
+**Types:**
+- Interfaces and type aliases are PascalCase without `I` prefix (`AnalyzePitchInput`, `RunRecord`, `WaitlistInsertRow`) in `services/analysisService.ts`, `services/runService.ts`, `app/api/waitlist/route.ts`.
+- Literal union types are used for constrained domain states (`'elevator' | 'vc_pitch'`) in `types/pitch.ts` and validator code in `controllers/pitchController.ts`.
+- Type-only imports use `import type` heavily across the repo (example: `services/runService.ts`, `views/components/results/ScoreDashboard.tsx`).
 
 ## Code Style
 
 **Formatting:**
-- 2-space indentation (configured throughout)
-- Semicolons required on all statements
-- Trailing commas in multiline arrays/objects
-- Single quotes for imports and strings (e.g., `import { useState } from 'react'`)
-- Double quotes for JSX attributes (e.g., `className="flex"`)
+- Base formatting is from `.editorconfig`: UTF-8, LF, final newline, 2-space indent, trimmed trailing whitespace (except Markdown).
+- Semicolons are used consistently in TS/TSX files (example: `hooks/usePitchRun.ts`, `services/runService.ts`).
+- Trailing commas are common in multi-line arrays/objects/params (example: `services/analysisService.ts`, `app/(app)/dashboard/page.tsx`).
+- Primary quote style in app TS/TSX is single-quote strings/imports; JSX props use double quotes.
+- Some modules use double quotes throughout (notably `app/api/waitlist/route.ts`, `services/miro/__tests__/miroService.integration.test.ts`, `playwright.config.ts`). Preserve local file style when editing those files.
 
-**Type Imports:**
-- Use `import type` for type-only imports (e.g., `import type { MetricValues } from '@/hooks/useSessionState'`)
-- Separate type imports from regular imports
-
-**Linting:**
-- No ESLint config detected, but code follows consistent patterns
-- TypeScript `strict: true` enforces type safety (`tsconfig.json`)
-- Unused variables and undefined behaviors caught by TypeScript compiler
+**Linting and Type Checking:**
+- No active ESLint config is present (`.eslintrc*` and `eslint.config.*` are absent at repo root).
+- Type safety is enforced via `strict: true` in `tsconfig.json`.
+- The defined static check command is `yarn typecheck` (`package.json`).
 
 ## Import Organization
 
-**Order (enforced by pattern):**
-1. React and Next.js (e.g., `import { useState } from 'react'`, `import { useRouter } from 'next/navigation'`)
-2. Third-party libraries (e.g., `import { Check, Circle } from 'lucide-react'`, `import { Suspense } from 'react'`)
-3. Type imports (e.g., `import type { RealtimeChecklistItemState } from '@/types/checklist'`)
-4. Local `@/` imports (e.g., `import { MetricsPanel } from '@/views/components/MetricsPanel'`)
-5. Relative imports (e.g., `./types`, `./constants`)
+**Observed order (follow this unless file-local conventions differ):**
+1. Framework/core imports (`react`, `next/*`) — e.g., `app/(app)/dashboard/page.tsx`.
+2. Third-party packages (`lucide-react`, `@supabase/supabase-js`) — e.g., `services/runService.ts`.
+3. Internal alias imports via `@/` — e.g., `services/analysisService.ts`, `hooks/usePitchRun.ts`.
+4. Type imports (`import type { ... }`) grouped near related imports — e.g., `controllers/pitchController.ts`.
 
-**Path Aliases:**
-- `@/*` maps to project root — use for all non-relative imports
-- Example: `import { useSessionState } from '@/hooks/useSessionState'`
+**Path aliases:**
+- `@/*` maps to project root (configured in `tsconfig.json` and `vitest.config.ts`).
+- Prefer `@/` imports over long relative traversals for app code.
 
 ## Error Handling
 
-**Custom Error Classes:**
-- `export class RunNotFoundError extends Error {}` in `services/runService.ts`
-- `export class PitchValidationError extends Error {}` in `controllers/pitchController.ts`
-- Extend native `Error` for domain-specific exceptions
+**Service/controller layer:**
+- Validate early and fail fast with explicit errors (`PitchValidationError` in `controllers/pitchController.ts`).
+- Domain-specific error classes extend `Error` (`RunNotFoundError` in `services/runService.ts`).
+- Services generally `throw` on persistence/invariant failures with contextual messages (`services/runService.ts`, `services/billingService.ts`).
 
-**Error Checking Pattern:**
-- Always check with `instanceof Error` before accessing `.message`:
-```typescript
-const message = error instanceof Error ? error.message : 'Default message';
-```
-- Used consistently across hooks, services, and API routes (e.g., `app/(app)/session/page.tsx` line 266, `app/api/deck/upload/route.ts` line 110)
+**API route layer:**
+- Wrap handlers in `try/catch` and return structured JSON errors.
+- Error response shape should remain `{ error: string }` with explicit status codes (examples: `app/api/billing/credits/route.ts`, `app/api/deck/generate/route.ts`, `app/api/profile/route.ts`).
+- Auth failures usually map to `401` (examples: `app/api/billing/credits/route.ts`, `app/api/referral/route.ts`).
 
-**Throw vs. Return:**
-- Services throw errors for fatal conditions (e.g., `throw new Error('Failed to insert run')` in `runService.ts`)
-- API routes catch and return JSON error responses (e.g., `app/api/pitch/run/route.ts` lines 82-85)
-- Hooks set state (e.g., `setError()` in `useMediaStream.ts`, `useSTT.ts`)
-
-**Graceful Degradation:**
-- Some errors are silently caught with comments explaining why (e.g., `catch { // Silently fail }` in `app/(app)/session/page.tsx` line 71)
-- Fallback modes exist for LLM calls and Miro integration
+**Unknown errors:**
+- Narrow unknown values before reading `.message`: `error instanceof Error ? error.message : String(error)` (used in `lib/llm/router.ts`, `hooks/usePitchRun.ts`).
 
 ## Logging
 
-**Framework:** console (no logger library)
-
-**Patterns:**
-- `console.warn()` for non-critical issues (e.g., `console.warn('[headTracking] initialization error')` in `session/page.tsx` line 149)
-- `console.error()` for errors (e.g., `console.error('[judge-agent] provider failure')` in `judgeAgentService.ts` line 232)
-- Prefix with `[module-name]` for filtering (e.g., `[headTracking]`, `[judge-agent]`)
-- No debug-level logging observed; use comments or `console.log()` sparingly
-
-**Observation:** Limited logging overall; relies on error handling and UI feedback.
+**Current approach:**
+- Logging uses `console.error`, `console.warn`, and occasional `console.log`; no centralized logger abstraction.
+- Prefix log messages with a bracketed scope for filtering (`[billing/credits]`, `[judge-agent]`, `[waitlist]`) in `app/api/billing/credits/route.ts`, `services/judgeAgentService.ts`, `app/api/waitlist/route.ts`.
+- Log at integration boundaries (API handlers, queue processors, provider adapters), not inside simple pure helpers.
 
 ## Comments
 
-**When to Comment:**
-- Explain WHY, not WHAT (code should be clear on what it does)
-- Complex algorithms or business logic (e.g., filler word detection in `useSessionState.ts` lines 45-67)
-- Unexpected behavior or workarounds (e.g., `// Silently fail — deck picker just won't show decks` in `session/page.tsx` line 72)
-- Section dividers (e.g., `// Duration timer — updates every second while session is active`)
-
-**JSDoc/TSDoc:**
-- Used minimally in the codebase
-- Prefer well-named functions and clear types over verbose JSDoc
-- Example: function names like `countFillerWords()` are self-documenting
+**Patterns in codebase:**
+- Section-divider comments are common in larger files: `/* ——— Section ——— */` in `app/(app)/dashboard/page.tsx` and `services/billingService.ts`.
+- Short rationale comments are used for non-obvious behavior/fallbacks (example: schema fallback paths in `app/api/waitlist/route.ts`).
+- JSDoc is used selectively for API endpoints (`app/api/billing/credits/route.ts`).
+- `TODO/FIXME/HACK` markers are currently rare; prefer either immediate fix or tracked issue.
 
 ## Function Design
 
-**Size:**
-- Keep functions focused on single responsibility
-- Sub-components extracted inline if <300 lines (e.g., `ModeButton`, `MetricCard`, `ChecklistRow` in `MetricsPanel.tsx`)
-- Extract to separate files if >300 lines
-
-**Parameters:**
-- Destructure object props for React components (e.g., `MetricsPanelProps` interface in `MetricsPanel.tsx`)
-- Type interfaces for component props (no inline prop typing)
-- Example:
-```typescript
-interface MetricsPanelProps {
-  metrics: MetricValues;
-  checklist: RealtimeChecklistItemState[];
-  isSessionActive: boolean;
-  onModeChange: (mode: PitchMode) => void;
-}
-
-export function MetricsPanel({ metrics, checklist, isSessionActive, onModeChange }: MetricsPanelProps) {
-  // ...
-}
-```
-
-**Return Values:**
-- Explicit return types preferred (not inferred)
-- Use `| null` for optional returns (e.g., `Promise<string | undefined>` in `loadDeckText` function)
-- Avoid returning complex nested objects; use well-defined types
-
-**Callbacks:**
-- Named with `on` prefix (e.g., `onModeChange`, `onClick`)
-- Type callbacks in props (e.g., `onModeChange: (mode: PitchMode) => void`)
-- Use `useCallback()` to memoize event handlers that depend on state/props
+- Favor guard clauses and early returns for validation and branching (examples: `controllers/pitchController.ts`, `app/api/deck/generate/route.ts`).
+- Extract small pure helpers for normalization/transforms (`normalizeRubric`, `mergeDeliveryEvents` in `services/analysisService.ts`).
+- Use object parameters for multi-field inputs in services (`AnalyzePitchInput` in `services/analysisService.ts`, params objects in `services/billingService.ts`).
+- In hooks/components, keep side effects in `useEffect` and memoize callbacks where re-renders matter (`app/(app)/dashboard/page.tsx`, `hooks/usePitchRun.ts`).
 
 ## Module Design
 
 **Exports:**
-- Named exports only (no default exports) — enforced throughout codebase
-- Example: `export function MetricsPanel()` not `export default MetricsPanel`
-- Type exports with `export type` (e.g., `export type PitchMode = 'elevator' | 'vc_pitch'`)
+- Named exports are the default for services, hooks, utils, and shared components (examples: `services/runService.ts`, `hooks/usePitchRun.ts`, `views/components/results/ScoreDashboard.tsx`).
+- Default exports are expected for Next.js entry files (`page.tsx`, `layout.tsx`, `global-error.tsx`) and a few legacy components (example: `views/components/HeadCoachSandbox.jsx`).
 
-**Barrel Files:**
-- Not systematically used in this codebase
-- Some directories like `SiriBubble/` use `index.ts` for compound components (`SiriBubble/index.ts`)
+**Barrels:**
+- Barrel exports are used selectively where it improves UI import ergonomics (`views/components/ui/index.ts`, `views/components/results/index.ts`).
+- Avoid broad barreling for service layers; import service modules directly.
 
-**Client Components:**
-- Use `'use client'` directive on all interactive components (required by Next.js App Router)
-- Example: All page files and interactive components start with `'use client';`
+**Client/server boundary:**
+- Interactive React files include `'use client';` at top (`hooks/usePitchRun.ts`, `views/components/results/ScoreDashboard.tsx`, `app/(app)/dashboard/page.tsx`).
+- API route and server/service files omit it (`app/api/**/route.ts`, `services/**`).
 
-## Styling
+## UI Styling Conventions
 
-**Utility Classes:**
-- Tailwind CSS 4.2.0 for layout, spacing, and utilities
-- Example: `className="flex flex-col w-80 rounded-2xl border overflow-hidden min-h-0"`
-- Gap utilities: `gap-2`, `gap-3`, `gap-4`
-- Sizing utilities: `w-80`, `w-5`, `h-3`, `min-h-0`
-
-**CSS Variables for Theming:**
-- Light mode: `:root`
-- Dark mode: `.dark` class (toggled via ThemeProvider)
-- Common variables:
-  - `--bg-primary`: Main background
-  - `--bg-surface`: Card/elevated backgrounds
-  - `--text-primary`: Main text
-  - `--text-secondary`: Secondary text
-  - `--text-muted`: Muted/disabled text
-  - `--border-color`: Border color
-  - `--blur-strength`: For glassmorphism
-- Examples in `MetricsPanel.tsx`: `style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}`
-
-**Inline Styles:**
-- Use inline `style={}` for dynamic theme values (e.g., `color={accent ?? 'var(--text-primary)'}`)
-- Reserve Tailwind for static layout; inline styles for dynamic colors/themes
-- Example: `style={{ color: accent ?? 'var(--text-primary)' }}` in `MetricCard`
-
-**Accent Colors:**
-- Coral/orange: `#ff5941`, `#ffaa33`, `#e63b26`
-- Red/error: `#ef4444`
-- Amber/warning: `#f59e0b`
-- Green/success: `#22c55e`
-
-**Glassmorphism:**
-- Backdrop blur: `backdrop-filter: blur(var(--blur-strength))`
-- WebKit support: `WebkitBackdropFilter: blur(var(--blur-strength))`
-- Semi-transparent backgrounds: `backgroundColor: 'var(--bg-surface)'` with opacity
+- Tailwind utility classes are primary for layout/spacing/typography (`views/components/results/ScoreDashboard.tsx`, `app/(app)/dashboard/page.tsx`).
+- Design tokens and theme values are CSS variables in `app/globals.css` (`--bg-surface`, `--text-primary`, `--border-color`, `--blur-strength`).
+- Dynamic color/theming values are often applied inline with CSS variables (`style={{ color: 'var(--text-primary)' }}` patterns in `views/components/results/ScoreDashboard.tsx`).
+- Glassmorphism/backdrop blur styling is an established visual pattern (`app/globals.css`, `views/components/results/ScoreDashboard.tsx`).
 
 ---
 
-*Convention analysis: 2026-02-22*
+*Convention analysis: 2026-03-04*
+*Update when patterns change*
