@@ -29,15 +29,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!post) return {};
 
   const { meta } = post;
-  const baseUrl = 'https://pitchr.app';
+  const baseUrl = 'https://pitchr.live';
   const coverImageUrl = meta.coverImage
     ? (meta.coverImage.startsWith('http') ? meta.coverImage : `${baseUrl}${meta.coverImage}`)
     : null;
+  const ogTitle = `${meta.title} | Pitchr`;
   return {
-    title: `${meta.title} — Pitchr Blog`,
+    title: meta.title,
     description: meta.excerpt,
+    alternates: { canonical: `/blog/${slug}` },
     openGraph: {
-      title: meta.title,
+      title: ogTitle,
       description: meta.excerpt,
       type: 'article',
       publishedTime: meta.date,
@@ -48,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: meta.title,
+      title: ogTitle,
       description: meta.excerpt,
       ...(coverImageUrl ? { images: [coverImageUrl] } : {}),
     },
@@ -103,7 +105,7 @@ export default async function BlogPostPage({ params }: Props) {
     }
   }
 
-  const baseUrl = 'https://pitchr.app';
+  const baseUrl = 'https://pitchr.live';
   const coverImageUrl = meta.coverImage
     ? (meta.coverImage.startsWith('http') ? meta.coverImage : `${baseUrl}${meta.coverImage}`)
     : null;

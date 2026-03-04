@@ -6,23 +6,37 @@ import { AnalyticsScripts } from '@/views/components/AnalyticsScripts';
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export const metadata: Metadata = {
-  title: 'Pitchr — AI Pitch Coach',
-  description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics — all in under 30 seconds.',
-  metadataBase: new URL('https://pitchr.app'),
+  metadataBase: new URL('https://pitchr.live'),
+  title: {
+    default: 'Pitchr | AI Pitch Coach for Founders',
+    template: '%s | Pitchr',
+  },
+  description:
+    'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics — all in under 30 seconds.',
   alternates: {
     canonical: '/',
   },
   openGraph: {
-    title: 'Pitchr — AI Pitch Coach',
-    description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
-    url: 'https://pitchr.app',
+    title: 'Pitchr | AI Pitch Coach for Founders',
+    description:
+      'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
+    url: 'https://pitchr.live',
     siteName: 'Pitchr',
     type: 'website',
+    images: [
+      { url: '/og-image.png', width: 1200, height: 630, alt: 'Pitchr — AI Pitch Coach' },
+    ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Pitchr — AI Pitch Coach',
-    description: 'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
+    title: 'Pitchr | AI Pitch Coach for Founders',
+    description:
+      'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
+    images: ['/og-image.png'],
+  },
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/apple-touch-icon.png' }],
   },
 };
 

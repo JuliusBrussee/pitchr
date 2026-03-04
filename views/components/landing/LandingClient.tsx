@@ -348,6 +348,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
           </div>
 
           <h1>
+            <span className="sr-only">Pitchr — </span>
             Ship pitches that<br />
             <span className="accent">close rounds.</span>
           </h1>
@@ -668,6 +669,9 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
             Pitchr — AI Pitch Coach
           </div>
           <div className="footer-links">
+            <Link href="/about" className="footer-link">
+              About
+            </Link>
             <a href="#delivery" className="footer-link" onClick={(e) => scrollToSection(e, 'delivery')}>
               Delivery
             </a>
@@ -679,6 +683,12 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
             </a>
             <Link href="/blog" className="footer-link">
               Journal
+            </Link>
+            <Link href="/terms" className="footer-link">
+              Terms
+            </Link>
+            <Link href="/privacy" className="footer-link">
+              Privacy
             </Link>
           </div>
         </div>

@@ -7,14 +7,21 @@ import { BlogHero } from '@/views/components/blog/BlogHero';
 import './blog.css';
 
 export const metadata: Metadata = {
-  title: 'Blog — Pitchr',
+  title: 'Blog',
   description:
     'Tips, frameworks, and insights to help founders deliver investor-ready pitches.',
+  alternates: { canonical: '/blog' },
   openGraph: {
-    title: 'Blog — Pitchr',
+    title: 'Blog | Pitchr',
     description:
       'Tips, frameworks, and insights to help founders deliver investor-ready pitches.',
     type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog | Pitchr',
+    description:
+      'Tips, frameworks, and insights to help founders deliver investor-ready pitches.',
   },
 };
 
