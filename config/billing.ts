@@ -22,6 +22,10 @@ const FREE_LIMITS: PlanLimits = {
   historicalLinks: false,
   deckGeneration: false,
   queuePriority: 100,
+  challengeSubmissions: 0,
+  gameModePerPeriod: 2,
+  leagueAccess: false,
+  streakFreezes: 0,
 };
 
 const DAY_PASS_LIMITS: PlanLimits = {
@@ -36,6 +40,10 @@ const DAY_PASS_LIMITS: PlanLimits = {
   historicalLinks: true,
   deckGeneration: true,
   queuePriority: 10,
+  challengeSubmissions: 1,
+  gameModePerPeriod: 5,
+  leagueAccess: false,
+  streakFreezes: 0,
 };
 
 const PRO_LIMITS: PlanLimits = {
@@ -50,6 +58,10 @@ const PRO_LIMITS: PlanLimits = {
   historicalLinks: true,
   deckGeneration: true,
   queuePriority: 10,
+  challengeSubmissions: -1,
+  gameModePerPeriod: 10,
+  leagueAccess: true,
+  streakFreezes: 2,
 };
 
 /* ——— Plan Pricing (USD) ——— */

@@ -36,6 +36,14 @@ export interface PlanLimits {
   deckGeneration: boolean;
   /** Priority in analysis queue (lower = higher priority) */
   queuePriority: number;
+  /** Arena: challenge submissions per challenge (-1 = unlimited, 0 = blocked) */
+  challengeSubmissions: number;
+  /** Arena: game mode sessions per period */
+  gameModePerPeriod: number;
+  /** Arena: whether league features are accessible */
+  leagueAccess: boolean;
+  /** Arena: streak freezes available per week */
+  streakFreezes: number;
 }
 
 export interface PlanPricing {

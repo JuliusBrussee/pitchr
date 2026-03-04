@@ -1,5 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { normalizeStoredAnalysis } from '@/services/analysisNormalizationService';
+import { updateStreak } from '@/models/userStats';
+import { awardXp, checkAndAwardStreakXp } from '@/services/xpService';
+import { XP_VALUES } from '@/config/arena';
 import type { AnalysisResultV2 } from '@/types/analysis-v2';
 import type { InputType, PitchMode, RunStats, RunStatus } from '@/types/pitch';
 
@@ -198,4 +201,57 @@ export function computeRunStats(runs: RunRecord[]): RunStats {
 export async function getRunStats(supabase: SupabaseClient): Promise<RunStats> {
   const runs = await listRuns(supabase);
   return computeRunStats(runs);
+}
+
+/* ——— Run Completion (streak + XP) ——— */
+
+export async function handleRunCompletion(
+  supabase: SupabaseClient,
+  userId: string,
+  runId: string,
+  overallScore: number,
+): Promise<{
+  streakResult?: { currentStreak: number; isNewMilestone: boolean; milestone?: number };
+  xpAwarded?: number;
+}> {
+  let streakResult: { currentStreak: number; isNewMilestone: boolean; milestone?: number } | undefined;
+  let xpAwarded = 0;
+
+  // 1. Update streak
+  try {
+    streakResult = await updateStreak(supabase, userId);
+  } catch (err) {
+    console.error('[run-completion] updateStreak failed:', err);
+  }
+
+  // 2. Award streak milestone XP if applicable
+  if (streakResult?.isNewMilestone && streakResult.milestone) {
+    try {
+      const milestoneXp = await checkAndAwardStreakXp(
+        supabase,
+        userId,
+        streakResult.currentStreak,
+      );
+      xpAwarded += milestoneXp;
+    } catch (err) {
+      console.error('[run-completion] checkAndAwardStreakXp failed:', err);
+    }
+  }
+
+  // 3. Award pitch analysis XP
+  try {
+    await awardXp(
+      supabase,
+      userId,
+      'pitch_analysis',
+      XP_VALUES.PITCH_ANALYSIS,
+      runId,
+      { overallScore },
+    );
+    xpAwarded += XP_VALUES.PITCH_ANALYSIS;
+  } catch (err) {
+    console.error('[run-completion] awardXp pitch_analysis failed:', err);
+  }
+
+  return { streakResult, xpAwarded };
 }
