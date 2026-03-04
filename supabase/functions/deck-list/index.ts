@@ -7,6 +7,7 @@ import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.t
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { listDecks } from '../_shared/deck-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
@@ -22,6 +23,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-list');
+    if (complianceResponse) return complianceResponse;
     const url = new URL(req.url);
     const projectId = url.searchParams.get('projectId');
     const allProjects = url.searchParams.get('allProjects') === 'true';

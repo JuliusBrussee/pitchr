@@ -16,6 +16,7 @@ import {
   insertSlides,
 } from '../_shared/deck-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -268,6 +269,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-upload');
+    if (complianceResponse) return complianceResponse;
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const rawProjectId = formData.get('projectId');

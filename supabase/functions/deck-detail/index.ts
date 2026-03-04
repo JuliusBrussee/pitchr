@@ -7,9 +7,12 @@ import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { getDeckWithSlides, deleteDeck } from '../_shared/deck-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
 async function handleGet(req: Request) {
-  const { supabase } = await getAuthenticatedUser(req);
+  const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-detail');
+  if (complianceResponse) return complianceResponse;
   const url = new URL(req.url);
   const deckId = url.searchParams.get('deckId');
   if (!deckId) return errorResponse('deckId query parameter is required', 400);
@@ -20,6 +23,8 @@ async function handleGet(req: Request) {
 
 async function handleDelete(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-detail');
+  if (complianceResponse) return complianceResponse;
   const url = new URL(req.url);
   const deckId = url.searchParams.get('deckId');
   if (!deckId) return errorResponse('deckId query parameter is required', 400);

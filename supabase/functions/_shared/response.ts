@@ -22,6 +22,13 @@ export function jsonResponse(
 export function errorResponse(
   message: string,
   status = 500,
+  details?: Record<string, unknown>,
 ): Response {
-  return jsonResponse({ error: message }, status);
+  return jsonResponse(
+    {
+      error: message,
+      ...(details ?? {}),
+    },
+    status,
+  );
 }

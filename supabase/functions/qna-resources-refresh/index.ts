@@ -11,6 +11,7 @@ import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
 Deno.serve(async (req: Request) => {
   const corsResponse = handleCors(req);
@@ -34,7 +35,9 @@ Deno.serve(async (req: Request) => {
       : 5;
 
   try {
-    await getAuthenticatedUser(req);
+    const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-resources-refresh');
+    if (complianceResponse) return complianceResponse;
 
     // Query the resource gaps table for status counts
     const adminClient = createAdminClient();

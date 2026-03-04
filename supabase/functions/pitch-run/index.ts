@@ -12,6 +12,7 @@ import {
   computeRunStats,
   toRunResponse,
 } from '../_shared/run-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
 import { analyzePitch } from '../_shared/analysis-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
@@ -196,6 +197,8 @@ function scheduleBackgroundJob(job: Promise<void>): void {
 
 async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
+  if (complianceResponse) return complianceResponse;
   const url = new URL(req.url);
   const mode = url.searchParams.get('mode');
   const projectId = url.searchParams.get('projectId');
@@ -252,6 +255,8 @@ async function handlePost(req: Request) {
   }
 
   const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
+  if (complianceResponse) return complianceResponse;
   const payload = validateRequest(body);
   const project = await resolveProjectForRequest(supabase, user.id, {
     projectId: payload.projectId,

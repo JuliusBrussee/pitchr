@@ -5,6 +5,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { MiroFixBoardRequest, MiroTopFixInput } from '../_shared/types.ts';
 
 function isValidMarkdownPayload(body: unknown): body is MiroFixBoardRequest {
@@ -57,7 +58,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    await getAuthenticatedUser(req);
+    const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'miro-fix-board-markdown');
+    if (complianceResponse) return complianceResponse;
     const body: unknown = await req.json();
     if (!isValidMarkdownPayload(body)) {
       return errorResponse('Invalid request body for miro-fix-board-markdown', 400);

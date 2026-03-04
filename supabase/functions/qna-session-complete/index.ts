@@ -9,6 +9,7 @@ import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { completeQASession, getQASession } from '../_shared/qna-session-service.ts';
 import { getConversation } from '../_shared/elevenlabs-convai.ts';
 import { recordQaSecondsUsage } from '../_shared/billing-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { QATurn } from '../_shared/types.ts';
 
 function isUuid(value: string): boolean {
@@ -78,6 +79,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-session-complete');
+    if (complianceResponse) return complianceResponse;
     const session = await getQASession(supabase, qaSessionId);
     if (!session) {
       return errorResponse('QA session not found.', 404);

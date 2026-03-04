@@ -10,6 +10,7 @@ import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { uploadToStorage, insertDeck, insertSlides } from '../_shared/deck-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { TemplateId, GenerateDeckRequest } from '../_shared/types.ts';
 
 const VALID_TEMPLATES = new Set<TemplateId>([
@@ -415,6 +416,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-generate');
+    if (complianceResponse) return complianceResponse;
 
     // Rate limit check for deck generation
     const adminClient = createAdminClient();

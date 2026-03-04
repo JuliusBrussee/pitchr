@@ -9,10 +9,13 @@ import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { getRun, deleteRun, RunNotFoundError, toRunResponse } from '../_shared/run-service.ts';
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
 import { deleteRecordingByUrl } from '../_shared/recording-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { Run } from '../_shared/types.ts';
 
 async function handleGet(req: Request) {
-  const { supabase } = await getAuthenticatedUser(req);
+  const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run-detail');
+  if (complianceResponse) return complianceResponse;
   const url = new URL(req.url);
   const runId = url.searchParams.get('runId');
   if (!runId) return errorResponse('runId query parameter is required', 400);
@@ -29,7 +32,9 @@ async function handleGet(req: Request) {
 }
 
 async function handleDelete(req: Request) {
-  const { supabase } = await getAuthenticatedUser(req);
+  const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run-detail');
+  if (complianceResponse) return complianceResponse;
   const url = new URL(req.url);
   const runId = url.searchParams.get('runId');
   if (!runId) return errorResponse('runId query parameter is required', 400);
