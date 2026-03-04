@@ -10,6 +10,7 @@ import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { uploadToStorage, insertDeck, insertSlides } from '../_shared/deck-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { TemplateId, GenerateDeckRequest } from '../_shared/types.ts';
 
 const VALID_TEMPLATES = new Set<TemplateId>([
@@ -415,10 +416,12 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-generate');
+    if (complianceResponse) return complianceResponse;
 
     // Rate limit check for deck generation
     const adminClient = createAdminClient();
-    const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck');
+    const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck_generation');
     if (!usageCheck.allowed) {
       return errorResponse(
         `Deck generation limit reached (${usageCheck.used}/${usageCheck.limit}). Upgrade your plan for more decks.`,
@@ -506,8 +509,8 @@ Deno.serve(async (req: Request) => {
     }));
     await insertSlides(supabase, deck.id, slideRows);
 
-    // Record usage after successful generation
-    await recordUsageEvent(adminClient, user.id, 'deck');
+    // Record usage after successful generation (2 credits for deck generation)
+    await recordUsageEvent(adminClient, user.id, 'deck_generation', deck.id);
 
     console.log('[deck-generate] deck created', deck.id);
 

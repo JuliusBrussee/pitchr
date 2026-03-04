@@ -260,6 +260,16 @@ export const edgeFunctions = {
     update: <T>(body: unknown) =>
       invokeEdgeFunction<T>('projects', { method: 'PATCH', body }),
   },
+  compliance: {
+    /** GET /compliance-status - fetch GDPR compliance status for the current user */
+    status: <T>() => invokeEdgeFunction<T>('compliance-status'),
+    /** POST /compliance-accept - complete required compliance acknowledgements */
+    accept: <T>(body: unknown) =>
+      invokeEdgeFunction<T>('compliance-accept', { method: 'POST', body }),
+    /** PATCH /compliance-consents - update optional consent toggles */
+    updateConsents: <T>(body: unknown) =>
+      invokeEdgeFunction<T>('compliance-consents', { method: 'PATCH', body }),
+  },
 };
 
 /**

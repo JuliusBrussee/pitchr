@@ -9,6 +9,7 @@ import { createQASession } from '../_shared/qna-session-service.ts';
 import { getSignedUrl, ElevenLabsConvaiError } from '../_shared/elevenlabs-convai.ts';
 import { getRun } from '../_shared/run-service.ts';
 import { getQaBudget } from '../_shared/billing-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
@@ -68,6 +69,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-session');
+    if (complianceResponse) return complianceResponse;
 
     // Get Q&A budget info for this user
     const adminClient = createAdminClient();

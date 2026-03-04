@@ -12,6 +12,7 @@ import {
   computeRunStats,
   toRunResponse,
 } from '../_shared/run-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
 import { analyzePitch } from '../_shared/analysis-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
@@ -151,6 +152,34 @@ async function processQueuedRun(
 
     console.error('[pitch-run] background analysis failed', { runId: input.runId, error: message });
 
+    // Refund credits for non-day-pass users on analysis failure
+    try {
+      const dayPass = await supabaseAdmin
+        .from('day_passes')
+        .select('id')
+        .eq('user_id', input.userId)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+        .single();
+
+      if (!dayPass.data) {
+        await supabaseAdmin.rpc('refund_credits', {
+          p_user_id: input.userId,
+          p_amount: 1,
+          p_source: 'pitch_analysis_refund',
+          p_reference_id: input.runId,
+          p_description: 'Refund for failed pitch analysis',
+        });
+        console.log('[pitch-run] credits refunded for failed analysis', { runId: input.runId });
+      }
+    } catch (refundError) {
+      console.error('[pitch-run] failed to refund credits', {
+        runId: input.runId,
+        error: refundError instanceof Error ? refundError.message : String(refundError),
+      });
+    }
+
     try {
       await updateRun(supabaseAdmin, input.runId, {
         status: 'failed',
@@ -196,6 +225,8 @@ function scheduleBackgroundJob(job: Promise<void>): void {
 
 async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
+  if (complianceResponse) return complianceResponse;
   const url = new URL(req.url);
   const mode = url.searchParams.get('mode');
   const projectId = url.searchParams.get('projectId');
@@ -252,6 +283,8 @@ async function handlePost(req: Request) {
   }
 
   const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
+  if (complianceResponse) return complianceResponse;
   const payload = validateRequest(body);
   const project = await resolveProjectForRequest(supabase, user.id, {
     projectId: payload.projectId,
@@ -282,7 +315,7 @@ async function handlePost(req: Request) {
 
   // Record usage eagerly so concurrent requests cannot bypass the limit.
   try {
-    await recordUsageEvent(adminClient, user.id, 'run');
+    await recordUsageEvent(adminClient, user.id, 'run', runId);
   } catch (usageErr) {
     console.error('[pitch-run] failed to record usage event eagerly', {
       error: usageErr instanceof Error ? usageErr.message : String(usageErr),
@@ -302,7 +335,7 @@ async function handlePost(req: Request) {
     audio_url: payload.audioUrl,
     deck_id: payload.deckId,
     overall_score: 0,
-    analysis: null,
+    analysis: {},
     meta: {
       provider_used: 'none',
       fallback_used: false,

@@ -5,6 +5,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
 
 async function getMiroBoard(supabase: SupabaseClient, runId: string) {
@@ -27,7 +28,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { supabase } = await getAuthenticatedUser(req);
+    const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'miro-fix-board-sync');
+    if (complianceResponse) return complianceResponse;
     const url = new URL(req.url);
     const runId = url.searchParams.get('runId');
 

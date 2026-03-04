@@ -2,6 +2,7 @@ export interface EdgeErrorPayload {
   error?: unknown;
   message?: unknown;
   code?: unknown;
+  redirectTo?: unknown;
   details?: unknown;
 }
 
@@ -22,4 +23,16 @@ export function getEdgeErrorMessage(
   if (relayMessage) return relayMessage;
 
   return fallback;
+}
+
+export function getEdgeErrorCode(
+  payload: EdgeErrorPayload | null | undefined,
+): string | null {
+  return asNonEmptyString(payload?.code);
+}
+
+export function getEdgeRedirectTo(
+  payload: EdgeErrorPayload | null | undefined,
+): string | null {
+  return asNonEmptyString(payload?.redirectTo);
 }

@@ -8,6 +8,7 @@ import type {
   CreatePitchRunRequest,
   CreatePitchRunResponse,
 } from '@/types/pitch';
+import { getEdgeErrorCode, getEdgeRedirectTo } from '@/lib/supabase/edge-error';
 
 export interface RunPitchAnalysisResult {
   runId: string;
@@ -52,6 +53,23 @@ export function usePitchRun(): UsePitchRunReturn {
         const payload = (await response.json()) as CreatePitchRunResponse | CreatePitchRunErrorResponse;
 
         if (!response.ok) {
+          const edgePayload = payload as unknown as Record<string, unknown>;
+          const code = getEdgeErrorCode(edgePayload);
+          const redirectTo = getEdgeRedirectTo(edgePayload);
+          if (code === 'GDPR_COMPLIANCE_REQUIRED' && redirectTo) {
+            const safeRedirect = redirectTo.startsWith('/') && !redirectTo.startsWith('//')
+              ? redirectTo
+              : '/compliance/check';
+            const nextPath = typeof window !== 'undefined'
+              ? `${window.location.pathname}${window.location.search}`
+              : '/dashboard';
+            const target = `${safeRedirect}?next=${encodeURIComponent(nextPath)}`;
+            if (typeof window !== 'undefined') {
+              window.location.assign(target);
+            }
+            throw new Error('GDPR compliance check required');
+          }
+
           const errorMsg =
             ('error' in payload && payload.error)
               ? payload.error

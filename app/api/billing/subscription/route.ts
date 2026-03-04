@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getOrCreateSubscription, getUsage, getActiveDayPass } from '@/services/billingService';
+import { getOrCreateCreditBalance } from '@/services/creditService';
 import { getPlan, getPlanLimits } from '@/config/billing';
 
 /**
@@ -17,6 +18,8 @@ export async function GET() {
       getUsage(admin, user.id),
       getActiveDayPass(admin, user.id),
     ]);
+
+    const credits = await getOrCreateCreditBalance(admin, user.id, subscription.planId);
 
     // If day pass is active, show its limits instead of subscription limits
     const effectivePlanId = dayPass ? 'day_pass' : subscription.planId;
@@ -52,6 +55,7 @@ export async function GET() {
             runsLimit: dayPass.runsLimit,
           }
         : null,
+      credits,
     });
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthenticationError') {

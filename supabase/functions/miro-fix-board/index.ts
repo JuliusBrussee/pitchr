@@ -8,6 +8,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type {
   MiroFixBoardRequest,
   MiroFixPatchRequest,
@@ -287,7 +288,9 @@ function buildInitialState(topFixes: MiroTopFixInput[], nowIso: string): Persist
 }
 
 async function handleGet(req: Request) {
-  const { supabase } = await getAuthenticatedUser(req);
+  const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'miro-fix-board');
+  if (complianceResponse) return complianceResponse;
   const url = new URL(req.url);
   const runId = url.searchParams.get('runId');
   if (!runId) {
@@ -303,7 +306,9 @@ async function handleGet(req: Request) {
 }
 
 async function handlePost(req: Request) {
-  const { supabase } = await getAuthenticatedUser(req);
+  const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'miro-fix-board');
+  if (complianceResponse) return complianceResponse;
   const body: unknown = await req.json();
   if (!isValidCreatePayload(body)) {
     return errorResponse('Invalid request body for miro-fix-board', 400);
@@ -347,7 +352,9 @@ async function handlePost(req: Request) {
 }
 
 async function handlePatch(req: Request) {
-  const { supabase } = await getAuthenticatedUser(req);
+  const { supabase, user } = await getAuthenticatedUser(req);
+  const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'miro-fix-board');
+  if (complianceResponse) return complianceResponse;
   const body: unknown = await req.json();
   if (!isValidPatchPayload(body)) {
     return errorResponse('Invalid request body for miro-fix-board PATCH', 400);

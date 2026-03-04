@@ -5,6 +5,8 @@ import { sendWaitlistWelcomeEmail } from "@/services/emailService";
 
 const MAX_EMAIL_LENGTH = 254; // RFC 5321
 const MAX_FIELD_LENGTH = 512;
+const DEFAULT_PRIVACY_NOTICE_VERSION =
+  process.env.GDPR_POLICY_VERSION ?? "2026-03-04";
 
 type WaitlistSupabaseClient = ReturnType<
   typeof createClient<any, "public", "public">
@@ -224,6 +226,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (body?.privacy_notice_acknowledged !== true) {
+      return NextResponse.json(
+        { error: "Privacy notice acknowledgement is required" },
+        { status: 400 },
+      );
+    }
+
+    // --- Collect analytics metadata ---
     const truncate = (val: unknown): string | null => {
       if (typeof val !== "string" || !val.trim()) return null;
       return val.trim().slice(0, MAX_FIELD_LENGTH);
@@ -235,6 +245,10 @@ export async function POST(request: NextRequest) {
       null;
     const generatedUnsubscribeToken = crypto.randomUUID();
 
+    const privacyNoticeVersion =
+      truncate(body.privacy_notice_version) ?? DEFAULT_PRIVACY_NOTICE_VERSION;
+    const privacyAcknowledgedAt = new Date().toISOString();
+
     const baseRow = {
       email,
       referrer: truncate(body.referrer),
@@ -245,11 +259,13 @@ export async function POST(request: NextRequest) {
       user_agent:
         request.headers.get("user-agent")?.slice(0, MAX_FIELD_LENGTH) ?? null,
       ip_address: ip,
+      privacy_notice_version: privacyNoticeVersion,
+      privacy_acknowledged_at: privacyAcknowledgedAt,
     };
 
     const newsletterRow = {
       ...baseRow,
-      newsletter_opt_in: body?.newsletter_opt_in !== false,
+      newsletter_opt_in: body?.newsletter_opt_in === true,
       unsubscribe_token: generatedUnsubscribeToken,
     };
 
@@ -380,10 +396,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (existingRow) {
-          if (
-            existingRow.unsubscribed_at &&
-            body?.newsletter_opt_in !== false
-          ) {
+          if (existingRow.unsubscribed_at && body?.newsletter_opt_in === true) {
             await supabase
               .from("waitlist")
               .update({

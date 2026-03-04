@@ -9,6 +9,7 @@ import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { completeQASession, getQASession } from '../_shared/qna-session-service.ts';
 import { getConversation } from '../_shared/elevenlabs-convai.ts';
 import { recordQaSecondsUsage } from '../_shared/billing-service.ts';
+import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { QATurn } from '../_shared/types.ts';
 
 function isUuid(value: string): boolean {
@@ -78,6 +79,8 @@ Deno.serve(async (req: Request) => {
 
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-session-complete');
+    if (complianceResponse) return complianceResponse;
     const session = await getQASession(supabase, qaSessionId);
     if (!session) {
       return errorResponse('QA session not found.', 404);
@@ -162,7 +165,36 @@ Deno.serve(async (req: Request) => {
     // Record billing after session is marked complete
     if (billableSeconds > 0) {
       const adminClient = createAdminClient();
-      await recordQaSecondsUsage(adminClient, user.id, billableSeconds);
+
+      // Check if user has an active day pass
+      const dayPassCheck = await adminClient
+        .from('day_passes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .gt('expires_at', new Date().toISOString())
+        .limit(1)
+        .single();
+
+      if (dayPassCheck.data) {
+        // Day pass user: record QA seconds via existing system
+        await recordQaSecondsUsage(adminClient, user.id, billableSeconds);
+      } else {
+        // Credit user: consume 1 credit for QA session
+        try {
+          await adminClient.rpc('consume_credits', {
+            p_user_id: user.id,
+            p_amount: 1,
+            p_source: 'qa_session',
+            p_reference_id: qaSessionId,
+            p_description: `QA session (${billableSeconds}s)`,
+          });
+        } catch (creditError) {
+          console.error('[qna-session-complete] credit consumption failed:', creditError);
+        }
+        // Still record qa_seconds usage event for analytics
+        await recordQaSecondsUsage(adminClient, user.id, billableSeconds);
+      }
     }
 
     return jsonResponse({ qaSession }, 200);

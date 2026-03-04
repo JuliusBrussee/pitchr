@@ -25,10 +25,11 @@ import { useAchievements } from '@/hooks/useAchievements';
 import { useBilling } from '@/hooks/useBilling';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTutorial } from '@/hooks/useTutorial';
+import { useCompliance } from '@/hooks/useCompliance';
 import { AchievementGrid } from '@/views/components/achievements';
-import { SubscriptionBadge, UsageBar, PlanCard } from '@/views/components/billing';
+import { SubscriptionBadge, UsageBar, PlanCard, CreditBalance, CreditPackCard } from '@/views/components/billing';
 import { useRouter } from 'next/navigation';
-import { getAllPlans } from '@/config/billing';
+import { getAllPlans, CREDIT_PACKS_STATIC } from '@/config/billing';
 import type { BillingPlanId, BillingInterval } from '@/types/billing';
 import type { ProgressRunRecord } from '@/lib/progress';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
@@ -140,9 +141,14 @@ export default function SettingsPage() {
   const billing = useBilling();
   const onboarding = useOnboarding();
   const { resetTours } = useTutorial();
+  const compliance = useCompliance();
 
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [analyticsConsent, setAnalyticsConsent] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
+  const [isConsentSaving, setIsConsentSaving] = useState(false);
+  const [isCreditPackLoading, setIsCreditPackLoading] = useState(false);
 
   // Fetch runs for achievement computation
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
@@ -173,6 +179,12 @@ export default function SettingsPage() {
       .catch(() => setRuns([]));
   }, []);
 
+  useEffect(() => {
+    if (!compliance.status) return;
+    setAnalyticsConsent(compliance.status.analyticsOptIn);
+    setMarketingConsent(compliance.status.marketingOptIn);
+  }, [compliance.status]);
+
   function persistSetting(updates: Record<string, unknown>) {
     fetchEdge('settings', {
       method: 'PATCH',
@@ -181,6 +193,17 @@ export default function SettingsPage() {
     }).catch(() => {
       // Settings are also persisted locally — remote sync failure is non-critical
     });
+  }
+
+  async function persistConsents(next: { analyticsOptIn?: boolean; marketingOptIn?: boolean }) {
+    setIsConsentSaving(true);
+    try {
+      await compliance.updateConsents(next);
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : 'Failed to update privacy preferences.');
+    } finally {
+      setIsConsentSaving(false);
+    }
   }
 
   useEffect(() => {
@@ -369,6 +392,40 @@ export default function SettingsPage() {
                   </div>
                 )}
 
+                {/* Credit balance */}
+                {billing.credits && (
+                  <CreditBalance credits={billing.credits} />
+                )}
+
+                {/* Credit packs */}
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+                    Buy Credits
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {CREDIT_PACKS_STATIC.map((pack) => (
+                      <CreditPackCard
+                        key={pack.slug}
+                        name={pack.name}
+                        credits={pack.credits}
+                        priceUsd={pack.priceUsd}
+                        isLoading={isCreditPackLoading}
+                        isBestValue={pack.slug === 'marathon'}
+                        onPurchase={async () => {
+                          try {
+                            setIsCreditPackLoading(true);
+                            await billing.purchaseCreditPack(pack.slug);
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : 'Purchase failed');
+                          } finally {
+                            setIsCreditPackLoading(false);
+                          }
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
                 {/* Pricing section header */}
                 <div className="text-center pt-2">
                   <h3
@@ -427,7 +484,7 @@ export default function SettingsPage() {
 
                 {/* Plan cards grid */}
                 <div className="pricing-grid grid gap-4 items-stretch pt-1">
-                  {getAllPlans().map((plan) => (
+                  {getAllPlans().filter((p) => p.id !== 'day_pass').map((plan) => (
                     <PlanCard
                       key={plan.id}
                       plan={plan}
@@ -547,11 +604,77 @@ export default function SettingsPage() {
             </p>
           </SectionCard>
 
+          <SectionCard icon={Shield} title="Privacy Preferences" delay={220} iconColor="#16a34a">
+            {compliance.isLoading ? (
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Loading privacy preferences...
+              </p>
+            ) : (
+              <>
+                <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
+                  Optional controls. You can update these without re-running the compliance check.
+                </p>
+
+                <SettingRow
+                  label="Analytics Cookies"
+                  description="Allow analytics scripts to improve product quality."
+                >
+                  <input
+                    type="checkbox"
+                    checked={analyticsConsent}
+                    disabled={isConsentSaving}
+                    onChange={async (event) => {
+                      const next = event.target.checked;
+                      const previous = analyticsConsent;
+                      setAnalyticsConsent(next);
+                      try {
+                        await persistConsents({ analyticsOptIn: next });
+                      } catch (error) {
+                        setAnalyticsConsent(previous);
+                        alert(error instanceof Error ? error.message : 'Failed to update analytics preference.');
+                      }
+                    }}
+                  />
+                </SettingRow>
+
+                <div className="h-px my-1" style={{ backgroundColor: 'var(--border-color)' }} />
+
+                <SettingRow
+                  label="Product Update Emails"
+                  description="Allow product update and launch emails."
+                >
+                  <input
+                    type="checkbox"
+                    checked={marketingConsent}
+                    disabled={isConsentSaving}
+                    onChange={async (event) => {
+                      const next = event.target.checked;
+                      const previous = marketingConsent;
+                      setMarketingConsent(next);
+                      try {
+                        await persistConsents({ marketingOptIn: next });
+                      } catch (error) {
+                        setMarketingConsent(previous);
+                        alert(error instanceof Error ? error.message : 'Failed to update marketing preference.');
+                      }
+                    }}
+                  />
+                </SettingRow>
+
+                {compliance.error && (
+                  <p className="text-xs mt-2" style={{ color: '#ef4444' }}>
+                    {compliance.error}
+                  </p>
+                )}
+              </>
+            )}
+          </SectionCard>
+
           {/* ——— Data Management (Danger Zone) ——— */}
           <SectionCard
             icon={Shield}
             title="Data Management"
-            delay={240}
+            delay={260}
             iconColor="#ef4444"
             titleColor="#ef4444"
             borderColor="rgba(239, 68, 68, 0.15)"

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, X, Clock, Zap, ArrowRight } from 'lucide-react';
-import { BILLING_PLANS } from '@/config/billing';
+import { Check, X, Zap, ArrowRight, Coins } from 'lucide-react';
+import { BILLING_PLANS, CREDIT_PACKS_STATIC, MONTHLY_CREDITS, CREDIT_COSTS } from '@/config/billing';
 import { buildFeatureList, buildExcludedFeatures } from '@/config/billing-features';
 import type { BillingPlan, BillingInterval } from '@/types/billing';
 
@@ -14,7 +14,6 @@ interface LandingPlanCardProps {
 
 function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
   const isFree = plan.id === 'free';
-  const isDayPass = plan.oneTime === true;
   const isPro = plan.featured;
 
   const monthlyEquivalent =
@@ -23,6 +22,7 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
 
   const features = buildFeatureList(plan);
   const excludedFeatures = buildExcludedFeatures(plan);
+  const monthlyCredits = MONTHLY_CREDITS[plan.id];
 
   return (
     <div
@@ -40,12 +40,6 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
           Most Popular
         </div>
       )}
-      {plan.id === 'day_pass' && (
-        <div className="lp-badge lp-badge-day">
-          <Clock size={10} />
-          Pitch Day
-        </div>
-      )}
 
       {/* Header */}
       <div className="lp-card-header">
@@ -59,12 +53,6 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
           <>
             <span className="lp-price">$0</span>
             <span className="lp-price-period">/forever</span>
-          </>
-        ) : isDayPass ? (
-          <>
-            <span className="lp-price">${plan.pricing.monthly}</span>
-            <span className="lp-price-period">/24 hours</span>
-            <p className="lp-price-note lp-price-note-amber">One-time — no subscription</p>
           </>
         ) : (
           <>
@@ -82,27 +70,28 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
         )}
       </div>
 
+      {/* Credits callout */}
+      <div className={`lp-credits-callout ${isPro ? 'lp-credits-callout-pro' : ''}`}>
+        <div className={`lp-credits-icon ${isPro ? 'lp-credits-icon-pro' : ''}`}>
+          <Coins size={13} />
+        </div>
+        <div>
+          <span className="lp-credits-count">{monthlyCredits} credits/mo</span>
+          <span className="lp-credits-note">
+            {isFree ? `${CREDIT_COSTS.pitchAnalysis} cr per analysis` : 'Buy more anytime'}
+          </span>
+        </div>
+      </div>
+
       {/* Divider */}
       <div className="lp-divider" data-plan={plan.id} />
 
       {/* Features */}
       <ul className="lp-features">
-        {isDayPass && (
-          <li className="lp-feature">
-            <div className="lp-feature-icon lp-feature-icon-amber">
-              <Clock size={11} />
-            </div>
-            <span className="lp-feature-text lp-feature-text-bold">
-              {plan.durationHours}-hour full access window
-            </span>
-          </li>
-        )}
         {features.map((f) => (
           <li key={f} className="lp-feature">
             <div
-              className={`lp-feature-icon ${
-                isPro ? 'lp-feature-icon-accent' : plan.id === 'day_pass' ? 'lp-feature-icon-amber' : ''
-              }`}
+              className={`lp-feature-icon ${isPro ? 'lp-feature-icon-accent' : ''}`}
             >
               <Check size={11} strokeWidth={3} />
             </div>
@@ -122,14 +111,105 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
       {/* CTA */}
       <a
         href="#waitlist"
-        className={`lp-cta ${isPro ? 'lp-cta-pro' : plan.id === 'day_pass' ? 'lp-cta-day' : 'lp-cta-free'}`}
+        className={`lp-cta ${isPro ? 'lp-cta-pro' : 'lp-cta-free'}`}
         onClick={(e) => {
           e.preventDefault();
           document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }}
       >
-        {isFree ? 'Get Started Free' : isDayPass ? 'Buy Day Pass' : 'Upgrade to Pro'}
+        {isFree ? 'Get Started Free' : 'Upgrade to Pro'}
         {!isFree && <ArrowRight size={14} className="lp-cta-arrow" />}
+      </a>
+    </div>
+  );
+}
+
+function LandingCreditsCard() {
+  return (
+    <div
+      className="lp-card lp-card-credits reveal"
+      style={{ transitionDelay: '200ms' }}
+    >
+      {/* Badge */}
+      <div className="lp-badge lp-badge-credits">
+        <Coins size={10} />
+        Pay as you go
+      </div>
+
+      {/* Header */}
+      <div className="lp-card-header">
+        <h3 className="lp-plan-name">Credits</h3>
+        <p className="lp-plan-desc">Buy once, use anytime — no subscription</p>
+      </div>
+
+      {/* Price range */}
+      <div className="lp-price-block">
+        <span className="lp-price">$5–$35</span>
+        <span className="lp-price-period">/pack</span>
+        <p className="lp-price-note">Credits never expire</p>
+      </div>
+
+      {/* Credit packs list */}
+      <div className="lp-credit-packs-list">
+        {CREDIT_PACKS_STATIC.map((pack) => {
+          const perCredit = (pack.priceUsd / pack.credits).toFixed(2);
+          const savingsPct = Math.round((1 - pack.priceUsd / pack.credits) * 100);
+          const isBest = pack.slug === 'marathon';
+          return (
+            <div key={pack.slug} className={`lp-credit-row ${isBest ? 'lp-credit-row-best' : ''}`}>
+              <div className="lp-credit-row-left">
+                <span className="lp-credit-row-name">{pack.name}</span>
+                <span className="lp-credit-row-count">{pack.credits} cr</span>
+              </div>
+              <div className="lp-credit-row-right">
+                <span className="lp-credit-row-price">${pack.priceUsd}</span>
+                {savingsPct > 0 && (
+                  <span className={`lp-credit-row-save ${savingsPct >= 40 ? 'lp-credit-row-save-high' : ''}`}>
+                    −{savingsPct}%
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Divider */}
+      <div className="lp-divider" />
+
+      {/* Features */}
+      <ul className="lp-features">
+        <li className="lp-feature">
+          <div className="lp-feature-icon">
+            <Check size={11} strokeWidth={3} />
+          </div>
+          <span className="lp-feature-text">{CREDIT_COSTS.pitchAnalysis} cr per analysis</span>
+        </li>
+        <li className="lp-feature">
+          <div className="lp-feature-icon">
+            <Check size={11} strokeWidth={3} />
+          </div>
+          <span className="lp-feature-text">{CREDIT_COSTS.deckGeneration} cr per deck generation</span>
+        </li>
+        <li className="lp-feature">
+          <div className="lp-feature-icon">
+            <Check size={11} strokeWidth={3} />
+          </div>
+          <span className="lp-feature-text">Works with any plan</span>
+        </li>
+      </ul>
+
+      {/* CTA */}
+      <a
+        href="#waitlist"
+        className="lp-cta lp-cta-free"
+        onClick={(e) => {
+          e.preventDefault();
+          document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }}
+      >
+        Buy Credits
+        <ArrowRight size={14} className="lp-cta-arrow" />
       </a>
     </div>
   );
@@ -137,7 +217,7 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
 
 export function LandingPricing() {
   const [interval, setInterval] = useState<BillingInterval>('month');
-  const plans = Object.values(BILLING_PLANS);
+  const plans = Object.values(BILLING_PLANS).filter((p) => p.id !== 'day_pass');
 
   return (
     <section className="lp-section" id="pricing">
@@ -170,11 +250,12 @@ export function LandingPricing() {
           </div>
         </div>
 
-        {/* Cards */}
+        {/* 3-col grid: Free | Pro | Credits */}
         <div className="lp-grid">
           {plans.map((plan, i) => (
             <LandingPlanCard key={plan.id} plan={plan} interval={interval} delay={i * 100} />
           ))}
+          <LandingCreditsCard />
         </div>
       </div>
     </section>
