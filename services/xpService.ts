@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Difficulty } from '@/config/arena';
 import type { XpEventType } from '@/types/arena';
 import { XP_VALUES, STREAK_MILESTONES } from '@/config/arena';
+import { getIsoWeekInfo } from '@/lib/iso-week';
 
 /* ——————————————————————————————————————————————————————————
  * XP Service
@@ -15,11 +16,7 @@ import { XP_VALUES, STREAK_MILESTONES } from '@/config/arena';
 /* ——— Helpers ——— */
 
 function getCurrentWeekAndYear(): { weekNumber: number; year: number } {
-  const now = new Date();
-  const jan1 = new Date(now.getFullYear(), 0, 1);
-  const days = Math.floor((now.getTime() - jan1.getTime()) / 86400000);
-  const weekNumber = Math.ceil((days + jan1.getDay() + 1) / 7);
-  return { weekNumber, year: now.getFullYear() };
+  return getIsoWeekInfo();
 }
 
 async function updateLeagueWeeklyXp(
@@ -32,23 +29,13 @@ async function updateLeagueWeeklyXp(
   // Find the user's league membership for the current week
   const { data: membership } = await supabase
     .from('league_memberships')
-    .select('id, weekly_xp, league_id')
+    .select('id, weekly_xp, leagues!inner(week_number, year)')
     .eq('user_id', userId)
-    .limit(1)
+    .eq('leagues.week_number', weekNumber)
+    .eq('leagues.year', year)
     .maybeSingle();
 
   if (!membership) return;
-
-  // Verify this membership belongs to the current week's league
-  const { data: league } = await supabase
-    .from('leagues')
-    .select('id')
-    .eq('id', membership.league_id)
-    .eq('week_number', weekNumber)
-    .eq('year', year)
-    .maybeSingle();
-
-  if (!league) return;
 
   const { error } = await supabase
     .from('league_memberships')
@@ -176,8 +163,7 @@ export async function checkAndAwardStreakXp(
   const milestone = STREAK_MILESTONES.find((m) => m.days === currentStreak);
   if (!milestone) return 0;
 
-  // Use a source_id that is unique per milestone per user to ensure
-  // idempotency within a streak period
+  // Unique key per user+milestone to keep this award idempotent.
   const sourceId = `streak_${milestone.days}_${userId}`;
 
   await awardXp(

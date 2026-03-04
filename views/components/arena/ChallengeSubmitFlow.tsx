@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { Mic, Send, Loader2, CheckCircle, Trophy } from 'lucide-react';
+import { Mic, Loader2, CheckCircle, Trophy } from 'lucide-react';
 import { GlassCard } from '@/views/components/ui/GlassCard';
 import { ScenarioCard } from '@/views/components/arena/ScenarioCard';
 import { CountdownTimer } from '@/views/components/arena/CountdownTimer';
+import { ArenaRecorder } from '@/views/components/arena/ArenaRecorder';
 import type { Scenario, ChallengeSubmission } from '@/types/arena';
 
 type SubmitFlowStep = 'read' | 'record' | 'submit' | 'done';
@@ -27,24 +28,50 @@ export function ChallengeSubmitFlow({
   const [step, setStep] = useState<SubmitFlowStep>(
     userSubmission ? 'done' : 'read',
   );
+  const [recordError, setRecordError] = useState<string | null>(null);
 
   const handleReadComplete = useCallback(() => {
+    setRecordError(null);
     setStep('record');
   }, []);
 
-  const handleSubmit = useCallback(async () => {
-    setStep('submit');
-    // Placeholder: in production, the runId comes from the pitch recording flow.
-    // For now, we simulate with a placeholder that the API will handle.
-    const placeholderRunId = `challenge-run-${Date.now()}`;
-    await onSubmit(placeholderRunId);
-    setStep('done');
+  const handleRecordComplete = useCallback(async (runId: string) => {
+    try {
+      setStep('submit');
+      await onSubmit(runId);
+      setStep('done');
+    } catch (err) {
+      setRecordError(err instanceof Error ? err.message : 'Failed to submit your pitch. Please try again.');
+      setStep('read');
+    }
   }, [onSubmit]);
+
+  const handleRecordCancel = useCallback(() => {
+    setStep('read');
+  }, []);
+
+  const handleRecordError = useCallback((message: string) => {
+    setRecordError(message);
+    setStep('read');
+  }, []);
 
   /* ——— Step: Read the scenario brief ——— */
   if (step === 'read') {
     return (
       <div className="flex flex-col items-center gap-6 animate-fade-in-up">
+        {recordError && (
+          <div
+            className="w-full max-w-md rounded-xl border px-4 py-3 text-sm"
+            style={{
+              borderColor: '#e63b261a',
+              backgroundColor: '#e63b260d',
+              color: '#e63b26',
+            }}
+          >
+            {recordError}
+          </div>
+        )}
+
         <CountdownTimer
           durationSec={scenario.readTimeSec}
           onComplete={handleReadComplete}
@@ -71,42 +98,13 @@ export function ChallengeSubmitFlow({
       <div className="flex flex-col items-center gap-6 animate-fade-in-up">
         <ScenarioCard scenario={scenario} showFullBrief={false} />
 
-        <GlassCard className="w-full max-w-md text-center">
-          <div className="flex flex-col items-center gap-4 py-8">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse"
-              style={{ backgroundColor: '#ff59411a' }}
-            >
-              <Mic size={28} style={{ color: '#ff5941' }} />
-            </div>
-            <div>
-              <p
-                className="text-lg font-bold mb-1"
-                style={{ color: 'var(--text-primary)' }}
-              >
-                Recording...
-              </p>
-              <p
-                className="text-sm"
-                style={{ color: 'var(--text-secondary)' }}
-              >
-                Pitch recorder integration coming soon.
-                <br />
-                Time limit: {scenario.timeLimitSec}s
-              </p>
-            </div>
-
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-opacity duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ backgroundColor: '#ff5941' }}
-            >
-              <Send size={16} />
-              Submit Pitch
-            </button>
-          </div>
-        </GlassCard>
+        <ArenaRecorder
+          scenario={scenario}
+          timeLimitSec={scenario.timeLimitSec}
+          onComplete={(runId) => { void handleRecordComplete(runId); }}
+          onCancel={handleRecordCancel}
+          onError={handleRecordError}
+        />
       </div>
     );
   }

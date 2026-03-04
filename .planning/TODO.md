@@ -29,7 +29,7 @@
 
 - [ ] **Set up Sentry project** — Create account at sentry.io, add `NEXT_PUBLIC_SENTRY_DSN` to production env
 - [ ] **OG image** — Design and add `og:image` for social sharing previews (1200x630px)
-- [ ] **Favicon** — No favicon in `/public` — design and add `favicon.ico` + `apple-touch-icon.png`
+- [ x] **Favicon** — No favicon in `/public` — design and add `favicon.ico` + `apple-touch-icon.png`
 
 ## Medium Priority
 

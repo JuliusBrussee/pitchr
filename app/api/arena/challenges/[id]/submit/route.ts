@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { submitChallenge } from '@/services/challengeService';
 import { ARENA_PLAN_LIMITS } from '@/config/arena';
+import { getActiveDayPass, getOrCreateSubscription } from '@/services/billingService';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 /* ——————————————————————————————————————————————————————————
@@ -23,15 +24,11 @@ async function getUserPlanId(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<PlanId> {
-  const { data } = await supabase
-    .from('subscriptions')
-    .select('plan_id, status')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .single();
+  const dayPass = await getActiveDayPass(supabase, userId);
+  if (dayPass) return 'day_pass';
 
-  if (!data) return 'free';
-  return data.plan_id as PlanId;
+  const subscription = await getOrCreateSubscription(supabase, userId);
+  return (subscription.planId as PlanId) ?? 'free';
 }
 
 async function checkChallengeSubmissionLimit(
@@ -120,6 +117,15 @@ export async function POST(
   } catch (error) {
     if (error instanceof Error && error.name === 'AuthenticationError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (error instanceof Error && error.message.includes('Run not found or does not belong')) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+    if (error instanceof Error && error.message.includes('Challenge is not active')) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    if (error instanceof Error && error.message.includes('duplicate key')) {
+      return NextResponse.json({ error: 'You already submitted to this challenge' }, { status: 409 });
     }
     console.error('[arena/challenges/submit] POST error:', error);
     return NextResponse.json(

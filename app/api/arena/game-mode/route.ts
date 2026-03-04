@@ -5,6 +5,7 @@ import { getRandomScenario } from '@/services/scenarioService';
 import { calculateGameModeXp, awardXp, checkAndAwardStreakXp } from '@/services/xpService';
 import { getOrCreateUserStats, updateStreak, updateUserStats } from '@/models/userStats';
 import { ARENA_PLAN_LIMITS, DIFFICULTY_SETTINGS } from '@/config/arena';
+import { getActiveDayPass, getOrCreateSubscription } from '@/services/billingService';
 import type { Difficulty } from '@/config/arena';
 import type { UserStats } from '@/types/arena';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -27,15 +28,11 @@ async function getUserPlanId(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<PlanId> {
-  const { data } = await supabase
-    .from('subscriptions')
-    .select('plan_id, status')
-    .eq('user_id', userId)
-    .eq('status', 'active')
-    .single();
+  const dayPass = await getActiveDayPass(supabase, userId);
+  if (dayPass) return 'day_pass';
 
-  if (!data) return 'free';
-  return data.plan_id as PlanId;
+  const subscription = await getOrCreateSubscription(supabase, userId);
+  return (subscription.planId as PlanId) ?? 'free';
 }
 
 async function checkGameModeLimit(
@@ -173,6 +170,22 @@ export async function POST(request: NextRequest) {
     }
 
     const diff = difficulty as Difficulty;
+
+    // Enforce the same plan limits as GET to prevent direct POST bypass.
+    const planId = await getUserPlanId(admin, user.id);
+    const { allowed, used, limit } = await checkGameModeLimit(admin, user.id, planId);
+    if (!allowed) {
+      return NextResponse.json(
+        {
+          error: 'Game mode limit reached',
+          upgrade: true,
+          used,
+          limit,
+          plan: planId,
+        },
+        { status: 403 },
+      );
+    }
 
     // Get the run to extract the score
     const { data: run, error: runError } = await admin

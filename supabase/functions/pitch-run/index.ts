@@ -330,7 +330,7 @@ async function handlePost(req: Request) {
     audio_url: payload.audioUrl,
     deck_id: payload.deckId,
     overall_score: 0,
-    analysis: null,
+    analysis: {},
     meta: {
       provider_used: 'none',
       fallback_used: false,

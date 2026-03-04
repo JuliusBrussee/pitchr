@@ -4,10 +4,10 @@ import { ArrowLeft, Loader2, Mic } from 'lucide-react';
 import Link from 'next/link';
 import { useGameMode } from '@/hooks/useGameMode';
 import { DIFFICULTY_SETTINGS } from '@/config/arena';
-import { GlassCard } from '@/views/components/ui/GlassCard';
 import { GameModePanel } from '@/views/components/arena/GameModePanel';
 import { ScenarioCard } from '@/views/components/arena/ScenarioCard';
 import { CountdownTimer } from '@/views/components/arena/CountdownTimer';
+import { ArenaRecorder } from '@/views/components/arena/ArenaRecorder';
 import { GameModeResults } from '@/views/components/arena/GameModeResults';
 
 export default function GameModePage() {
@@ -19,6 +19,8 @@ export default function GameModePage() {
     error,
     selectDifficulty,
     startRecording,
+    submitPitch,
+    reportError,
     reset,
   } = useGameMode();
 
@@ -98,50 +100,20 @@ export default function GameModePage() {
           </div>
         )}
 
-        {/* State: recording (placeholder) */}
+        {/* State: recording */}
         {state === 'recording' && scenario && difficulty && (
           <div className="flex flex-col items-center gap-6">
             <ScenarioCard
               scenario={scenario}
               showFullBrief={false}
             />
-            <GlassCard className="w-full max-w-md text-center">
-              <div className="flex flex-col items-center gap-4 py-8">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center animate-pulse"
-                  style={{ backgroundColor: '#ff59411a' }}
-                >
-                  <Mic size={28} style={{ color: '#ff5941' }} />
-                </div>
-                <div>
-                  <p
-                    className="text-lg font-bold mb-1"
-                    style={{ color: 'var(--text-primary)' }}
-                  >
-                    Recording...
-                  </p>
-                  <p
-                    className="text-sm"
-                    style={{ color: 'var(--text-secondary)' }}
-                  >
-                    Pitch recorder integration coming soon.
-                    <br />
-                    Time limit: {DIFFICULTY_SETTINGS[difficulty].pitchTimeSec}s
-                  </p>
-                </div>
-                <button
-                  onClick={reset}
-                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
-                  style={{
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--text-secondary)',
-                    backgroundColor: 'transparent',
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </GlassCard>
+            <ArenaRecorder
+              scenario={scenario}
+              timeLimitSec={DIFFICULTY_SETTINGS[difficulty].pitchTimeSec}
+              onComplete={(runId) => { void submitPitch(runId); }}
+              onCancel={reset}
+              onError={reportError}
+            />
           </div>
         )}
 

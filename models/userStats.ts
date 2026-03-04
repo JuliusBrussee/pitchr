@@ -234,7 +234,7 @@ export async function getLeaderboard(
 ): Promise<UserStats[]> {
   const { data, error } = await supabase
     .from('user_stats')
-    .select('*')
+    .select('*, profiles:user_id(display_name)')
     .order(sortBy, { ascending: false })
     .limit(limit);
 

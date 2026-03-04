@@ -53,6 +53,17 @@ export function useOnboarding() {
     };
     persistState(next);
     setState(next);
+
+    // Persist display name to profiles table (fire-and-forget)
+    if (name.trim()) {
+      fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ displayName: name.trim() }),
+      }).catch(() => {
+        // Non-critical — profile will be backfilled from auth metadata
+      });
+    }
   }, []);
 
   const markCameFromTry = useCallback((mode: 'elevator' | 'vc_pitch') => {

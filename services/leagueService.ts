@@ -5,6 +5,7 @@ import { LEAGUE_CONFIG, LEAGUE_TIERS } from '@/config/arena';
 import type { LeagueTier } from '@/config/arena';
 import { matchUsersIntoLeagues } from '@/services/matchmakingService';
 import { updateUserStats } from '@/models/userStats';
+import { getIsoWeekDateRange, getIsoWeekInfo, getPreviousIsoWeek } from '@/lib/iso-week';
 
 /* ——————————————————————————————————————————————————————————
  * League Service
@@ -28,10 +29,7 @@ function getPreviousTier(tier: LeagueTier): LeagueTier {
 }
 
 function getCurrentWeekAndYear(): { weekNumber: number; year: number } {
-  const now = new Date();
-  const jan1 = new Date(now.getFullYear(), 0, 1);
-  const days = Math.floor((now.getTime() - jan1.getTime()) / 86400000);
-  return { weekNumber: Math.ceil((days + jan1.getDay() + 1) / 7), year: now.getFullYear() };
+  return getIsoWeekInfo();
 }
 
 /**
@@ -42,31 +40,16 @@ function getWeekDateRange(
   weekNumber: number,
   year: number,
 ): { startsAt: string; endsAt: string } {
-  // Jan 1 of the year
-  const jan1 = new Date(Date.UTC(year, 0, 1));
-  // Day of week for Jan 1 (0 = Sunday, 1 = Monday, ...)
-  const jan1Day = jan1.getUTCDay();
-  // Offset to the Monday of week 1
-  const mondayOffset = jan1Day <= 1 ? 1 - jan1Day : 8 - jan1Day;
-  const week1Monday = new Date(Date.UTC(year, 0, 1 + mondayOffset));
-
-  // Monday of the target week
-  const targetMonday = new Date(week1Monday.getTime() + (weekNumber - 1) * 7 * 86400000);
-  // Sunday 23:59:59.999 UTC
-  const targetSunday = new Date(targetMonday.getTime() + 6 * 86400000 + 86400000 - 1);
-
-  return {
-    startsAt: targetMonday.toISOString(),
-    endsAt: targetSunday.toISOString(),
-  };
+  return getIsoWeekDateRange(weekNumber, year);
 }
 
 /* ——— Process Week End ——— */
 
 export async function processWeekEnd(
   supabase: SupabaseClient,
+  targetWeek?: { weekNumber: number; year: number },
 ): Promise<void> {
-  const { weekNumber, year } = getCurrentWeekAndYear();
+  const { weekNumber, year } = targetWeek ?? getCurrentWeekAndYear();
 
   // 1. Get all leagues for the current week
   const { data: leagues, error: leagueError } = await supabase
@@ -151,7 +134,7 @@ export async function createNewWeekLeagues(
     .from('subscriptions')
     .select('user_id')
     .eq('status', 'active')
-    .eq('plan', 'pro');
+    .eq('plan_id', 'pro');
 
   if (proError) {
     console.error('[leagues] Failed to fetch pro users:', proError.message);
@@ -180,8 +163,9 @@ export async function createNewWeekLeagues(
   }
 
   // 3. Get each user's previous week XP from league_memberships
-  const prevWeek = weekNumber > 1 ? weekNumber - 1 : 52;
-  const prevYear = weekNumber > 1 ? year : year - 1;
+  const previousWeek = getPreviousIsoWeek(weekNumber, year);
+  const prevWeek = previousWeek.weekNumber;
+  const prevYear = previousWeek.year;
 
   const { data: prevMemberships, error: prevError } = await supabase
     .from('league_memberships')
@@ -292,7 +276,7 @@ export async function getUserLeague(
   // Get all memberships for this league, ordered by weekly_xp DESC
   const { data: allMemberships, error: allMemberError } = await supabase
     .from('league_memberships')
-    .select('*')
+    .select('*, profiles:user_id(display_name)')
     .eq('league_id', membership.league_id)
     .order('weekly_xp', { ascending: false });
 

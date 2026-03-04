@@ -22,6 +22,7 @@ export interface UseGameModeReturn {
   selectDifficulty: (difficulty: Difficulty) => Promise<void>;
   startRecording: () => void;
   submitPitch: (runId: string) => Promise<void>;
+  reportError: (message: string) => void;
   reset: () => void;
 }
 
@@ -86,9 +87,15 @@ export function useGameMode(): UseGameModeReturn {
       setState('results');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit pitch');
-      setState('recording'); // go back to recording on error
+      setState('idle');
     }
   }, [scenario, difficulty]);
+
+  // reportError: recording -> idle with error
+  const reportError = useCallback((message: string) => {
+    setError(message);
+    setState('idle');
+  }, []);
 
   // reset: any -> idle
   const reset = useCallback(() => {
@@ -99,5 +106,5 @@ export function useGameMode(): UseGameModeReturn {
     setError(null);
   }, []);
 
-  return { state, scenario, difficulty, results, error, selectDifficulty, startRecording, submitPitch, reset };
+  return { state, scenario, difficulty, results, error, selectDifficulty, startRecording, submitPitch, reportError, reset };
 }

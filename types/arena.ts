@@ -163,6 +163,7 @@ export interface ChallengeSubmission {
   id: string;
   challengeId: string;
   userId: string;
+  displayName?: string;
   runId?: string;
   baseScore?: number;
   bonusScore: number;
@@ -183,6 +184,7 @@ export interface ChallengeSubmissionRow {
   rank: number | null;
   xp_earned: number;
   submitted_at: string;
+  profiles?: { display_name: string } | null;
 }
 
 export function mapChallengeSubmissionRow(row: ChallengeSubmissionRow): ChallengeSubmission {
@@ -190,6 +192,7 @@ export function mapChallengeSubmissionRow(row: ChallengeSubmissionRow): Challeng
     id: row.id,
     challengeId: row.challenge_id,
     userId: row.user_id,
+    displayName: row.profiles?.display_name ?? undefined,
     runId: row.run_id ?? undefined,
     baseScore: row.base_score ?? undefined,
     bonusScore: row.bonus_score,
@@ -283,6 +286,7 @@ export interface LeagueMembership {
   id: string;
   leagueId: string;
   userId: string;
+  displayName?: string;
   weeklyXp: number;
   rank?: number;
   promoted: boolean;
@@ -299,6 +303,7 @@ export interface LeagueMembershipRow {
   promoted: boolean;
   demoted: boolean;
   created_at: string;
+  profiles?: { display_name: string } | null;
 }
 
 export function mapLeagueMembershipRow(row: LeagueMembershipRow): LeagueMembership {
@@ -306,6 +311,7 @@ export function mapLeagueMembershipRow(row: LeagueMembershipRow): LeagueMembersh
     id: row.id,
     leagueId: row.league_id,
     userId: row.user_id,
+    displayName: row.profiles?.display_name ?? undefined,
     weeklyXp: row.weekly_xp,
     rank: row.rank ?? undefined,
     promoted: row.promoted,
@@ -328,6 +334,7 @@ export interface Badge {
 
 export interface UserStats {
   userId: string;
+  displayName?: string;
   totalXp: number;
   currentLeagueTier: LeagueTier;
   currentStreak: number;
@@ -346,6 +353,7 @@ export interface UserStats {
 
 export interface UserStatsRow {
   user_id: string;
+  profiles?: { display_name: string } | null;
   total_xp: number;
   current_league_tier: LeagueTier;
   current_streak: number;
@@ -365,6 +373,7 @@ export interface UserStatsRow {
 export function mapUserStatsRow(row: UserStatsRow): UserStats {
   return {
     userId: row.user_id,
+    displayName: row.profiles?.display_name ?? undefined,
     totalXp: row.total_xp,
     currentLeagueTier: row.current_league_tier,
     currentStreak: row.current_streak,

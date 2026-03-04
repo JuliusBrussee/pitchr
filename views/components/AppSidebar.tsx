@@ -14,6 +14,7 @@ import {
   Play,
   Sun,
   Moon,
+  Swords,
 } from 'lucide-react';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useAuth } from '@/views/components/AuthProvider';
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { id: 'history', label: 'History', icon: Clock, href: '/history' },
   { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
   { id: 'progress', label: 'Progress', icon: TrendingUp, href: '/progress' },
+  { id: 'arena', label: 'Arena', icon: Swords, href: '/arena' },
 ];
 
 const TOOL_ITEMS = [
@@ -110,7 +112,9 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
           const Icon = item.icon;
           const isActive = item.id === 'session'
             ? pathname.startsWith('/session')
-            : pathname === item.href;
+            : item.id === 'arena'
+              ? pathname.startsWith('/arena')
+              : pathname === item.href;
           return (
             <Link
               key={item.id}

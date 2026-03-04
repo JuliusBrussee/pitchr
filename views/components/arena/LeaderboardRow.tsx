@@ -23,7 +23,8 @@ function RankIcon({ rank }: { rank: number }) {
   return null;
 }
 
-function truncateUserId(userId: string): string {
+function getUserLabel(userId: string, displayName?: string): string {
+  if (displayName) return displayName;
   if (userId.length <= 12) return userId;
   return `${userId.slice(0, 6)}...${userId.slice(-4)}`;
 }
@@ -60,7 +61,7 @@ export function LeaderboardRow({ submission, rank, isCurrentUser }: LeaderboardR
           className={`text-sm ${isCurrentUser ? 'font-semibold' : 'font-medium'}`}
           style={{ color: isCurrentUser ? '#ff5941' : 'var(--text-primary)' }}
         >
-          {truncateUserId(submission.userId)}
+          {getUserLabel(submission.userId, submission.displayName)}
           {isCurrentUser && (
             <span
               className="ml-1.5 text-xs font-semibold"

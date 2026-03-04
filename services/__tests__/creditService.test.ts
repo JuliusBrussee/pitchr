@@ -14,7 +14,7 @@ import {
 } from '@/services/creditService';
 
 // Mock Supabase client
-function createMockSupabase() {
+function createMockSupabase(): any {
   const mock: Record<string, unknown> = {};
 
   const chainable = () => {

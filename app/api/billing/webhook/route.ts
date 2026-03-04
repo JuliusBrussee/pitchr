@@ -5,6 +5,7 @@ import {
   getUserIdByStripeCustomerId,
   upsertSubscription,
   downgradeToFree,
+  getSubscription,
   isBillingEventProcessed,
   recordBillingEvent,
   resolveSubscriptionPlan,
@@ -199,6 +200,7 @@ async function handleSubscriptionChange(admin: ReturnType<typeof createAdminClie
 
   const periodStart = new Date(sub.current_period_start * 1000).toISOString();
   const periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+  const previousSubscription = await getSubscription(admin, userId);
 
   await upsertSubscription(admin, {
     userId,
@@ -215,9 +217,24 @@ async function handleSubscriptionChange(admin: ReturnType<typeof createAdminClie
       : null,
   });
 
-  // Reset monthly credits for the new billing period
-  const monthlyLimit = MONTHLY_CREDITS[planId as BillingPlanId] ?? 3;
-  await resetMonthlyCredits(admin, userId, monthlyLimit, periodStart, periodEnd);
+  // Reset monthly credits only when the billing period advances.
+  const prevStartMs = previousSubscription ? Date.parse(previousSubscription.currentPeriodStart) : null;
+  const prevEndMs = previousSubscription ? Date.parse(previousSubscription.currentPeriodEnd) : null;
+  const newStartMs = Date.parse(periodStart);
+  const newEndMs = Date.parse(periodEnd);
+  const hasPrevStart = typeof prevStartMs === 'number' && Number.isFinite(prevStartMs);
+  const hasPrevEnd = typeof prevEndMs === 'number' && Number.isFinite(prevEndMs);
+  const hasNewStart = Number.isFinite(newStartMs);
+  const hasNewEnd = Number.isFinite(newEndMs);
+  const isNewPeriod =
+    !previousSubscription
+    || (hasNewStart && hasPrevStart && newStartMs > prevStartMs)
+    || (hasNewEnd && hasPrevEnd && newEndMs > prevEndMs);
+
+  if (isNewPeriod) {
+    const monthlyLimit = MONTHLY_CREDITS[planId as BillingPlanId] ?? 3;
+    await resetMonthlyCredits(admin, userId, monthlyLimit, periodStart, periodEnd);
+  }
 
   console.log('[billing/webhook] subscription updated', {
     userId,

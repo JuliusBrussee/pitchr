@@ -113,11 +113,12 @@ export async function submitChallenge(
     .from('runs')
     .select('overall_score, transcript, meta')
     .eq('id', runId)
+    .eq('user_id', userId)
     .single();
 
   if (runError || !run) {
-    console.error('[challenges] run not found:', runError?.message);
-    throw new Error('Run not found');
+    console.error('[challenges] run not found or does not belong to user:', runError?.message);
+    throw new Error('Run not found or does not belong to this user');
   }
 
   const baseScore = run.overall_score ?? 0;
@@ -176,7 +177,7 @@ export async function submitChallenge(
     userId,
     'challenge_submit',
     xpAmount,
-    `challenge_${challengeId}_${userId}`,
+    submission.id,
     { challengeId, runId, baseScore, bonusScore, totalScore },
   );
 
@@ -217,7 +218,7 @@ export async function getChallengeLeaderboard(
 ): Promise<ChallengeSubmission[]> {
   const { data, error } = await supabase
     .from('challenge_submissions')
-    .select('*')
+    .select('*, profiles:user_id(display_name)')
     .eq('challenge_id', challengeId)
     .order('total_score', { ascending: false })
     .limit(limit);

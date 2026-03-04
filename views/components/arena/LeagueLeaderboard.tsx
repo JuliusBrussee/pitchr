@@ -91,7 +91,8 @@ function RankIcon({ rank }: { rank: number }) {
   return null;
 }
 
-function truncateUserId(userId: string): string {
+function getUserLabel(userId: string, displayName?: string): string {
+  if (displayName) return displayName;
   if (userId.length <= 12) return userId;
   return `${userId.slice(0, 6)}...${userId.slice(-4)}`;
 }
@@ -136,7 +137,7 @@ function LeagueMemberRow({ membership, rank, isCurrentUser, zone }: LeagueMember
             className={`text-sm truncate ${isCurrentUser ? 'font-semibold' : 'font-medium'}`}
             style={{ color: isCurrentUser ? '#ff5941' : 'var(--text-primary)' }}
           >
-            {truncateUserId(membership.userId)}
+            {getUserLabel(membership.userId, membership.displayName)}
             {isCurrentUser && (
               <span
                 className="ml-1.5 text-xs font-semibold"

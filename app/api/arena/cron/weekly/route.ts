@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { activateNextChallenge } from '@/services/challengeService';
 import { processWeekEnd, createNewWeekLeagues } from '@/services/leagueService';
+import { getIsoWeekInfo, getPreviousIsoWeek } from '@/lib/iso-week';
 
 /* ——————————————————————————————————————————————————————————
  * POST /api/arena/cron/weekly
@@ -20,7 +21,12 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      console.error('[arena/cron/weekly] CRON_SECRET is not configured');
+      return NextResponse.json({ error: 'Cron secret is not configured' }, { status: 500 });
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -29,15 +35,13 @@ export async function POST(request: NextRequest) {
     // 1. Transition challenges: complete current, activate next
     const newChallenge = await activateNextChallenge(admin);
 
-    // 2. Process league week end (calculate rankings, promotions/demotions)
-    await processWeekEnd(admin);
+    // 2. Process the previous week (calculate rankings, promotions/demotions)
+    const currentWeek = getIsoWeekInfo();
+    const previousWeek = getPreviousIsoWeek(currentWeek.weekNumber, currentWeek.year);
+    await processWeekEnd(admin, previousWeek);
 
     // 3. Create new week leagues (matchmaking + new league/membership rows)
-    const now = new Date();
-    const jan1 = new Date(now.getFullYear(), 0, 1);
-    const days = Math.floor((now.getTime() - jan1.getTime()) / 86400000);
-    const newWeekNumber = Math.ceil((days + jan1.getDay() + 1) / 7);
-    await createNewWeekLeagues(admin, newWeekNumber, now.getFullYear());
+    await createNewWeekLeagues(admin, currentWeek.weekNumber, currentWeek.year);
 
     return NextResponse.json({
       success: true,
