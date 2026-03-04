@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.name === 'AuthenticationError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('[billing/credits] checkout error:', error);
+    console.error('[billing/credits] checkout error:', error instanceof Error ? error.message : error);
     return NextResponse.json(
       { error: 'Failed to start credit pack checkout' },
       { status: 500 },
