@@ -16,10 +16,17 @@ export interface ProjectPromptOverrides {
 export interface Project {
   id: string;
   name: string;
-  type: ProjectTypeId;
-  workflowMode: PitchMode;
+  description: string | null;
+  targetMarket: string | null;
+  keyMetrics: string | null;
+  extraNotes: string | null;
+  /** @deprecated */
+  type?: ProjectTypeId;
+  /** @deprecated */
+  workflowMode?: PitchMode;
   isArchived: boolean;
-  isSeeded: boolean;
+  /** @deprecated */
+  isSeeded?: boolean;
   promptOverrides: ProjectPromptOverrides;
   createdAt: string;
   updatedAt: string;

@@ -10,12 +10,18 @@ export interface ProjectPromptOverrides {
 export interface Project {
   id: string;
   name: string;
-  type: ProjectTypeId;
-  workflowMode: PitchMode;
+  description: string | null;
+  targetMarket: string | null;
+  keyMetrics: string | null;
+  extraNotes: string | null;
+  /** @deprecated Projects no longer have an inherent type. */
+  type?: ProjectTypeId;
+  /** @deprecated Mode is now chosen in pre-session flow. */
+  workflowMode?: PitchMode;
   isArchived: boolean;
-  isSeeded: boolean;
+  /** @deprecated No more seed projects. */
+  isSeeded?: boolean;
   promptOverrides: ProjectPromptOverrides;
   createdAt: string;
   updatedAt: string;
 }
-

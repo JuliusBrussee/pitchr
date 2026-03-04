@@ -5,6 +5,7 @@ import {
   Award,
   CreditCard,
   ExternalLink,
+  Gift,
   Palette,
   Shield,
   Trash2,
@@ -26,6 +27,7 @@ import { useBilling } from '@/hooks/useBilling';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTutorial } from '@/hooks/useTutorial';
 import { AchievementGrid } from '@/views/components/achievements';
+import { ReferralCard } from '@/views/components/ReferralCard';
 import { SubscriptionBadge, UsageBar, PlanCard, CreditBalance, CreditPackCard } from '@/views/components/billing';
 import { useRouter } from 'next/navigation';
 import { getAllPlans, CREDIT_PACKS_STATIC } from '@/config/billing';
@@ -265,6 +267,11 @@ export default function SettingsPage() {
           {/* ——— Achievements Showcase ——— */}
           <SectionCard icon={Award} title="Achievements" delay={60} id="achievements" iconColor="#eab308">
             <AchievementGrid state={achievements.state} />
+          </SectionCard>
+
+          {/* ——— Referrals ——— */}
+          <SectionCard icon={Gift} title="Refer a Friend" delay={68} id="referrals" iconColor="#22c55e">
+            <ReferralCard />
           </SectionCard>
 
           {/* ——— Onboarding & Tips ——— */}

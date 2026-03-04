@@ -14,7 +14,7 @@ import { RewriteDemoStep } from './steps/RewriteDemoStep';
 import { PersonalizationStep } from './steps/PersonalizationStep';
 
 interface OnboardingFlowProps {
-  onComplete: (name: string, mode: 'elevator' | 'vc_pitch') => void;
+  onComplete: (name: string, projectName: string, projectDescription: string) => void;
   onSkip: () => void;
 }
 

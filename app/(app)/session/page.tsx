@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
@@ -39,6 +39,7 @@ export default function SessionPage() {
 
 function SessionPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const media = useMediaStream();
   const session = useSessionState();
   const stt = useSTT();
@@ -66,8 +67,10 @@ function SessionPageContent() {
   const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
-  const pitchMode: PitchMode = sessionProject?.workflowMode
-    ?? 'vc_pitch';
+  const modeParam = searchParams.get('mode');
+  const pitchMode: PitchMode = (modeParam === 'elevator' || modeParam === 'vc_pitch')
+    ? modeParam
+    : 'vc_pitch';
   const modeConfig = PITCH_MODE_CONFIG[pitchMode];
 
   useEffect(() => {

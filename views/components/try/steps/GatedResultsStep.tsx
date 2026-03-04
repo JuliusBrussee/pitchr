@@ -94,7 +94,7 @@ export function GatedResultsStep({ mode }: GatedResultsStepProps) {
       }
     }
 
-    markCameFromTry(mode);
+    markCameFromTry();
     router.push(`/session/select-project?projectType=${projectType}`);
   };
 

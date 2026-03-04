@@ -1,18 +1,17 @@
 // Edge Function: projects
 // Methods:
-//   GET    /projects?includeArchived=true|false
+//   GET    /projects?includeArchived=true|false&projectId=xxx
 //   POST   /projects
 //   PATCH  /projects
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
-import { isProjectTypeId } from '../_shared/project-config.ts';
 import {
   createProject,
-  ensureSeedProjects,
   getActiveProjectId,
   getProjectById,
+  listProjectRecords,
   ProjectNotFoundError,
   resolveProjectForRequest,
   setActiveProject,
@@ -30,19 +29,27 @@ async function handleGet(req: Request): Promise<Response> {
   const { supabase, user } = await getAuthenticatedUser(req);
   const url = new URL(req.url);
   const includeArchived = url.searchParams.get('includeArchived') === 'true';
+  const singleProjectId = url.searchParams.get('projectId');
 
-  // Run seed check and active project lookup in parallel
+  // Single-project fetch
+  if (singleProjectId) {
+    if (!isUuid(singleProjectId)) {
+      throw new ProjectValidationError('projectId must be a valid UUID.');
+    }
+    const project = await getProjectById(supabase, user.id, singleProjectId);
+    return jsonResponse({ project: toProject(project) });
+  }
+
   const [projects, activeId] = await Promise.all([
-    ensureSeedProjects(supabase, user.id),
+    listProjectRecords(supabase, user.id, { includeArchived }),
     getActiveProjectId(supabase, user.id),
   ]);
 
   let activeProjectId = activeId;
   const activeExists = activeProjectId && projects.some((project) => project.id === activeProjectId && !project.is_archived);
   if (!activeExists) {
-    // Resolve a fallback from the already-loaded projects list
     const nonArchived = projects.filter((p) => !p.is_archived);
-    const fallback = nonArchived.find((p) => p.type === 'two_min_pitch') ?? nonArchived[0] ?? projects[0];
+    const fallback = nonArchived[0] ?? projects[0];
     if (fallback) {
       activeProjectId = fallback.id;
       await setActiveProject(supabase, user.id, fallback.id);
@@ -70,14 +77,15 @@ async function handlePost(req: Request): Promise<Response> {
   }
 
   const name = typeof body.name === 'string' ? body.name.trim() : '';
-  const type = body.type;
   const setActive = body.setActive === true;
   if (!name) {
     throw new ProjectValidationError('name is required.');
   }
-  if (!isProjectTypeId(type)) {
-    throw new ProjectValidationError('type must be one of: two_min_pitch, elevator_pitch.');
-  }
+
+  const description = typeof body.description === 'string' ? body.description : undefined;
+  const targetMarket = typeof body.targetMarket === 'string' ? body.targetMarket : undefined;
+  const keyMetrics = typeof body.keyMetrics === 'string' ? body.keyMetrics : undefined;
+  const extraNotes = typeof body.extraNotes === 'string' ? body.extraNotes : undefined;
   const promptOverrides =
     body.promptOverrides && typeof body.promptOverrides === 'object'
       ? body.promptOverrides as Record<string, unknown>
@@ -85,7 +93,10 @@ async function handlePost(req: Request): Promise<Response> {
 
   const project = await createProject(supabase, user.id, {
     name,
-    type,
+    description,
+    targetMarket,
+    keyMetrics,
+    extraNotes,
     promptOverrides,
   });
   if (setActive) {
@@ -119,6 +130,10 @@ async function handlePatch(req: Request): Promise<Response> {
   let project = await getProjectById(supabase, user.id, projectId);
   project = await updateProject(supabase, user.id, projectId, {
     name: typeof body.name === 'string' ? body.name : undefined,
+    description: typeof body.description === 'string' ? body.description : undefined,
+    targetMarket: typeof body.targetMarket === 'string' ? body.targetMarket : undefined,
+    keyMetrics: typeof body.keyMetrics === 'string' ? body.keyMetrics : undefined,
+    extraNotes: typeof body.extraNotes === 'string' ? body.extraNotes : undefined,
     isArchived: typeof body.isArchived === 'boolean' ? body.isArchived : undefined,
     promptOverrides:
       body.promptOverrides && typeof body.promptOverrides === 'object'

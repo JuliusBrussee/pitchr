@@ -1,48 +1,32 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowRight, Zap, BarChart3 } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 interface PersonalizationStepProps {
-  onComplete: (name: string, mode: 'elevator' | 'vc_pitch') => void;
+  onComplete: (name: string, projectName: string, projectDescription: string) => void;
 }
-
-const MODES = [
-  {
-    key: 'elevator' as const,
-    label: 'Elevator Pitch',
-    subtitle: '60 seconds. Hook them fast.',
-    icon: Zap,
-    color: '#f97316',
-  },
-  {
-    key: 'vc_pitch' as const,
-    label: 'VC Pitch',
-    subtitle: 'Full deck. Close the round.',
-    icon: BarChart3,
-    color: '#ff5941',
-  },
-];
 
 export function PersonalizationStep({ onComplete }: PersonalizationStepProps) {
   const [name, setName] = useState('');
-  const [mode, setMode] = useState<'elevator' | 'vc_pitch' | null>(null);
-  const [showModes, setShowModes] = useState(false);
+  const [projectName, setProjectName] = useState('');
+  const [projectDescription, setProjectDescription] = useState('');
+  const [showProject, setShowProject] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowModes(true), 400);
+    const timer = setTimeout(() => setShowProject(true), 400);
     return () => clearTimeout(timer);
   }, []);
 
-  const isReady = name.trim().length > 0 && mode !== null;
+  const isReady = name.trim().length > 0 && projectName.trim().length > 0;
 
   const handleLaunch = () => {
-    if (!isReady || !mode) return;
-    onComplete(name.trim(), mode);
+    if (!isReady) return;
+    onComplete(name.trim(), projectName.trim(), projectDescription.trim());
   };
 
   const handleSkipToDashboard = () => {
-    onComplete(name.trim() || 'Founder', mode ?? 'elevator');
+    onComplete(name.trim() || 'Founder', '', '');
   };
 
   return (
@@ -69,62 +53,57 @@ export function PersonalizationStep({ onComplete }: PersonalizationStepProps) {
             backdropFilter: 'blur(var(--blur-strength))',
             WebkitBackdropFilter: 'blur(var(--blur-strength))',
           }}
-          onFocus={(e) => {
-            e.target.style.borderColor = '#ff5941';
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = 'var(--border-color)';
-          }}
+          onFocus={(e) => { e.target.style.borderColor = '#ff5941'; }}
+          onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
         />
 
-        {/* Mode picker */}
+        {/* Project creation fields */}
         <div
           className="mt-8 transition-all duration-500 ease-out"
           style={{
-            opacity: showModes ? 1 : 0,
-            transform: showModes ? 'translateY(0)' : 'translateY(12px)',
+            opacity: showProject ? 1 : 0,
+            transform: showProject ? 'translateY(0)' : 'translateY(12px)',
           }}
         >
           <p className="text-xl font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
-            What are you prepping for?
+            What&apos;s your startup called?
           </p>
+          <input
+            type="text"
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            placeholder="e.g. Pitchr, Acme Corp"
+            className="w-full text-lg px-4 py-3 rounded-xl outline-none transition-all duration-200"
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
+              backdropFilter: 'blur(var(--blur-strength))',
+              WebkitBackdropFilter: 'blur(var(--blur-strength))',
+            }}
+            onFocus={(e) => { e.target.style.borderColor = '#ff5941'; }}
+            onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
+          />
 
-          <div className="grid grid-cols-2 gap-3">
-            {MODES.map((m) => {
-              const isSelected = mode === m.key;
-              const Icon = m.icon;
-              return (
-                <div
-                  key={m.key}
-                  className="rounded-2xl border p-5 cursor-pointer transition-all duration-200 hover:scale-[1.02]"
-                  style={{
-                    backgroundColor: isSelected ? `${m.color}08` : 'var(--bg-surface)',
-                    backdropFilter: 'blur(var(--blur-strength))',
-                    WebkitBackdropFilter: 'blur(var(--blur-strength))',
-                    borderColor: isSelected ? m.color : 'var(--border-color)',
-                  }}
-                  onClick={() => setMode(m.key)}
-                >
-                  <Icon
-                    size={24}
-                    style={{
-                      color: isSelected ? m.color : 'var(--text-muted)',
-                      marginBottom: 8,
-                    }}
-                  />
-                  <p
-                    className="font-semibold text-sm"
-                    style={{ color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                  >
-                    {m.label}
-                  </p>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                    {m.subtitle}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+          <p className="text-sm mt-4 mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Describe it in one line (optional)
+          </p>
+          <input
+            type="text"
+            value={projectDescription}
+            onChange={(e) => setProjectDescription(e.target.value)}
+            placeholder="e.g. AI pitch coach for founders"
+            className="w-full px-4 py-3 rounded-xl outline-none transition-all duration-200"
+            style={{
+              backgroundColor: 'transparent',
+              border: '1px solid var(--border-color)',
+              color: 'var(--text-primary)',
+              backdropFilter: 'blur(var(--blur-strength))',
+              WebkitBackdropFilter: 'blur(var(--blur-strength))',
+            }}
+            onFocus={(e) => { e.target.style.borderColor = '#ff5941'; }}
+            onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; }}
+          />
         </div>
 
         {/* Launch section */}
