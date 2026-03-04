@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     /* ——— Challenge list ——— */
     if (type === 'challenges') {
       const { data: challenges, error: challengesError } = await admin
-        .from('arena_challenges')
+        .from('challenges')
         .select('id, title, challenge_type, status, starts_at, ends_at, participant_count, week_number, year')
         .in('status', ['active', 'completed'])
         .order('starts_at', { ascending: false })

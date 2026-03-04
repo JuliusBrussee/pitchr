@@ -65,6 +65,8 @@ function PodiumCard({ entry, rank, isCurrentUser }: { entry: UserStats; rank: nu
       className={`flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all duration-200 ${isFirst ? 'sm:-mt-4' : ''}`}
       style={{
         backgroundColor: isCurrentUser ? '#ff594115' : 'var(--bg-surface)',
+        backdropFilter: 'blur(var(--blur-strength))',
+        WebkitBackdropFilter: 'blur(var(--blur-strength))',
         borderColor: isCurrentUser ? '#ff594140' : `${color}30`,
         flex: isFirst ? '1.2' : '1',
       }}
@@ -384,7 +386,12 @@ export default function LeaderboardPage() {
         >
           <div
             className="flex rounded-xl overflow-hidden border"
-            style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-primary)' }}
+            style={{
+              borderColor: 'var(--border-color)',
+              backgroundColor: 'var(--bg-surface)',
+              backdropFilter: 'blur(var(--blur-strength))',
+              WebkitBackdropFilter: 'blur(var(--blur-strength))',
+            }}
           >
             {TABS.map((tab) => {
               const isActive = activeTab === tab.id;
@@ -475,9 +482,12 @@ export default function LeaderboardPage() {
                       <button
                         key={opt.value}
                         onClick={() => setSort(opt.value)}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border-0 cursor-pointer transition-all duration-200"
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border cursor-pointer transition-all duration-200"
                         style={{
-                          backgroundColor: sort === opt.value ? '#ff59411a' : 'var(--bg-surface-hover)',
+                          backgroundColor: sort === opt.value ? '#ff59411a' : 'var(--bg-surface)',
+                          backdropFilter: 'blur(var(--blur-strength))',
+                          WebkitBackdropFilter: 'blur(var(--blur-strength))',
+                          borderColor: sort === opt.value ? '#ff594130' : 'var(--border-color)',
                           color: sort === opt.value ? '#ff5941' : 'var(--text-muted)',
                         }}
                       >
@@ -578,9 +588,12 @@ export default function LeaderboardPage() {
                         <select
                           value={selectedChallengeId}
                           onChange={(e) => handleChallengeSelect(e.target.value)}
-                          className="appearance-none text-sm font-medium pl-3 pr-8 py-1.5 rounded-lg border-0 cursor-pointer"
+                          className="appearance-none text-sm font-medium pl-3 pr-8 py-1.5 rounded-lg border cursor-pointer"
                           style={{
-                            backgroundColor: 'var(--bg-surface-hover)',
+                            backgroundColor: 'var(--bg-surface)',
+                            backdropFilter: 'blur(var(--blur-strength))',
+                            WebkitBackdropFilter: 'blur(var(--blur-strength))',
+                            borderColor: 'var(--border-color)',
                             color: 'var(--text-primary)',
                           }}
                         >
@@ -601,8 +614,13 @@ export default function LeaderboardPage() {
                     {/* Challenge context */}
                     {selectedChallenge && (
                       <div
-                        className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                        style={{ backgroundColor: 'var(--bg-surface-hover)' }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border"
+                        style={{
+                          backgroundColor: 'var(--bg-surface)',
+                          backdropFilter: 'blur(var(--blur-strength))',
+                          WebkitBackdropFilter: 'blur(var(--blur-strength))',
+                          borderColor: 'var(--border-color)',
+                        }}
                       >
                         <Swords size={14} style={{ color: '#ff5941' }} />
                         <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
