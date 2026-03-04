@@ -80,6 +80,30 @@ Deno.serve(async (req: Request) => {
         const ops: Promise<unknown>[] = [];
 
         if (billable > 0) {
+          // Check if user has active day pass
+          const dayPassCheck = await supabase
+            .from('day_passes')
+            .select('id')
+            .eq('user_id', session.user_id)
+            .eq('status', 'active')
+            .gt('expires_at', now.toISOString())
+            .limit(1)
+            .single();
+
+          if (!dayPassCheck.data) {
+            // Credit user: consume 1 credit for QA session
+            ops.push(
+              supabase.rpc('consume_credits', {
+                p_user_id: session.user_id,
+                p_amount: 1,
+                p_source: 'qa_session',
+                p_reference_id: session.id,
+                p_description: `QA session expired (${billable}s)`,
+              }).then(() => {}),
+            );
+          }
+
+          // Always record QA seconds for analytics
           ops.push(recordQaSecondsUsage(supabase, session.user_id, billable));
         }
 

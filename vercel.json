@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/arena/cron/weekly",
+      "schedule": "0 0 * * 1"
+    }
+  ]
+}

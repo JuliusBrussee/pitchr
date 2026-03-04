@@ -25,6 +25,10 @@ const LandingPricing = dynamic(
 );
 
 const PRIVACY_NOTICE_VERSION = process.env.NEXT_PUBLIC_GDPR_POLICY_VERSION || '2026-03-04';
+const LaunchCountdown = dynamic(
+  () => import('@/views/components/landing/LaunchCountdown').then((m) => m.LaunchCountdown),
+  { ssr: false }
+);
 
 export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const { isDark, setTheme } = useTheme();
@@ -378,6 +382,9 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
           <div className="hero-scroll-line" />
         </div>
       </section>
+
+      {/* ═══ LAUNCH COUNTDOWN ═══ */}
+      <LaunchCountdown onCtaClick={scrollToWaitlist} />
 
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
       <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>

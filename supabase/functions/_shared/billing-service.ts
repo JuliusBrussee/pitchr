@@ -29,6 +29,32 @@ const PLAN_LIMITS: Record<BillingPlanId, PlanLimits> = {
   pro: { runsPerPeriod: 50, decksPerPeriod: 20, qaSecondsPerPeriod: 3600, maxQaSessionSeconds: 180, qaGracePeriodSeconds: 10 },
 };
 
+/**
+ * Credit costs — must stay in sync with config/billing.ts.
+ */
+const CREDIT_COSTS: Record<string, number> = {
+  run: 1,
+  deck: 1,
+  qa_seconds: 1,
+  deck_generation: 2,
+};
+
+/**
+ * Monthly credit allotment per plan — must stay in sync with config/billing.ts.
+ */
+const MONTHLY_CREDITS: Record<BillingPlanId, number> = {
+  free: 3,
+  day_pass: 0,
+  pro: 60,
+};
+
+interface CreditBalanceRow {
+  monthly_credits: number;
+  purchased_credits: number;
+  bonus_credits: number;
+  bonus_credits_expires_at: string | null;
+}
+
 /** Dev user IDs that bypass all billing limits. */
 const DEV_USER_IDS: Set<string> = new Set(
   (Deno.env.get('BILLING_DEV_USER_IDS') ?? '')
@@ -119,32 +145,90 @@ async function getActiveDayPass(
 export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
-  resource: 'run' | 'deck' | 'qa_seconds',
+  resource: 'run' | 'deck' | 'qa_seconds' | 'deck_generation',
 ): Promise<UsageLimitResult> {
   // Dev accounts bypass all usage limits
   if (isDevUser(userId)) {
     return { allowed: true, planId: 'pro', used: 0, limit: null, remaining: null };
   }
 
-  // 1. Check active day pass first — it takes priority
-  const dayPass = await getActiveDayPass(supabase, userId);
-  if (dayPass) {
-    const resourceMap = {
-      run: { used: dayPass.runs_used, limit: dayPass.runs_limit },
-      deck: { used: dayPass.decks_used, limit: dayPass.decks_limit },
-      qa_seconds: { used: dayPass.qa_seconds_used, limit: dayPass.qa_seconds_limit },
-    };
-    const { used, limit } = resourceMap[resource];
-    return {
-      allowed: used < limit,
-      planId: 'day_pass' as BillingPlanId,
-      used,
-      limit,
-      remaining: Math.max(0, limit - used),
-    };
+  // 1. Check active day pass first — it takes priority (not for deck_generation)
+  if (resource !== 'deck_generation') {
+    const dayPass = await getActiveDayPass(supabase, userId);
+    if (dayPass) {
+      const resourceMap = {
+        run: { used: dayPass.runs_used, limit: dayPass.runs_limit },
+        deck: { used: dayPass.decks_used, limit: dayPass.decks_limit },
+        qa_seconds: { used: dayPass.qa_seconds_used, limit: dayPass.qa_seconds_limit },
+      };
+      const { used, limit } = resourceMap[resource];
+      return {
+        allowed: used < limit,
+        planId: 'day_pass' as BillingPlanId,
+        used,
+        limit,
+        remaining: Math.max(0, limit - used),
+      };
+    }
   }
 
-  // 2. Fall back to subscription
+  // 2. Credit-based check
+  const creditCost = CREDIT_COSTS[resource] ?? 1;
+  const { data: creditBalance } = await supabase
+    .from('credit_balances')
+    .select('monthly_credits, purchased_credits, bonus_credits, bonus_credits_expires_at')
+    .eq('user_id', userId)
+    .single<CreditBalanceRow>();
+
+  // Fetch subscription to get actual planId
+  const { data: subForPlan } = await supabase
+    .from('subscriptions')
+    .select('plan_id')
+    .eq('user_id', userId)
+    .single<{ plan_id: string }>();
+  const actualPlanId: BillingPlanId = subForPlan && isValidPlan(subForPlan.plan_id) ? subForPlan.plan_id : 'free';
+
+  if (creditBalance) {
+    const effectiveBonus = creditBalance.bonus_credits > 0
+      && (!creditBalance.bonus_credits_expires_at || new Date(creditBalance.bonus_credits_expires_at) > new Date())
+      ? creditBalance.bonus_credits : 0;
+    const totalAvailable = creditBalance.monthly_credits + creditBalance.purchased_credits + effectiveBonus;
+
+    if (totalAvailable > 0) {
+      return {
+        allowed: totalAvailable >= creditCost,
+        planId: actualPlanId,
+        used: creditCost,
+        limit: totalAvailable + creditCost,
+        remaining: totalAvailable,
+      };
+    }
+  } else {
+    // Auto-create credit balance for user (reuse actualPlanId from above)
+    const monthlyLimit = MONTHLY_CREDITS[actualPlanId];
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    await supabase.from('credit_balances').insert({
+      user_id: userId,
+      monthly_credits: monthlyLimit,
+      monthly_credits_limit: monthlyLimit,
+      period_start: now.toISOString(),
+      period_end: periodEnd.toISOString(),
+    });
+
+    if (monthlyLimit >= creditCost) {
+      return {
+        allowed: true,
+        planId: actualPlanId,
+        used: creditCost,
+        limit: monthlyLimit + creditCost,
+        remaining: monthlyLimit,
+      };
+    }
+  }
+
+  // 3. Fall back to subscription-based usage events
   const { data: sub } = await supabase
     .from('subscriptions')
     .select('plan_id, status, current_period_start, current_period_end')
@@ -158,7 +242,7 @@ export async function checkUsageLimit(
   const limitKey: keyof PlanLimits =
     resource === 'run'
       ? 'runsPerPeriod'
-      : resource === 'deck'
+      : resource === 'deck' || resource === 'deck_generation'
         ? 'decksPerPeriod'
         : 'qaSecondsPerPeriod';
 
@@ -169,13 +253,12 @@ export async function checkUsageLimit(
     return { allowed: true, planId, used: 0, limit: null, remaining: null };
   }
 
-  // 3. Count usage events in the current period
+  // 4. Count usage events in the current period
   const defaultBounds = getDefaultPeriodBounds();
   const periodStart = sub?.current_period_start ?? defaultBounds.start;
   const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
   if (resource === 'qa_seconds') {
-    // Sum quantity for qa_seconds events
     const { data: events } = await supabase
       .from('usage_events')
       .select('quantity')
@@ -199,11 +282,12 @@ export async function checkUsageLimit(
     };
   }
 
+  const eventResource = resource === 'deck_generation' ? 'deck' : resource;
   const { count } = await supabase
     .from('usage_events')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .eq('resource', resource)
+    .eq('resource', eventResource)
     .gte('period_start', periodStart)
     .lte('period_end', periodEnd);
 
@@ -254,12 +338,55 @@ export async function getQaBudget(
 
 /**
  * Record a usage event after a successful resource consumption.
+ * For non-day-pass users, also consumes credits via RPC.
  */
 export async function recordUsageEvent(
   supabase: SupabaseClient,
   userId: string,
-  resource: 'run' | 'deck',
+  resource: 'run' | 'deck' | 'deck_generation',
+  referenceId?: string,
 ): Promise<void> {
+  // Check if user has an active day pass — if so, use day pass tracking
+  if (resource !== 'deck_generation') {
+    const dayPass = await getActiveDayPass(supabase, userId);
+    if (dayPass) {
+      const column = resource === 'run' ? 'runs_used' : 'decks_used';
+      await supabase.rpc('increment_day_pass_usage', {
+        pass_id: dayPass.id,
+        usage_column: column,
+      });
+    } else {
+      // Consume credits for non-day-pass users
+      const creditCost = CREDIT_COSTS[resource] ?? 1;
+      const { data: consumeResult, error: consumeErr } = await supabase.rpc('consume_credits', {
+        p_user_id: userId,
+        p_amount: creditCost,
+        p_source: resource,
+        p_reference_id: referenceId ?? null,
+      });
+      if (consumeErr) {
+        console.error('[billing] credit consumption failed for', userId, resource, consumeErr.message);
+      } else if ((consumeResult as number) < 0) {
+        console.warn('[billing] insufficient credits for', userId, resource);
+      }
+    }
+  } else {
+    // deck_generation always uses credits (no day pass equivalent)
+    const creditCost = CREDIT_COSTS[resource] ?? 2;
+    const { data: consumeResult, error: consumeErr } = await supabase.rpc('consume_credits', {
+      p_user_id: userId,
+      p_amount: creditCost,
+      p_source: resource,
+      p_reference_id: referenceId ?? null,
+    });
+    if (consumeErr) {
+      console.error('[billing] credit consumption failed for', userId, resource, consumeErr.message);
+    } else if ((consumeResult as number) < 0) {
+      console.warn('[billing] insufficient credits for', userId, resource);
+    }
+  }
+
+  // Always insert usage_events for analytics
   const { data: sub } = await supabase
     .from('subscriptions')
     .select('current_period_start, current_period_end')
@@ -270,9 +397,11 @@ export async function recordUsageEvent(
   const periodStart = sub?.current_period_start ?? defaultBounds.start;
   const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
+  const analyticsResource = resource === 'deck_generation' ? 'deck' : resource;
+
   await supabase.from('usage_events').insert({
     user_id: userId,
-    resource,
+    resource: analyticsResource,
     period_start: periodStart,
     period_end: periodEnd,
   });

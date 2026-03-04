@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
 import type { User, SupabaseClient } from '@supabase/supabase-js';
 
 interface AuthContextValue {
@@ -29,7 +28,6 @@ function getSupabaseClient(): SupabaseClient | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabaseRef = useRef<SupabaseClient | null>(null);
@@ -65,8 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await supabaseRef.current.auth.signOut();
     }
     setUser(null);
-    router.push('/login');
-  }, [router]);
+    window.location.href = '/login';
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, signOut }}>
