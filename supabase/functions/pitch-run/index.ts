@@ -33,7 +33,7 @@ function isPitchMode(value: unknown): value is PitchMode {
 }
 
 function isInputType(value: unknown): value is InputType {
-  return value === 'audio' || value === 'text';
+  return value === 'audio' || value === 'text' || value === 'upload';
 }
 
 function isUuid(value: string): boolean {

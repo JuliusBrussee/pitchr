@@ -2,7 +2,7 @@
 // These mirror the types from the main app's types/ directory.
 
 export type PitchMode = 'elevator' | 'vc_pitch';
-export type InputType = 'audio' | 'text';
+export type InputType = 'audio' | 'text' | 'upload';
 export type RunStatus = 'queued' | 'running' | 'complete' | 'failed';
 export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b';
 export type Coverage = 'spoken_only' | 'spoken+deck';

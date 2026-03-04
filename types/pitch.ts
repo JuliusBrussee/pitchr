@@ -9,7 +9,7 @@ import type { AnalysisResult } from '@/types/analysis';
 import type { QASessionSummary } from '@/types/qna';
 
 export type PitchMode = 'elevator' | 'vc_pitch';
-export type InputType = 'audio' | 'text';
+export type InputType = 'audio' | 'text' | 'upload';
 export type RunStatus = 'queued' | 'running' | 'complete' | 'failed';
 
 export interface Run {
