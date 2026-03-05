@@ -13,9 +13,13 @@ import {
   Search,
   Loader2,
   AlertCircle,
+  FolderInput,
+  FolderOpen,
+  X,
 } from 'lucide-react';
-import { SearchInput, SectionHeader, EmptyState } from '@/views/components/ui';
+import { SearchInput, EmptyState } from '@/views/components/ui';
 import { GenerateDeckModal } from '@/views/components/GenerateDeckModal';
+import { useProject } from '@/views/components/ProjectProvider';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import type { DeckRecord } from '@/services/deckService';
 
@@ -58,6 +62,126 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(days / 7)}w ago`;
 }
 
+/* ——— Move Dropdown ——— */
+
+interface MoveDropdownProps {
+  deckId: string;
+  currentProjectId: string;
+  onClose: () => void;
+  onMoved: () => void;
+}
+
+function MoveDropdown({ deckId, currentProjectId, onClose, onMoved }: MoveDropdownProps) {
+  const { projects } = useProject();
+  const [isMoving, setIsMoving] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const otherProjects = projects.filter((p) => p.id !== currentProjectId && !p.isArchived);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const handleMove = async (targetProjectId: string) => {
+    setIsMoving(targetProjectId);
+    try {
+      const res = await fetchEdge('deck-detail', {
+        method: 'PATCH',
+        params: { deckId },
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: targetProjectId }),
+      });
+      if (!res.ok) throw new Error('Failed to move deck');
+      onMoved();
+      onClose();
+    } catch {
+      setIsMoving(null);
+    }
+  };
+
+  return (
+    <div
+      ref={dropdownRef}
+      className="absolute right-0 top-full mt-1.5 w-56 rounded-xl border overflow-hidden z-30"
+      style={{
+        backgroundColor: 'var(--bg-primary)',
+        borderColor: 'var(--border-color)',
+        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03) inset',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div
+        className="flex items-center justify-between px-3 py-2.5"
+        style={{ borderBottom: '1px solid var(--border-color)' }}
+      >
+        <div className="flex items-center gap-2">
+          <FolderInput size={12} style={{ color: '#ff5941' }} />
+          <p className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Move to project
+          </p>
+        </div>
+        <button
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="p-0.5 rounded transition-colors"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          <X size={12} />
+        </button>
+      </div>
+
+      {/* Project list */}
+      <div className="py-1 max-h-[200px] overflow-y-auto">
+        {otherProjects.length === 0 ? (
+          <div className="px-3 py-4 text-center">
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+              No other projects available
+            </p>
+          </div>
+        ) : (
+          otherProjects.map((p) => (
+            <button
+              key={p.id}
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleMove(p.id);
+              }}
+              onMouseEnter={() => setHoveredId(p.id)}
+              onMouseLeave={() => setHoveredId(null)}
+              disabled={isMoving !== null}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-all duration-150 disabled:opacity-40"
+              style={{
+                color: 'var(--text-primary)',
+                backgroundColor: hoveredId === p.id ? 'var(--bg-surface-hover)' : 'transparent',
+              }}
+            >
+              {isMoving === p.id ? (
+                <Loader2 size={13} className="animate-spin flex-shrink-0" style={{ color: '#ff5941' }} />
+              ) : (
+                <FolderOpen
+                  size={13}
+                  className="flex-shrink-0"
+                  style={{ color: hoveredId === p.id ? '#ff5941' : 'var(--text-muted)' }}
+                />
+              )}
+              <span className="truncate">{p.name}</span>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ——— Main Component ——— */
+
 interface ProjectDeckManagerProps {
   projectId: string;
 }
@@ -70,6 +194,8 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
+  const [moveOpenDeckId, setMoveOpenDeckId] = useState<string | null>(null);
+  const [hoveredDeckId, setHoveredDeckId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchDecks = useCallback(async () => {
@@ -157,7 +283,7 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <input
         ref={fileInputRef}
         type="file"
@@ -172,7 +298,7 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
 
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
             Decks
           </h2>
@@ -193,23 +319,40 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
-            style={{ background: '#1c1210', color: '#fff0eb' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 disabled:opacity-50"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--text-muted)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
           >
-            {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+            {isUploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
             Upload
           </button>
         </div>
       </div>
 
+      {/* Error */}
       {error && (
         <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
-          style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}
+          className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs"
+          style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.06)',
+            color: '#ef4444',
+            border: '1px solid rgba(239, 68, 68, 0.12)',
+          }}
         >
-          <AlertCircle size={14} />
-          {error}
-          <button onClick={() => setError(null)} className="ml-auto underline">Dismiss</button>
+          <AlertCircle size={13} />
+          <span className="flex-1">{error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="p-0.5 rounded transition-colors"
+            style={{ color: '#ef4444' }}
+          >
+            <X size={12} />
+          </button>
         </div>
       )}
 
@@ -219,20 +362,26 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
         onDragLeave={() => setIsDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setIsDragOver(false); const file = e.dataTransfer.files[0]; if (file) handleUpload(file); }}
         onClick={() => fileInputRef.current?.click()}
-        className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl border-2 border-dashed cursor-pointer transition-all group overflow-hidden"
+        className="relative flex flex-col items-center justify-center gap-2 py-5 rounded-xl border border-dashed cursor-pointer transition-all duration-300 group overflow-hidden"
         style={{
-          borderColor: isDragOver ? 'rgba(255, 89, 65, 0.4)' : 'var(--border-color)',
-          backgroundColor: isDragOver ? 'rgba(255, 89, 65, 0.04)' : 'transparent',
+          borderColor: isDragOver ? 'rgba(255, 89, 65, 0.5)' : 'var(--border-color)',
+          backgroundColor: isDragOver ? 'rgba(255, 89, 65, 0.03)' : 'transparent',
         }}
       >
         <div
-          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+          className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={shimmerStyle}
         />
-        <div className="flex items-center justify-center w-10 h-10 rounded-lg" style={{ backgroundColor: 'var(--bg-surface-hover)' }}>
-          {isUploading ? <Loader2 size={18} style={{ color: '#ff5941' }} className="animate-spin" /> : <Upload size={18} style={{ color: 'var(--text-secondary)' }} />}
+        <div
+          className="flex items-center justify-center w-9 h-9 rounded-lg transition-transform duration-300 group-hover:scale-105"
+          style={{ backgroundColor: 'var(--bg-surface)' }}
+        >
+          {isUploading
+            ? <Loader2 size={16} style={{ color: '#ff5941' }} className="animate-spin" />
+            : <Upload size={16} style={{ color: 'var(--text-muted)' }} />
+          }
         </div>
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
           {isUploading ? 'Uploading...' : 'Drop slides here or click to upload (PDF, PPTX)'}
         </p>
       </div>
@@ -241,15 +390,30 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
       <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
         {/* AI generate card */}
         <div
-          className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed p-4 cursor-pointer transition-all group hover:scale-[1.02]"
-          style={{ borderColor: 'rgba(255, 89, 65, 0.2)', backgroundColor: 'var(--bg-surface)', minHeight: '200px' }}
+          className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-4 cursor-pointer transition-all duration-300 group"
+          style={{
+            borderColor: 'rgba(255, 89, 65, 0.15)',
+            backgroundColor: 'var(--bg-surface)',
+            minHeight: '200px',
+          }}
           onClick={() => setIsGenerateOpen(true)}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.35)';
+            e.currentTarget.style.backgroundColor = 'rgba(255, 89, 65, 0.02)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.15)';
+            e.currentTarget.style.backgroundColor = 'var(--bg-surface)';
+          }}
         >
           <div
-            className="flex items-center justify-center w-12 h-12 rounded-xl transition-all group-hover:scale-110"
-            style={{ background: 'linear-gradient(135deg, rgba(255, 89, 65, 0.12), rgba(255, 170, 51, 0.10))' }}
+            className="flex items-center justify-center w-12 h-12 rounded-xl transition-transform duration-300 group-hover:scale-110"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255, 89, 65, 0.12), rgba(255, 170, 51, 0.08))',
+              boxShadow: '0 0 24px rgba(255, 89, 65, 0.05)',
+            }}
           >
-            <Sparkles size={22} style={{ color: '#ff5941' }} />
+            <Sparkles size={20} style={{ color: '#ff5941' }} />
           </div>
           <p className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>Create with AI</p>
           <p className="text-[11px] text-center" style={{ color: 'var(--text-muted)' }}>Let AI build slides for you</p>
@@ -257,7 +421,7 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
 
         {isLoading && (
           <div className="col-span-full flex items-center justify-center py-8">
-            <Loader2 size={24} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+            <Loader2 size={20} className="animate-spin" style={{ color: '#ff5941' }} />
           </div>
         )}
 
@@ -270,37 +434,96 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
           </div>
         )}
 
-        {!isLoading && filteredDecks.map((deck, index) => (
-          <div
-            key={deck.id}
-            className="flex flex-col rounded-xl border overflow-hidden transition-all group hover:scale-[1.02]"
-            style={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)' }}
-          >
-            <div className="relative h-28 flex items-center justify-center overflow-hidden" style={{ background: gradientForDeck(index) }}>
-              <Presentation size={28} className="text-white/70" />
-              <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-white/90 bg-black/25 backdrop-blur-sm">
-                <FileText size={10} /> {deck.slide_count} slides
-              </div>
-              <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {deck.pdf_url && (
-                  <button onClick={(e) => { e.stopPropagation(); handleDownload(deck); }} className="p-1 rounded text-white/70 hover:text-white hover:bg-white/15" aria-label="Download">
-                    <Download size={14} />
+        {!isLoading && filteredDecks.map((deck, index) => {
+          const isHovered = hoveredDeckId === deck.id;
+          return (
+            <div
+              key={deck.id}
+              onMouseEnter={() => setHoveredDeckId(deck.id)}
+              onMouseLeave={() => setHoveredDeckId(null)}
+              className="flex flex-col rounded-xl border overflow-hidden transition-all duration-300"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: isHovered ? 'var(--text-muted)' : 'var(--border-color)',
+                boxShadow: isHovered ? '0 4px 20px rgba(0, 0, 0, 0.15)' : 'none',
+                transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
+              }}
+            >
+              {/* Thumbnail area */}
+              <div
+                className="relative h-28 flex items-center justify-center overflow-hidden"
+                style={{ background: gradientForDeck(index) }}
+              >
+                <Presentation size={28} className="text-white/50" />
+
+                {/* Slide count badge */}
+                <div
+                  className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] text-white/90"
+                  style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(4px)' }}
+                >
+                  <FileText size={10} /> {deck.slide_count} slides
+                </div>
+
+                {/* Action buttons */}
+                <div
+                  className="absolute top-2 right-2 flex items-center gap-0.5 transition-all duration-200"
+                  style={{ opacity: isHovered ? 1 : 0, transform: isHovered ? 'translateY(0)' : 'translateY(-4px)' }}
+                >
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setMoveOpenDeckId(moveOpenDeckId === deck.id ? null : deck.id); }}
+                    className="p-1.5 rounded-lg text-white/70 hover:text-white transition-colors"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(4px)' }}
+                    aria-label="Move to project"
+                    title="Move to project"
+                  >
+                    <FolderInput size={13} />
                   </button>
+                  {deck.pdf_url && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDownload(deck); }}
+                      className="p-1.5 rounded-lg text-white/70 hover:text-white transition-colors"
+                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(4px)' }}
+                      aria-label="Download"
+                    >
+                      <Download size={13} />
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDelete(deck.id); }}
+                    className="p-1.5 rounded-lg text-white/70 hover:text-red-400 transition-colors"
+                    style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(4px)' }}
+                    aria-label="Delete"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+
+                {/* Move dropdown */}
+                {moveOpenDeckId === deck.id && (
+                  <MoveDropdown
+                    deckId={deck.id}
+                    currentProjectId={projectId}
+                    onClose={() => setMoveOpenDeckId(null)}
+                    onMoved={() => fetchDecks()}
+                  />
                 )}
-                <button onClick={(e) => { e.stopPropagation(); handleDelete(deck.id); }} className="p-1 rounded text-white/70 hover:text-red-400 hover:bg-white/15" aria-label="Delete">
-                  <Trash2 size={14} />
-                </button>
+              </div>
+
+              {/* Card footer */}
+              <div className="flex flex-col gap-1 p-3">
+                <h3 className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                  {deck.name}
+                </h3>
+                <div className="flex items-center gap-1">
+                  <Clock size={10} style={{ color: 'var(--text-muted)' }} />
+                  <span className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>
+                    {timeAgo(deck.created_at)}
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="flex flex-col gap-1 p-3">
-              <h3 className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{deck.name}</h3>
-              <div className="flex items-center gap-1">
-                <Clock size={10} style={{ color: 'var(--text-muted)' }} />
-                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{timeAgo(deck.created_at)}</span>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <GenerateDeckModal

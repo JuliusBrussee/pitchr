@@ -22,7 +22,7 @@ export async function GET() {
       getReferralHistory(admin, user.id),
     ]);
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pitchr.com';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://pitchr.live';
     const referralLink = `${baseUrl}/?ref=${code.code}`;
 
     return NextResponse.json({

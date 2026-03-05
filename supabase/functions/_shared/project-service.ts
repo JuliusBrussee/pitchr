@@ -116,6 +116,7 @@ export async function createProject(
       target_market: input.targetMarket?.trim() || null,
       key_metrics: input.keyMetrics?.trim() || null,
       extra_notes: input.extraNotes?.trim() || null,
+      type: 'two_min_pitch',
       is_seeded: false,
       is_archived: false,
       prompt_overrides: input.promptOverrides ?? {},
