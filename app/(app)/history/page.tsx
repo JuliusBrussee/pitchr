@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import {
   Clock,
   ArrowRight,
@@ -11,6 +12,7 @@ import {
   Trash2,
   Mic,
   FileText,
+  Upload,
 } from 'lucide-react';
 import {
   GlassCard,
@@ -39,7 +41,7 @@ interface HistoryRun {
   id: string;
   number: number;
   mode: PitchMode;
-  inputType: 'audio' | 'text';
+  inputType: 'audio' | 'text' | 'upload';
   overallScore: number;
   one_line_verdict: string;
   createdAt: string;
@@ -247,6 +249,21 @@ export default function HistoryPage() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2">
+          {/* Upload link */}
+          <Link
+            href="/upload"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors duration-150 no-underline"
+            style={{
+              borderColor: 'var(--border-color)',
+              color: 'var(--text-secondary)',
+              backgroundColor: 'transparent',
+            }}
+          >
+            <Upload size={14} />
+            Upload
+          </Link>
+
           {/* View toggle */}
           <div
             data-tour="tour-history-view"
@@ -271,6 +288,7 @@ export default function HistoryPage() {
                 </button>
               );
             })}
+          </div>
           </div>
         </div>
 
@@ -419,7 +437,9 @@ export default function HistoryPage() {
                               color={getModeColor(run.mode)}
                               bgColor={getModeBgColor(run.mode)}
                             />
-                            {run.inputType === 'audio' ? (
+                            {run.inputType === 'upload' ? (
+                              <Upload size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                            ) : run.inputType === 'audio' ? (
                               <Mic size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                             ) : (
                               <FileText size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />

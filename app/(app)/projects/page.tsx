@@ -1,33 +1,30 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { CheckCircle2, FolderPlus, Loader2 } from 'lucide-react';
-import { PROJECT_TYPE_OPTIONS } from '@/config/projectTypes';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Loader2, ArrowUpRight, Clock, Layers, Sparkles } from 'lucide-react';
 import { useProject } from '@/views/components/ProjectProvider';
-import { ProjectSelect } from '@/views/components/ProjectSelect';
-import type { ProjectTypeId } from '@/types/project';
+import { CreateProjectModal } from '@/views/components/CreateProjectModal';
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return `${Math.floor(days / 7)}w ago`;
+}
 
 export default function ProjectsPage() {
-  const {
-    projects,
-    activeProjectId,
-    isLoading,
-    error,
-    setActiveProject,
-    createProject,
-    updateProject,
-  } = useProject();
-  const [name, setName] = useState('');
-  const [type, setType] = useState<ProjectTypeId>('two_min_pitch');
-  const [isCreating, setIsCreating] = useState(false);
-  const [isSwitchingCreated, setIsSwitchingCreated] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
-  const [createSuccess, setCreateSuccess] = useState<{ projectId: string; projectName: string } | null>(null);
+  const router = useRouter();
+  const { projects, activeProjectId, isLoading, error } = useProject();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  const activeProject = useMemo(
-    () => projects.find((project) => project.id === activeProjectId) ?? null,
-    [projects, activeProjectId],
-  );
+  const nonArchivedProjects = projects.filter((p) => !p.isArchived);
 
   return (
     <main
@@ -39,221 +36,252 @@ export default function ProjectsPage() {
         WebkitBackdropFilter: 'blur(var(--blur-strength))',
       }}
     >
-      <div className="max-w-5xl mx-auto flex flex-col gap-6">
-        <header className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="max-w-5xl mx-auto flex flex-col gap-8">
+        {/* Header */}
+        <header className="flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              Projects
-            </h1>
-            <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-              Isolate runs, decks, and analytics by pitch workflow.
+            <div className="flex items-center gap-2.5 mb-1">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, rgba(255, 89, 65, 0.15), rgba(255, 170, 51, 0.08))' }}
+              >
+                <Layers size={14} style={{ color: '#ff5941' }} />
+              </div>
+              <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                Projects
+              </h1>
+              {nonArchivedProjects.length > 0 && (
+                <span
+                  className="text-[11px] font-semibold px-2 py-0.5 rounded-full tabular-nums"
+                  style={{ color: 'var(--text-muted)', backgroundColor: 'var(--border-color)' }}
+                >
+                  {nonArchivedProjects.length}
+                </span>
+              )}
+            </div>
+            <p className="text-[13px] ml-[38px]" style={{ color: 'var(--text-muted)' }}>
+              Each project is a startup or idea you&apos;re pitching.
             </p>
           </div>
-          {activeProject ? (
-            <div
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs"
-              style={{
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-secondary)',
-                backgroundColor: 'var(--bg-surface-hover)',
-              }}
-            >
-              <CheckCircle2 size={14} />
-              Current: {activeProject.name}
-            </div>
-          ) : null}
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-300 hover:brightness-110 active:scale-[0.97]"
+            style={{
+              background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
+              color: '#ffffff',
+              boxShadow: '0 2px 12px rgba(255, 89, 65, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+            }}
+          >
+            <Plus size={15} strokeWidth={2.5} />
+            New Project
+          </button>
         </header>
 
-        <section
-          className="rounded-2xl border p-4"
-          style={{
-            borderColor: 'var(--border-color)',
-            backgroundColor: 'var(--bg-surface-hover)',
-          }}
-        >
-          <div className="flex items-center gap-2 mb-3">
-            <FolderPlus size={16} style={{ color: 'var(--text-primary)' }} />
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Create project
-            </h2>
+        {/* Divider */}
+        <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)' }} />
+
+        {/* Content */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 size={20} className="animate-spin" style={{ color: '#ff5941' }} />
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Loading projects...</span>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Project name"
-              className="rounded-lg border px-3 py-2 text-sm"
+        ) : nonArchivedProjects.length === 0 ? (
+          /* Empty state */
+          <div
+            className="relative flex flex-col items-center justify-center gap-5 rounded-2xl py-20 overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-surface-hover)' }}
+          >
+            {/* Background glow */}
+            <div
+              className="absolute top-1/2 left-1/2 w-[300px] h-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
               style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
+                background: 'radial-gradient(circle, rgba(255, 89, 65, 0.06) 0%, transparent 70%)',
               }}
             />
-            <ProjectSelect
-              ariaLabel="Project type"
-              value={type}
-              onChange={(nextValue) => setType(nextValue as ProjectTypeId)}
-              options={PROJECT_TYPE_OPTIONS.map((option) => ({
-                value: option.id,
-                label: option.label,
-                description: option.description,
-              }))}
-            />
-            <button
-              type="button"
-              disabled={isCreating || name.trim().length === 0}
-              onClick={async () => {
-                setIsCreating(true);
-                setMutationError(null);
-                setCreateSuccess(null);
-                try {
-                  const createdProject = await createProject({
-                    name: name.trim(),
-                    type,
-                  });
-                  setName('');
-                  setCreateSuccess({
-                    projectId: createdProject.id,
-                    projectName: createdProject.name,
-                  });
-                } catch (caughtError) {
-                  setMutationError(
-                    caughtError instanceof Error ? caughtError.message : 'Failed to create project.',
-                  );
-                } finally {
-                  setIsCreating(false);
-                }
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium"
+            <div
+              className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
               style={{
-                backgroundColor: '#ff5941',
-                color: 'white',
-                opacity: isCreating || name.trim().length === 0 ? 0.7 : 1,
+                background: 'linear-gradient(135deg, rgba(255, 89, 65, 0.12), rgba(255, 170, 51, 0.06))',
+                boxShadow: '0 0 40px rgba(255, 89, 65, 0.08)',
               }}
             >
-              {isCreating ? <Loader2 size={14} className="animate-spin" /> : <FolderPlus size={14} />}
+              <Sparkles size={24} style={{ color: '#ff5941' }} />
+            </div>
+            <div className="relative text-center">
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                No projects yet
+              </p>
+              <p className="text-xs mt-1.5 max-w-[240px]" style={{ color: 'var(--text-muted)' }}>
+                Create your first project to start analyzing and improving your pitch.
+              </p>
+            </div>
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-300 hover:brightness-110 active:scale-[0.97]"
+              style={{
+                background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
+                color: '#ffffff',
+                boxShadow: '0 4px 20px rgba(255, 89, 65, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <Plus size={15} strokeWidth={2.5} />
               Create project
             </button>
           </div>
-          {createSuccess ? (
-            <div
-              className="mt-3 rounded-lg border px-3 py-2 text-xs flex items-center justify-between gap-3 flex-wrap"
+        ) : (
+          /* Project grid */
+          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {/* New project card */}
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 transition-all duration-300 group"
               style={{
-                borderColor: 'rgba(34,197,94,0.25)',
-                backgroundColor: 'rgba(34,197,94,0.08)',
-                color: 'var(--text-secondary)',
+                borderColor: 'rgba(255, 89, 65, 0.15)',
+                minHeight: '160px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.35)';
+                e.currentTarget.style.backgroundColor = 'rgba(255, 89, 65, 0.03)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.15)';
+                e.currentTarget.style.backgroundColor = 'transparent';
               }}
             >
-              <span>
-                Created <strong>{createSuccess.projectName}</strong>.
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-90"
+                style={{ background: 'linear-gradient(135deg, rgba(255, 89, 65, 0.12), rgba(255, 170, 51, 0.08))' }}
+              >
+                <Plus size={18} style={{ color: '#ff5941' }} />
+              </div>
+              <span className="text-xs font-semibold transition-colors" style={{ color: 'var(--text-secondary)' }}>
+                New Project
               </span>
-              {createSuccess.projectId !== activeProjectId ? (
+            </button>
+
+            {/* Project cards */}
+            {nonArchivedProjects.map((project) => {
+              const isActive = activeProjectId === project.id;
+              const isHovered = hoveredId === project.id;
+              return (
                 <button
+                  key={project.id}
                   type="button"
-                  disabled={isSwitchingCreated}
-                  onClick={async () => {
-                    setIsSwitchingCreated(true);
-                    setMutationError(null);
-                    try {
-                      await setActiveProject(createSuccess.projectId);
-                      setCreateSuccess(null);
-                    } catch (caughtError) {
-                      setMutationError(
-                        caughtError instanceof Error
-                          ? caughtError.message
-                          : 'Failed to switch project.',
-                      );
-                    } finally {
-                      setIsSwitchingCreated(false);
-                    }
-                  }}
-                  className="inline-flex items-center justify-center rounded-lg px-2.5 py-1 border text-xs font-medium"
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                  onMouseEnter={() => setHoveredId(project.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  className="relative flex flex-col gap-3 rounded-xl border p-4 text-left transition-all duration-300 overflow-hidden"
                   style={{
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--text-secondary)',
+                    borderColor: isActive
+                      ? 'rgba(255, 89, 65, 0.4)'
+                      : isHovered
+                        ? 'var(--text-muted)'
+                        : 'var(--border-color)',
                     backgroundColor: 'var(--bg-surface)',
-                    opacity: isSwitchingCreated ? 0.7 : 1,
+                    boxShadow: isActive
+                      ? '0 0 0 1px rgba(255, 89, 65, 0.15), 0 4px 20px rgba(255, 89, 65, 0.06)'
+                      : isHovered
+                        ? '0 4px 20px rgba(0, 0, 0, 0.15)'
+                        : 'none',
+                    minHeight: '160px',
+                    transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
                   }}
                 >
-                  {isSwitchingCreated ? 'Switching...' : 'Switch now'}
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-          {mutationError ? (
-            <p className="text-xs mt-2" style={{ color: '#ef4444' }}>
-              {mutationError}
-            </p>
-          ) : null}
-        </section>
+                  {/* Active glow accent */}
+                  {isActive && (
+                    <div
+                      className="absolute top-0 left-0 right-0 h-[2px]"
+                      style={{ background: 'linear-gradient(90deg, #ff5941, #ffaa33)' }}
+                    />
+                  )}
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {isLoading ? (
-            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              Loading projects...
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              No projects found.
-            </div>
-          ) : (
-            projects.map((project) => (
-              <article
-                key={project.id}
-                className="rounded-2xl border p-4 flex flex-col gap-3"
-                style={{
-                  borderColor: activeProjectId === project.id ? '#ff5941' : 'var(--border-color)',
-                  backgroundColor: 'var(--bg-surface)',
-                }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                      {project.name}
-                    </h3>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                      {PROJECT_TYPE_OPTIONS.find((option) => option.id === project.type)?.label}
-                    </p>
-                  </div>
-                  {activeProjectId === project.id ? (
-                    <span
-                      className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{ color: '#ff5941', backgroundColor: 'rgba(255,89,65,0.12)' }}
-                    >
-                      Current
-                    </span>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  {!project.isSeeded ? (
-                    <button
-                      type="button"
-                      onClick={() => void updateProject({ projectId: project.id, isArchived: true })}
-                      className="px-3 py-1.5 rounded-lg border text-xs font-medium"
+                  {/* Content */}
+                  <div className="flex items-start justify-between gap-2 flex-1">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                          {project.name}
+                        </h3>
+                      </div>
+                      {project.description ? (
+                        <p className="text-[11px] leading-relaxed line-clamp-2" style={{ color: 'var(--text-muted)' }}>
+                          {project.description}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] italic" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>
+                          No description
+                        </p>
+                      )}
+                    </div>
+                    <div
+                      className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300"
                       style={{
-                        borderColor: 'rgba(239,68,68,0.25)',
-                        color: '#ef4444',
+                        backgroundColor: isHovered ? 'rgba(255, 89, 65, 0.1)' : 'transparent',
+                        transform: isHovered ? 'translateX(2px)' : 'translateX(0)',
                       }}
                     >
-                      Archive
-                    </button>
-                  ) : null}
-                </div>
-              </article>
-            ))
-          )}
-        </section>
+                      <ArrowUpRight
+                        size={14}
+                        style={{
+                          color: isHovered ? '#ff5941' : 'var(--text-muted)',
+                          opacity: isHovered ? 1 : 0.3,
+                          transition: 'all 0.3s',
+                        }}
+                      />
+                    </div>
+                  </div>
 
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Switch projects from the sidebar `Current project` picker.
-        </p>
+                  {/* Footer */}
+                  <div className="flex items-center gap-2 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+                    {isActive && (
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
+                        style={{
+                          color: '#ff5941',
+                          backgroundColor: 'rgba(255, 89, 65, 0.1)',
+                          letterSpacing: '0.05em',
+                        }}
+                      >
+                        Active
+                      </span>
+                    )}
+                    <span
+                      className="inline-flex items-center gap-1 text-[11px] ml-auto tabular-nums"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      <Clock size={10} />
+                      {timeAgo(project.updatedAt)}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </section>
+        )}
 
-        {error ? (
-          <p className="text-xs" style={{ color: '#ef4444' }}>
+        {error && (
+          <div
+            className="flex items-center gap-2 px-4 py-3 rounded-xl text-xs"
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.06)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.12)',
+            }}
+          >
             {error}
-          </p>
-        ) : null}
+          </div>
+        )}
       </div>
+
+      <CreateProjectModal
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreated={(projectId) => router.push(`/projects/${projectId}`)}
+      />
     </main>
   );
 }

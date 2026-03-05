@@ -1,6 +1,5 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
-import { PROJECT_TYPE_CONFIG } from './project-config.ts';
-import type { PitchMode, Project, ProjectPromptOverrides, ProjectTypeId } from './types.ts';
+import type { Project, ProjectPromptOverrides } from './types.ts';
 
 export class ProjectNotFoundError extends Error {
   constructor(projectId: string) {
@@ -12,8 +11,12 @@ export interface ProjectRecord {
   id: string;
   user_id: string;
   name: string;
-  type: ProjectTypeId;
-  workflow_mode: PitchMode;
+  description: string | null;
+  target_market: string | null;
+  key_metrics: string | null;
+  extra_notes: string | null;
+  type: string | null;
+  workflow_mode: string | null;
   is_archived: boolean;
   is_seeded: boolean;
   prompt_overrides: ProjectPromptOverrides | null;
@@ -25,10 +28,11 @@ function toProjectResponse(project: ProjectRecord): Project {
   return {
     id: project.id,
     name: project.name,
-    type: project.type,
-    workflowMode: project.workflow_mode,
+    description: project.description ?? null,
+    targetMarket: project.target_market ?? null,
+    keyMetrics: project.key_metrics ?? null,
+    extraNotes: project.extra_notes ?? null,
     isArchived: project.is_archived,
-    isSeeded: project.is_seeded,
     promptOverrides: (project.prompt_overrides ?? {}) as ProjectPromptOverrides,
     createdAt: project.created_at,
     updatedAt: project.updated_at,
@@ -38,10 +42,6 @@ function toProjectResponse(project: ProjectRecord): Project {
 function sortProjects(projects: ProjectRecord[]): ProjectRecord[] {
   return [...projects].sort((a, b) => {
     if (a.is_archived !== b.is_archived) return a.is_archived ? 1 : -1;
-    if (a.type !== b.type) {
-      if (a.type === 'two_min_pitch') return -1;
-      if (b.type === 'two_min_pitch') return 1;
-    }
     return a.created_at.localeCompare(b.created_at);
   });
 }
@@ -75,43 +75,6 @@ export async function listProjects(
   return projects.map(toProjectResponse);
 }
 
-export async function ensureSeedProjects(
-  supabase: SupabaseClient,
-  userId: string,
-): Promise<ProjectRecord[]> {
-  const existing = await listProjectRecords(supabase, userId, { includeArchived: true });
-  const seededTypes = new Set(
-    existing.filter((project) => project.is_seeded).map((project) => project.type),
-  );
-  const missingSeedTypes = (Object.keys(PROJECT_TYPE_CONFIG) as ProjectTypeId[]).filter(
-    (type) => !seededTypes.has(type),
-  );
-
-  if (missingSeedTypes.length === 0) {
-    return existing;
-  }
-
-  const inserts = missingSeedTypes.map((type) => {
-    const config = PROJECT_TYPE_CONFIG[type];
-    return {
-      user_id: userId,
-      name: config.seedName,
-      type: config.id,
-      workflow_mode: config.workflowMode,
-      is_seeded: true,
-      is_archived: false,
-      prompt_overrides: {},
-    };
-  });
-
-  const { error } = await supabase.from('projects').insert(inserts);
-  if (error) {
-    throw new Error(`Failed to seed projects: ${error.message}`);
-  }
-
-  return listProjectRecords(supabase, userId, { includeArchived: true });
-}
-
 export async function getProjectById(
   supabase: SupabaseClient,
   userId: string,
@@ -137,18 +100,23 @@ export async function createProject(
   userId: string,
   input: {
     name: string;
-    type: ProjectTypeId;
+    description?: string;
+    targetMarket?: string;
+    keyMetrics?: string;
+    extraNotes?: string;
     promptOverrides?: ProjectPromptOverrides;
   },
 ): Promise<ProjectRecord> {
-  const config = PROJECT_TYPE_CONFIG[input.type];
   const { data, error } = await supabase
     .from('projects')
     .insert({
       user_id: userId,
       name: input.name.trim(),
-      type: config.id,
-      workflow_mode: config.workflowMode,
+      description: input.description?.trim() || null,
+      target_market: input.targetMarket?.trim() || null,
+      key_metrics: input.keyMetrics?.trim() || null,
+      extra_notes: input.extraNotes?.trim() || null,
+      type: 'two_min_pitch',
       is_seeded: false,
       is_archived: false,
       prompt_overrides: input.promptOverrides ?? {},
@@ -167,12 +135,20 @@ export async function updateProject(
   projectId: string,
   updates: {
     name?: string;
+    description?: string | null;
+    targetMarket?: string | null;
+    keyMetrics?: string | null;
+    extraNotes?: string | null;
     isArchived?: boolean;
     promptOverrides?: ProjectPromptOverrides;
   },
 ): Promise<ProjectRecord> {
   const payload: Record<string, unknown> = {};
   if (updates.name !== undefined) payload.name = updates.name.trim();
+  if (updates.description !== undefined) payload.description = updates.description?.trim() || null;
+  if (updates.targetMarket !== undefined) payload.target_market = updates.targetMarket?.trim() || null;
+  if (updates.keyMetrics !== undefined) payload.key_metrics = updates.keyMetrics?.trim() || null;
+  if (updates.extraNotes !== undefined) payload.extra_notes = updates.extraNotes?.trim() || null;
   if (updates.isArchived !== undefined) payload.is_archived = updates.isArchived;
   if (updates.promptOverrides !== undefined) payload.prompt_overrides = updates.promptOverrides;
   if (Object.keys(payload).length === 0) {
@@ -230,36 +206,16 @@ export async function setActiveProject(
   }
 }
 
-function findModeCompatibleProject(projects: ProjectRecord[], mode: PitchMode): ProjectRecord | null {
-  const nonArchived = projects.filter((project) => !project.is_archived);
-  return (
-    nonArchived.find((project) => project.workflow_mode === mode && project.is_seeded) ??
-    nonArchived.find((project) => project.workflow_mode === mode) ??
-    null
-  );
-}
-
-function findDefaultProject(projects: ProjectRecord[]): ProjectRecord | null {
-  const nonArchived = projects.filter((project) => !project.is_archived);
-  return (
-    nonArchived.find((project) => project.type === 'two_min_pitch') ??
-    nonArchived[0] ??
-    projects[0] ??
-    null
-  );
-}
-
 export async function resolveProjectForRequest(
   supabase: SupabaseClient,
   userId: string,
   opts?: {
     projectId?: string;
-    mode?: PitchMode;
     persistResolvedProject?: boolean;
   },
 ): Promise<ProjectRecord> {
   const persistResolvedProject = opts?.persistResolvedProject === true;
-  const projects = await ensureSeedProjects(supabase, userId);
+  const projects = await listProjectRecords(supabase, userId, { includeArchived: true });
 
   if (opts?.projectId) {
     const project = projects.find((item) => item.id === opts.projectId);
@@ -277,12 +233,7 @@ export async function resolveProjectForRequest(
     ? projects.find((project) => project.id === activeProjectId && !project.is_archived) ?? null
     : null;
 
-  const resolved =
-    (opts?.mode
-      ? activeProject?.workflow_mode === opts.mode
-        ? activeProject
-        : findModeCompatibleProject(projects, opts.mode)
-      : activeProject) ?? findDefaultProject(projects);
+  const resolved = activeProject ?? findDefaultProject(projects);
 
   if (!resolved) {
     throw new Error('No project available for this account.');
@@ -293,6 +244,11 @@ export async function resolveProjectForRequest(
   }
 
   return resolved;
+}
+
+function findDefaultProject(projects: ProjectRecord[]): ProjectRecord | null {
+  const nonArchived = projects.filter((project) => !project.is_archived);
+  return nonArchived[0] ?? projects[0] ?? null;
 }
 
 export function toProject(project: ProjectRecord): Project {

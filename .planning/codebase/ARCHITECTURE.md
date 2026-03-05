@@ -1,256 +1,185 @@
 # Architecture
 
-**Analysis Date:** 2026-02-22
+**Analysis Date:** 2026-03-04
 
 ## Pattern Overview
 
-**Overall:** MVC adapted for Next.js App Router with event-driven session management
+**Overall:** Hybrid full-stack architecture: Next.js App Router frontend + dual backend surfaces (Next API routes and Supabase Edge Functions) with shared domain services and types.
 
 **Key Characteristics:**
-- Page routes handle UI orchestration and Suspense boundaries
-- Controllers validate requests and queue background work
-- Services contain business logic, LLM orchestration, and external integrations
-- Hooks manage client-side state and media streams
-- Models handle data persistence (Supabase database)
-- Real-time metrics calculated live during session (no backend polling)
+- UI and navigation run in `app/` with route groups (`app/(marketing)/`, `app/(auth)/`, `app/(public)/`, `app/(app)/`).
+- Core pitch/deck/project/Q&A workflows are handled through Supabase Edge Functions (`supabase/functions/*`) and called from the client via `lib/supabase/fetch-edge.ts`.
+- Billing, arena gameplay, profile, referral, newsletter, and waitlist endpoints are handled in Next API routes (`app/api/*`).
+- Business logic is service-first (`services/*` in Node runtime, `supabase/functions/_shared/*` in edge runtime).
+- Supabase is the primary system of record (Postgres + Storage), with request auth and route protection layered by middleware and helper modules.
 
 ## Layers
 
-**Presentation (Views):**
-- Purpose: React components rendering UI and managing user interactions
-- Location: `app/(app)/` (page routes), `views/components/`, `views/screens/`
-- Contains: Page components, interactive UI controls, modal dialogs
-- Depends on: Hooks, ThemeProvider context, TypeScript types
-- Used by: Browser user interactions
+**Presentation Layer (Pages + Components):**
+- Purpose: Render product surfaces and coordinate user flows.
+- Contains: Route pages in `app/(app)/*`, `app/(marketing)/*`, `app/(auth)/*`, `app/(public)/*`; shared UI in `views/components/*`.
+- Depends on: Hooks in `hooks/*`, context providers in `views/components/*Provider*.tsx`, edge/API clients.
+- Used by: Browser users.
 
-**Application (Hooks):**
-- Purpose: Client-side state management, media stream handling, API orchestration
-- Location: `hooks/`
-- Contains: `useSessionState` (metrics/checklist/insights), `usePitchRun` (API calls), `useSTT` (speech-to-text), `useRecorder` (audio/video recording), `useDeckSlides`, `useMediaStream`, `useHeadTracking`
-- Depends on: Services, types, context providers
-- Used by: Page components and other hooks
+**Client Orchestration Layer (Hooks + Providers):**
+- Purpose: Own session state, API/edge calls, media handling, onboarding/tutorial flow, and project context.
+- Contains: `hooks/usePitchRun.ts`, `hooks/useSessionState.ts`, `hooks/useSTT.ts`, `hooks/useRecorder.ts`, `hooks/useBilling.ts`, `hooks/useGameMode.ts`, `views/components/ProjectProvider.tsx`.
+- Depends on: `lib/supabase/fetch-edge.ts`, Next API routes (`/api/*`), shared types in `types/*`.
+- Used by: Pages and reusable components.
 
-**Controllers (API Routes):**
-- Purpose: HTTP request validation, response marshaling, background job queuing
-- Location: `app/api/` route handlers
-- Contains: `pitchController.ts` (validation, runs), deck controller logic, miro sync
-- Depends on: Services, database models
-- Used by: Client fetch calls, Next.js routing
+**Node API Layer (Next Route Handlers):**
+- Purpose: Handle authenticated app APIs that are currently kept inside Next runtime.
+- Contains: `app/api/billing/*`, `app/api/arena/*`, `app/api/profile/route.ts`, `app/api/referral/*`, `app/api/newsletter/unsubscribe/route.ts`, `app/api/waitlist/route.ts`, `app/api/deck/generate/route.ts`, `app/api/blog/posts/route.ts`.
+- Depends on: `lib/supabase/auth-helpers.ts`, `lib/supabase/admin.ts`, `services/*`, `models/userStats.ts`.
+- Used by: Client `fetch('/api/...')` calls and webhooks/cron callers.
 
-**Services (Business Logic):**
-- Purpose: Core business logic, LLM integration, external APIs, data transformation
-- Location: `services/`
+**Edge API Layer (Supabase Functions):**
+- Purpose: Handle run lifecycle, deck management, project management, settings, transcription, and Q&A sessions close to Supabase.
+- Contains: `supabase/functions/pitch-run/index.ts`, `supabase/functions/pitch-run-detail/index.ts`, `supabase/functions/deck-list/index.ts`, `supabase/functions/deck-upload/index.ts`, `supabase/functions/deck-detail/index.ts`, `supabase/functions/projects/index.ts`, `supabase/functions/settings/index.ts`, `supabase/functions/qna-session/index.ts`, `supabase/functions/transcribe-audio/index.ts`.
+- Depends on: `supabase/functions/_shared/*` modules for run/project/billing/analysis/deck behavior.
+- Used by: Client `fetchEdge(...)` calls from hooks/pages/components.
+
+**Domain Service Layer:**
+- Purpose: Encapsulate business logic and external integrations.
+- Contains: `services/analysisService.ts`, `services/judgeAgentService.ts`, `services/prepAgentService.ts`, `services/scoringService.ts`, `services/billingService.ts`, `services/challengeService.ts`, `services/leagueService.ts`, `services/deckGenerationService.ts`.
+- Depends on: `lib/llm/*`, `lib/prompts/*`, Supabase clients, config, and type definitions.
+- Used by: Next API handlers and (in some legacy/local paths) controllers or queue modules.
+
+**Data + Integration Layer:**
+- Purpose: DB/storage access, auth/session primitives, and provider clients.
 - Contains:
-  - `analysisService.ts` - Main pitch analysis orchestration (build context → judge agent → scoring)
-  - `judgeAgentService.ts` - LLM-based feedback generation
-  - `prepAgentService.ts` - Context building for judge (rubric application, deck integration)
-  - `scoringService.ts` - Composite score calculation from rubric
-  - `runService.ts` - Run CRUD and lifecycle (queued/running/complete/failed)
-  - `realtimeChecklistService.ts` - Live checklist item updates during session
-  - `deckService.ts` - Deck upload, PDF parsing, slide extraction
-  - `recordingService.ts` - Audio/video upload to Supabase Storage
-- Depends on: LLM providers, Supabase client, types, config
-- Used by: Controllers, hooks, other services
-
-**LLM & Prompts:**
-- Purpose: Model provider abstraction, prompt templates
-- Location: `lib/llm/`, `lib/prompts/`
-- Contains:
-  - Providers: `lib/llm/providers/anthropic.ts` (Claude), fallback handling
-  - Prompts: `system.ts`, `judge.ts` (rubric questions), `rubric.ts`, `rewrite.ts`, `deckGeneration.ts`
-- Depends on: Environment variables (API keys)
-- Used by: analysisService, judge agent, prep agent
-
-**Models (Data Layer):**
-- Purpose: Data schema definitions and Supabase CRUD
-- Location: `models/`, types in `types/`
-- Contains: `run.ts` (insert/query/update runs), schema interfaces
-- Depends on: Supabase client, types
-- Used by: Services, controllers
-
-**Configuration:**
-- Purpose: Constants, rubrics, mode definitions, sample data
-- Location: `config/`
-- Contains: `modes.ts` (pitch configs), `rubric.ts`, `sampleResult.ts` (fallback), `realtimeChecklist.ts`
-- Used by: Services, controllers, hooks
-
-**Utilities:**
-- Purpose: Shared helpers, audio processing, video frame extraction
-- Location: `lib/` subdirectories
-- Contains: Supabase singleton, audio utilities, head tracking (MediaPipe), video frame rendering
-- Used by: Hooks, components, services
+  - Supabase clients: `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/admin.ts`
+  - Middleware: `middleware.ts`, `lib/supabase/middleware.ts`
+  - Data model module: `models/userStats.ts`
+  - LLM providers/router: `lib/llm/router.ts`, `lib/llm/providers/anthropic.ts`, `lib/llm/providers/openrouter.ts`
+- Depends on: Env vars and external APIs (Supabase, Anthropic/OpenRouter, Stripe, ElevenLabs, Miro).
+- Used by: All higher layers.
 
 ## Data Flow
 
-**Session Flow (Live Pitch):**
+**Primary Pitch Analysis Flow (current production path):**
+1. User records or uploads in `app/(app)/session/page.tsx` or `app/(app)/upload/page.tsx`.
+2. Client submits through `hooks/usePitchRun.ts` using `fetchEdge('pitch-run')`.
+3. `supabase/functions/pitch-run/index.ts` validates request, resolves project context, inserts a queued run, and schedules background analysis.
+4. Shared analysis logic in `supabase/functions/_shared/analysis-service.ts` calls Claude (and fallback model logic if needed) and computes result payload.
+5. Run record is updated to `complete` or `failed` in `runs` table via `supabase/functions/_shared/run-service.ts`.
+6. Results page `app/(app)/results/[runId]/page.tsx` polls `fetchEdge('pitch-run-detail')` until finished and renders analysis components.
 
-1. User navigates to `/session` → `SessionPageContent` initializes
-2. `useMediaStream` requests webcam/microphone access
-3. User starts session → `useRecorder` captures audio/video stream
-4. `useSTT` streams audio to ElevenLabs Realtime API → transcription
-5. Transcription updates `useSessionState` → metrics calculated live (WPM, filler words, duration)
-6. `realtimeChecklistService` evaluates checklist items on new transcript chunks
-7. `useHeadTracking` analyzes head position via MediaPipe (engagement scoring)
-8. User stops session → audio/video uploaded to Supabase via `recordingService`
+**Deck + Project Context Flow:**
+1. Client loads project context from `views/components/ProjectProvider.tsx` via `fetchEdge('projects')`.
+2. Deck list/detail/upload operations call `deck-list`, `deck-detail`, and `deck-upload` edge functions.
+3. Run submission can include `projectId`, `deckId`, and resolved deck text for coverage-aware scoring.
 
-**Analysis Flow (Backend):**
+**Billing/Arena/Profile Flow (Next API path):**
+1. Client hooks use `/api/*` endpoints (e.g., `hooks/useBilling.ts`, `hooks/useGameMode.ts`, `hooks/useReferral.ts`).
+2. Route handlers in `app/api/*` authenticate via `getAuthenticatedUser` and perform domain actions using `services/*` and `models/userStats.ts`.
+3. Responses return JSON payloads or `{ error: string }` failures.
 
-1. User submits pitch → `usePitchRun` POSTs to `/api/pitch/run`
-2. `pitchController` validates request, creates queued run record, enqueues background job
-3. Background worker calls `analysisService.analyzePitch()`
-4. `prepAgentService` builds scoring context (rubric, examples, deck text if present)
-5. `judgeAgentService` calls Claude with rubric questions → raw feedback JSON
-6. `scoringService` calculates composite score from rubric breakdown
-7. Run record updated with final analysis → `runService.updateRun()`
-8. Client polls `/api/pitch/run/[runId]` until status changes from 'queued' to 'complete'
+**Auth and Route Protection:**
+1. `middleware.ts` delegates to `lib/supabase/middleware.ts`.
+2. Protected routes redirect unauthenticated users to `/login`; auth routes redirect signed-in users to `/dashboard`.
+3. `app/auth/callback/route.ts` exchanges Supabase auth code and routes to onboarding or dashboard.
 
-**Results Flow:**
-
-1. User navigates to `/results/[runId]` → fetches run via `/api/pitch/run/[runId]` (GET)
-2. Displays `AnalysisResult` feedback, rubric breakdown, delivery metrics
-3. Can regenerate specific outputs (`feedback` or `qa_1min`) by re-submitting with `regenerate` param
-
-**Deck Flow:**
-
-1. User uploads PDF → POST `/api/deck/upload` → `deckService` extracts text via pdf-parse
-2. Slides table populated with slide text extracted via regex/text segmentation
-3. During pitch, `useDeckSlides` loads deck, renders PDF slide by slide
-4. Optional: deck text included in analysis context for deck rubric scoring
-
-## State Management
-
-**Client-Side:**
-- `useSessionState` - Metrics, checklist, insights (controlled, updates on transcript change)
-- `useMediaStream` - Webcam/mic stream state
-- `useSTT` - Realtime transcription buffer
-- ThemeProvider context - Orb visual state
-- SidebarContext - Session active flag
-
-**Server-Side:**
-- Supabase `runs` table - Complete run records with analysis results
-- Supabase `decks` + `slides` tables - Deck metadata and extracted text
-- Supabase `storage` bucket - Audio/video files (public anonymous access)
-- Background job queue - Queued pitch analyses (implicit via `status: 'queued'` in DB)
-
-**No intermediate caching layer** - Analysis results cached only in Supabase, fallback sample in memory
+**State Management:**
+- Client runtime state: React hooks and providers (`hooks/useSessionState.ts`, `views/components/ProjectProvider.tsx`, `views/components/SidebarContext.tsx`, `views/components/ThemeProvider.tsx`).
+- Persistent state: Supabase tables (`runs`, `projects`, `settings`, `decks`, `slides`, billing and arena tables) and Supabase Storage buckets.
+- In-memory optimizations: short-lived auth token cache in `lib/supabase/fetch-edge.ts`, in-flight dedup/cache utilities in `services/analysisCacheService.ts`.
 
 ## Key Abstractions
 
 **Run:**
-- Purpose: Encapsulates a single pitch submission with all its metadata
-- Schema: `id`, `mode`, `status`, `transcript`, `audio_url`, `analysis`, `overall_score`, `meta`
-- Examples: `models/run.ts`, `types/pitch.ts`
-- Pattern: Immutable record, status moves through lifecycle (queued → running → complete/failed)
+- Purpose: Canonical unit for one analyzed pitch.
+- Examples: `types/pitch.ts` (`Run`), `supabase/functions/_shared/run-service.ts` (`RunRecord`, `toRunResponse`), `services/runService.ts` (Node-side variant).
+- Pattern: Lifecycle state machine (`queued` -> `running` -> `complete`/`failed`) persisted in Supabase.
 
-**AnalysisResult:**
-- Purpose: Complete LLM-generated feedback with scores and metrics
-- Schema: `overall_score`, `rubric_breakdown`, `top_fixes`, `delivery_metrics`, `one_line_verdict`
-- Examples: `types/analysis-v2.ts`
-- Pattern: Serialized JSON from Claude, normalized and validated on load
+**Project Context:**
+- Purpose: Scope runs/decks/settings to a user-selected project.
+- Examples: `types/project.ts`, `supabase/functions/projects/index.ts`, `supabase/functions/_shared/project-service.ts`, `views/components/ProjectProvider.tsx`.
+- Pattern: Active-project pointer in settings + explicit `projectId` override on requests.
 
-**Session State:**
-- Purpose: Live real-time session metrics and checklist items
-- Contains: WPM, filler word count, word count, duration, checklist items, insights
-- Examples: `hooks/useSessionState.ts`
-- Pattern: Calculated from transcript in real-time (no backend persistence during session)
+**Analysis Result V2:**
+- Purpose: Structured scoring, fixes, rewrite, delivery metrics, and metadata.
+- Examples: `types/analysis-v2.ts`, normalization in `services/analysisNormalizationService.ts`.
+- Pattern: Strongly typed JSON contract used by services, edge functions, and UI.
 
-**ScoringContext:**
-- Purpose: Rich context passed to judge agent for consistent evaluation
-- Contains: Pitch stage, mode, rubric definitions, examples, deck text, transcript segments
-- Examples: `services/prepAgentService.ts`
-- Pattern: Built once per run, passed to all LLM calls to reduce hallucination
+**LLM Router + Provider:**
+- Purpose: Separate orchestration from provider-specific HTTP calls.
+- Examples: `lib/llm/router.ts`, `lib/llm/providers/anthropic.ts`, `lib/llm/providers/openrouter.ts`.
+- Pattern: Provider interface + runtime provider selection via env.
+
+**API Surface Split:**
+- Purpose: Separate stable app APIs by runtime concern.
+- Examples: Next handlers in `app/api/*` and edge handlers in `supabase/functions/*`.
+- Pattern: Next API for billing/arena/profile/webhook flows; edge functions for run/deck/project/qna core workflows.
 
 ## Entry Points
 
-**Root:**
-- Location: `app/page.tsx`
-- Triggers: User visits `/`
-- Responsibilities: Redirects to `/dashboard`
+**Root Web Entry:**
+- Location: `app/(marketing)/page.tsx`
+- Triggers: GET `/`
+- Responsibilities: Load marketing landing with blog content snippets.
 
-**Dashboard:**
-- Location: `app/(app)/dashboard/page.tsx`
-- Triggers: User navigates to `/dashboard` or logs in
-- Responsibilities: Landing page, run history summary, quick actions
+**Protected App Shell:**
+- Location: `app/(app)/layout.tsx`
+- Triggers: Any `/dashboard`, `/session`, `/history`, `/results/*`, `/projects/*`, etc.
+- Responsibilities: Wrap authenticated UX with `AuthProvider`, `SidebarProvider`, `ProjectProvider`, and tutorial context.
 
-**Session (Live Pitch):**
-- Location: `app/(app)/session/page.tsx`
-- Triggers: User clicks "Start Session" or navigates to `/session`
-- Responsibilities:
-  - Initialize media streams (camera, microphone)
-  - Manage recording and transcription lifecycle
-  - Display real-time metrics and checklist
-  - Submit for analysis on stop
+**Next API Entry Points:**
+- Location: `app/api/*/route.ts`
+- Triggers: Client and webhook HTTP calls.
+- Responsibilities: Validate/auth requests and call domain services.
 
-**Results:**
-- Location: `app/(app)/results/[runId]/page.tsx`
-- Triggers: User clicks "View Results" or navigates to `/results/abc123`
-- Responsibilities:
-  - Poll for analysis completion if run still queued
-  - Display feedback, rubric breakdown, fixes, delivery metrics
-  - Allow regeneration (QA or rewrite)
+**Edge Function Entry Points:**
+- Location: `supabase/functions/*/index.ts`
+- Triggers: `fetchEdge(functionName)` requests from client.
+- Responsibilities: CORS, auth, request validation, Supabase-backed operation execution.
 
-**Pitch API:**
-- Location: `app/api/pitch/run/route.ts`
-- Triggers: `usePitchRun` POST with `CreatePitchRunRequest`
-- Responsibilities: Validate, create run record, enqueue analysis, return `CreatePitchRunResponse`
+**Auth Callback:**
+- Location: `app/auth/callback/route.ts`
+- Triggers: Supabase OAuth/email callback.
+- Responsibilities: Exchange code for session and route user.
 
-**Pitch GET:**
-- Location: `app/api/pitch/run/route.ts` (GET)
-- Triggers: History page fetches all runs
-- Responsibilities: List completed runs with stats
-
-**Run Detail:**
-- Location: `app/api/pitch/run/[runId]/route.ts`
-- Triggers: Results page fetches specific run status
-- Responsibilities: Poll for completion, return updated run with analysis
+**Local Sidecar (dev/legacy support):**
+- Location: `server.ts`
+- Triggers: `yarn dev:server`.
+- Responsibilities: Express + WebSocket STT proxy and local transcript save flow.
 
 ## Error Handling
 
-**Strategy:** Graceful degradation with fallback sample result
+**Strategy:** Fail-fast validation at boundaries + typed domain errors + graceful analysis fallback/persistence.
 
 **Patterns:**
-- Controllers validate input before queueing (throw `PitchValidationError`)
-- Services catch LLM errors, increment attempt count, retry if retriable (429, 5xx)
-- After max retries, use `SAMPLE_RESULT` fallback with `is_fallback: true` flag
-- Client displays error banner if response has error field, but shows fallback analysis
-- STT errors logged but session continues (user can enter text manually)
-- Database errors include migration hints if columns missing
-
-**Try-Catch Locations:**
-- `analysisService.analyzePitch()` wraps full pipeline, catches any error and returns fallback
-- `anthropic.ts` provider has try-catch with retry logic
-- `runService` operations catch Supabase errors and wrap with hint messages
-- Hook callbacks (`usePitchRun`, `useSTT`) catch errors and expose via state
-
-**No suppression:** All catch blocks either re-throw, log, or return explicit error state
+- Boundary validation in route handlers/edge functions (UUID checks, mode checks, required fields).
+- Auth errors normalized to 401 using `AuthenticationError` (`lib/supabase/auth-helpers.ts`, `supabase/functions/_shared/supabase.ts`).
+- Domain-specific errors mapped to statuses (for example `ProjectNotFoundError`, `RunNotFoundError`).
+- Run pipeline persists failure state (`status='failed'`, `error_message`) rather than silently dropping jobs.
+- Most handlers return consistent JSON error envelopes with `{ error: string }`.
 
 ## Cross-Cutting Concerns
 
-**Logging:**
-- Console.log for debug info (transcript chunks, metric updates)
-- Telemetry object passed through service chain for latency/attempt tracking
-- No structured logging framework (would need to add)
+**Authentication & Authorization:**
+- Route protection in `middleware.ts` + `lib/supabase/middleware.ts`.
+- Server handlers use Supabase-authenticated user context (`lib/supabase/auth-helpers.ts` and edge `_shared/supabase.ts`).
+- RLS is relied on for user-scoped data in edge calls; admin clients are used selectively where elevated access is required.
 
 **Validation:**
-- Controller layer: Type guards for PitchMode, InputType, PitchStage
-- Service layer: Schema validation via destructuring and assertions
-- Client layer: Form field validation in components
+- Manual runtime validation is used across handlers and services (no centralized schema library).
+- Edge functions and Next routes both enforce strict request shape before DB/LLM calls.
 
-**Authentication:**
-- None in MVP (anonymous public access to Supabase)
-- Next.js has no route protection (all app routes public)
+**Observability:**
+- Logging is primarily `console.*` in handlers/services/edge functions.
+- No centralized tracing pipeline in repository yet.
 
-**Caching:**
-- Analysis cache in `analysisCacheService.ts` keyed by transcript hash
-- LLM response deduplication via in-flight tracking
-- No HTTP cache headers set
+**Resilience:**
+- LLM providers include timeout/retry behavior (`lib/llm/providers/*.ts`, edge analysis service).
+- Client edge auth token resolution is cached to reduce repeated session lookups (`lib/supabase/fetch-edge.ts`).
+- Analysis normalization provides compatibility for legacy stored payloads (`services/analysisNormalizationService.ts`).
 
-**Type Safety:**
-- Strict TypeScript mode enabled
-- Branded types for PitchMode, InputType, RunStatus
-- Import type used for type-only imports
-- No `any` types (use unknown with type guards)
+**Testing:**
+- Unit/integration tests are split across `services/__tests__/*`, `hooks/__tests__/*`, `views/components/**/__tests__/*`, and root `tests/*`.
+- E2E coverage is in `tests/e2e/*` (Playwright).
 
 ---
 
-*Architecture analysis: 2026-02-22*
+*Architecture analysis: 2026-03-04*
+*Update when backend surface split, auth model, or run pipeline changes*

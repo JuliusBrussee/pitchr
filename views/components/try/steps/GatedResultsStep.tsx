@@ -20,7 +20,6 @@ type Phase = 'analyzing' | 'score-reveal' | 'gated';
 export function GatedResultsStep({ mode }: GatedResultsStepProps) {
   const router = useRouter();
   const { markCameFromTry } = useOnboarding();
-  const projectType = mode === 'elevator' ? 'elevator_pitch' : 'two_min_pitch';
   const [phase, setPhase] = useState<Phase>('analyzing');
   const [activeIndicator, setActiveIndicator] = useState(-1);
   const [displayScore, setDisplayScore] = useState(0);
@@ -94,8 +93,8 @@ export function GatedResultsStep({ mode }: GatedResultsStepProps) {
       }
     }
 
-    markCameFromTry(mode);
-    router.push(`/session/select-project?projectType=${projectType}`);
+    markCameFromTry();
+    router.push(`/session/select-project`);
   };
 
   const handleGoogleAuth = async () => {
@@ -104,7 +103,7 @@ export function GatedResultsStep({ mode }: GatedResultsStepProps) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(`/session/select-project?projectType=${projectType}`)}`,
+        redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(`/session/select-project`)}`,
       },
     });
     if (error) setAuthError(error.message);

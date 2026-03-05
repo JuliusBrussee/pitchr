@@ -26,10 +26,12 @@ const PROTECTED_ROUTES = [
   '/compliance',
 ];
 
-const AUTH_ROUTES = ['/login', '/auth'];
+const AUTH_ROUTES = ['/login', '/signup', '/auth'];
 
-// Signup is disabled - redirect to waitlist on landing page.
-const BLOCKED_ROUTES = ['/signup'];
+// Signup is gated behind NEXT_PUBLIC_SIGNUP_ENABLED=true.
+// When disabled, /signup redirects to the landing page waitlist.
+const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === 'true';
+const BLOCKED_ROUTES: string[] = SIGNUP_ENABLED ? [] : ['/signup'];
 const COMPLIANCE_EXEMPT_ROUTES = ['/compliance/check', '/privacy', '/terms'];
 
 const COMPLIANCE_SCOPE = parseComplianceScope(process.env.GDPR_SCOPE);

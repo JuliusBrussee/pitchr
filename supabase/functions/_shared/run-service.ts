@@ -241,7 +241,6 @@ export function toRunResponse(
     startedAt: run.started_at ?? undefined,
     completedAt: run.completed_at ?? undefined,
     projectId: run.project_id,
-    projectType: run.projects?.type,
     projectName: run.projects?.name,
     mode: run.mode,
     status: run.status,

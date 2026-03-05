@@ -250,11 +250,11 @@ async function resolveElevatorProjectId(
   }
 
   const projects = Array.isArray(payload.projects) ? payload.projects : [];
-  const elevator = projects.find((project) => project.type === 'elevator_pitch' && !project.isArchived);
+  const elevator = projects.find((project: { isArchived: boolean }) => !project.isArchived);
   if (!elevator) {
-    throw new Error('No active elevator_pitch project found.');
+    throw new Error('No active project found.');
   }
-  return elevator.id;
+  return (elevator as { id: string }).id;
 }
 
 async function pollRunDetail(

@@ -114,6 +114,19 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
     };
   }, []);
 
+  // Capture ?ref= param for referral tracking
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref');
+      if (refCode) {
+        localStorage.setItem('pitchr_referral_code', refCode.trim());
+      }
+    } catch {
+      // localStorage unavailable — ignore
+    }
+  }, []);
+
   const getScrollBehavior = () => {
     if (typeof window === 'undefined') {
       return 'auto' as const;

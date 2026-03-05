@@ -3,12 +3,19 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 const BUCKET = 'recordings';
 const MAX_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB
 
-export async function uploadRecording(supabase: SupabaseClient, userId: string, id: string, blob: Blob): Promise<string> {
+export async function uploadRecording(
+  supabase: SupabaseClient,
+  userId: string,
+  id: string,
+  blob: Blob,
+  extension?: string,
+): Promise<string> {
   if (blob.size > MAX_SIZE_BYTES) {
     throw new Error(`Recording too large (${Math.round(blob.size / 1024 / 1024)} MB). Max is 100 MB.`);
   }
 
-  const filePath = `${userId}/${id}/recording.webm`;
+  const ext = extension ?? 'webm';
+  const filePath = `${userId}/${id}/recording.${ext}`;
 
   const { error } = await supabase.storage
     .from(BUCKET)
