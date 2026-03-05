@@ -56,6 +56,7 @@ function SessionPageContent() {
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
@@ -257,6 +258,21 @@ function SessionPageContent() {
     // where the blob is lost before the effect can retrieve it.
   }, [session, stt]);
 
+  const handleDiscardSession = useCallback(() => {
+    setShowDiscardConfirm(true);
+  }, []);
+
+  const handleConfirmDiscard = useCallback(() => {
+    session.stopSession();
+    stt.discard();
+    void recorder.stopRecording(); // ignore blob; stt.saved never set so auto-submit won't run
+    setShowAnalyzing(false);
+    setAnalysisError(null);
+    setIsPaused(false);
+    hasStartedRef.current = false;
+    setShowDiscardConfirm(false);
+  }, [session, stt, recorder]);
+
   // Warn before navigating away during analysis
   useEffect(() => {
     if (!showAnalyzing) return;
@@ -376,6 +392,7 @@ function SessionPageContent() {
           onStartSession={handleStartSession}
           onPauseSession={handlePauseSession}
           onStopSession={handleStopSession}
+          onDiscardSession={handleDiscardSession}
           pdfUrl={selectedDeck?.pdf_url ?? null}
           currentSlide={currentSlide}
           slideCount={slideCount}
@@ -429,6 +446,63 @@ function SessionPageContent() {
         aria-hidden="true"
       />
       <AnalyzingOverlay isVisible={showAnalyzing} />
+      {showDiscardConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(8px)',
+          }}
+          onClick={() => setShowDiscardConfirm(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="discard-confirm-title"
+        >
+          <div
+            className="w-full max-w-[360px] rounded-2xl border p-5"
+            style={{
+              backgroundColor: 'var(--bg-primary)',
+              borderColor: 'var(--border-color)',
+              boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p
+              id="discard-confirm-title"
+              className="text-base font-medium mb-5"
+              style={{ color: 'var(--text-primary)' }}
+            >
+              Discard this recording? It cannot be recovered.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDiscardConfirm(false)}
+                className="px-4 py-2 rounded-xl border font-medium transition-colors"
+                style={{
+                  backgroundColor: 'var(--bg-surface)',
+                  borderColor: 'var(--border-color)',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDiscard}
+                className="px-4 py-2 rounded-xl font-medium transition-colors"
+                style={{
+                  backgroundColor: 'rgba(239,68,68,0.15)',
+                  border: '1px solid rgba(239,68,68,0.5)',
+                  color: '#ef4444',
+                }}
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

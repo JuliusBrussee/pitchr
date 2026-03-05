@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, Download } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, Download, Trash2 } from 'lucide-react';
 
 interface SessionCanvasProps {
   stream: MediaStream | null;
@@ -15,6 +15,7 @@ interface SessionCanvasProps {
   onStartSession: () => void;
   onPauseSession: () => void;
   onStopSession: () => void;
+  onDiscardSession?: () => void;
   pdfUrl?: string | null;
   currentSlide?: number;
   slideCount?: number;
@@ -42,6 +43,7 @@ export function SessionCanvas({
   onStartSession,
   onPauseSession,
   onStopSession,
+  onDiscardSession,
   pdfUrl,
   currentSlide = 1,
   slideCount = 0,
@@ -161,18 +163,34 @@ export function SessionCanvas({
           <ControlButton icon={SkipForward} onClick={() => onNextSlide?.()} label="Next slide" size={16} />
         </div>
 
-        {/* Right: Deck picker or spacer */}
+        {/* Right: Discard (replaces timer position when session started), timer, deck */}
         <div data-tour="tour-session-deck" className="flex items-center justify-end gap-2" style={{ minWidth: '8rem' }}>
-          <span
-            className="text-xs font-medium px-2 py-1 rounded-md border"
-            style={{
-              color: isOverrun ? '#ef4444' : 'var(--text-secondary)',
-              borderColor: isOverrun ? 'rgba(239,68,68,0.45)' : 'var(--border-color)',
-              backgroundColor: isOverrun ? 'rgba(239,68,68,0.08)' : 'transparent',
-            }}
-          >
-            {timerText}
-          </span>
+          {canStopSession && onDiscardSession ? (
+            <button
+              type="button"
+              onClick={onDiscardSession}
+              className="rounded-full p-2 transition-all duration-200 border flex items-center justify-center shrink-0"
+              style={{
+                borderColor: 'rgba(239,68,68,0.5)',
+                color: '#ef4444',
+                backgroundColor: 'transparent',
+              }}
+              aria-label="Discard recording"
+            >
+              <Trash2 size={18} />
+            </button>
+          ) : (
+            <span
+              className="text-xs font-medium px-2 py-1 rounded-md border"
+              style={{
+                color: isOverrun ? '#ef4444' : 'var(--text-secondary)',
+                borderColor: isOverrun ? 'rgba(239,68,68,0.45)' : 'var(--border-color)',
+                backgroundColor: isOverrun ? 'rgba(239,68,68,0.08)' : 'transparent',
+              }}
+            >
+              {timerText}
+            </span>
+          )}
           {decks && decks.length > 0 && onSelectDeck ? (
             <DeckDropdown
               decks={decks}
@@ -230,6 +248,7 @@ function ControlButton({
   label,
   primary,
   danger,
+  dangerGhost,
   size = 18,
 }: {
   icon: React.ComponentType<{ size?: number; fill?: string }>;
@@ -237,14 +256,15 @@ function ControlButton({
   label: string;
   primary?: boolean;
   danger?: boolean;
+  dangerGhost?: boolean;
   size?: number;
 }) {
   return (
     <button
       onClick={onClick}
       className={`rounded-full transition-all duration-200 flex items-center justify-center ${
-        primary ? 'p-3' : danger ? 'p-2' : 'p-2'
-      }`}
+        primary ? 'p-3' : 'p-2'
+      } ${dangerGhost ? 'border border-[rgba(239,68,68,0.5)]' : ''}`}
       style={{
         backgroundColor: primary
           ? 'var(--text-primary)'
@@ -253,7 +273,7 @@ function ControlButton({
             : 'transparent',
         color: primary
           ? 'var(--bg-primary)'
-          : danger
+          : danger || dangerGhost
             ? '#ef4444'
             : 'var(--text-secondary)',
       }}
