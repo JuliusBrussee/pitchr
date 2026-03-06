@@ -19,12 +19,6 @@ interface PreSessionConfigProps {
   disabled?: boolean;
 }
 
-function formatTarget(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
-
 export function PreSessionConfig({
   mode,
   onModeChange,
@@ -48,7 +42,7 @@ export function PreSessionConfig({
       }}
     >
       <div
-        className="config-strip rounded-xl border px-4 py-3 flex items-center gap-4"
+        className="config-strip rounded-xl border px-4 py-3 flex items-start gap-4"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         style={{
@@ -62,21 +56,17 @@ export function PreSessionConfig({
           transition: 'border-color 0.3s ease, box-shadow 0.4s ease',
         }}
       >
-        <div className="flex-shrink-0" style={{ minWidth: '220px' }}>
+        <div className="flex-shrink-0 flex flex-col gap-1" style={{ minWidth: '220px' }}>
           <ModeSegmentedControl value={mode} onChange={onModeChange} disabled={disabled} />
+          <span
+            className="text-[10px]"
+            style={{ color: 'var(--text-muted)', opacity: 0.7 }}
+          >
+            Mode affects grading criteria
+          </span>
         </div>
 
-        <div
-          className="text-xs font-semibold tabular-nums whitespace-nowrap flex-shrink-0 px-2 py-1 rounded-md"
-          style={{
-            color: 'var(--text-secondary)',
-            backgroundColor: 'var(--bg-surface-hover)',
-          }}
-        >
-          Target: {formatTarget(duration)}
-        </div>
-
-        <div className="flex-1 min-w-[120px]">
+        <div className="flex-1 min-w-[120px] pt-0.5">
           <DurationSlider
             value={duration}
             onChange={onDurationChange}

@@ -12,6 +12,7 @@ import {
 } from '@/views/components/landing/heroDeliveryFunnel.config';
 import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
 import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliveryFunnel';
+import { PitchrLogo } from '@/views/components/PitchrLogo';
 import '@/app/(marketing)/landing.css';
 
 const LandingBlog = dynamic(
@@ -290,7 +291,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       <nav className="nav" ref={navRef}>
         <div className="container nav-inner">
           <Link href="/" className="nav-logo">
-            <div className="nav-logo-dot" />
+            <PitchrLogo size={18} />
             Pitchr
           </Link>
           <div className="nav-links">
@@ -678,7 +679,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       <footer className="footer">
         <div className="container footer-inner">
           <div className="footer-left">
-            <div className="nav-logo-dot" style={{ width: '6px', height: '6px' }} />
+            <PitchrLogo size={16} />
             Pitchr — AI Pitch Coach
           </div>
           <div className="footer-links">
