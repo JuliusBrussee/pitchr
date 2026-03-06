@@ -4,7 +4,7 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
 import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { getRunStats } from '../_shared/run-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
       return errorResponse(error.message, 401);
     }
     if (error instanceof RateLimitExceededError) {
-      return errorResponse(error.message, 429);
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     if (error instanceof ProjectNotFoundError) {
       return errorResponse(error.message, 404);

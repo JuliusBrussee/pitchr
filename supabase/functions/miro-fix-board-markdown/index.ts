@@ -4,7 +4,7 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
 import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { MiroFixBoardRequest, MiroTopFixInput } from '../_shared/types.ts';
@@ -85,7 +85,7 @@ Deno.serve(async (req: Request) => {
       return errorResponse('Authentication required', 401);
     }
     if (error instanceof RateLimitExceededError) {
-      return errorResponse(error.message, 429);
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     return errorResponse(
       error instanceof Error ? error.message : String(error),

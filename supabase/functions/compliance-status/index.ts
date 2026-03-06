@@ -1,6 +1,6 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
 import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { buildComplianceStatus } from '../_shared/compliance-service.ts';
 
@@ -23,7 +23,7 @@ Deno.serve(async (req: Request) => {
       return errorResponse(error.message, 401);
     }
     if (error instanceof RateLimitExceededError) {
-      return errorResponse(error.message, 429);
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to load compliance status',
