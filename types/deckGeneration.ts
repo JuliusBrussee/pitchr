@@ -69,4 +69,5 @@ export interface GenerateDeckRequest {
   companyName: string;
   description: string;
   templateId: TemplateId;
+  projectId?: string;
 }

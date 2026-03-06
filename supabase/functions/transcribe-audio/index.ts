@@ -64,7 +64,6 @@ Deno.serve(async (req: Request) => {
       const errorText = await sttResponse.text();
       console.error('[transcribe-audio] ElevenLabs STT failed', {
         status: sttResponse.status,
-        body: errorText,
       });
       return errorResponse(
         `Transcription failed (${sttResponse.status}). Please try again.`,

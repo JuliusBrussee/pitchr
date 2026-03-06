@@ -132,6 +132,7 @@ interface AnalyzePitchInput {
   mode: PitchMode;
   deckText?: string;
   systemPromptOverride?: string;
+  targetDurationSeconds?: number;
 }
 
 const DIAGNOSTIC_LOGS_ENABLED =
@@ -554,7 +555,7 @@ function cloneSample(): AnalysisResultV2 {
 
 export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePitchResult> {
   const startedAt = Date.now();
-  const profile = getAnalysisPromptProfile(input.mode);
+  const profile = getAnalysisPromptProfile(input.mode, input.targetDurationSeconds);
   const systemPrompt = input.systemPromptOverride?.trim() || profile.systemPrompt;
   const userPrompt = buildUserPrompt(input, profile);
 

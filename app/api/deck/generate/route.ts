@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const { supabase, user } = await getAuthenticatedUser();
     const body = await request.json();
 
-    const { companyName, description, templateId } = body;
+    const { companyName, description, templateId, projectId } = body;
 
     if (!companyName || typeof companyName !== 'string') {
       return NextResponse.json({ error: 'companyName is required' }, { status: 400 });
@@ -43,6 +43,7 @@ export async function POST(request: Request) {
       companyName: companyName.trim(),
       description: description.trim(),
       templateId,
+      projectId: typeof projectId === 'string' ? projectId : undefined,
     });
 
     return NextResponse.json(deck, { status: 201 });

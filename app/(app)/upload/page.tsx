@@ -12,13 +12,13 @@ import {
 import { GlassCard } from '@/views/components/ui';
 import { UploadDropZone } from '@/views/components/UploadDropZone';
 import { ProjectSelect } from '@/views/components/ProjectSelect';
+import { ModeSegmentedControl } from '@/views/components/ModeSegmentedControl';
 import { useProject } from '@/views/components/ProjectProvider';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { createClient } from '@/lib/supabase/client';
 import { uploadRecording } from '@/services/recordingService';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
-import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { PitchMode } from '@/types/pitch';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 
@@ -231,29 +231,11 @@ export default function UploadPage() {
               >
                 Pitch Type
               </label>
-              <div
-                className="flex rounded-lg border overflow-hidden"
-                style={{ borderColor: 'var(--border-color)' }}
-              >
-                {(['vc_pitch', 'elevator'] as PitchMode[]).map((mode) => {
-                  const config = PITCH_MODE_CONFIG[mode];
-                  const isActive = pitchMode === mode;
-                  return (
-                    <button
-                      key={mode}
-                      onClick={() => setPitchMode(mode)}
-                      disabled={isProcessing}
-                      className="flex-1 px-4 py-2 text-sm font-medium transition-colors duration-150"
-                      style={{
-                        backgroundColor: isActive ? 'rgba(255, 89, 65, 0.1)' : 'transparent',
-                        color: isActive ? '#ff5941' : 'var(--text-muted)',
-                      }}
-                    >
-                      {config.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <ModeSegmentedControl
+                value={pitchMode}
+                onChange={setPitchMode}
+                disabled={isProcessing}
+              />
             </div>
 
             {/* Deck selector */}

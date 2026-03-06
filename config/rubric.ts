@@ -28,7 +28,7 @@ export const SPOKEN_RUBRIC_CATEGORIES: RubricCategoryDef<RubricCategory>[] = [
     description:
       'Clear flow with logical transitions and a strong ask at the end.',
     scoringCriteria:
-      'Problem -> Solution -> Why Now -> Traction -> Ask. Penalize missing beats or circular flow.',
+      'Penalize missing beats or circular flow. Beat sequence depends on pitch mode.',
   },
   {
     id: 'clarity',

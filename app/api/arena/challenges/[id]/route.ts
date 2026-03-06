@@ -41,7 +41,7 @@ export async function GET(
 
     const { data: submission, error: subError } = await admin
       .from('challenge_submissions')
-      .select('*')
+      .select('id, challenge_id, user_id, run_id, base_score, bonus_score, total_score, rank, xp_earned, submitted_at')
       .eq('challenge_id', id)
       .eq('user_id', user.id)
       .maybeSingle();
