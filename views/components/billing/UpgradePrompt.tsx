@@ -310,12 +310,14 @@ export function UpgradePrompt({
                 }}
               >
                 Yearly
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' }}
-                >
-                  Save ${savings}
-                </span>
+                {savings > 0 && (
+                  <span
+                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' }}
+                  >
+                    Save ${savings}
+                  </span>
+                )}
               </button>
             </div>
           </div>
