@@ -136,7 +136,7 @@ async function generateSlideContent(
       );
     }
   } catch (err) {
-    console.error('[deckGen] First attempt error:', err instanceof Error ? err.message : err);
+    console.error('[deckGen] First attempt error:', err instanceof Error ? err.message : 'Unknown error');
     parsed = null;
   }
 
@@ -165,7 +165,7 @@ async function generateSlideContent(
         );
       }
     } catch (err) {
-      console.error('[deckGen] Repair attempt error:', err instanceof Error ? err.message : err);
+      console.error('[deckGen] Repair attempt error:', err instanceof Error ? err.message : 'Unknown error');
       parsed = null;
     }
   }
@@ -227,6 +227,7 @@ export async function generateDeck(
     pdf_url: pdfUrl,
     slide_count: slides.length,
     thumbnail_url: null,
+    project_id: request.projectId,
     user_id: userId,
   });
 

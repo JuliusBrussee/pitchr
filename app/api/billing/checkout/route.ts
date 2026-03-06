@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
       email: user.email!,
       name: user.user_metadata?.full_name,
       priceId,
-      successUrl: `${origin}/settings?billing=success`,
-      cancelUrl: `${origin}/settings?billing=canceled`,
+      successUrl: `${origin}/settings?tab=billing&billing=success`,
+      cancelUrl: `${origin}/settings?tab=billing&billing=canceled`,
     });
 
     return NextResponse.json(result);

@@ -96,7 +96,7 @@ function PodiumCard({ entry, rank, isCurrentUser }: { entry: UserStats; rank: nu
         className="text-sm font-semibold truncate max-w-full text-center"
         style={{ color: isCurrentUser ? '#ff5941' : 'var(--text-primary)' }}
       >
-        {entry.displayName || `${entry.userId.slice(0, 6)}...`}
+        {entry.displayName || 'Anonymous Pitcher'}
         {isCurrentUser && (
           <span className="text-xs ml-1" style={{ color: '#ff5941' }}>(you)</span>
         )}
@@ -175,7 +175,7 @@ function AllTimeRow({ entry, rank, isCurrentUser, sortKey }: {
             className={`text-sm ${isCurrentUser ? 'font-semibold' : 'font-medium'}`}
             style={{ color: isCurrentUser ? '#ff5941' : 'var(--text-primary)' }}
           >
-            {entry.displayName || `${entry.userId.slice(0, 6)}...${entry.userId.slice(-4)}`}
+            {entry.displayName || 'Anonymous Pitcher'}
             {isCurrentUser && (
               <span className="ml-1.5 text-xs font-semibold" style={{ color: '#ff5941' }}>(you)</span>
             )}

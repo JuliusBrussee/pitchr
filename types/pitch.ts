@@ -49,6 +49,7 @@ export interface CreatePitchRunRequest {
   transcriptSegments?: TranscriptSegment[];
   stage?: PitchStage;
   regenerate?: 'feedback' | 'qa_1min';
+  targetDurationSeconds?: number;
 }
 
 export interface CreatePitchRunResponse {

@@ -365,9 +365,9 @@ export async function recordUsageEvent(
         p_reference_id: referenceId ?? null,
       });
       if (consumeErr) {
-        console.error('[billing] credit consumption failed for', userId, resource, consumeErr.message);
+        console.error('[billing] credit consumption failed for resource:', resource, consumeErr.message);
       } else if ((consumeResult as number) < 0) {
-        console.warn('[billing] insufficient credits for', userId, resource);
+        console.warn('[billing] insufficient credits for resource:', resource);
       }
     }
   } else {
@@ -380,9 +380,9 @@ export async function recordUsageEvent(
       p_reference_id: referenceId ?? null,
     });
     if (consumeErr) {
-      console.error('[billing] credit consumption failed for', userId, resource, consumeErr.message);
+      console.error('[billing] credit consumption failed for resource:', resource, consumeErr.message);
     } else if ((consumeResult as number) < 0) {
-      console.warn('[billing] insufficient credits for', userId, resource);
+      console.warn('[billing] insufficient credits for resource:', resource);
     }
   }
 

@@ -49,6 +49,7 @@ interface ValidatedPitchRunRequest {
   audioUrl?: string;
   deckId?: string;
   deckText?: string;
+  targetDurationSeconds?: number;
 }
 
 function validateRequest(body: unknown): ValidatedPitchRunRequest {
@@ -82,6 +83,12 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
   if (payload.deckText !== undefined && typeof payload.deckText !== 'string') {
     throw new PitchValidationError('deckText must be a string when provided.');
   }
+  if (payload.targetDurationSeconds !== undefined) {
+    const dur = Number(payload.targetDurationSeconds);
+    if (!Number.isFinite(dur) || dur < 30 || dur > 300) {
+      throw new PitchValidationError('targetDurationSeconds must be a number between 30 and 300.');
+    }
+  }
 
   return {
     mode: payload.mode as PitchMode,
@@ -91,6 +98,9 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
     audioUrl: payload.audioUrl as string | undefined,
     deckId: payload.deckId as string | undefined,
     deckText: (payload.deckText as string | undefined)?.trim() || undefined,
+    targetDurationSeconds: payload.targetDurationSeconds !== undefined
+      ? Number(payload.targetDurationSeconds)
+      : undefined,
   };
 }
 
@@ -101,6 +111,7 @@ interface ProcessQueuedRunInput {
   transcript: string;
   deckText?: string;
   systemPromptOverride?: string;
+  targetDurationSeconds?: number;
 }
 
 async function processQueuedRun(
@@ -130,6 +141,7 @@ async function processQueuedRun(
       mode: input.mode,
       deckText: input.deckText,
       systemPromptOverride: input.systemPromptOverride,
+      targetDurationSeconds: input.targetDurationSeconds,
     });
 
     const overallScore = analysis.outputs?.feedback?.overall_score ?? 0;
@@ -229,7 +241,7 @@ function scheduleBackgroundJob(job: Promise<void>): void {
 
   // Fallback for local/test runtimes without EdgeRuntime.waitUntil.
   // Keep reference alive and catch rejections to avoid unhandled promise crashes.
-  job.catch((err) => console.error('[pitch-run] background job failed', err));
+  job.catch((err) => console.error('[pitch-run] background job failed', err instanceof Error ? err.message : 'Unknown error'));
 }
 
 async function handleGet(req: Request) {
@@ -358,6 +370,7 @@ async function handlePost(req: Request) {
       transcript: payload.transcript,
       deckText: payload.deckText,
       systemPromptOverride: analysisSystemPrompt,
+      targetDurationSeconds: payload.targetDurationSeconds,
     }),
   );
 

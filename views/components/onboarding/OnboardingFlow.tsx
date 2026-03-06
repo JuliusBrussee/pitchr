@@ -12,6 +12,7 @@ import { RubricStep } from './steps/RubricStep';
 import { ScoringDemoStep } from './steps/ScoringDemoStep';
 import { RewriteDemoStep } from './steps/RewriteDemoStep';
 import { PersonalizationStep } from './steps/PersonalizationStep';
+import { ProjectSetupStep } from './steps/ProjectSetupStep';
 
 interface OnboardingFlowProps {
   onComplete: (name: string, projectName: string, projectDescription: string) => void;
@@ -20,6 +21,7 @@ interface OnboardingFlowProps {
 
 export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [displayName, setDisplayName] = useState('');
   const touchStartX = useRef<number | null>(null);
   const totalSteps = ONBOARDING_STEPS.length;
 
@@ -31,8 +33,11 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   }, []);
 
-  // Keyboard navigation
+  // Keyboard navigation (disabled on personalization & project-setup steps to avoid conflicts)
   useEffect(() => {
+    const currentStepId = ONBOARDING_STEPS[currentStep];
+    if (currentStepId === 'personalization' || currentStepId === 'project-setup') return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight' || e.key === 'Enter') {
         e.preventDefault();
@@ -44,7 +49,7 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goNext, goBack]);
+  }, [currentStep, goNext, goBack]);
 
   // Touch swipe
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -61,6 +66,19 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
     touchStartX.current = null;
   }, [goNext, goBack]);
 
+  const handlePersonalizationNext = useCallback((name: string) => {
+    setDisplayName(name);
+    goNext();
+  }, [goNext]);
+
+  const handleProjectComplete = useCallback((projectName: string, projectDescription: string) => {
+    onComplete(displayName || 'Founder', projectName, projectDescription);
+  }, [displayName, onComplete]);
+
+  const handleProjectSkip = useCallback(() => {
+    onComplete(displayName || 'Founder', '', '');
+  }, [displayName, onComplete]);
+
   const renderStep = () => {
     switch (ONBOARDING_STEPS[currentStep]) {
       case 'hook': return <HookStep onNext={goNext} />;
@@ -70,7 +88,14 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
       case 'rubric': return <RubricStep onNext={goNext} />;
       case 'scoring-demo': return <ScoringDemoStep onNext={goNext} />;
       case 'rewrite-demo': return <RewriteDemoStep onNext={goNext} />;
-      case 'personalization': return <PersonalizationStep onComplete={onComplete} />;
+      case 'personalization': return <PersonalizationStep onNext={handlePersonalizationNext} />;
+      case 'project-setup': return (
+        <ProjectSetupStep
+          displayName={displayName || 'Founder'}
+          onComplete={handleProjectComplete}
+          onSkip={handleProjectSkip}
+        />
+      );
       default: return null;
     }
   };

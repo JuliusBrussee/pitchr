@@ -386,7 +386,7 @@ function PreSessionGate({
           <div className="qa-gate-exhausted">
             <p className="qa-gate-exhausted-text">Q&A budget used up for this period</p>
             <Link
-              href="/settings#billing"
+              href="/settings?tab=billing"
               className="qa-gate-upgrade-btn no-underline"
             >
               <Zap size={14} />
@@ -419,7 +419,7 @@ function PreSessionGate({
         {isLow && !isExhausted && (
           <div className="qa-gate-warning">
             <span>Running low on Q&A time</span>
-            <Link href="/settings#billing" className="qa-gate-warning-link no-underline">
+            <Link href="/settings?tab=billing" className="qa-gate-warning-link no-underline">
               Upgrade
               <ArrowRight size={12} />
             </Link>

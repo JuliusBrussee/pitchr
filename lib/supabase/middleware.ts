@@ -164,8 +164,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth routes
-  if (user && isAuthRoute(pathname)) {
+  // Redirect authenticated users away from auth routes (except callback)
+  if (user && isAuthRoute(pathname) && !pathname.startsWith('/auth/callback')) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
     return NextResponse.redirect(url);

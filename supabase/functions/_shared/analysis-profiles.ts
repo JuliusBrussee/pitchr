@@ -124,6 +124,23 @@ Use a skeptical investor lens: unclear business definition, vague traction, weak
   },
 };
 
-export function getAnalysisPromptProfile(mode: PitchMode): AnalysisPromptProfile {
-  return PROFILES[mode];
+export function getAnalysisPromptProfile(
+  mode: PitchMode,
+  targetDurationOverride?: number,
+): AnalysisPromptProfile {
+  const profile = PROFILES[mode];
+  if (
+    typeof targetDurationOverride === 'number' &&
+    targetDurationOverride >= 30 &&
+    targetDurationOverride <= 300
+  ) {
+    return {
+      ...profile,
+      modeConfig: {
+        ...profile.modeConfig,
+        targetDurationSeconds: targetDurationOverride,
+      },
+    };
+  }
+  return profile;
 }

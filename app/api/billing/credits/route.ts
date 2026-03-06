@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
     const session = await createPaymentCheckoutSession({
       customerId,
       priceId: stripePriceId,
-      successUrl: `${origin}/settings?credits=success`,
-      cancelUrl: `${origin}/settings#billing`,
+      successUrl: `${origin}/settings?tab=billing&credits=success`,
+      cancelUrl: `${origin}/settings?tab=billing`,
       metadata: {
         product_type: 'credit_pack',
         pack_slug: packSlug,

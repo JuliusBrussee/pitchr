@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
     const session = await createPaymentCheckoutSession({
       customerId,
       priceId,
-      successUrl: `${origin}/settings?billing=day-pass-success`,
-      cancelUrl: `${origin}/settings?billing=canceled`,
+      successUrl: `${origin}/settings?tab=billing&billing=day-pass-success`,
+      cancelUrl: `${origin}/settings?tab=billing&billing=canceled`,
       metadata: {
         user_id: user.id,
         product_type: 'day_pass',
