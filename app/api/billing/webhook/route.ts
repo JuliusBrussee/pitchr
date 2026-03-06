@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       event.data.object as unknown as Record<string, unknown>,
     );
   } catch (err) {
-    console.error(`[billing/webhook] error processing ${event.type}:`, err);
+    console.error(`[billing/webhook] error processing ${event.type}:`, err instanceof Error ? err.message : 'Unknown error');
     // Return 500 so Stripe will retry this event
     return NextResponse.json(
       { error: 'Webhook handler failed' },

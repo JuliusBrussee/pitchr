@@ -35,10 +35,12 @@ export const ANALYSIS_RESULT_SCHEMA_TEXT = `{
 interface BuildRubricPromptInput {
   transcript: string;
   mode: PitchMode;
+  targetDurationSeconds?: number;
 }
 
-export function buildRubricPrompt({ transcript, mode }: BuildRubricPromptInput): string {
+export function buildRubricPrompt({ transcript, mode, targetDurationSeconds }: BuildRubricPromptInput): string {
   const modeConfig = PITCH_MODE_CONFIG[mode];
+  const effectiveDuration = targetDurationSeconds ?? modeConfig.targetDurationSeconds;
   const rubricText = RUBRIC_CATEGORIES.map((category, index) => {
     return `${index + 1}. ${category.label.toUpperCase()} (0-20)
 Description: ${category.description}
@@ -48,7 +50,7 @@ Criteria: ${category.scoringCriteria}`;
   return `Evaluate this startup pitch transcript using the rubric below.
 
 Mode: ${modeConfig.label}
-Target duration: ${modeConfig.targetDurationSeconds} seconds
+Target duration: ${effectiveDuration} seconds
 Structure beats: ${modeConfig.structureBeats.join(' -> ')}
 
 Rubric:

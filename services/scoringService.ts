@@ -1,4 +1,4 @@
-import { PITCH_MODE_CONFIG } from '@/config/modes';
+import { PITCH_MODE_CONFIG, computeTimingWindow } from '@/config/modes';
 import type {
   AntiPatternHit,
   DeliveryEvent,
@@ -39,6 +39,7 @@ interface DeliveryInput {
   mode: PitchMode;
   durationSeconds?: number;
   segments?: TranscriptSegment[] | SegmentLike[];
+  targetDurationSeconds?: number;
 }
 
 interface CompositeScoreInput {
@@ -382,10 +383,13 @@ export function calculateDeliveryMetrics(
   const sFiller = clamp01(1 - fillerRate / 0.03);
   const sStutter = clamp01(1 - stutterRate / 0.02);
   const sRepeat = clamp01(1 - repeatRate / 0.015);
+  const timingWindow = input.targetDurationSeconds
+    ? computeTimingWindow(input.targetDurationSeconds)
+    : null;
   const sTime = getTimeScore(
     durationSeconds,
-    modeConfig.minDurationSeconds,
-    modeConfig.maxDurationSeconds,
+    timingWindow?.min ?? modeConfig.minDurationSeconds,
+    timingWindow?.max ?? modeConfig.maxDurationSeconds,
   );
 
   const delivery20 = 20 * (0.28 * sPace + 0.3 * sFiller + 0.18 * sStutter + 0.14 * sRepeat + 0.1 * sTime);
