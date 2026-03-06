@@ -95,6 +95,8 @@ export interface UsageLimitResult {
   used: number;
   limit: number | null;
   remaining: number | null;
+  /** When true, the usage event was already recorded atomically (race-safe). */
+  recordedAtomically?: boolean;
 }
 
 export interface QaBudgetResult {
@@ -146,6 +148,7 @@ export async function checkUsageLimit(
   supabase: SupabaseClient,
   userId: string,
   resource: 'run' | 'deck' | 'qa_seconds' | 'deck_generation',
+  options?: { checkOnly?: boolean },
 ): Promise<UsageLimitResult> {
   // Dev accounts bypass all usage limits
   if (isDevUser(userId)) {
@@ -174,19 +177,22 @@ export async function checkUsageLimit(
 
   // 2. Credit-based check
   const creditCost = CREDIT_COSTS[resource] ?? 1;
-  const { data: creditBalance } = await supabase
-    .from('credit_balances')
-    .select('monthly_credits, purchased_credits, bonus_credits, bonus_credits_expires_at')
-    .eq('user_id', userId)
-    .single<CreditBalanceRow>();
 
-  // Fetch subscription to get actual planId
-  const { data: subForPlan } = await supabase
-    .from('subscriptions')
-    .select('plan_id')
-    .eq('user_id', userId)
-    .single<{ plan_id: string }>();
-  const actualPlanId: BillingPlanId = subForPlan && isValidPlan(subForPlan.plan_id) ? subForPlan.plan_id : 'free';
+  // Fetch credits and subscription in parallel (subscription used for planId + period bounds later)
+  const [{ data: creditBalance }, { data: sub }] = await Promise.all([
+    supabase
+      .from('credit_balances')
+      .select('monthly_credits, purchased_credits, bonus_credits, bonus_credits_expires_at')
+      .eq('user_id', userId)
+      .single<CreditBalanceRow>(),
+    supabase
+      .from('subscriptions')
+      .select('plan_id, status, current_period_start, current_period_end')
+      .eq('user_id', userId)
+      .single<SubscriptionRow>(),
+  ]);
+
+  const actualPlanId: BillingPlanId = sub && isValidPlan(sub.plan_id) ? sub.plan_id : 'free';
 
   if (creditBalance) {
     const effectiveBonus = creditBalance.bonus_credits > 0
@@ -228,15 +234,8 @@ export async function checkUsageLimit(
     }
   }
 
-  // 3. Fall back to subscription-based usage events
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('plan_id, status, current_period_start, current_period_end')
-    .eq('user_id', userId)
-    .single<SubscriptionRow>();
-
-  const planId: BillingPlanId =
-    sub && isValidPlan(sub.plan_id) ? sub.plan_id : 'free';
+  // 3. Fall back to subscription-based usage events (reuse sub fetched above)
+  const planId: BillingPlanId = actualPlanId;
   const limits = PLAN_LIMITS[planId];
 
   const limitKey: keyof PlanLimits =
@@ -253,11 +252,12 @@ export async function checkUsageLimit(
     return { allowed: true, planId, used: 0, limit: null, remaining: null };
   }
 
-  // 4. Count usage events in the current period
+  // 4. Atomically check + record usage event (prevents race condition)
   const defaultBounds = getDefaultPeriodBounds();
   const periodStart = sub?.current_period_start ?? defaultBounds.start;
   const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
+  // qa_seconds are not atomically recorded here (they use quantity-based tracking)
   if (resource === 'qa_seconds') {
     const { data: events } = await supabase
       .from('usage_events')
@@ -283,23 +283,56 @@ export async function checkUsageLimit(
   }
 
   const eventResource = resource === 'deck_generation' ? 'deck' : resource;
-  const { count } = await supabase
-    .from('usage_events')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .eq('resource', eventResource)
-    .gte('period_start', periodStart)
-    .lte('period_end', periodEnd);
 
-  const used = count ?? 0;
-  const remaining = Math.max(0, (limit as number) - used);
+  // When checkOnly is set, skip atomic recording (caller records after success).
+  // Otherwise use atomic check_and_record_usage RPC to prevent race condition.
+  if (options?.checkOnly) {
+    const { count } = await supabase
+      .from('usage_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('resource', eventResource)
+      .gte('period_start', periodStart)
+      .lte('period_end', periodEnd);
+
+    const used = count ?? 0;
+    const remaining = Math.max(0, (limit as number) - used);
+    return { allowed: used < (limit as number), planId, used, limit, remaining };
+  }
+
+  const { data: atomicResult, error: atomicError } = await supabase.rpc('check_and_record_usage', {
+    p_user_id: userId,
+    p_resource: eventResource,
+    p_limit: limit as number,
+    p_period_start: periodStart,
+    p_period_end: periodEnd,
+  });
+
+  if (atomicError) {
+    console.error('[billing] check_and_record_usage RPC failed, falling back to count:', atomicError.message);
+    const { count } = await supabase
+      .from('usage_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('resource', eventResource)
+      .gte('period_start', periodStart)
+      .lte('period_end', periodEnd);
+
+    const used = count ?? 0;
+    const remaining = Math.max(0, (limit as number) - used);
+    return { allowed: used < (limit as number), planId, used, limit, remaining };
+  }
+
+  const ar = atomicResult as { allowed: boolean; used: number; limit: number; recorded: boolean };
+  const remaining = Math.max(0, ar.limit - ar.used);
 
   return {
-    allowed: used < (limit as number),
+    allowed: ar.allowed,
     planId,
-    used,
-    limit,
+    used: ar.used,
+    limit: ar.limit,
     remaining,
+    recordedAtomically: ar.recorded,
   };
 }
 
@@ -345,6 +378,7 @@ export async function recordUsageEvent(
   userId: string,
   resource: 'run' | 'deck' | 'deck_generation',
   referenceId?: string,
+  options?: { skipEventInsert?: boolean },
 ): Promise<void> {
   // Check if user has an active day pass — if so, use day pass tracking
   if (resource !== 'deck_generation') {
@@ -386,25 +420,27 @@ export async function recordUsageEvent(
     }
   }
 
-  // Always insert usage_events for analytics
-  const { data: sub } = await supabase
-    .from('subscriptions')
-    .select('current_period_start, current_period_end')
-    .eq('user_id', userId)
-    .single();
+  // Insert usage_events for analytics (skip if already recorded atomically)
+  if (!options?.skipEventInsert) {
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('current_period_start, current_period_end')
+      .eq('user_id', userId)
+      .single();
 
-  const defaultBounds = getDefaultPeriodBounds();
-  const periodStart = sub?.current_period_start ?? defaultBounds.start;
-  const periodEnd = sub?.current_period_end ?? defaultBounds.end;
+    const defaultBounds = getDefaultPeriodBounds();
+    const periodStart = sub?.current_period_start ?? defaultBounds.start;
+    const periodEnd = sub?.current_period_end ?? defaultBounds.end;
 
-  const analyticsResource = resource === 'deck_generation' ? 'deck' : resource;
+    const analyticsResource = resource === 'deck_generation' ? 'deck' : resource;
 
-  await supabase.from('usage_events').insert({
-    user_id: userId,
-    resource: analyticsResource,
-    period_start: periodStart,
-    period_end: periodEnd,
-  });
+    await supabase.from('usage_events').insert({
+      user_id: userId,
+      resource: analyticsResource,
+      period_start: periodStart,
+      period_end: periodEnd,
+    });
+  }
 }
 
 /**

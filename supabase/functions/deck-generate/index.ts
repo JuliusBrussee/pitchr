@@ -6,9 +6,10 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
 import { uploadToStorage, insertDeck, insertSlides } from '../_shared/deck-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { TemplateId, GenerateDeckRequest } from '../_shared/types.ts';
@@ -419,9 +420,10 @@ Deno.serve(async (req: Request) => {
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-generate');
     if (complianceResponse) return complianceResponse;
 
-    // Rate limit check for deck generation
+    // Rate limit check (per-minute throttle, then billing/usage check)
+    await checkRateLimit(user.id, 'deck-generate');
     const adminClient = createAdminClient();
-    const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck_generation');
+    const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck_generation', { checkOnly: true });
     if (!usageCheck.allowed) {
       return errorResponse(
         `Deck generation limit reached (${usageCheck.used}/${usageCheck.limit}). Upgrade your plan for more decks.`,
@@ -518,6 +520,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     if (error instanceof ProjectNotFoundError) {
       return errorResponse(error.message, 404);

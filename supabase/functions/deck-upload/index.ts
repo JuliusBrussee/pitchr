@@ -9,7 +9,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import {
   uploadToStorage,
   insertDeck,
@@ -271,6 +272,7 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-upload');
     if (complianceResponse) return complianceResponse;
+    await checkRateLimit(user.id, 'deck-upload');
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const rawProjectId = formData.get('projectId');
@@ -382,6 +384,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     if (error instanceof ProjectNotFoundError) {
       return errorResponse(error.message, 404);

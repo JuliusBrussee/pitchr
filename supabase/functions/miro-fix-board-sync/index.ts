@@ -5,6 +5,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
 
@@ -31,6 +32,7 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'miro-fix-board-sync');
     if (complianceResponse) return complianceResponse;
+    await checkRateLimit(user.id, 'miro-fix-board-sync');
     const url = new URL(req.url);
     const runId = url.searchParams.get('runId');
 
@@ -79,6 +81,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return errorResponse(error.message, 429);
     }
     return errorResponse(
       error instanceof Error ? error.message : String(error),

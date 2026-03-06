@@ -6,6 +6,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { getDeckWithSlides, deleteDeck } from '../_shared/deck-service.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
@@ -13,6 +14,7 @@ async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-detail');
   if (complianceResponse) return complianceResponse;
+  await checkRateLimit(user.id, 'deck-detail');
   const url = new URL(req.url);
   const deckId = url.searchParams.get('deckId');
   if (!deckId) return errorResponse('deckId query parameter is required', 400);
@@ -23,6 +25,7 @@ async function handleGet(req: Request) {
 
 async function handlePatch(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
+  await checkRateLimit(user.id, 'deck-detail');
   const url = new URL(req.url);
   const deckId = url.searchParams.get('deckId');
   if (!deckId) return errorResponse('deckId query parameter is required', 400);
@@ -75,6 +78,7 @@ async function handleDelete(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-detail');
   if (complianceResponse) return complianceResponse;
+  await checkRateLimit(user.id, 'deck-detail');
   const url = new URL(req.url);
   const deckId = url.searchParams.get('deckId');
   if (!deckId) return errorResponse('deckId query parameter is required', 400);
@@ -95,6 +99,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return errorResponse(error.message, 429);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to process deck request',

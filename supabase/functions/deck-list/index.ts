@@ -5,6 +5,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { listDecks } from '../_shared/deck-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
@@ -25,6 +26,7 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-list');
     if (complianceResponse) return complianceResponse;
+    await checkRateLimit(user.id, 'deck-list');
     const url = new URL(req.url);
     const projectId = url.searchParams.get('projectId');
     const allProjects = url.searchParams.get('allProjects') === 'true';
@@ -41,6 +43,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return errorResponse(error.message, 429);
     }
     if (error instanceof ProjectNotFoundError) {
       return errorResponse(error.message, 404);

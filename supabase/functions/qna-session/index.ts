@@ -4,11 +4,12 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
 import { createQASession } from '../_shared/qna-session-service.ts';
 import { getSignedUrl, ElevenLabsConvaiError } from '../_shared/elevenlabs-convai.ts';
 import { getRun } from '../_shared/run-service.ts';
 import { getQaBudget } from '../_shared/billing-service.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
 function isUuid(value: string): boolean {
@@ -72,7 +73,8 @@ Deno.serve(async (req: Request) => {
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-session');
     if (complianceResponse) return complianceResponse;
 
-    // Get Q&A budget info for this user
+    // Rate limit + Q&A budget
+    await checkRateLimit(user.id, 'qna-session');
     const adminClient = createAdminClient();
     const budget = await getQaBudget(adminClient, user.id);
 
@@ -167,6 +169,9 @@ Deno.serve(async (req: Request) => {
 
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
 
     return errorResponse(

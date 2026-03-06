@@ -6,6 +6,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { completeQASession, getQASession } from '../_shared/qna-session-service.ts';
 import { getConversation } from '../_shared/elevenlabs-convai.ts';
 import { recordQaSecondsUsage } from '../_shared/billing-service.ts';
@@ -81,6 +82,7 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-session-complete');
     if (complianceResponse) return complianceResponse;
+    await checkRateLimit(user.id, 'qna-session-complete');
     const session = await getQASession(supabase, qaSessionId);
     if (!session) {
       return errorResponse('QA session not found.', 404);
@@ -201,6 +203,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return errorResponse(error.message, 429);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to complete QA session.',

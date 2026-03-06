@@ -4,7 +4,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 
 const ELEVENLABS_STT_URL = 'https://api.elevenlabs.io/v1/speech-to-text';
 
@@ -17,8 +18,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Auth check
-    await getAuthenticatedUser(req);
+    // Auth + rate limit
+    const { user } = await getAuthenticatedUser(req);
+    await checkRateLimit(user.id, 'transcribe-audio');
 
     const body = await req.json();
     const { audioUrl } = body as { audioUrl?: string };
@@ -85,6 +87,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     console.error('[transcribe-audio] unexpected error', error);
     return errorResponse(

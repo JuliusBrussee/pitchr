@@ -3,7 +3,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 
 const DEFAULTS = {
   feedback_intensity: 'balanced',
@@ -22,6 +23,7 @@ const PATCHABLE_SETTING_COLUMNS = SETTING_COLUMNS.filter((key) => key !== 'activ
 
 async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
+  await checkRateLimit(user.id, 'settings');
 
   const { data, error } = await supabase
     .from('settings')
@@ -47,6 +49,7 @@ async function handleGet(req: Request) {
 
 async function handlePatch(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
+  await checkRateLimit(user.id, 'settings');
 
   let body: Record<string, unknown>;
   try {
@@ -107,6 +110,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to process settings request',

@@ -4,7 +4,7 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
 import {
   insertRun,
   updateRun,
@@ -18,12 +18,13 @@ import { analyzePitch } from '../_shared/analysis-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 import { tryCompleteReferral } from '../_shared/referral-service.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
 
-class RateLimitError extends Error {
+class UsageLimitError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'RateLimitError';
+    this.name = 'UsageLimitError';
   }
 }
 
@@ -248,6 +249,7 @@ async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
   if (complianceResponse) return complianceResponse;
+  await checkRateLimit(user.id, 'pitch-run-list');
   const url = new URL(req.url);
   const mode = url.searchParams.get('mode');
   const projectId = url.searchParams.get('projectId');
@@ -306,6 +308,10 @@ async function handlePost(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
   if (complianceResponse) return complianceResponse;
+
+  // Rate limit check early — before project resolution to avoid unnecessary DB queries
+  await checkRateLimit(user.id, 'pitch-run');
+
   const payload = validateRequest(body);
   const project = await resolveProjectForRequest(supabase, user.id, {
     projectId: payload.projectId,
@@ -316,11 +322,10 @@ async function handlePost(req: Request) {
       ? project.prompt_overrides.analysis_system_prompt
       : undefined;
 
-  // Rate limit check
   const adminClient = createAdminClient();
   const usageCheck = await checkUsageLimit(adminClient, user.id, 'run');
   if (!usageCheck.allowed) {
-    throw new RateLimitError(
+    throw new UsageLimitError(
       `You've used ${usageCheck.used}/${usageCheck.limit} pitch analyses this period. ` +
       `Upgrade your plan for more analyses.`,
     );
@@ -330,7 +335,9 @@ async function handlePost(req: Request) {
 
   // Record usage eagerly so concurrent requests cannot bypass the limit.
   try {
-    await recordUsageEvent(adminClient, user.id, 'run', runId);
+    await recordUsageEvent(adminClient, user.id, 'run', runId, {
+      skipEventInsert: usageCheck.recordedAtomically,
+    });
   } catch (usageErr) {
     console.error('[pitch-run] failed to record usage event eagerly', {
       error: usageErr instanceof Error ? usageErr.message : String(usageErr),
@@ -397,7 +404,10 @@ Deno.serve(async (req: Request) => {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
     }
-    if (error instanceof RateLimitError) {
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
+    }
+    if (error instanceof UsageLimitError) {
       return errorResponse(error.message, 429);
     }
     if (error instanceof PitchValidationError) {

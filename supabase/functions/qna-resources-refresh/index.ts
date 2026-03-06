@@ -11,6 +11,7 @@ import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
 Deno.serve(async (req: Request) => {
@@ -38,6 +39,7 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-resources-refresh');
     if (complianceResponse) return complianceResponse;
+    await checkRateLimit(user.id, 'qna-resources-refresh');
 
     // Query the resource gaps table for status counts
     const adminClient = createAdminClient();
@@ -57,6 +59,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return errorResponse(error.message, 429);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to refresh resources.',

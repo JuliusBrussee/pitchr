@@ -6,7 +6,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import {
   createProject,
   getActiveProjectId,
@@ -27,6 +28,7 @@ function isUuid(value: string): boolean {
 
 async function handleGet(req: Request): Promise<Response> {
   const { supabase, user } = await getAuthenticatedUser(req);
+  await checkRateLimit(user.id, 'projects');
   const url = new URL(req.url);
   const includeArchived = url.searchParams.get('includeArchived') === 'true';
   const singleProjectId = url.searchParams.get('projectId');
@@ -68,6 +70,7 @@ async function handleGet(req: Request): Promise<Response> {
 
 async function handlePost(req: Request): Promise<Response> {
   const { supabase, user } = await getAuthenticatedUser(req);
+  await checkRateLimit(user.id, 'projects');
 
   let body: Record<string, unknown>;
   try {
@@ -114,6 +117,7 @@ async function handlePost(req: Request): Promise<Response> {
 
 async function handlePatch(req: Request): Promise<Response> {
   const { supabase, user } = await getAuthenticatedUser(req);
+  await checkRateLimit(user.id, 'projects');
 
   let body: Record<string, unknown>;
   try {
@@ -175,6 +179,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     if (error instanceof ProjectValidationError) {
       return errorResponse(error.message, 400);
