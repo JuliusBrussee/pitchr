@@ -227,6 +227,7 @@ export async function generateDeck(
     pdf_url: pdfUrl,
     slide_count: slides.length,
     thumbnail_url: null,
+    project_id: request.projectId,
     user_id: userId,
   });
 

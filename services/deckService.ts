@@ -16,6 +16,7 @@ export interface DeckRecord {
   pdf_url: string;
   slide_count: number;
   thumbnail_url: string | null;
+  project_id?: string;
   created_at: string;
   user_id?: string;
 }

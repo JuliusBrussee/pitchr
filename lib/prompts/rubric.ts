@@ -42,9 +42,13 @@ export function buildRubricPrompt({ transcript, mode, targetDurationSeconds }: B
   const modeConfig = PITCH_MODE_CONFIG[mode];
   const effectiveDuration = targetDurationSeconds ?? modeConfig.targetDurationSeconds;
   const rubricText = RUBRIC_CATEGORIES.map((category, index) => {
+    let criteria = category.scoringCriteria;
+    if (category.id === 'structure') {
+      criteria = `${modeConfig.structureBeats.join(' -> ')}. Penalize missing beats or circular flow.`;
+    }
     return `${index + 1}. ${category.label.toUpperCase()} (0-20)
 Description: ${category.description}
-Criteria: ${category.scoringCriteria}`;
+Criteria: ${criteria}`;
   }).join('\n\n');
 
   return `Evaluate this startup pitch transcript using the rubric below.
