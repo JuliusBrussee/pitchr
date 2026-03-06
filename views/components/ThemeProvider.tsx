@@ -49,7 +49,7 @@ function resolveIsDark(pref: ThemePreference): boolean {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // Start false to match server HTML — the inline <head> script handles
+  //.. Start false to match server HTML — the inline <head> script handles
   // .dark class before first paint, preventing flash.
   const [preference, setPreference] = useState<ThemePreference>('system');
   const [isDark, setIsDark] = useState(false);
