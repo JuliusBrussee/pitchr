@@ -43,7 +43,10 @@ function isMissingColumnError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const value = error as PostgrestLikeError;
   return (
-    value.code === "42703" || value.message?.includes("does not exist") === true
+    value.code === "42703" ||
+    value.code === "PGRST204" ||
+    value.message?.includes("does not exist") === true ||
+    value.message?.includes("Could not find") === true
   );
 }
 
