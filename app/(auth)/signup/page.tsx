@@ -261,7 +261,7 @@ function SignupForm() {
             />
             <input
               type="text"
-              placeholder="Full name"
+              placeholder="Display name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onFocus={() => setFocusedField('name')}
