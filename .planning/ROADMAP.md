@@ -10,7 +10,7 @@ This roadmap delivers project-specific rubric context as a focused extension of 
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 1: Rubric Context Entry** - Users can access project rubric settings and save valid project context text.
+- [x] **Phase 1: Rubric Context Entry** - Users can access project rubric settings and save valid project context text. (completed 2026-03-06)
 - [ ] **Phase 2: Permissioned Context Management** - Only owner/admin can create or update saved project context with edit attribution.
 - [ ] **Phase 3: Run-Time Rubric Layering** - Every project run automatically layers saved context onto default rubric with provenance and fallback handling.
 - [ ] **Phase 4: Context-Aware Feedback UX** - Feedback and settings messaging clearly reflect project-context influence and behavior.
@@ -70,7 +70,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rubric Context Entry | 0/2 | Not started | - |
+| 1. Rubric Context Entry | 2/2 | Complete   | 2026-03-06 |
 | 2. Permissioned Context Management | 0/TBD | Not started | - |
 | 3. Run-Time Rubric Layering | 0/TBD | Not started | - |
 | 4. Context-Aware Feedback UX | 0/TBD | Not started | - |

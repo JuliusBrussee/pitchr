@@ -75,7 +75,19 @@ Each task was committed atomically.
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
+
+**1. [Rule 3 - Blocking] Corrected roadmap progress update invocation**
+- **Found during:** Post-task state updates
+- **Issue:** `roadmap update-plan-progress "01"` reported success but did not mutate `ROADMAP.md` because this project expects phase id `1` (non-zero-padded) for roadmap row matching.
+- **Fix:** Re-ran roadmap update with phase argument `1`, which updated phase completion checkbox and progress table to `2/2 Complete`.
+- **Files modified:** `.planning/ROADMAP.md`
+- **Verification:** `ROADMAP.md` now marks Phase 1 complete with `2/2` plans.
+
+---
+
+**Total deviations:** 1 auto-fixed (1 blocking)
+**Impact on plan:** Required only for planning metadata consistency; no product-scope change.
 
 ## Issues Encountered
 
