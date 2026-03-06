@@ -8,6 +8,7 @@ import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { isProjectTypeId } from '../_shared/project-config.ts';
+import { validateRubricContextForSave } from '../_shared/rubric-context.ts';
 import {
   createProject,
   ensureSeedProjects,
@@ -21,6 +22,29 @@ import {
 } from '../_shared/project-service.ts';
 
 class ProjectValidationError extends Error {}
+
+function normalizePromptOverrides(
+  value: unknown,
+): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const promptOverrides = value as Record<string, unknown>;
+  if (!Object.prototype.hasOwnProperty.call(promptOverrides, 'analysis_system_prompt')) {
+    return promptOverrides;
+  }
+
+  const validation = validateRubricContextForSave(promptOverrides.analysis_system_prompt);
+  if (!validation.valid) {
+    throw new ProjectValidationError(validation.error);
+  }
+
+  return {
+    ...promptOverrides,
+    analysis_system_prompt: validation.value,
+  };
+}
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
@@ -78,10 +102,7 @@ async function handlePost(req: Request): Promise<Response> {
   if (!isProjectTypeId(type)) {
     throw new ProjectValidationError('type must be one of: two_min_pitch, elevator_pitch.');
   }
-  const promptOverrides =
-    body.promptOverrides && typeof body.promptOverrides === 'object'
-      ? body.promptOverrides as Record<string, unknown>
-      : undefined;
+  const promptOverrides = normalizePromptOverrides(body.promptOverrides);
 
   const project = await createProject(supabase, user.id, {
     name,
@@ -116,14 +137,13 @@ async function handlePatch(req: Request): Promise<Response> {
     throw new ProjectValidationError('projectId is required and must be a UUID.');
   }
 
+  const promptOverrides = normalizePromptOverrides(body.promptOverrides);
+
   let project = await getProjectById(supabase, user.id, projectId);
   project = await updateProject(supabase, user.id, projectId, {
     name: typeof body.name === 'string' ? body.name : undefined,
     isArchived: typeof body.isArchived === 'boolean' ? body.isArchived : undefined,
-    promptOverrides:
-      body.promptOverrides && typeof body.promptOverrides === 'object'
-        ? body.promptOverrides as Record<string, unknown>
-        : undefined,
+    promptOverrides,
   });
 
   const setActive = body.setActive === true;

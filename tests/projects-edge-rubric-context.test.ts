@@ -12,7 +12,11 @@ const mockUpdateProject = vi.fn();
 
 let servedHandler: ((req: Request) => Promise<Response>) | undefined;
 
-vi.mock('@/supabase/functions/_shared/supabase.ts', () => {
+vi.mock('npm:@supabase/supabase-js@^2.97.0', () => ({
+  createClient: vi.fn(() => ({})),
+}));
+
+vi.mock(import('@/supabase/functions/_shared/supabase.ts'), () => {
   class AuthenticationError extends Error {}
   return {
     AuthenticationError,
@@ -20,7 +24,7 @@ vi.mock('@/supabase/functions/_shared/supabase.ts', () => {
   };
 });
 
-vi.mock('@/supabase/functions/_shared/project-service.ts', () => {
+vi.mock(import('@/supabase/functions/_shared/project-service.ts'), () => {
   class ProjectNotFoundError extends Error {}
   return {
     ProjectNotFoundError,
@@ -52,6 +56,17 @@ async function getProjectsHandler() {
   return servedHandler;
 }
 
+async function invokeProjectsHandler(method: 'POST' | 'PATCH', body: Record<string, unknown>) {
+  const handler = await getProjectsHandler();
+  return handler(new Request('https://example.test/projects', {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  }));
+}
+
 describe('projects edge rubric context validation (ProjectValidationError mapping)', () => {
   beforeEach(() => {
     vi.resetModules();
@@ -75,7 +90,7 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
     mockSetActiveProject.mockResolvedValue(undefined);
     mockResolveProjectForRequest.mockResolvedValue(buildProject({ id: 'fallback-project' }));
     mockEnsureSeedProjects.mockResolvedValue([buildProject()]);
-    mockToProject.mockImplementation((project) => ({
+    mockToProject.mockImplementation((project: any) => ({
       id: project.id,
       isArchived: Boolean(project.is_archived),
       promptOverrides: project.prompt_overrides ?? {},
@@ -83,17 +98,13 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
   });
 
   it('rejects invalid analysis_system_prompt on POST', async () => {
-    const handler = await getProjectsHandler();
-    const response = await handler(new Request('https://example.test/projects', {
-      method: 'POST',
-      body: JSON.stringify({
-        name: 'My Project',
-        type: 'two_min_pitch',
-        promptOverrides: {
-          analysis_system_prompt: '   ',
-        },
-      }),
-    }));
+    const response = await invokeProjectsHandler('POST', {
+      name: 'My Project',
+      type: 'two_min_pitch',
+      promptOverrides: {
+        analysis_system_prompt: '   ',
+      },
+    });
 
     expect(response.status).toBe(400);
     const payload = await response.json() as { error: string };
@@ -102,19 +113,84 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
   });
 
   it('rejects invalid analysis_system_prompt on PATCH', async () => {
-    const handler = await getProjectsHandler();
-    const response = await handler(new Request('https://example.test/projects', {
-      method: 'PATCH',
-      body: JSON.stringify({
-        projectId: '22222222-2222-4222-8222-222222222222',
-        promptOverrides: {
-          analysis_system_prompt: 'a'.repeat(4001),
-        },
-      }),
-    }));
+    const response = await invokeProjectsHandler('PATCH', {
+      projectId: '22222222-2222-4222-8222-222222222222',
+      promptOverrides: {
+        analysis_system_prompt: 'a'.repeat(4001),
+      },
+    });
 
     expect(response.status).toBe(400);
     const payload = await response.json() as { error: string };
     expect(payload.error).toContain('analysis_system_prompt');
+    expect(mockUpdateProject).not.toHaveBeenCalled();
+  });
+
+  it('normalizes valid analysis_system_prompt values before persistence', async () => {
+    const postResponse = await invokeProjectsHandler('POST', {
+      name: 'My Project',
+      type: 'two_min_pitch',
+      promptOverrides: {
+        analysis_system_prompt: '  Keep this concise.  ',
+      },
+    });
+    expect(postResponse.status).toBe(201);
+    expect(mockCreateProject).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-123',
+      expect.objectContaining({
+        promptOverrides: {
+          analysis_system_prompt: 'Keep this concise.',
+        },
+      }),
+    );
+
+    const patchResponse = await invokeProjectsHandler('PATCH', {
+      projectId: '22222222-2222-4222-8222-222222222222',
+      promptOverrides: {
+        analysis_system_prompt: '  Refine the ask and proof.  ',
+      },
+    });
+    expect(patchResponse.status).toBe(200);
+    expect(mockUpdateProject).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-123',
+      '22222222-2222-4222-8222-222222222222',
+      expect.objectContaining({
+        promptOverrides: {
+          analysis_system_prompt: 'Refine the ask and proof.',
+        },
+      }),
+    );
+  });
+
+  it('keeps POST/PATCH behavior unchanged when rubric context is not updated', async () => {
+    const postResponse = await invokeProjectsHandler('POST', {
+      name: 'My Project',
+      type: 'two_min_pitch',
+    });
+    expect(postResponse.status).toBe(201);
+    expect(mockCreateProject).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-123',
+      expect.objectContaining({
+        promptOverrides: undefined,
+      }),
+    );
+
+    const patchResponse = await invokeProjectsHandler('PATCH', {
+      projectId: '22222222-2222-4222-8222-222222222222',
+      name: 'Renamed Project',
+    });
+    expect(patchResponse.status).toBe(200);
+    expect(mockUpdateProject).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-123',
+      '22222222-2222-4222-8222-222222222222',
+      expect.objectContaining({
+        name: 'Renamed Project',
+        promptOverrides: undefined,
+      }),
+    );
   });
 });
