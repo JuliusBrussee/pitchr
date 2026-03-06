@@ -29,6 +29,10 @@ export default function ProjectsPage() {
   const [createSuccess, setCreateSuccess] = useState<{ projectId: string; projectName: string } | null>(null);
   const [openProjectId, setOpenProjectId] = useState<string | null>(null);
   const [rubricDraftByProjectId, setRubricDraftByProjectId] = useState<Record<string, string>>({});
+  const [savedRubricByProjectId, setSavedRubricByProjectId] = useState<Record<string, string>>({});
+  const [isSavingByProjectId, setIsSavingByProjectId] = useState<Record<string, boolean>>({});
+  const [saveSuccessByProjectId, setSaveSuccessByProjectId] = useState<Record<string, string>>({});
+  const [saveErrorByProjectId, setSaveErrorByProjectId] = useState<Record<string, string>>({});
 
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) ?? null,
@@ -45,6 +49,27 @@ export default function ProjectsPage() {
   const getDraftRubricContext = (projectId: string) =>
     rubricDraftByProjectId[projectId] ?? getSavedRubricContext(projectId);
 
+  const getSavedBaselineRubricContext = (projectId: string) =>
+    savedRubricByProjectId[projectId] ?? getSavedRubricContext(projectId);
+
+  const clearProjectSaveSuccess = (projectId: string) => {
+    setSaveSuccessByProjectId((current) => {
+      if (!(projectId in current)) return current;
+      const next = { ...current };
+      delete next[projectId];
+      return next;
+    });
+  };
+
+  const clearProjectSaveError = (projectId: string) => {
+    setSaveErrorByProjectId((current) => {
+      if (!(projectId in current)) return current;
+      const next = { ...current };
+      delete next[projectId];
+      return next;
+    });
+  };
+
   const openRubricEditor = (projectId: string) => {
     setOpenProjectId(projectId);
     setRubricDraftByProjectId((current) => {
@@ -54,6 +79,67 @@ export default function ProjectsPage() {
         [projectId]: getSavedRubricContext(projectId),
       };
     });
+    setSavedRubricByProjectId((current) => {
+      if (projectId in current) return current;
+      return {
+        ...current,
+        [projectId]: getSavedRubricContext(projectId),
+      };
+    });
+  };
+
+  const saveRubricContext = async (projectId: string) => {
+    const project = projects.find((entry) => entry.id === projectId);
+    if (!project) return;
+
+    const draftValue = getDraftRubricContext(projectId);
+    const validationResult = validateRubricContextForSave(draftValue);
+    if (!validationResult.valid) {
+      return;
+    }
+
+    const normalizedValue = validationResult.value;
+    setIsSavingByProjectId((current) => ({
+      ...current,
+      [projectId]: true,
+    }));
+    clearProjectSaveError(projectId);
+    clearProjectSaveSuccess(projectId);
+
+    try {
+      await updateProject({
+        projectId,
+        promptOverrides: {
+          ...(project.promptOverrides ?? {}),
+          analysis_system_prompt: normalizedValue,
+        },
+      });
+
+      setRubricDraftByProjectId((current) => ({
+        ...current,
+        [projectId]: normalizedValue,
+      }));
+      setSavedRubricByProjectId((current) => ({
+        ...current,
+        [projectId]: normalizedValue,
+      }));
+      setSaveSuccessByProjectId((current) => ({
+        ...current,
+        [projectId]: 'Saved just now',
+      }));
+      clearProjectSaveError(projectId);
+    } catch {
+      setSaveErrorByProjectId((current) => ({
+        ...current,
+        [projectId]: 'Failed to save rubric/context.',
+      }));
+      clearProjectSaveSuccess(projectId);
+    } finally {
+      setIsSavingByProjectId((current) => ({
+        ...current,
+        [projectId]: false,
+      }));
+    }
   };
 
   return (
@@ -313,9 +399,15 @@ export default function ProjectsPage() {
                   {openProjectId === project.id ? (
                     (() => {
                       const draftValue = getDraftRubricContext(project.id);
+                      const savedValue = getSavedBaselineRubricContext(project.id);
                       const validationResult = validateRubricContextForSave(draftValue);
                       const validationMessage = validationResult.valid ? null : validationResult.error;
                       const currentCharactersText = draftValue.length.toLocaleString('en-US');
+                      const hasUnsavedChanges = draftValue !== savedValue;
+                      const isSaving = Boolean(isSavingByProjectId[project.id]);
+                      const saveSuccessMessage = saveSuccessByProjectId[project.id] ?? null;
+                      const saveErrorMessage = saveErrorByProjectId[project.id] ?? null;
+                      const statusText = hasUnsavedChanges ? 'Unsaved changes' : saveSuccessMessage;
 
                       return (
                         <div
@@ -355,6 +447,10 @@ export default function ProjectsPage() {
                                   ...current,
                                   [project.id]: nextValue,
                                 }));
+                                clearProjectSaveError(project.id);
+                                if (nextValue !== savedValue) {
+                                  clearProjectSaveSuccess(project.id);
+                                }
                               }}
                               className="min-h-[220px] md:min-h-[160px] rounded-lg border px-3 py-2 text-sm resize-y"
                               style={{
@@ -372,21 +468,52 @@ export default function ProjectsPage() {
                               </p>
                               <button
                                 type="button"
-                                disabled={!validationResult.valid}
+                                disabled={!validationResult.valid || !hasUnsavedChanges || isSaving}
+                                onClick={() => {
+                                  void saveRubricContext(project.id);
+                                }}
                                 className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold"
                                 style={{
                                   backgroundColor: '#ff5941',
                                   color: 'white',
-                                  opacity: validationResult.valid ? 1 : 0.6,
+                                  opacity: validationResult.valid && hasUnsavedChanges && !isSaving ? 1 : 0.6,
                                 }}
                               >
-                                Save
+                                {isSaving ? 'Saving...' : 'Save'}
                               </button>
                             </div>
+                            {statusText ? (
+                              <p
+                                className="text-xs"
+                                style={{ color: hasUnsavedChanges ? '#f59e0b' : '#22c55e' }}
+                              >
+                                {statusText}
+                              </p>
+                            ) : null}
                             {validationMessage ? (
                               <p className="text-xs" style={{ color: '#ef4444' }}>
                                 {validationMessage}
                               </p>
+                            ) : null}
+                            {saveErrorMessage ? (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-xs" style={{ color: '#ef4444' }}>
+                                  {saveErrorMessage}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void saveRubricContext(project.id);
+                                  }}
+                                  className="inline-flex items-center justify-center rounded-lg px-2.5 py-1 border text-xs font-medium"
+                                  style={{
+                                    borderColor: 'rgba(239,68,68,0.25)',
+                                    color: '#ef4444',
+                                  }}
+                                >
+                                  Retry
+                                </button>
+                              </div>
                             ) : null}
                           </div>
                         </div>
