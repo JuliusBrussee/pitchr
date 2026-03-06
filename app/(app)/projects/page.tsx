@@ -3,6 +3,10 @@
 import { useMemo, useState } from 'react';
 import { CheckCircle2, FolderPlus, Loader2 } from 'lucide-react';
 import { PROJECT_TYPE_OPTIONS } from '@/config/projectTypes';
+import {
+  RUBRIC_CONTEXT_MAX_CHARS,
+  validateRubricContextForSave,
+} from '@/supabase/functions/_shared/rubric-context';
 import { useProject } from '@/views/components/ProjectProvider';
 import { ProjectSelect } from '@/views/components/ProjectSelect';
 import type { ProjectTypeId } from '@/types/project';
@@ -23,11 +27,34 @@ export default function ProjectsPage() {
   const [isSwitchingCreated, setIsSwitchingCreated] = useState(false);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<{ projectId: string; projectName: string } | null>(null);
+  const [openProjectId, setOpenProjectId] = useState<string | null>(null);
+  const [rubricDraftByProjectId, setRubricDraftByProjectId] = useState<Record<string, string>>({});
 
   const activeProject = useMemo(
     () => projects.find((project) => project.id === activeProjectId) ?? null,
     [projects, activeProjectId],
   );
+  const maxCharactersText = RUBRIC_CONTEXT_MAX_CHARS.toLocaleString('en-US');
+
+  const getSavedRubricContext = (projectId: string) => {
+    const project = projects.find((entry) => entry.id === projectId);
+    const value = project?.promptOverrides?.analysis_system_prompt;
+    return typeof value === 'string' ? value : '';
+  };
+
+  const getDraftRubricContext = (projectId: string) =>
+    rubricDraftByProjectId[projectId] ?? getSavedRubricContext(projectId);
+
+  const openRubricEditor = (projectId: string) => {
+    setOpenProjectId(projectId);
+    setRubricDraftByProjectId((current) => {
+      if (projectId in current) return current;
+      return {
+        ...current,
+        [projectId]: getSavedRubricContext(projectId),
+      };
+    });
+  };
 
   return (
     <main
@@ -239,6 +266,134 @@ export default function ProjectsPage() {
                     </button>
                   ) : null}
                 </div>
+                <section
+                  className="rounded-xl border p-3"
+                  style={{
+                    borderColor: 'var(--border-color)',
+                    backgroundColor: 'var(--bg-surface-hover)',
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
+                        Rubric & Context
+                      </h4>
+                      <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+                        Add project-specific instructions for analysis feedback.
+                      </p>
+                    </div>
+                    {openProjectId === project.id ? (
+                      <button
+                        type="button"
+                        onClick={() => setOpenProjectId(null)}
+                        className="px-3 py-1.5 rounded-lg border text-xs font-medium"
+                        style={{
+                          borderColor: 'var(--border-color)',
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Close
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => openRubricEditor(project.id)}
+                        className="px-3 py-1.5 rounded-lg border text-xs font-medium"
+                        style={{
+                          borderColor: 'rgba(255,89,65,0.35)',
+                          color: '#ff5941',
+                          backgroundColor: 'rgba(255,89,65,0.08)',
+                        }}
+                      >
+                        Edit Rubric & Context
+                      </button>
+                    )}
+                  </div>
+
+                  {openProjectId === project.id ? (
+                    (() => {
+                      const draftValue = getDraftRubricContext(project.id);
+                      const validationResult = validateRubricContextForSave(draftValue);
+                      const validationMessage = validationResult.valid ? null : validationResult.error;
+                      const currentCharactersText = draftValue.length.toLocaleString('en-US');
+
+                      return (
+                        <div
+                          data-testid={`rubric-context-editor-shell-${project.id}`}
+                          className="fixed inset-0 z-40 flex items-stretch bg-black/50 p-4 md:static md:z-auto md:bg-transparent md:p-0 mt-3"
+                        >
+                          <div
+                            className="w-full h-full rounded-2xl border p-4 flex flex-col gap-3 md:h-auto md:rounded-xl"
+                            style={{
+                              borderColor: 'var(--border-color)',
+                              backgroundColor: 'var(--bg-surface)',
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                                Rubric & Context
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setOpenProjectId(null)}
+                                className="inline-flex md:hidden items-center justify-center rounded-lg px-2.5 py-1 border text-xs font-medium"
+                                style={{
+                                  borderColor: 'var(--border-color)',
+                                  color: 'var(--text-secondary)',
+                                }}
+                              >
+                                Done
+                              </button>
+                            </div>
+                            <textarea
+                              aria-label={`Rubric & Context editor for ${project.name}`}
+                              value={draftValue}
+                              maxLength={RUBRIC_CONTEXT_MAX_CHARS}
+                              onChange={(event) => {
+                                const nextValue = event.target.value;
+                                setRubricDraftByProjectId((current) => ({
+                                  ...current,
+                                  [project.id]: nextValue,
+                                }));
+                              }}
+                              className="min-h-[220px] md:min-h-[160px] rounded-lg border px-3 py-2 text-sm resize-y"
+                              style={{
+                                borderColor: validationMessage ? '#ef4444' : 'var(--border-color)',
+                                backgroundColor: 'var(--bg-surface)',
+                                color: 'var(--text-primary)',
+                              }}
+                            />
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                              <p
+                                className="text-xs"
+                                style={{ color: validationMessage ? '#ef4444' : 'var(--text-muted)' }}
+                              >
+                                {currentCharactersText}/{maxCharactersText}
+                              </p>
+                              <button
+                                type="button"
+                                disabled={!validationResult.valid}
+                                className="inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold"
+                                style={{
+                                  backgroundColor: '#ff5941',
+                                  color: 'white',
+                                  opacity: validationResult.valid ? 1 : 0.6,
+                                }}
+                              >
+                                Save
+                              </button>
+                            </div>
+                            {validationMessage ? (
+                              <p className="text-xs" style={{ color: '#ef4444' }}>
+                                {validationMessage}
+                              </p>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  ) : null}
+                </section>
               </article>
             ))
           )}
