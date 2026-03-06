@@ -1,157 +1,116 @@
 # Technology Stack
 
-**Analysis Date:** 2026-02-22
+**Analysis Date:** 2026-03-04
 
 ## Languages
 
 **Primary:**
-- TypeScript 5.7.2 - Entire codebase (strict mode enabled in `tsconfig.json`)
-- JavaScript (ES2017 target) - Build output, Node scripts
+- TypeScript 5.7.x (`^5.7.2`) - Main application, API routes, services, hooks, and Supabase edge functions.
+  - Evidence: `package.json`, `app/`, `services/`, `lib/`, `supabase/functions/`
 
 **Secondary:**
-- GLSL - Shader files for Three.js rendering, loaded via Turbopack/webpack raw-loader
-- SQL - Supabase migrations in `migrations/`
+- JavaScript (ES modules) - Tooling/config scripts (`.mjs`) and runtime bootstrap.
+  - Evidence: `scripts/*.mjs`, `postcss.config.mjs`
+- SQL - Database/storage schema and policy migrations.
+  - Evidence: `supabase/migrations/`, `migrations/`
+- GLSL - Shader assets for Siri bubble visuals.
+  - Evidence: `views/components/SiriBubble/shaders/vertex.glsl`, `views/components/SiriBubble/shaders/fragment.glsl`
 
 ## Runtime
 
 **Environment:**
-- Node.js ≥18.x (specified in `package.json` engines)
-- Browser (React 19 frontend runs in Chromium-based browsers)
+- Node.js `>=18` (declared engine) for Next.js app, API routes, and sidecar realtime STT server.
+  - Evidence: `package.json`, `server.ts`
+- Browser runtime (React 19 UI).
+  - Evidence: `app/`, `views/components/`
+- Deno runtime for Supabase Edge Functions.
+  - Evidence: `supabase/functions/deno.json`, `supabase/functions/*/index.ts`
 
 **Package Manager:**
-- Yarn 4.12.0 (strict enforcement - project uses `yarn.lock` lockfile)
-- Install: `yarn install`
-- Lockfile: `yarn.lock` (present and required)
+- Yarn 4.12.0 (repo standard; Berry config present).
+  - Evidence: `package.json` (`packageManager`), `yarn.lock`, `.yarnrc.yml`
 
 ## Frameworks
 
 **Core:**
-- Next.js 15.0.3 - Full-stack framework (App Router at `app/` directory)
-- React 19.0.0 - UI component framework
-- Express 4.21.0 - Backend STT server (`server.ts`)
+- Next.js 15 (`^15.0.3`) - App Router web app and server routes.
+  - Evidence: `package.json`, `app/`, `next.config.ts`
+- React 19 (`^19.0.0`) - UI rendering.
+  - Evidence: `package.json`, `app/layout.tsx`
+- Express 4 (`^4.21.0`) + `ws` (`^8.18.0`) - Local realtime STT WebSocket sidecar.
+  - Evidence: `server.ts`, `package.json`
 
-**3D Graphics:**
-- Three.js 0.169.0 - 3D graphics library
-- @react-three/fiber 9.5.0 - React renderer for Three.js
-- @react-three/drei 10.7.7 - Utility components for Three.js
-
-**Styling & UI:**
-- Tailwind CSS 4.0.0 - Utility-first CSS framework
-- @tailwindcss/postcss 4.0.0 - PostCSS plugin for Tailwind
-- lucide-react 0.575.0 - Icon component library
+**Styling/UI:**
+- Tailwind CSS 4 (`^4.0.0`) via PostCSS plugin.
+  - Evidence: `package.json`, `postcss.config.mjs`, `app/globals.css`
+- Lucide React icons (`^0.575.0`).
+  - Evidence: `package.json`, `views/components/`, `app/(auth)/login/page.tsx`
 
 **Testing:**
-- Vitest 4.0.18 - Unit/integration test runner (config: `vitest.config.ts`)
-- @testing-library/react 16.3.2 - Component testing utilities
-- @testing-library/dom 10.4.1 - DOM testing utilities
-- @testing-library/jest-dom 6.9.1 - Jest matchers for DOM
-- jsdom 28.1.0 - DOM implementation for tests
+- Vitest 4 (`^4.0.18`) + Testing Library + jsdom for unit/integration.
+  - Evidence: `vitest.config.ts`, `package.json`, `services/__tests__/`, `hooks/__tests__/`
+- Playwright (`^1.58.2`) for E2E.
+  - Evidence: `playwright.config.ts`, `tests/e2e/`
 
-**End-to-End Testing:**
-- @playwright/test 1.58.2 - E2E browser testing framework (config: `playwright.config.ts`)
-
-**Build/Dev Tools:**
-- Vite 7.3.1 - Build tool and dev server
-- @vitejs/plugin-react 5.1.4 - React plugin for Vite
-- tsx 4.19.2 - TypeScript executor for Node scripts
-- concurrently 9.1.0 - Run multiple npm scripts in parallel
-- cross-env 7.0.3 - Cross-platform environment variable setting
+**Build/Dev Tooling:**
+- TypeScript compiler (`tsc`) in strict mode.
+  - Evidence: `tsconfig.json`, `package.json` (`typecheck`)
+- `tsx` for TypeScript scripts and sidecar execution.
+  - Evidence: `package.json` scripts (`dev:server`, `knowledge:*`, `batch:elevator`)
+- `concurrently` and `cross-env` for dev orchestration/env injection.
+  - Evidence: `package.json` scripts
 
 ## Key Dependencies
 
 **Critical:**
-- @supabase/supabase-js 2.97.0 - Supabase client for database and storage access
-  - Used for pitch runs, deck metadata, slide text, and audio/PDF storage
-  - Initialized in `lib/supabase.ts` using `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- ws 8.18.0 - WebSocket library for real-time STT (server.ts)
+- `@supabase/supabase-js` + `@supabase/ssr` - DB/storage/auth clients (browser, server, admin, edge calls).
+  - Evidence: `package.json`, `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/admin.ts`
+- `stripe` - Billing checkout, portal, subscription lifecycle, webhook verification.
+  - Evidence: `package.json`, `services/stripeService.ts`, `app/api/billing/*`
+- `@sentry/nextjs` - Error monitoring for client/server.
+  - Evidence: `package.json`, `instrumentation.ts`, `instrumentation-client.ts`, `next.config.ts`
+- `ws` - Realtime socket bridge to ElevenLabs STT.
+  - Evidence: `package.json`, `server.ts`
+- `@react-pdf/renderer` + `pdf-parse`/`pdfjs-dist` - Deck generation/render and PDF text extraction.
+  - Evidence: `package.json`, `services/deckGenerationService.ts`, `services/deckService.ts`, `hooks/useDeckSlides.ts`
 
-**LLM & AI:**
-- Anthropic API (Claude via direct HTTP fetch)
-  - Provider: `lib/llm/providers/anthropic.ts`
-  - Default model: `claude-sonnet-4-6` (configurable via env)
-- OpenRouter API (fallback/alternate provider)
-  - Provider: `lib/llm/providers/openrouter.ts`
-  - Routing logic: `lib/llm/router.ts`
-
-**Speech & Audio:**
-- ElevenLabs Realtime STT (via WebSocket)
-  - API: `wss://api.elevenlabs.io/v1/speech-to-text/realtime`
-  - Proxied through `server.ts` (STT backend)
-- ElevenLabs Text-to-Speech (Coach voice feedback)
-  - API: `https://api.elevenlabs.io/v1/text-to-speech`
-  - Client: `lib/elevenlabs/tts.ts`
-- node-record-lpcm16 1.0.1 - Microphone recording for STT CLI
-
-**Document Processing:**
-- pdf-parse 2.4.5 - PDF text extraction and analysis
-- pdfjs-dist 5.4.624 - PDF parsing library (browser/Node)
-- @react-pdf/renderer 4.3.2 - PDF generation in React
-
-**Vision/ML:**
-- @mediapipe/tasks-vision 0.10.32 - MediaPipe Vision AI (head tracking, engagement band)
-
-**Other:**
-- dotenv 16.4.5 - Environment variable loading
-- ws 8.18.0 - WebSocket server/client
+**Infrastructure/Feature Libraries:**
+- `@mediapipe/tasks-vision` - Head-tracking/vision features.
+  - Evidence: `package.json`, `lib/headTracking/useHeadTracking.ts`
+- `three` + `@react-three/fiber` + `@react-three/drei` - 3D visual components.
+  - Evidence: `package.json`, `views/components/SiriBubble/`
 
 ## Configuration
 
 **Environment:**
-- `.env` - Shared configuration (checked in, no secrets)
-- `.env.local` - Local overrides and secrets (git-ignored)
-- `.env.example` - Template for required variables
+- Environment-first configuration with `.env.example` as template and `.env.local` for local secrets.
+  - Evidence: `.env.example`, `.env.local`, `scripts/validate-env.mjs`
+- App behavior/feature flags heavily env-driven (LLM provider, billing, email, analytics, observability).
+  - Evidence: `.env.example`, `config/billing.ts`, `lib/llm/router.ts`, `app/layout.tsx`, `instrumentation.ts`
 
-**Required Configuration (from `.env.example`):**
-```
-LLM_PROVIDER=anthropic                          # 'anthropic' or 'openrouter'
-ANTHROPIC_API_KEY=                              # Claude API key (required)
-ANTHROPIC_MODEL=claude-sonnet-4-6               # Model version (optional, has default)
-OPENROUTER_API_KEY=                             # For fallback provider (optional)
-OPENROUTER_MODEL=                               # Fallback model (optional)
-ELEVENLABS_API_KEY_STT=                         # STT API key (required for recording)
-ELEVENLABS_API_KEY_TTS=                         # TTS API key (optional, for coach voice)
-ELEVENLABS_VOICE_ID=                            # Coach voice ID (required if TTS enabled)
-NEXT_PUBLIC_SUPABASE_URL=                       # Supabase project URL (required)
-NEXT_PUBLIC_SUPABASE_ANON_KEY=                  # Supabase anon key (required)
-MIRO_ACCESS_TOKEN=                              # Miro API token (optional)
-MIRO_TEAM_ID=                                   # Miro team ID (optional)
-MIRO_PROVIDER=rest                              # 'rest' or 'stub' (optional)
-MIRO_ENABLED=true                               # Enable Miro integration (optional)
-PORT=3001                                       # STT backend port (optional, defaults to 3000)
-NEXT_PUBLIC_WS_URL=http://localhost:3001        # WebSocket URL for dev (optional)
-```
-
-**Build Configuration:**
-- `next.config.ts` - Next.js config (Turbopack GLSL loader, webpack fallback)
-- `tsconfig.json` - TypeScript strict mode, path aliases (`@/*` → root)
-- `vitest.config.ts` - Vitest unit test config with jsdom environment
-- `playwright.config.ts` - Playwright E2E test config
-- `tailwind.config.js` - Tailwind CSS configuration
-
-**Encoding:**
-- UTF-8 (strict) - Enforced by pre-commit hooks
-- Scripts: `fix:encoding`, `check:encoding` - Normalize and validate UTF-8
+**Build:**
+- Next config includes Sentry wrapper and GLSL handling (Turbopack + webpack fallback).
+  - Evidence: `next.config.ts`
+- TS config uses strict mode and `@/*` alias.
+  - Evidence: `tsconfig.json`
+- Vercel cron config exists for weekly arena job.
+  - Evidence: `vercel.json`
 
 ## Platform Requirements
 
 **Development:**
-- Node.js ≥18.x
-- Yarn 4.12.0
-- Optional: LibreOffice (`soffice` CLI) for PPTX→PDF conversion (used in `services/deckService.ts`)
+- macOS/Linux/Windows with Node 18+ and Yarn 4.
+- Supabase project + keys needed for full-stack local functionality.
+- Optional but required for PPTX conversion path: LibreOffice `soffice` binary.
+  - Evidence: `services/deckService.ts`
 
 **Production:**
-- Node.js ≥18.x runtime
-- Supabase project (database, storage)
-- Anthropic API key
-- ElevenLabs API keys (STT required, TTS optional)
-- Optional: Miro API token (for fix board generation)
-- Optional: LibreOffice server for document conversion
-
-**Deployment Target:**
-- Vercel (Next.js native, env vars via dashboard)
-- Self-hosted Node.js (Docker, systemd, pm2, etc.)
-- Serverless (AWS Lambda, Google Cloud Functions with build adaptation)
+- Next.js host (Vercel-configured in repo) plus Supabase (Postgres, Auth, Storage, Edge Functions).
+  - Evidence: `vercel.json`, `lib/supabase/*`, `supabase/functions/`
+- External service credentials required for paid/AI/email/voice features.
+  - Evidence: `.env.example`, `services/stripeService.ts`, `services/emailService.ts`, `lib/llm/providers/anthropic.ts`, `lib/elevenlabs/tts.ts`
 
 ---
 
-*Stack analysis: 2026-02-22*
+*Stack analysis: 2026-03-04*
+*Update after major dependency/runtime changes*

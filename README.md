@@ -216,6 +216,15 @@ Detailed setup and payload behavior: `docs/integrations/paid-ai.md`
 | `yarn check:encoding` | Verify UTF-8 encoding |
 | `yarn fix:encoding` | Normalize text files to UTF-8 |
 
+### STT / live transcript / WPM not working
+
+You don’t need to install anything new. Use this checklist:
+
+1. **Run `yarn dev`** (not only `next dev`) That starts Next.js on port 3000 and the STT proxy on port 3001. If the STT server isn’t running, the app can’t get live transcript or WPM.
+2. **Set `ELEVENLABS_API_KEY_STT=your_key`** in `.env.local`. Restart after any env change (Ctrl+C, then `yarn dev` again).
+3. **Use `http://localhost:3000`** so the app connects to the STT backend at `ws://localhost:3001/ws`. Optional: `NEXT_PUBLIC_WS_URL=http://localhost:3001`.
+4. **Check the terminal** for errors (e.g. missing key or WebSocket failures).
+
 ## Repo Layout
 
 ```txt

@@ -3,10 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import AnalyticsPage from '@/app/(app)/analytics/page';
 
 const mockFetchEdge = vi.fn();
+const mockUseProject = vi.fn();
 vi.mock('@/lib/supabase/fetch-edge', () => ({
   fetchEdge: (...args: unknown[]) => mockFetchEdge(...args),
   edgeFunctionUrl: vi.fn(),
   getEdgeHeaders: vi.fn(),
+}));
+vi.mock('@/views/components/ProjectProvider', () => ({
+  useProject: () => mockUseProject(),
 }));
 
 function getStatValue(label: string): string {
@@ -82,6 +86,9 @@ describe('AnalyticsPage', () => {
         ],
       }),
     });
+    mockUseProject.mockReturnValue({
+      activeProjectId: 'project-alpha',
+    });
 
     render(<AnalyticsPage />);
 
@@ -90,7 +97,9 @@ describe('AnalyticsPage', () => {
       expect(screen.queryByText('No sessions to show rubric trends')).toBeNull();
     });
 
-    expect(mockFetchEdge).toHaveBeenCalledWith('pitch-run', { params: undefined });
+    expect(mockFetchEdge).toHaveBeenCalledWith('pitch-run', {
+      params: { projectId: 'project-alpha', summary: 'true' },
+    });
     expect(screen.getByText('Score Trend')).toBeTruthy();
     expect(screen.getByText('Rubric Category Trend')).toBeTruthy();
     expect(screen.queryByText('Sessions This Period')).toBeTruthy();
@@ -147,6 +156,9 @@ describe('AnalyticsPage', () => {
         ],
       }),
     });
+    mockUseProject.mockReturnValue({
+      activeProjectId: 'project-alpha',
+    });
 
     render(<AnalyticsPage />);
 
@@ -166,9 +178,11 @@ describe('AnalyticsPage', () => {
     await waitFor(() => {
       expect(getStatValue('Sessions This Period')).toBe('2');
     });
-    // "All" groups by month, so buckets/positions reflow.
-    expect(screen.getAllByTestId('score-trend-bar')).toHaveLength(2);
-    expect(screen.getAllByTestId('rubric-trend-bar')).toHaveLength(10);
+    // "All" groups by month, so bucket count depends on month boundaries.
+    const allRangeScoreBars = screen.getAllByTestId('score-trend-bar');
+    const allRangeRubricBars = screen.getAllByTestId('rubric-trend-bar');
+    expect(allRangeScoreBars.length).toBeGreaterThanOrEqual(2);
+    expect(allRangeRubricBars.length).toBe(allRangeScoreBars.length * 5);
     expect(countVisibleBars('score-trend-bar')).toBe(2);
   });
 });

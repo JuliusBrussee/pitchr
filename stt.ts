@@ -77,7 +77,6 @@ function shutdown(): void {
     /* ignore */
   }
 
-  // Flush: send final commit so server finalizes any pending transcript
   sendAudioChunk(Buffer.alloc(0).toString("base64"), true);
 
   if (ws) {
@@ -89,7 +88,6 @@ function shutdown(): void {
     ws = null;
   }
 
-  // Small delay so we can receive last committed_transcript* before closing
   setTimeout(() => {
     const outDir = process.cwd();
     const txtPath = `${outDir}/transcript.txt`;
@@ -103,6 +101,87 @@ function shutdown(): void {
     console.log("\nSaved " + txtPath + " and " + jsonPath);
     process.exit(0);
   }, 500);
+}
+
+function getElevenLabsSttApiKey(): string {
+  const direct = process.env.ELEVENLABS_API_KEY?.trim();
+  if (direct) return direct;
+  const stt = process.env.ELEVENLABS_API_KEY_STT?.trim();
+  if (stt) return stt;
+  return "";
+}
+
+function startRecording(): void {
+  recording = record.record({ sampleRate: SAMPLE_RATE, channels: 1 });
+  const strip = stripWavHeader();
+  let buffer = Buffer.alloc(0);
+  recording!.stream().pipe(strip);
+  strip.on("data", (chunk: Buffer) => {
+    buffer = Buffer.concat([buffer, chunk]);
+    while (buffer.length >= CHUNK_SIZE) {
+      const slice = buffer.subarray(0, CHUNK_SIZE);
+      buffer = buffer.subarray(CHUNK_SIZE);
+      sendAudioChunk(slice.toString("base64"), false);
+    }
+  });
+  strip.on("end", () => {
+    if (buffer.length > 0) sendAudioChunk(buffer.toString("base64"), false);
+  });
+  console.log("Recording. Press ENTER or Ctrl+C to stop.\n");
+}
+
+function handleSttMessage(data: Buffer | string): void {
+  const raw = data.toString();
+  let msg: { message_type?: string; text?: string; words?: { text?: string; start?: number; end?: number }[] };
+  try {
+    msg = JSON.parse(raw) as typeof msg;
+  } catch {
+    return;
+  }
+  const type = msg.message_type;
+
+  if (type === "session_started") {
+    startRecording();
+    return;
+  }
+
+  if (type === "partial_transcript" && msg.text != null) {
+    process.stdout.write("\r" + msg.text.padEnd(80, " ") + "\r");
+    return;
+  }
+
+  if (type === "committed_transcript" && msg.text != null) {
+    transcript += msg.text;
+    process.stdout.write("\r" + " ".repeat(80) + "\r");
+    console.log("[final] " + msg.text);
+    return;
+  }
+
+  if (type === "committed_transcript_with_timestamps" && msg.text != null) {
+    transcript += msg.text;
+    const words = (msg.words ?? []).map((w) => ({
+      text: w.text ?? "",
+      start: w.start ?? 0,
+      end: w.end ?? 0,
+    }));
+    segments.push({ text: msg.text, words });
+    process.stdout.write("\r" + " ".repeat(80) + "\r");
+    console.log("[final] " + msg.text);
+    return;
+  }
+
+  if (
+    type === "error" ||
+    type === "auth_error" ||
+    type === "quota_exceeded" ||
+    type === "rate_limited" ||
+    type === "transcriber_error" ||
+    (typeof type === "string" && type.endsWith("_error"))
+  ) {
+    const err = (msg as { error?: string }).error ?? "Unknown error";
+    console.error("API error:", type, err);
+    shutdown();
+  }
 }
 
 // --- Main
@@ -142,78 +221,13 @@ function main(): void {
   });
 
   ws.on("message", (data: Buffer | string) => {
-    let msg: { message_type?: string; text?: string; words?: { text?: string; start?: number; end?: number }[] };
-    try {
-      msg = JSON.parse(data.toString()) as typeof msg;
-    } catch {
-      return;
-    }
-    const type = msg.message_type;
-
-    if (type === "session_started") {
-      recording = record.record({ sampleRate: SAMPLE_RATE, channels: 1 });
-      const strip = stripWavHeader();
-      let buffer = Buffer.alloc(0);
-      recording.stream().pipe(strip);
-      strip.on("data", (chunk: Buffer) => {
-        buffer = Buffer.concat([buffer, chunk]);
-        while (buffer.length >= CHUNK_SIZE) {
-          const slice = buffer.subarray(0, CHUNK_SIZE);
-          buffer = buffer.subarray(CHUNK_SIZE);
-          sendAudioChunk(slice.toString("base64"), false);
-        }
-      });
-      strip.on("end", () => {
-        if (buffer.length > 0) sendAudioChunk(buffer.toString("base64"), false);
-      });
-      console.log("Recording. Press ENTER or Ctrl+C to stop.\n");
-      return;
-    }
-
-    if (type === "partial_transcript" && msg.text != null) {
-      process.stdout.write("\r" + msg.text.padEnd(80, " ") + "\r");
-      return;
-    }
-
-    if (type === "committed_transcript" && msg.text != null) {
-      transcript += msg.text;
-      process.stdout.write("\r" + " ".repeat(80) + "\r");
-      console.log("[final] " + msg.text);
-      return;
-    }
-
-    if (type === "committed_transcript_with_timestamps" && msg.text != null) {
-      transcript += msg.text;
-      const words = (msg.words ?? []).map((w) => ({
-        text: w.text ?? "",
-        start: w.start ?? 0,
-        end: w.end ?? 0,
-      }));
-      segments.push({ text: msg.text, words });
-      process.stdout.write("\r" + " ".repeat(80) + "\r");
-      console.log("[final] " + msg.text);
-      return;
-    }
-
-    if (
-      type === "error" ||
-      type === "auth_error" ||
-      type === "quota_exceeded" ||
-      type === "rate_limited" ||
-      type === "transcriber_error" ||
-      (typeof type === "string" && type.endsWith("_error"))
-    ) {
-      const err = (msg as { error?: string }).error ?? "Unknown error";
-      console.error("API error:", type, err);
-      shutdown();
-    }
+    handleSttMessage(data);
   });
 
   ws.on("open", () => {
     // Session starts when server sends session_started; we don't send anything first
   });
 
-  // Stop on ENTER
   if (process.stdin.isTTY) {
     readline.emitKeypressEvents(process.stdin);
     process.stdin.setRawMode?.(true);
@@ -229,10 +243,3 @@ function main(): void {
 }
 
 main();
-function getElevenLabsSttApiKey(): string {
-  const direct = process.env.ELEVENLABS_API_KEY?.trim();
-  if (direct) return direct;
-  const stt = process.env.ELEVENLABS_API_KEY_STT?.trim();
-  if (stt) return stt;
-  return "";
-}

@@ -1,202 +1,181 @@
 # External Integrations
 
-**Analysis Date:** 2026-02-22
+**Analysis Date:** 2026-03-04
 
 ## APIs & External Services
 
-**Language Models (LLM):**
-- Anthropic Claude API
-  - SDK/Client: Direct HTTP fetch (no official SDK used) in `lib/llm/providers/anthropic.ts`
-  - Endpoint: `https://api.anthropic.com/v1/messages`
-  - Model: `claude-sonnet-4-6` (default, configurable)
-  - Auth: `ANTHROPIC_API_KEY` (header: `x-api-key`)
-  - Used for: Pitch scoring, analysis, rewrite scripts, coach feedback
-  - Timeout: 25 seconds (configurable per request)
-  - Max tokens: 4096 (configurable)
-  - Retries: 2 attempts on 429 or 5xx errors
+**LLM Providers:**
+- Anthropic Messages API - Primary text generation/scoring provider in app + edge runtimes.
+  - Integration method: HTTPS `fetch` to `https://api.anthropic.com/v1/messages`
+  - Auth: `ANTHROPIC_API_KEY`
+  - Evidence: `lib/llm/providers/anthropic.ts`, `supabase/functions/_shared/analysis-service.ts`, `supabase/functions/deck-generate/index.ts`
+- OpenRouter API - Configurable provider in app runtime.
+  - Integration method: HTTPS `fetch` to `https://openrouter.ai/api/v1/chat/completions`
+  - Auth: `OPENROUTER_API_KEY`
+  - Evidence: `lib/llm/providers/openrouter.ts`, `lib/llm/router.ts`
+- Google Gemini API - Fallback provider in edge analysis flow.
+  - Integration method: HTTPS `fetch` to Generative Language API
+  - Auth: `GOOGLE_AI_API_KEY`
+  - Evidence: `supabase/functions/_shared/analysis-service.ts`
 
-- OpenRouter API (fallback/alternate)
-  - SDK/Client: Direct HTTP fetch in `lib/llm/providers/openrouter.ts`
-  - Endpoint: `https://openrouter.ai/api/v1/chat/completions`
-  - Model: `anthropic/claude-sonnet-4.6` (default)
-  - Auth: `OPENROUTER_API_KEY` (header: `Authorization: Bearer ...`)
-  - Routing: Configured via `LLM_PROVIDER` env var (defaults to `anthropic`)
-  - Used for: Same as Anthropic (fallback if primary fails)
+**Voice / Speech:**
+- ElevenLabs Realtime STT - Live transcription for sidecar WS server.
+  - Integration method: WebSocket to `wss://api.elevenlabs.io/v1/speech-to-text/realtime`
+  - Auth: `ELEVENLABS_API_KEY_STT` (or `ELEVENLABS_API_KEY`)
+  - Evidence: `server.ts`, `hooks/useSTT.ts`
+- ElevenLabs file STT - Batch transcription edge function.
+  - Integration method: HTTPS `POST` to `https://api.elevenlabs.io/v1/speech-to-text`
+  - Auth: `ELEVENLABS_API_KEY_STT`
+  - Evidence: `supabase/functions/transcribe-audio/index.ts`
+- ElevenLabs ConvAI - Live Q&A session URLs and conversation retrieval.
+  - Integration method: HTTPS `GET` to `https://api.elevenlabs.io/v1/convai/*`
+  - Auth: `ELEVENLABS_API_KEY_CONVAI` (fallbacks to STT key)
+  - Evidence: `lib/elevenlabs/convai.ts`, `supabase/functions/_shared/elevenlabs-convai.ts`, `supabase/functions/qna-session/index.ts`
+- ElevenLabs TTS - Coach audio playback.
+  - Integration method: HTTPS `POST` to `https://api.elevenlabs.io/v1/text-to-speech/{voiceId}`
+  - Auth: `ELEVENLABS_API_KEY_TTS`, `ELEVENLABS_VOICE_ID`
+  - Evidence: `lib/elevenlabs/tts.ts`, `server.ts`
 
-**Speech-to-Text (STT):**
-- ElevenLabs Realtime STT
-  - API: WebSocket at `wss://api.elevenlabs.io/v1/speech-to-text/realtime`
-  - SDK/Client: Native WebSocket connection proxied through `server.ts` (not direct browser access for security)
-  - Auth: `ELEVENLABS_API_KEY` or `ELEVENLABS_API_KEY_STT` (header: `xi-api-key`)
-  - Model: `scribe_v2_realtime`
-  - Input: PCM 16kHz audio chunks
-  - Output: Partial and committed transcripts with word-level timing
-  - Used for: Real-time transcription during pitch recording
-  - Config: VAD threshold 0.25, 150ms silence detection, 1.5s commit delay
-  - Integration: `server.ts` relays audio from browser → ElevenLabs → browser
+**Payments:**
+- Stripe - Subscriptions, day-pass/credit purchases, billing portal, webhook lifecycle events.
+  - SDK/Client: `stripe` npm SDK
+  - Auth: `STRIPE_SECRET_KEY`, webhook `STRIPE_WEBHOOK_SECRET`
+  - Endpoints used: checkout sessions, portal sessions, subscriptions, webhook event verification
+  - Evidence: `services/stripeService.ts`, `app/api/billing/checkout/route.ts`, `app/api/billing/day-pass/route.ts`, `app/api/billing/credits/route.ts`, `app/api/billing/portal/route.ts`, `app/api/billing/webhook/route.ts`
 
-**Text-to-Speech (TTS):**
-- ElevenLabs Text-to-Speech
-  - API: `https://api.elevenlabs.io/v1/text-to-speech/{voiceId}`
-  - SDK/Client: HTTP POST in `lib/elevenlabs/tts.ts` (`synthesizeMp3()`)
-  - Auth: `ELEVENLABS_API_KEY_TTS` (header: `xi-api-key`)
-  - Model: `eleven_multilingual_v2`
-  - Output format: MP3 audio buffer
-  - Used for: Coach question playback, coach feedback voice
-  - Integration: Called from `server.ts` (coach-answer endpoint) and session end flow
+**Collaboration / Visual Boards:**
+- Miro REST API - Fix board creation/sync.
+  - Integration method: HTTPS `fetch` to `https://api.miro.com/v2`
+  - Auth: `MIRO_ACCESS_TOKEN` (+ optional `MIRO_TEAM_ID`)
+  - Evidence: `services/miro/providers/miroRestProvider.ts`, `services/miro/miroService.ts`, `supabase/functions/miro-fix-board/index.ts`
 
-**Collaboration & Boards:**
-- Miro REST API
-  - Endpoint: `https://api.miro.com/v2`
-  - SDK/Client: Direct HTTP fetch in `services/miro/providers/miroRestProvider.ts`
-  - Auth: `MIRO_ACCESS_TOKEN` (bearer token)
-  - Team ID: `MIRO_TEAM_ID` (required for board creation)
-  - Used for: Creating fix boards (ranked issues, rewrite scripts as collaborative workspace)
-  - Optional: Disabled if `MIRO_ENABLED=false` or env vars missing → fallback to markdown export
-  - Service: `services/miro/miroService.ts` (interface pattern with fallback)
+**Email Delivery:**
+- Resend - Waitlist and arena transactional email sends.
+  - Integration method: HTTPS `POST` to `https://api.resend.com/emails`
+  - Auth: `RESEND_API_KEY`, sender `RESEND_FROM_EMAIL`
+  - Evidence: `services/emailService.ts`, `services/arenaNotificationService.ts`, `supabase/functions/_shared/email.ts`, `supabase/functions/newsletter-send/index.ts`
+
+**Frontend Third-Party Scripts:**
+- Google Analytics 4 (`gtag.js`) - Optional product analytics.
+  - Auth/Config: `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+  - Evidence: `app/layout.tsx`
+- Google Fonts CDN - Webfont delivery.
+  - Evidence: `app/layout.tsx`
 
 ## Data Storage
 
 **Databases:**
-- Supabase (Postgres)
-  - Connection: HTTPS via `@supabase/supabase-js` client in `lib/supabase.ts`
-  - Auth: Public anon key (`NEXT_PUBLIC_SUPABASE_ANON_KEY`) with RLS policies
-  - Credentials:
-    - URL: `NEXT_PUBLIC_SUPABASE_URL`
-    - Anon Key: `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-  - Tables:
-    - `runs` - Pitch analysis records (score, transcript, analysis JSON, status, timing)
-    - `decks` - Presentation metadata (name, PDF URL, slide count, thumbnail)
-    - `slides` - Extracted slide text per deck (FK to decks with cascade delete)
-  - CRUD operations: `services/runService.ts`, `services/deckService.ts`
-  - Migrations: `migrations/05-create-runs-table.sql`, etc.
+- Supabase Postgres - Primary relational data store (runs, decks/slides, billing, arena, referrals, waitlist, projects, etc.).
+  - Connection: Supabase URL + anon key (user-scoped) and service role (admin ops)
+  - Clients: `@supabase/supabase-js` and `@supabase/ssr`
+  - Migrations: timestamped SQL migrations
+  - Evidence: `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/admin.ts`, `supabase/migrations/`
 
 **File Storage:**
-- Supabase Storage (S3-compatible)
-  - Buckets:
-    - `decks` - PDF files, thumbnails (50 MB file limit)
-    - `recordings` - Audio files from pitch sessions
-  - Access: Public URLs via `getPublicUrl()`, no auth required (MVP design)
-  - Policies: `migrations/04-storage-policies.sql`, `migrations/10-recordings-storage-policies.sql`
-  - Client: `@supabase/supabase-js` storage API
-  - Integration: `services/deckService.ts` (upload/delete), recording uploads via API
+- Supabase Storage buckets
+  - `decks` bucket for generated/uploaded deck assets
+  - `recordings` bucket for session audio
+  - Evidence: `services/deckService.ts`, `services/recordingService.ts`, `supabase/migrations/20250225000002_create_decks_storage_bucket.sql`, `supabase/migrations/20250225000007_create_recordings_bucket.sql`
 
 **Caching:**
-- None detected - Session state via React hooks, localStorage for run history (client-side only in MVP)
+- No external cache (Redis/Memcached not present).
+- Local in-process caching only (for example short-lived JWT cache in edge-fetch helper).
+  - Evidence: `lib/supabase/fetch-edge.ts`
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- None (MVP scope - no authentication)
-- Supabase RLS policies allow anonymous public access with `is_authenticated = false`
-- API routes use public anon key only
+- Supabase Auth - Email/password and Google OAuth sign-in.
+  - Implementation: `@supabase/ssr` browser/server clients + middleware session refresh
+  - Session management: Supabase auth cookies/JWT
+  - Evidence: `app/(auth)/login/page.tsx`, `app/auth/callback/route.ts`, `lib/supabase/middleware.ts`, `middleware.ts`
 
-**Coach Identity:**
-- Configured via environment (not database)
-  - Pitch template: `PLACE_HOLDER_PITCH` env var (loaded in `lib/llm/pitchCoach.ts`)
-  - Coach voice: `ELEVENLABS_VOICE_ID` (ElevenLabs voice character)
+**OAuth Integrations:**
+- Google OAuth via Supabase.
+  - Flow: `supabase.auth.signInWithOAuth({ provider: 'google' })`
+  - Credentials managed in Supabase project configuration (not in repo)
+  - Evidence: `app/(auth)/login/page.tsx`
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Not detected - Errors logged to console in development/production
-- Sentry/DataDog integration: Not present
+- Sentry (optional, env-gated).
+  - DSN: `NEXT_PUBLIC_SENTRY_DSN`
+  - Build/release integration through Next Sentry wrapper
+  - Evidence: `instrumentation.ts`, `instrumentation-client.ts`, `app/global-error.tsx`, `next.config.ts`
+
+**Analytics:**
+- Google Analytics 4 (optional) via client script injection.
+  - Token: `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+  - Evidence: `app/layout.tsx`
 
 **Logs:**
-- Console logging (browser: `console.*`, server: `console.log`/`console.error`)
-- No log aggregation service integrated
-- Server logs from `server.ts` for STT, coach feedback, transcript save events
-- Analytics service stub in `lib/analytics.ts` (placeholder for future use)
+- Console logging in app/server/edge functions (no Datadog/CloudWatch/Splunk integration found).
+  - Evidence: `server.ts`, `app/api/*`, `supabase/functions/*`
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Vercel (Next.js native deployment target)
-- Alternative: Self-hosted Node.js + Supabase
+- Vercel for Next.js app and scheduled cron endpoint invocation.
+  - Evidence: `vercel.json`, `app/api/arena/cron/weekly/route.ts`
+- Supabase for Postgres, Auth, Storage, and Edge Functions.
+  - Evidence: `supabase/config.toml`, `supabase/functions/`
+
+**Edge Function Deployment:**
+- Manual scripts deploy edge functions via Supabase CLI.
+  - Evidence: `scripts/deploy-edge-functions.sh`, `scripts/deploy-edge-functions.ps1`
 
 **CI Pipeline:**
-- Not detected in codebase
-- Playwright tests available (`@playwright/test`) but no CI config found
-- Pre-commit hooks: UTF-8 encoding check/fix (`scripts/check-encoding.mjs`, `scripts/normalize-encoding.mjs`)
+- No repo CI workflow files detected (`.github/workflows` missing).
 
 ## Environment Configuration
 
-**Required env vars:**
-- `ANTHROPIC_API_KEY` - Claude API key (required for pitch analysis)
-- `ELEVENLABS_API_KEY_STT` - ElevenLabs STT key (required for recording/transcription)
-- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (required for deck/run storage)
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon key (required for DB access)
+**Development:**
+- Core required vars for app runtime:
+  - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `SUPABASE_SERVICE_ROLE_KEY` (admin routes)
+  - `ANTHROPIC_API_KEY`
+  - Billing/email/voice keys as features are enabled (`STRIPE_*`, `RESEND_*`, `ELEVENLABS_*`)
+  - Evidence: `.env.example`, `lib/supabase/admin.ts`, `services/stripeService.ts`, `services/emailService.ts`, `server.ts`
+- Secrets location: local `.env.local` + host dashboards (Vercel/Supabase).
+  - Evidence: `.env.example`
 
-**Optional env vars:**
-- `ELEVENLABS_API_KEY_TTS` + `ELEVENLABS_VOICE_ID` - For coach voice feedback
-- `MIRO_ACCESS_TOKEN` + `MIRO_TEAM_ID` - For fix board generation
-- `OPENROUTER_API_KEY` + `OPENROUTER_MODEL` - For LLM fallback
-- `ANTHROPIC_MODEL` - Override Claude model version
-- `LLM_PROVIDER` - Route to 'anthropic' or 'openrouter'
-- `NEXT_PUBLIC_WS_URL` - WebSocket URL for STT backend (dev only)
-- `PORT` - STT server port (default 3000)
+**Staging:**
+- No explicit in-repo staging profile or separate config file detected.
+- Uses standard env-variable separation at deployment platform level.
 
-**Secrets location:**
-- `.env.local` (git-ignored) - Development secrets
-- `.env` (checked in) - Shared, non-secret config
-- Vercel/hosting dashboard - Production secrets
+**Production:**
+- Secrets managed via platform environment variables (not committed to repo).
+- Critical production hooks: Stripe webhook secret, cron secret, Supabase service role key.
+  - Evidence: `app/api/billing/webhook/route.ts`, `app/api/arena/cron/weekly/route.ts`, `lib/supabase/admin.ts`
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None detected
+- Stripe webhook: `POST /api/billing/webhook`
+  - Verification: `stripe.webhooks.constructEvent` with `STRIPE_WEBHOOK_SECRET`
+  - Events handled: checkout completion, subscription lifecycle, invoice payment failures
+  - Evidence: `app/api/billing/webhook/route.ts`, `services/stripeService.ts`
+- OAuth callback: `GET /auth/callback`
+  - Purpose: exchange Supabase auth code for session
+  - Evidence: `app/auth/callback/route.ts`
+- Vercel cron callback: `POST /api/arena/cron/weekly`
+  - Verification: `Authorization: Bearer ${CRON_SECRET}`
+  - Evidence: `vercel.json`, `app/api/arena/cron/weekly/route.ts`
+- Newsletter unsubscribe callback: `GET/POST /api/newsletter/unsubscribe`
+  - Evidence: `app/api/newsletter/unsubscribe/route.ts`
 
 **Outgoing:**
-- Miro board creation sends fix data (POST request) to `https://api.miro.com/v2/boards`
-- Coach feedback Q&A endpoint: `POST /api/coach-answer` (internal, client→server)
-
-## Data Flow Diagrams
-
-**Pitch Recording → Analysis:**
-```
-Browser (React)
-  ↓ audio chunks via WebSocket
-Server (Express + WebSocket)
-  ↓ relayed to STT backend via WebSocket
-ElevenLabs STT
-  ↓ transcript messages back to server
-Server (relays to browser + saves)
-Browser displays live transcription
-  ↓ user clicks "Analyze"
-Next.js API route (/api/pitch/run, POST)
-  ↓ submits transcript to LLM
-Anthropic Claude API
-  ↓ returns analysis JSON
-Response stored in Supabase
-```
-
-**Pitch Deck Upload:**
-```
-Browser (React Form)
-  ↓ POST file to /api/deck/upload
-Next.js API route handler
-  ↓ converts PPTX→PDF (execFile soffice)
-  ↓ extracts text from PDF (pdf-parse)
-Supabase Storage (upload PDF)
-Supabase DB (insert deck + slides)
-  ↓ returns deck ID + slide URLs
-Browser displays deck
-```
-
-**Fix Board Generation:**
-```
-Browser (user clicks "Generate Miro Board")
-  ↓ POST to /api/miro/fix-board
-Next.js API route handler
-  ↓ submits analysis to Miro API
-Miro REST API (/v2/boards POST)
-  ↓ returns board ID + URL
-Miro API (/v2/boards/{id}/items POST) ← add fixes
-  ↓ returns board link
-Browser redirects to Miro board
-Fallback: If Miro fails → return markdown export
-```
+- Stripe API calls from billing routes/services.
+  - Evidence: `services/stripeService.ts`, `app/api/billing/*`
+- Resend email sends from app + edge functions.
+  - Evidence: `services/emailService.ts`, `supabase/functions/_shared/email.ts`
+- Miro board sync/create calls.
+  - Evidence: `services/miro/providers/miroRestProvider.ts`, `supabase/functions/miro-fix-board/index.ts`
+- LLM/STT/TTS/ConvAI provider calls.
+  - Evidence: `lib/llm/providers/*.ts`, `server.ts`, `lib/elevenlabs/*.ts`, `supabase/functions/_shared/analysis-service.ts`
 
 ---
 
-*Integration audit: 2026-02-22*
+*Integration audit: 2026-03-04*
+*Update when adding/removing external services*

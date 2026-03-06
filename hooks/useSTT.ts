@@ -178,6 +178,7 @@ export interface UseSTTReturn {
   start: (options?: StartOptions) => Promise<void>;
   pause: () => void;
   stop: () => void;
+  discard: () => void;
   startAnswerRecording: () => void;
   stopAnswerRecording: () => void;
   isAnswerRecording: boolean;
@@ -357,6 +358,23 @@ export function useSTT(): UseSTTReturn {
     }
     setIsRecording(false);
     setLiveText('');
+  }, [stopMic]);
+
+  const discard = useCallback(() => {
+    stopMic();
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    const ws = wsRef.current;
+    if (ws) {
+      ws.close();
+      wsRef.current = null;
+    }
+    setIsRecording(false);
+    setLiveText('');
+    setTranscriptSegments([]);
+    setSaved(false);
   }, [stopMic]);
 
   useEffect(() => {
@@ -695,6 +713,7 @@ export function useSTT(): UseSTTReturn {
     start,
     pause,
     stop,
+    discard,
     startAnswerRecording,
     stopAnswerRecording,
     isAnswerRecording,

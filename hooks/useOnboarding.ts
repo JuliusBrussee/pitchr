@@ -8,14 +8,14 @@ const TOUR_PREFIX = 'pitchr-tour-seen:';
 export interface OnboardingState {
   isComplete: boolean;
   displayName: string;
-  preferredMode: 'elevator' | 'vc_pitch';
+  projectName?: string;
+  projectDescription?: string;
   cameFromTry: boolean;
 }
 
 const DEFAULTS: OnboardingState = {
   isComplete: false,
   displayName: '',
-  preferredMode: 'elevator',
   cameFromTry: false,
 };
 
@@ -44,11 +44,12 @@ export function useOnboarding() {
     setLoaded(true);
   }, []);
 
-  const complete = useCallback((name: string, mode: 'elevator' | 'vc_pitch') => {
+  const complete = useCallback((name: string, projectName?: string, projectDescription?: string) => {
     const next: OnboardingState = {
       isComplete: true,
       displayName: name,
-      preferredMode: mode,
+      projectName,
+      projectDescription,
       cameFromTry: false,
     };
     persistState(next);
@@ -66,11 +67,10 @@ export function useOnboarding() {
     }
   }, []);
 
-  const markCameFromTry = useCallback((mode: 'elevator' | 'vc_pitch') => {
+  const markCameFromTry = useCallback(() => {
     const next: OnboardingState = {
       ...loadState(),
       cameFromTry: true,
-      preferredMode: mode,
     };
     persistState(next);
     setState(next);

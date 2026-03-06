@@ -21,6 +21,7 @@ import {
   resolveRunRubricContext,
   type RubricContextRunMetadata,
 } from '../_shared/rubric-context.ts';
+import { tryCompleteReferral } from '../_shared/referral-service.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
 
 class RateLimitError extends Error {
@@ -37,7 +38,7 @@ function isPitchMode(value: unknown): value is PitchMode {
 }
 
 function isInputType(value: unknown): value is InputType {
-  return value === 'audio' || value === 'text';
+  return value === 'audio' || value === 'text' || value === 'upload';
 }
 
 function isUuid(value: string): boolean {
@@ -45,7 +46,7 @@ function isUuid(value: string): boolean {
 }
 
 interface ValidatedPitchRunRequest {
-  mode?: PitchMode;
+  mode: PitchMode;
   projectId?: string;
   transcript: string;
   inputType: InputType;
@@ -60,8 +61,8 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
   }
 
   const payload = body as Record<string, unknown>;
-  if (payload.mode !== undefined && !isPitchMode(payload.mode)) {
-    throw new PitchValidationError('Invalid mode. Expected elevator or vc_pitch.');
+  if (!isPitchMode(payload.mode)) {
+    throw new PitchValidationError('mode is required. Expected elevator or vc_pitch.');
   }
   if (!isInputType(payload.inputType)) {
     throw new PitchValidationError('Invalid inputType. Expected audio or text.');
@@ -87,7 +88,7 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
   }
 
   return {
-    mode: payload.mode as PitchMode | undefined,
+    mode: payload.mode as PitchMode,
     projectId: payload.projectId as string | undefined,
     transcript: (payload.transcript as string).trim(),
     inputType: payload.inputType,
@@ -100,7 +101,6 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
 interface ProcessQueuedRunInput {
   runId: string;
   userId: string;
-  projectType: 'two_min_pitch' | 'elevator_pitch';
   mode: PitchMode;
   transcript: string;
   deckText?: string;
@@ -133,7 +133,6 @@ async function processQueuedRun(
     const { analysis, fallback } = await analyzePitch({
       transcript: input.transcript,
       mode: input.mode,
-      projectType: input.projectType,
       deckText: input.deckText,
       systemPromptOverride: input.systemPromptOverride,
     });
@@ -154,6 +153,16 @@ async function processQueuedRun(
       is_fallback: fallback,
       error_message: null,
     });
+
+    // Trigger referral completion on first successful analysis
+    try {
+      await tryCompleteReferral(supabaseAdmin, input.userId);
+    } catch (refErr) {
+      console.error('[pitch-run] referral completion check failed', {
+        runId: input.runId,
+        error: refErr instanceof Error ? refErr.message : String(refErr),
+      });
+    }
   } catch (analysisError) {
     const message =
       analysisError instanceof Error
@@ -254,7 +263,7 @@ async function handleGet(req: Request) {
   // When filtering by project, resolve it; otherwise skip the waterfall entirely
   const resolvedProjectId = allProjects
     ? undefined
-    : projectId ?? (await resolveProjectForRequest(supabase, user.id, { mode: parsedMode })).id;
+    : projectId ?? (await resolveProjectForRequest(supabase, user.id)).id;
 
   const allRuns = await listRuns(supabase, {
     mode: parsedMode,
@@ -299,14 +308,8 @@ async function handlePost(req: Request) {
   const payload = validateRequest(body);
   const project = await resolveProjectForRequest(supabase, user.id, {
     projectId: payload.projectId,
-    mode: payload.mode,
   });
-  if (payload.mode && payload.mode !== project.workflow_mode) {
-    throw new PitchValidationError(
-      `mode ${payload.mode} does not match selected project workflow ${project.workflow_mode}.`,
-    );
-  }
-  const mode = project.workflow_mode;
+  const mode = payload.mode;
   const {
     systemPromptOverride: analysisSystemPrompt,
     metadata: rubricContextMeta,
@@ -365,7 +368,6 @@ async function handlePost(req: Request) {
     processQueuedRun(adminClient, {
       runId,
       userId: user.id,
-      projectType: project.type,
       mode,
       transcript: payload.transcript,
       deckText: payload.deckText,
@@ -379,7 +381,6 @@ async function handlePost(req: Request) {
       runId: run.id,
       status: 'queued',
       projectId: project.id,
-      projectType: project.type,
       workflowMode: mode,
     },
     202,

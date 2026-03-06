@@ -2,17 +2,14 @@
 // These mirror the types from the main app's types/ directory.
 
 export type PitchMode = 'elevator' | 'vc_pitch';
-export type InputType = 'audio' | 'text';
+export type InputType = 'audio' | 'text' | 'upload';
 export type RunStatus = 'queued' | 'running' | 'complete' | 'failed';
 export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b';
 export type Coverage = 'spoken_only' | 'spoken+deck';
-export type ProjectTypeId = 'two_min_pitch' | 'elevator_pitch';
-
 export interface ProjectPromptOverrideMetadata {
   updated_at?: string;
   updated_by?: string;
 }
-
 export interface ProjectPromptOverrides {
   analysis_system_prompt?: string;
   analysis_system_prompt_meta?: ProjectPromptOverrideMetadata;
@@ -22,10 +19,11 @@ export interface ProjectPromptOverrides {
 export interface Project {
   id: string;
   name: string;
-  type: ProjectTypeId;
-  workflowMode: PitchMode;
+  description: string | null;
+  targetMarket: string | null;
+  keyMetrics: string | null;
+  extraNotes: string | null;
   isArchived: boolean;
-  isSeeded: boolean;
   promptOverrides: ProjectPromptOverrides;
   createdAt: string;
   updatedAt: string;
@@ -44,7 +42,6 @@ export interface Run {
   startedAt?: string;
   completedAt?: string;
   projectId: string;
-  projectType?: ProjectTypeId;
   projectName?: string;
   mode: PitchMode;
   status: RunStatus;
@@ -75,7 +72,6 @@ export interface CreatePitchRunResponse {
   runId: string;
   status: RunStatus;
   projectId?: string;
-  projectType?: ProjectTypeId;
   workflowMode?: PitchMode;
   overallScore?: number;
   fallback?: boolean;

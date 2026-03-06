@@ -39,7 +39,6 @@ const NAV_ITEMS = [
 
 const TOOL_ITEMS = [
   { id: 'projects', label: 'Projects', icon: FolderOpen, href: '/projects' },
-  { id: 'deck', label: 'Deck Manager', icon: FolderOpen, href: '/deck' },
   { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
 

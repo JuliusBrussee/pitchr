@@ -351,26 +351,12 @@ wss.on("connection", (clientWs, req) => {
     if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
   }
 
-  elevenLabsWs = new WebSocket(elevenLabsUrl, { headers });
-
-  elevenLabsWs.on("open", () => {
-    // Start forwarding queued audio from client
-    sessionStarted = true;
-    sendChecklistSnapshot("heuristic");
-    while (audioQueue.length > 0) {
-      const msg = audioQueue.shift();
-      if (msg && elevenLabsWs?.readyState === WebSocket.OPEN) elevenLabsWs.send(msg);
-    }
-  });
-
-  elevenLabsWs.on("message", (data: Buffer | string) => {
-    const raw = data.toString();
-    let msg: { message_type?: string; text?: string; words?: { text?: string; start?: number; end?: number }[] };
-    try {
-      msg = JSON.parse(raw) as typeof msg;
-    } catch {
-      return;
-    }
+  /** Handle a normalized transcript message (same shape from either provider). */
+  function handleProviderTranscript(msg: {
+    message_type?: string;
+    text?: string;
+    words?: { text?: string; start?: number; end?: number }[];
+  }) {
     forwardToClient(msg);
     if (msg.message_type === "partial_transcript") {
       const nextPartial = msg.text?.trim() ?? "";
@@ -431,6 +417,28 @@ wss.on("connection", (clientWs, req) => {
         }, 800);
       }
     }
+  }
+
+  elevenLabsWs = new WebSocket(elevenLabsUrl, { headers });
+
+  elevenLabsWs.on("open", () => {
+    sessionStarted = true;
+    sendChecklistSnapshot("heuristic");
+    while (audioQueue.length > 0) {
+      const msg = audioQueue.shift();
+      if (msg && elevenLabsWs?.readyState === WebSocket.OPEN) elevenLabsWs.send(msg);
+    }
+  });
+
+  elevenLabsWs.on("message", (data: Buffer | string) => {
+    const raw = data.toString();
+    let msg: { message_type?: string; text?: string; words?: { text?: string; start?: number; end?: number }[] };
+    try {
+      msg = JSON.parse(raw) as typeof msg;
+    } catch {
+      return;
+    }
+    handleProviderTranscript(msg);
   });
 
   elevenLabsWs.on("error", (err) => {
@@ -520,8 +528,6 @@ wss.on("connection", (clientWs, req) => {
   });
 
   clientWs.on("close", () => {
-    // When client sends "stop" it closes the socket; keep ElevenLabs open so we can
-    // receive the final committed transcript and save before closing.
     if (!stopRequested && elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
       elevenLabsWs.close();
     }

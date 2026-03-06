@@ -1,4 +1,4 @@
-import type { PitchMode, ProjectTypeId } from './types.ts';
+import type { PitchMode } from './types.ts';
 
 export interface AnalysisModeProfile {
   label: string;
@@ -8,7 +8,6 @@ export interface AnalysisModeProfile {
 }
 
 export interface AnalysisPromptProfile {
-  projectType: ProjectTypeId;
   workflowMode: PitchMode;
   systemPrompt: string;
   rubricText: string;
@@ -76,9 +75,8 @@ Criteria: Penalize unclear customer, no competitive framing, or no distinct edge
 Description: Tight, controlled, and on-time delivery for a 30-second window.
 Criteria: Penalize overrun, rushed phrasing, filler, and repeated lines.`;
 
-const PROFILES: Record<ProjectTypeId, AnalysisPromptProfile> = {
-  two_min_pitch: {
-    projectType: 'two_min_pitch',
+const PROFILES: Record<PitchMode, AnalysisPromptProfile> = {
+  vc_pitch: {
     workflowMode: 'vc_pitch',
     systemPrompt: COMMON_SYSTEM_PROMPT,
     rubricText: VC_RUBRIC_TEXT,
@@ -98,8 +96,7 @@ const PROFILES: Record<ProjectTypeId, AnalysisPromptProfile> = {
       'If transcript includes unrelated discussion, extract the founder pitch signal and score that signal only.',
     ],
   },
-  elevator_pitch: {
-    projectType: 'elevator_pitch',
+  elevator: {
     workflowMode: 'elevator',
     systemPrompt: `${COMMON_SYSTEM_PROMPT}
 
@@ -127,15 +124,6 @@ Use a skeptical investor lens: unclear business definition, vague traction, weak
   },
 };
 
-export function getAnalysisPromptProfile(
-  projectType: ProjectTypeId | undefined,
-  mode: PitchMode,
-): AnalysisPromptProfile {
-  if (projectType && PROFILES[projectType]) {
-    return PROFILES[projectType];
-  }
-
-  return mode === 'elevator'
-    ? PROFILES.elevator_pitch
-    : PROFILES.two_min_pitch;
+export function getAnalysisPromptProfile(mode: PitchMode): AnalysisPromptProfile {
+  return PROFILES[mode];
 }
