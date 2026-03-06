@@ -490,6 +490,24 @@ export default function ResultsPage() {
     }
     return `Live provider calls failed. Displaying cached fallback analysis.${providerNote}`;
   }, [run]);
+  const rubricContextMeta = useMemo(() => run?.meta?.rubric_context ?? null, [run]);
+  const rubricContextAppliedMessage = useMemo(() => {
+    if (!rubricContextMeta?.applied) return null;
+    const updatedAt = rubricContextMeta.project_updated_at
+      ? formatDate(rubricContextMeta.project_updated_at)
+      : 'unknown time';
+    return [
+      `Project rubric context was layered on top of the default rubric for this run.`,
+      `Source: ${run?.projectName ?? 'Selected project'}`,
+      `Updated: ${updatedAt}`,
+      rubricContextMeta.hash ? `Reference: ${rubricContextMeta.hash}` : null,
+    ].filter(Boolean).join(' ');
+  }, [rubricContextMeta, run?.projectName]);
+  const rubricContextFallbackMessage = useMemo(() => {
+    if (!rubricContextMeta?.fallback_used) return null;
+    const reason = rubricContextMeta.fallback_reason ?? 'Project rubric context was unavailable.';
+    return `Default rubric fallback applied for this run. Reason: ${reason}`;
+  }, [rubricContextMeta]);
 
   const onCopy = () => {
     if (!feedback) return;
@@ -782,6 +800,30 @@ export default function ResultsPage() {
           }}
         >
           {fallbackWarning}
+        </div>
+      ) : null}
+      {rubricContextAppliedMessage ? (
+        <div
+          className="rounded-xl border px-3 py-2 text-xs"
+          style={{
+            color: '#60a5fa',
+            backgroundColor: 'rgba(96,165,250,0.10)',
+            borderColor: 'rgba(96,165,250,0.35)',
+          }}
+        >
+          {rubricContextAppliedMessage}
+        </div>
+      ) : null}
+      {rubricContextFallbackMessage ? (
+        <div
+          className="rounded-xl border px-3 py-2 text-xs"
+          style={{
+            color: '#f59e0b',
+            backgroundColor: 'rgba(245,158,11,0.12)',
+            borderColor: 'rgba(245,158,11,0.35)',
+          }}
+        >
+          {rubricContextFallbackMessage}
         </div>
       ) : null}
 

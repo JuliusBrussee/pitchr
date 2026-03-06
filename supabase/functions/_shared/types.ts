@@ -8,8 +8,14 @@ export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b';
 export type Coverage = 'spoken_only' | 'spoken+deck';
 export type ProjectTypeId = 'two_min_pitch' | 'elevator_pitch';
 
+export interface ProjectPromptOverrideMetadata {
+  updated_at?: string;
+  updated_by?: string;
+}
+
 export interface ProjectPromptOverrides {
   analysis_system_prompt?: string;
+  analysis_system_prompt_meta?: ProjectPromptOverrideMetadata;
   [key: string]: unknown;
 }
 

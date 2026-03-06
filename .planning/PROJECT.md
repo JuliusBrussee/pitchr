@@ -1,59 +1,54 @@
-# Pitchr Hackathon Mode
+﻿# Pitchr: Project-Specific Rubric Context
 
 ## What This Is
 
-This project extends Pitchr with a new hackathon-specific pitch feedback mode. It builds a verified corpus of winning hackathon pitches (all user-provided links plus 20 additional global winning examples), transcribes them, extracts common winning themes, and applies those patterns to scoring and coaching. The output should diagnose what is weak in a user's hackathon pitch and prescribe concrete fixes aligned with proven winning patterns.
+Pitchr is a pitch coaching app that analyzes user submissions and returns scoring plus actionable feedback. This project adds project-level rubric context so feedback is tailored to the specific rules of a user's target pitch opportunity. The primary user is the pitch submitter configuring context inside each project.
 
 ## Core Value
 
-Given a hackathon pitch, the system identifies what is weak against winner-derived standards and tells the user exactly how to improve it.
+Users get feedback that reflects their actual project-specific rubric and constraints, not generic pitch advice.
 
 ## Requirements
 
 ### Validated
 
-- [x] Users can submit pitches and receive structured LLM feedback with rubric breakdowns and prioritized fixes - existing
-- [x] Multiple pitch modes are supported through shared mode configuration and mode-specific prompts (`elevator`, `vc_pitch`) - existing
-- [x] A Q&A output (`qa_1min`) is generated and supported in regeneration flows - existing
-- [x] Live session capture, transcription, delivery metrics, and results pages are already implemented - existing
+- ✓ Users can submit a pitch and receive rubric-based analysis feedback - existing
+- ✓ Users can review analysis results with score breakdown and recommendations - existing
+- ✓ Users can work across multiple projects and navigate project-specific workflows - existing
 
 ### Active
 
-- [ ] Build a verified winning-pitch corpus containing all uploaded links and 20 additional globally sourced hackathon-winning pitch links
-- [ ] Verify each link as a legitimate winning-pitch source and track provenance
-- [ ] Transcribe every verified corpus item and store transcripts for downstream analysis
-- [ ] Analyze all transcripts to extract common winning patterns and anti-patterns for hackathon judging contexts
-- [ ] Define and integrate a new `hackathon` project type that follows existing elevator/VC judge-agent structure
-- [ ] Deliver hackathon-specific feedback that pinpoints weak rubric dimensions and recommends fixes grounded in winning-pattern evidence
-- [ ] Include hackathon Q&A bot support in parity with the current `qa_1min` flow
-- [ ] Map and document step-by-step how the hackathon flow follows and extends existing pitch feedback flows
+- [ ] User can open a specific project and paste project-specific rubric/context text
+- [ ] Project owner/admin can create and edit saved rubric/context for that project
+- [ ] Saved project rubric/context is automatically layered onto the default rubric for every run in that project
+- [ ] Feedback output naturally incorporates project rubric/context so guidance feels specific to the user's pitch rules
 
 ### Out of Scope
 
-- Building feedback logic from unverified or non-winning pitch examples - lowers signal quality
-- Creating a separate product outside the existing Pitchr architecture - this work is an in-product mode extension
-- Expanding to non-hackathon pitch categories in this milestone - focus is hackathon-only
+- File upload and document parsing for rubric ingestion - deferred to a later version
+- Per-run include/exclude toggles for project rubric context - deferred; v1 always applies saved context
+- Full replacement of the default rubric - deferred; v1 layers custom context on top
+- Separate rubric-influence explanation section in output - deferred; v1 integrates influence directly into feedback
 
 ## Context
 
-Pitchr already supports elevator and VC pitch feedback with shared analysis orchestration (`prepAgentService` -> `judgeAgentService` -> scoring), mode configuration (`config/modes.ts`), and Q&A generation (`qa_1min`). The new mode should reuse this architecture rather than creating parallel systems. Existing codebase artifacts in `.planning/codebase/` provide architecture and stack baselines for implementation choices.
+The existing architecture already has a scoring pipeline (`prepAgentService` -> `judgeAgentService` -> `scoringService`) and project-oriented UI surfaces where users manage work. Users report current feedback is helpful but too generic when external pitch programs impose custom rules. Adding saved project rubric/context should increase practical relevance without changing the core run lifecycle.
 
 ## Constraints
 
-- **Execution Model**: Implement on a new git branch - requested workflow for this initiative
-- **Data Quality**: Corpus must include only verified hackathon-winning pitch sources - v1 definition requires verification before transcription
-- **Parity Constraint**: Hackathon flow must follow existing elevator/VC feedback structure - consistency with proven system behavior
-- **Q&A Requirement**: Hackathon mode must include Q&A bot behavior similar to existing `qa_1min` output
-- **Completion Bar**: v1 is complete only when all uploaded links and all newly found links are verified and transcribed
+- **Scope**: V1 is a single project-level text input for rubric/context - keeps implementation focused and shippable quickly
+- **Rubric Strategy**: Custom rubric/context layers onto default scoring rubric - preserves baseline consistency
+- **Permissions**: Only project owner/admin can edit rubric/context - avoids conflicting edits
+- **UX Location**: Configuration lives in project settings from the projects listing flow - keeps navigation intuitive
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use winner-only corpus as rubric foundation | Reduce noise and anchor feedback to proven judging outcomes | - Pending |
-| Reuse existing elevator/VC judge-agent architecture for hackathon mode | Faster delivery, lower regression risk, keeps behavior consistent across modes | - Pending |
-| Require Q&A support in hackathon mode from v1 | User explicitly wants parity with current pitch feedback flows | - Pending |
-| Define v1 "done" as full verification + transcription coverage | Prevent partial dataset launch and ensure reliable analysis quality | - Pending |
+| Use project-level pasted text as rubric/context input in v1 | Fastest path to relevance without file parsing complexity | - Pending |
+| Always apply saved project rubric/context for project runs | Reduces cognitive load and keeps behavior predictable | - Pending |
+| Keep feedback integration implicit (no separate influence panel) | Prioritizes clean UX while still improving specificity | - Pending |
+| Primary user is pitch submitter | Aligns feature design with day-to-day product usage | - Pending |
 
 ---
 *Last updated: 2026-03-05 after initialization*

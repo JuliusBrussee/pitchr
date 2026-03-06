@@ -5,10 +5,17 @@
 //   PATCH  /projects
 
 import { handleCors } from '../_shared/cors.ts';
-import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
+import {
+  getAuthenticatedUser,
+  createAdminClient,
+  AuthenticationError,
+} from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { isProjectTypeId } from '../_shared/project-config.ts';
-import { validateRubricContextForSave } from '../_shared/rubric-context.ts';
+import {
+  validateRubricContextForSave,
+  withRubricContextPromptMetadata,
+} from '../_shared/rubric-context.ts';
 import {
   createProject,
   ensureSeedProjects,
@@ -22,9 +29,11 @@ import {
 } from '../_shared/project-service.ts';
 
 class ProjectValidationError extends Error {}
+class ProjectPermissionError extends Error {}
 
 function normalizePromptOverrides(
   value: unknown,
+  opts?: { updatedBy?: string; nowIso?: string },
 ): Record<string, unknown> | undefined {
   if (!value || typeof value !== 'object') {
     return undefined;
@@ -40,10 +49,39 @@ function normalizePromptOverrides(
     throw new ProjectValidationError(validation.error);
   }
 
-  return {
+  const normalizedPromptOverrides = {
     ...promptOverrides,
     analysis_system_prompt: validation.value,
   };
+
+  if (!opts?.updatedBy) {
+    return normalizedPromptOverrides;
+  }
+
+  return withRubricContextPromptMetadata(
+    normalizedPromptOverrides,
+    opts.updatedBy,
+    opts.nowIso,
+  );
+}
+
+async function assertProjectPermission(
+  projectId: string,
+  userId: string,
+): Promise<void> {
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient
+    .from('projects')
+    .select('id,user_id')
+    .eq('id', projectId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to verify project permissions: ${error.message}`);
+  }
+  if (data && data.user_id !== userId) {
+    throw new ProjectPermissionError('Only project owner/admin can update rubric context.');
+  }
 }
 
 function isUuid(value: string): boolean {
@@ -102,7 +140,10 @@ async function handlePost(req: Request): Promise<Response> {
   if (!isProjectTypeId(type)) {
     throw new ProjectValidationError('type must be one of: two_min_pitch, elevator_pitch.');
   }
-  const promptOverrides = normalizePromptOverrides(body.promptOverrides);
+  const promptOverrides = normalizePromptOverrides(body.promptOverrides, {
+    updatedBy: user.id,
+    nowIso: new Date().toISOString(),
+  });
 
   const project = await createProject(supabase, user.id, {
     name,
@@ -137,9 +178,21 @@ async function handlePatch(req: Request): Promise<Response> {
     throw new ProjectValidationError('projectId is required and must be a UUID.');
   }
 
-  const promptOverrides = normalizePromptOverrides(body.promptOverrides);
+  const promptOverrides = normalizePromptOverrides(body.promptOverrides, {
+    updatedBy: user.id,
+    nowIso: new Date().toISOString(),
+  });
 
-  let project = await getProjectById(supabase, user.id, projectId);
+  let project;
+  try {
+    project = await getProjectById(supabase, user.id, projectId);
+  } catch (error) {
+    if (error instanceof ProjectNotFoundError) {
+      await assertProjectPermission(projectId, user.id);
+    }
+    throw error;
+  }
+
   project = await updateProject(supabase, user.id, projectId, {
     name: typeof body.name === 'string' ? body.name : undefined,
     isArchived: typeof body.isArchived === 'boolean' ? body.isArchived : undefined,
@@ -186,6 +239,9 @@ Deno.serve(async (req: Request) => {
     }
     if (error instanceof ProjectNotFoundError) {
       return errorResponse(error.message, 404);
+    }
+    if (error instanceof ProjectPermissionError) {
+      return errorResponse(error.message, 403);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to process project request',

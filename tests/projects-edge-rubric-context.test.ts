@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetAuthenticatedUser = vi.fn();
+const mockCreateAdminClient = vi.fn();
 const mockCreateProject = vi.fn();
 const mockEnsureSeedProjects = vi.fn();
 const mockGetActiveProjectId = vi.fn();
@@ -20,6 +21,7 @@ vi.mock(import('@/supabase/functions/_shared/supabase.ts'), () => {
   class AuthenticationError extends Error {}
   return {
     AuthenticationError,
+    createAdminClient: mockCreateAdminClient,
     getAuthenticatedUser: mockGetAuthenticatedUser,
   };
 });
@@ -45,6 +47,18 @@ function buildProject(overrides?: Record<string, unknown>) {
     is_archived: false,
     prompt_overrides: {},
     ...overrides,
+  };
+}
+
+function buildAdminClientLookup(projectRow: { id: string; user_id: string } | null) {
+  return {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: vi.fn().mockResolvedValue({ data: projectRow, error: null }),
+        }),
+      }),
+    }),
   };
 }
 
@@ -83,6 +97,7 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
       supabase: { test: 'client' },
       user: { id: 'user-123' },
     });
+    mockCreateAdminClient.mockReturnValue(buildAdminClientLookup(null));
     mockCreateProject.mockResolvedValue(buildProject());
     mockGetProjectById.mockResolvedValue(buildProject());
     mockUpdateProject.mockResolvedValue(buildProject());
@@ -139,9 +154,13 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
       expect.anything(),
       'user-123',
       expect.objectContaining({
-        promptOverrides: {
+        promptOverrides: expect.objectContaining({
           analysis_system_prompt: 'Keep this concise.',
-        },
+          analysis_system_prompt_meta: expect.objectContaining({
+            updated_by: 'user-123',
+            updated_at: expect.any(String),
+          }),
+        }),
       }),
     );
 
@@ -157,9 +176,13 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
       'user-123',
       '22222222-2222-4222-8222-222222222222',
       expect.objectContaining({
-        promptOverrides: {
+        promptOverrides: expect.objectContaining({
           analysis_system_prompt: 'Refine the ask and proof.',
-        },
+          analysis_system_prompt_meta: expect.objectContaining({
+            updated_by: 'user-123',
+            updated_at: expect.any(String),
+          }),
+        }),
       }),
     );
   });
@@ -192,5 +215,30 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
         promptOverrides: undefined,
       }),
     );
+  });
+
+  it('returns 403 when patching a project owned by another user', async () => {
+    const { ProjectNotFoundError } = await import('@/supabase/functions/_shared/project-service.ts');
+    mockGetProjectById.mockRejectedValueOnce(
+      new ProjectNotFoundError('22222222-2222-4222-8222-222222222222'),
+    );
+    mockCreateAdminClient.mockReturnValueOnce(
+      buildAdminClientLookup({
+        id: '22222222-2222-4222-8222-222222222222',
+        user_id: 'someone-else',
+      }),
+    );
+
+    const response = await invokeProjectsHandler('PATCH', {
+      projectId: '22222222-2222-4222-8222-222222222222',
+      promptOverrides: {
+        analysis_system_prompt: 'Protect the upside with clear execution proof.',
+      },
+    });
+
+    expect(response.status).toBe(403);
+    const payload = await response.json() as { error: string };
+    expect(payload.error).toContain('owner/admin');
+    expect(mockUpdateProject).not.toHaveBeenCalled();
   });
 });

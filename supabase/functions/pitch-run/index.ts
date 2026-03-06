@@ -17,6 +17,10 @@ import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.t
 import { analyzePitch } from '../_shared/analysis-service.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
+import {
+  resolveRunRubricContext,
+  type RubricContextRunMetadata,
+} from '../_shared/rubric-context.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
 
 class RateLimitError extends Error {
@@ -101,6 +105,7 @@ interface ProcessQueuedRunInput {
   transcript: string;
   deckText?: string;
   systemPromptOverride?: string;
+  rubricContextMeta: RubricContextRunMetadata;
 }
 
 async function processQueuedRun(
@@ -134,13 +139,18 @@ async function processQueuedRun(
     });
 
     const overallScore = analysis.outputs?.feedback?.overall_score ?? 0;
+    const analysisMeta = {
+      ...(analysis.meta ?? {}),
+      rubric_context: input.rubricContextMeta,
+    };
+    analysis.meta = analysisMeta;
 
     await updateRun(supabaseAdmin, input.runId, {
       status: 'complete',
       completed_at: new Date().toISOString(),
       overall_score: overallScore,
       analysis,
-      meta: analysis.meta,
+      meta: analysisMeta,
       is_fallback: fallback,
       error_message: null,
     });
@@ -192,6 +202,7 @@ async function processQueuedRun(
           llm_calls_used: 0,
           latency_ms: Date.now() - startedAtMs,
           attempt_count: 0,
+          rubric_context: input.rubricContextMeta,
           error_details: {
             message,
             timeout: message.toLowerCase().includes('timed out'),
@@ -296,10 +307,12 @@ async function handlePost(req: Request) {
     );
   }
   const mode = project.workflow_mode;
-  const analysisSystemPrompt =
-    typeof project.prompt_overrides?.analysis_system_prompt === 'string'
-      ? project.prompt_overrides.analysis_system_prompt
-      : undefined;
+  const {
+    systemPromptOverride: analysisSystemPrompt,
+    metadata: rubricContextMeta,
+  } = resolveRunRubricContext(project.prompt_overrides, {
+    projectUpdatedAt: project.updated_at,
+  });
 
   // Rate limit check
   const adminClient = createAdminClient();
@@ -343,6 +356,7 @@ async function handlePost(req: Request) {
       llm_calls_used: 0,
       latency_ms: 0,
       attempt_count: 0,
+      rubric_context: rubricContextMeta,
     },
     is_fallback: false,
   });
@@ -356,6 +370,7 @@ async function handlePost(req: Request) {
       transcript: payload.transcript,
       deckText: payload.deckText,
       systemPromptOverride: analysisSystemPrompt,
+      rubricContextMeta,
     }),
   );
 

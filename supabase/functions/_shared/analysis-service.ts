@@ -8,6 +8,7 @@ import {
   getAnalysisPromptProfile,
   type AnalysisPromptProfile,
 } from './analysis-profiles.ts';
+import { buildLayeredSystemPrompt } from './rubric-context.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -556,7 +557,10 @@ function cloneSample(): AnalysisResultV2 {
 export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePitchResult> {
   const startedAt = Date.now();
   const profile = getAnalysisPromptProfile(input.projectType, input.mode);
-  const systemPrompt = input.systemPromptOverride?.trim() || profile.systemPrompt;
+  const projectRubricContext = input.systemPromptOverride?.trim();
+  const systemPrompt = projectRubricContext
+    ? buildLayeredSystemPrompt(profile.systemPrompt, projectRubricContext)
+    : profile.systemPrompt;
   const userPrompt = buildUserPrompt(input, profile);
 
   // Try Claude first

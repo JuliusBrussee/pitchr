@@ -38,6 +38,10 @@
   "exclude": [
     "node_modules",
     "supabase",
+    "supabase/functions/**",
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.tsx",
     "vitest.config.ts",
     "vitest.setup.ts",
     "playwright.config.ts"

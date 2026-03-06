@@ -11,6 +11,19 @@ import { useProject } from '@/views/components/ProjectProvider';
 import { ProjectSelect } from '@/views/components/ProjectSelect';
 import type { ProjectTypeId } from '@/types/project';
 
+function formatRubricTimestamp(value: string | undefined): string | null {
+  if (!value) return null;
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return null;
+  return new Date(timestamp).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 export default function ProjectsPage() {
   const {
     projects,
@@ -365,7 +378,8 @@ export default function ProjectsPage() {
                         Rubric & Context
                       </h4>
                       <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-                        Add project-specific instructions for analysis feedback.
+                        Add project-specific instructions for analysis feedback. Saved context is automatically
+                        applied to all runs in this project.
                       </p>
                     </div>
                     {openProjectId === project.id ? (
@@ -407,6 +421,15 @@ export default function ProjectsPage() {
                       const isSaving = Boolean(isSavingByProjectId[project.id]);
                       const saveSuccessMessage = saveSuccessByProjectId[project.id] ?? null;
                       const saveErrorMessage = saveErrorByProjectId[project.id] ?? null;
+                      const rubricMetadata =
+                        typeof project.promptOverrides?.analysis_system_prompt_meta === 'object' &&
+                          project.promptOverrides.analysis_system_prompt_meta !== null
+                          ? project.promptOverrides.analysis_system_prompt_meta
+                          : undefined;
+                      const lastSavedAt = formatRubricTimestamp(rubricMetadata?.updated_at);
+                      const lastSavedBy = typeof rubricMetadata?.updated_by === 'string'
+                        ? rubricMetadata.updated_by
+                        : null;
                       const statusText = hasUnsavedChanges ? 'Unsaved changes' : saveSuccessMessage;
 
                       return (
@@ -488,6 +511,12 @@ export default function ProjectsPage() {
                                 style={{ color: hasUnsavedChanges ? '#f59e0b' : '#22c55e' }}
                               >
                                 {statusText}
+                              </p>
+                            ) : null}
+                            {lastSavedAt ? (
+                              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                                Last saved {lastSavedAt}
+                                {lastSavedBy ? ` by ${lastSavedBy}` : ''}.
                               </p>
                             ) : null}
                             {validationMessage ? (

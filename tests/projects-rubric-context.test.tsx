@@ -20,6 +20,10 @@ function createProject(id: string, name: string, rubricContext = ''): Project {
     isSeeded: false,
     promptOverrides: {
       analysis_system_prompt: rubricContext,
+      analysis_system_prompt_meta: {
+        updated_at: '2026-03-06T10:00:00.000Z',
+        updated_by: 'user-123',
+      },
     },
     createdAt: '2026-03-06T10:00:00.000Z',
     updatedAt: '2026-03-06T10:00:00.000Z',
@@ -64,6 +68,14 @@ describe('ProjectsPage rubric context', () => {
 
     expect(within(betaCard).getByText('Rubric & Context')).toBeInTheDocument();
     expect(within(betaCard).getByRole('button', { name: 'Edit Rubric & Context' })).toBeInTheDocument();
+  });
+
+  it('explains that saved context is automatically applied to all project runs', () => {
+    renderProjectsPage([createProject('project-alpha', 'Alpha')]);
+
+    expect(
+      screen.getByText(/Saved context is automatically applied to all runs in this project\./i),
+    ).toBeInTheDocument();
   });
 
   it('allows only one project editor to be open at a time', () => {
@@ -265,6 +277,10 @@ describe('ProjectsPage rubric context manual save workflow', () => {
       projectId: 'project-alpha',
       promptOverrides: {
         analysis_system_prompt: 'updated rubric context',
+        analysis_system_prompt_meta: {
+          updated_at: '2026-03-06T10:00:00.000Z',
+          updated_by: 'user-123',
+        },
         custom_setting: 'keep-me',
         nested: { strictness: 'high' },
       },

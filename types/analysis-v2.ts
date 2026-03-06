@@ -296,6 +296,17 @@ export interface OneMinuteQAPack {
   red_flags_to_avoid: string[];
 }
 
+export interface RubricContextRunMeta {
+  applied: boolean;
+  source: 'project_prompt_overrides' | 'default_rubric';
+  chars: number;
+  hash?: string;
+  project_updated_at?: string;
+  project_updated_by?: string;
+  fallback_used: boolean;
+  fallback_reason?: string;
+}
+
 export interface AnalysisMeta {
   provider_used: 'openrouter' | 'anthropic' | 'gemini' | 'none';
   fallback_used: boolean;
@@ -303,6 +314,7 @@ export interface AnalysisMeta {
   llm_calls_used: number;
   latency_ms: number;
   attempt_count: number;
+  rubric_context?: RubricContextRunMeta;
   economics?: RunEconomics;
   telemetry?: {
     sectioning_confidence?: number;
