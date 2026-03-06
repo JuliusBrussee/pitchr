@@ -88,9 +88,6 @@ $$;
 -- C. cleanup_rate_limits RPC
 -- ═══════════════════════════════════════════════════════════
 
--- Schedule cleanup via pg_cron (requires pg_cron extension):
--- SELECT cron.schedule('cleanup-rate-limits', '0 * * * *', $$SELECT cleanup_rate_limits(24)$$);
-
 CREATE OR REPLACE FUNCTION cleanup_rate_limits(
   p_older_than_hours INT DEFAULT 24
 )
@@ -162,3 +159,4 @@ BEGIN
   );
 END;
 $$;
+
