@@ -124,10 +124,25 @@ function buildCriteriaMap(criteria: CaseFeedbackCriteria[]): Map<string, CaseFee
   return map;
 }
 
+async function readOptionalText(
+  filePath: string | null | undefined,
+  cache: Map<string, string>,
+): Promise<string> {
+  if (!filePath) return '';
+  if (cache.has(filePath)) return cache.get(filePath) ?? '';
+  const content = await fs
+    .readFile(filePath, 'utf8')
+    .then((text) => text.trim())
+    .catch(() => '');
+  cache.set(filePath, content);
+  return content;
+}
+
 async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const raw = await fs.readFile(options.summaryPath, 'utf8');
   const summary = JSON.parse(raw) as MatrixSummary;
+  const textCache = new Map<string, string>();
 
   const categorySet = new Set<string>();
   for (const row of summary.cases ?? []) {
@@ -146,8 +161,11 @@ async function main(): Promise<void> {
     'pitch_type',
     'status',
     'transcript_file',
+    'transcript_input_text',
     'deck_file',
+    'deck_input_text',
     'rubric_file',
+    'rubric_prompt',
     'score_without_custom',
     'score_with_custom',
     'score_delta',
@@ -183,6 +201,8 @@ async function main(): Promise<void> {
   const lines: string[] = [header.map(csvEscape).join(',')];
 
   for (const row of summary.cases ?? []) {
+    const transcriptInputText = await readOptionalText(row.transcript_file, textCache);
+    const deckInputText = await readOptionalText(row.deck_file, textCache);
     const criteriaMap = buildCriteriaMap(row.feedback_criteria ?? []);
     const topFixWithout = topFix(row.outcome_without_custom, 1);
     const topFixWith = topFix(row.outcome_with_custom, 1);
@@ -196,8 +216,11 @@ async function main(): Promise<void> {
       row.pitch_type,
       row.status,
       row.transcript_file,
+      transcriptInputText,
       row.deck_file ?? '',
+      deckInputText,
       row.rubric_file ?? '',
+      row.rubric_prompt ?? '',
       row.score_without_custom ?? '',
       row.score_with_custom ?? '',
       row.score_delta ?? '',

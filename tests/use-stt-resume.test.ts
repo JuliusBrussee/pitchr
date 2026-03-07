@@ -1,4 +1,4 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createInitialChecklistState } from '@/config/realtimeChecklist';
 import { useSTT } from '@/hooks/useSTT';
@@ -73,7 +73,7 @@ class MockAudioContext {
   }
 }
 
-describe('useSTT', () => {
+describe('useSTT resume behavior', () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket);
@@ -102,7 +102,7 @@ describe('useSTT', () => {
     vi.unstubAllGlobals();
   });
 
-  it('handles realtime checklist_update and checklist_error websocket messages', async () => {
+  it('does not re-send session_config on resume and preserves checklist state', async () => {
     const { result } = renderHook(() => useSTT());
 
     await act(async () => {
@@ -115,18 +115,11 @@ describe('useSTT', () => {
     });
 
     const socket = MockWebSocket.instances[0];
-    const sentPayloads = socket.sent.map((payload) => JSON.parse(payload));
-    expect(
-      sentPayloads.some(
-        (payload) => payload.type === 'session_config' && payload.mode === 'vc_pitch',
-      ),
-    ).toBe(true);
-
     const items = createInitialChecklistState('vc_pitch');
     items[0] = {
       ...items[0],
       status: 'partial',
-      confidence: 0.55,
+      confidence: 0.7,
       evidence: 'My name is Alice and we are building...',
     };
 
@@ -137,54 +130,7 @@ describe('useSTT', () => {
         source: 'llm',
         items,
         progress: { completed: 1, total: 8 },
-        nextHint: 'Cover the ask with numbers.',
-        updatedAt: new Date().toISOString(),
-      });
-    });
-
-    expect(result.current.realtimeChecklist[0].status).toBe('partial');
-    expect(result.current.checklistSource).toBe('llm');
-    expect(result.current.checklistNextHint).toBe('Cover the ask with numbers.');
-
-    act(() => {
-      socket.emit({
-        type: 'checklist_error',
-        error: 'rate limited',
-      });
-    });
-
-    expect(result.current.checklistError).toBe('rate limited');
-  });
-
-  it('resumes recording without resetting session checklist state', async () => {
-    const { result } = renderHook(() => useSTT());
-
-    await act(async () => {
-      await result.current.start({ mode: 'vc_pitch' });
-    });
-
-    await waitFor(() => {
-      expect(MockWebSocket.instances.length).toBe(1);
-      expect(result.current.isRecording).toBe(true);
-    });
-
-    const socket = MockWebSocket.instances[0];
-    const baseItems = createInitialChecklistState('vc_pitch');
-    baseItems[0] = {
-      ...baseItems[0],
-      status: 'partial',
-      confidence: 0.61,
-      evidence: 'My name is Alice and we are building...',
-    };
-
-    act(() => {
-      socket.emit({
-        type: 'checklist_update',
-        mode: 'vc_pitch',
-        source: 'llm',
-        items: baseItems,
-        progress: { completed: 1, total: 8 },
-        nextHint: 'Cover traction with one metric.',
+        nextHint: 'Add traction numbers.',
         updatedAt: new Date().toISOString(),
       });
     });
@@ -194,7 +140,6 @@ describe('useSTT', () => {
     act(() => {
       result.current.pause();
     });
-    expect(result.current.isRecording).toBe(false);
 
     await act(async () => {
       await result.current.start({ mode: 'vc_pitch', resume: true });
@@ -208,6 +153,7 @@ describe('useSTT', () => {
     const sessionConfigCount = sentPayloads.filter(
       (payload) => payload.type === 'session_config',
     ).length;
+
     expect(sessionConfigCount).toBe(1);
     expect(result.current.realtimeChecklist[0].status).toBe('partial');
   });

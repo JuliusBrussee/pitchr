@@ -31,6 +31,7 @@ interface CliOptions {
   defaultRubricPath: string;
   customPolicy: CustomPolicy;
   limit?: number;
+  modeFilter?: PitchMode;
 }
 
 interface OutcomeSummary {
@@ -124,6 +125,14 @@ function parseArgs(argv: string[]): CliOptions {
       if (Number.isFinite(parsed) && parsed > 0) {
         options.limit = parsed;
       }
+      index += 1;
+      continue;
+    }
+    if (arg === '--mode' && next) {
+      if (next !== 'vc_pitch' && next !== 'elevator') {
+        throw new Error('Invalid --mode. Use vc_pitch or elevator.');
+      }
+      options.modeFilter = next;
       index += 1;
       continue;
     }
@@ -310,6 +319,9 @@ async function main(): Promise<void> {
 
   const casesDoc = JSON.parse(rawCases) as CasesFile;
   let cases = casesDoc.cases ?? [];
+  if (options.modeFilter) {
+    cases = cases.filter((entry) => entry.mode === options.modeFilter);
+  }
   if (options.limit) {
     cases = cases.slice(0, options.limit);
   }
@@ -428,6 +440,7 @@ async function main(): Promise<void> {
     generated_at: new Date().toISOString(),
     provider: options.provider,
     custom_policy: options.customPolicy,
+    mode_filter: options.modeFilter ?? null,
     total_cases: results.length,
     success_cases: results.filter((item) => item.status === 'ok').length,
     failed_cases: results.filter((item) => item.status === 'failed').length,

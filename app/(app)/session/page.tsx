@@ -20,6 +20,7 @@ import { useProject } from '@/views/components/ProjectProvider';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import { PITCH_MODE_CONFIG, OVERTIME_LIMIT_SECONDS } from '@/config/modes';
 import { PreSessionConfig } from '@/views/components/PreSessionConfig';
+import { computeLiveSessionFeedback } from '@/lib/liveFeedback';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
 import { useTutorial } from '@/hooks/useTutorial';
@@ -93,6 +94,23 @@ function SessionPageContent() {
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
   const pitchMode = selectedMode;
   const modeConfig = PITCH_MODE_CONFIG[pitchMode];
+  const liveSessionFeedback = useMemo(
+    () =>
+      computeLiveSessionFeedback({
+        mode: pitchMode,
+        checklist: session.checklist,
+        metrics: session.metrics,
+        targetDurationSeconds: modeConfig.targetDurationSeconds,
+        targetWpm: modeConfig.targetWpm,
+      }),
+    [
+      pitchMode,
+      session.checklist,
+      session.metrics,
+      modeConfig.targetDurationSeconds,
+      modeConfig.targetWpm,
+    ],
+  );
 
   useEffect(() => {
     if (isProjectLoading) return;
@@ -463,6 +481,8 @@ function SessionPageContent() {
           metrics={session.metrics}
           targetDurationSeconds={selectedDuration}
           checklist={session.checklist}
+          liveRubric={liveSessionFeedback.liveRubric}
+          beatProgress={liveSessionFeedback.beatProgress}
           isSessionActive={session.isSessionActive}
           hasStarted={hasStartedRef.current}
           engagementBand={engagementBand}

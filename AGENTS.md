@@ -44,3 +44,8 @@ AI pitch coach MVP. Users record/paste a pitch, get scored analysis with fixes a
 - **Package manager:** Always `yarn`, never `npm`
 - **Shared decisions:** UUIDs for run IDs, ISO 8601 timestamps, localStorage key `pitchr_runs`, error responses always `{error: string}`
 - **Demo path:** Dashboard -> Run a Pitch -> Select mode -> Input -> Analyze -> Results -> History
+
+## Merge Conflict Routing
+
+- Canonical merge-conflict documentation lives at `docs/merge-conflict-log.md`.
+- When resolving or auditing integration conflicts, update that file first and keep entries append-only.

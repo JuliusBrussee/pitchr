@@ -5,11 +5,18 @@ import { Check, Circle, Minus, X, ScanFace } from 'lucide-react';
 import type { RealtimeChecklistItemState } from '@/types/checklist';
 import type { MetricValues } from '@/hooks/useSessionState';
 import type { HeadTrackingEngagementBand } from '@/lib/headTracking/engagementBand';
+import type {
+  LiveBeatProgress,
+  LiveRubricCategory,
+  LiveRubricCategoryScore,
+} from '@/lib/liveFeedback';
 
 interface MetricsPanelProps {
   metrics: MetricValues;
   targetDurationSeconds?: number;
   checklist: RealtimeChecklistItemState[];
+  liveRubric?: LiveRubricCategoryScore[];
+  beatProgress?: LiveBeatProgress;
   isSessionActive: boolean;
   hasStarted?: boolean;
   engagementBand?: HeadTrackingEngagementBand;
@@ -35,6 +42,14 @@ const ENGAGEMENT_COLORS: Record<HeadTrackingEngagementBand, string> = {
   could_improve: '#f59e0b',
   bad: '#ef4444',
   no_face: 'var(--text-muted)',
+};
+
+const LIVE_RUBRIC_LABELS: Record<LiveRubricCategory, string> = {
+  structure: 'Structure',
+  clarity: 'Clarity',
+  evidence: 'Evidence',
+  market: 'Market',
+  delivery: 'Delivery',
 };
 
 function withAlpha(color: string, alpha: number): string {
@@ -178,6 +193,8 @@ export function MetricsPanel({
   metrics,
   targetDurationSeconds,
   checklist,
+  liveRubric,
+  beatProgress,
   isSessionActive,
   hasStarted = false,
   engagementBand = 'no_face',
@@ -196,6 +213,10 @@ export function MetricsPanel({
   const timerLabel = hasTarget
     ? `${formatDuration(metrics.durationSecs)} / ${formatDuration(targetDurationSeconds)}`
     : formatDuration(metrics.durationSecs);
+  const nextBeatLabel =
+    beatProgress?.nextBeatId
+      ? beatProgress.beats.find((beat) => beat.id === beatProgress.nextBeatId)?.label ?? null
+      : null;
 
   return (
     <aside
@@ -301,6 +322,59 @@ export function MetricsPanel({
           </p>
         ) : null}
       </div>
+
+      {liveRubric && liveRubric.length > 0 ? (
+        <div className="p-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              Live Rubric Preview
+            </h3>
+            {beatProgress ? (
+              <span
+                className="text-[10px] px-2 py-0.5 rounded-md border"
+                style={{ color: 'var(--text-muted)', borderColor: 'var(--border-color)' }}
+              >
+                Beats {beatProgress.completed}/{beatProgress.total}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-col gap-2.5">
+            {liveRubric.map((item) => {
+              const pct = Math.max(0, Math.min(100, (item.score20 / 20) * 100));
+              return (
+                <div key={item.category} className="flex items-center gap-2">
+                  <span className="text-[11px] w-16" style={{ color: 'var(--text-secondary)' }}>
+                    {LIVE_RUBRIC_LABELS[item.category]}
+                  </span>
+                  <div
+                    className="h-2 rounded-full overflow-hidden flex-1"
+                    style={{ backgroundColor: 'var(--bg-surface-hover)' }}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${pct}%`,
+                        backgroundColor: '#ff5941',
+                      }}
+                    />
+                  </div>
+                  <span
+                    className="text-[11px] font-semibold tabular-nums w-10 text-right"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {item.score20}/20
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {nextBeatLabel ? (
+            <p className="text-[11px] mt-3" style={{ color: 'var(--text-muted)' }}>
+              Session Beats: Next: {nextBeatLabel}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
     </aside>
   );

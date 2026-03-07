@@ -230,3 +230,31 @@ yarn rubric:matrix:anthropic:csv
 CSV output:
 - `.cache/rubric-sandbox/matrix-anthropic/summary.csv` (latest)
 - `.cache/rubric-sandbox/matrix-anthropic/summary-<timestamp>.csv`
+
+To export a markdown summary that includes full input text:
+
+```bash
+yarn rubric:matrix:anthropic:md-inputs
+```
+
+Markdown output:
+- `.cache/rubric-sandbox/matrix-anthropic/summary-with-inputs.md` (latest)
+
+## Auto-Generated Project-Type Runners
+
+Project-type specific runner scripts are auto-generated from:
+
+- `config/projectTypes.ts`
+
+Generate/update runners manually:
+
+```bash
+yarn sync:rubric-matrix-runners
+```
+
+This also runs automatically during:
+- `yarn dev` (`predev`)
+- `yarn build` (`prebuild`)
+
+Visible registry for everyone:
+- `docs/rubric-matrix-runners.md`

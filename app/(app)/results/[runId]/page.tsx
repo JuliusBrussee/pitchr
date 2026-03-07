@@ -24,6 +24,7 @@ import {
   type RecordingPlayerHandle,
 } from '@/views/components/RecordingPlayer';
 import { buildRewriteDiff } from '@/services/rewriteDiffService';
+import { resolveSectionFeedbackForDisplay } from '@/services/sectionFeedbackService';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useTutorial } from '@/hooks/useTutorial';
@@ -469,6 +470,18 @@ export default function ResultsPage() {
     }
     return undefined;
   }, [feedback, run]);
+  const sectionFeedback = useMemo(
+    () =>
+      feedback && run
+        ? resolveSectionFeedbackForDisplay({
+            sections: feedback.section_feedback,
+            transcript: run.transcript,
+            mode: run.mode,
+            feedback,
+          })
+        : [],
+    [feedback, run],
+  );
   const economics = useMemo<RunEconomics | null>(
     () => run?.meta?.economics ?? null,
     [run],
@@ -920,7 +933,7 @@ export default function ResultsPage() {
       <div className="results-tier-divider my-1" />
 
       <SectionAccordion
-        sections={feedback.section_feedback}
+        sections={sectionFeedback}
         onSeek={onSeek}
         canSeek={Boolean(run.audioUrl)}
         totalDurationSec={feedback.delivery_metrics.duration_seconds}
