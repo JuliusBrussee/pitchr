@@ -24,6 +24,7 @@ import {
   type RecordingPlayerHandle,
 } from '@/views/components/RecordingPlayer';
 import { buildRewriteDiff } from '@/services/rewriteDiffService';
+import { resolveSectionFeedbackForDisplay } from '@/services/sectionFeedbackService';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useTutorial } from '@/hooks/useTutorial';
@@ -469,6 +470,18 @@ export default function ResultsPage() {
     }
     return undefined;
   }, [feedback, run]);
+  const sectionFeedback = useMemo(
+    () =>
+      feedback && run
+        ? resolveSectionFeedbackForDisplay({
+            sections: feedback.section_feedback,
+            transcript: run.transcript,
+            mode: run.mode,
+            feedback,
+          })
+        : [],
+    [feedback, run],
+  );
   const economics = useMemo<RunEconomics | null>(
     () => run?.meta?.economics ?? null,
     [run],
@@ -490,6 +503,50 @@ export default function ResultsPage() {
     }
     return `Live provider calls failed. Displaying cached fallback analysis.${providerNote}`;
   }, [run]);
+  const rubricContextMeta = useMemo(() => run?.meta?.rubric_context ?? null, [run]);
+  const rubricContextAppliedMessage = useMemo(() => {
+    if (!rubricContextMeta?.applied) return null;
+    const updatedAt = rubricContextMeta.project_updated_at
+      ? formatDate(rubricContextMeta.project_updated_at)
+      : 'unknown time';
+    return [
+      `Project rubric context was layered on top of the default rubric for this run.`,
+      `Source: ${run?.projectName ?? 'Selected project'}`,
+      `Updated: ${updatedAt}`,
+      rubricContextMeta.hash ? `Reference: ${rubricContextMeta.hash}` : null,
+    ].filter(Boolean).join(' ');
+  }, [rubricContextMeta, run?.projectName]);
+  const rubricContextFallbackMessage = useMemo(() => {
+    if (!rubricContextMeta?.fallback_used) return null;
+    const reason = rubricContextMeta.fallback_reason ?? 'Project rubric context was unavailable.';
+    return `Default rubric fallback applied for this run. Reason: ${reason}`;
+  }, [rubricContextMeta]);
+  const rubricPolicyMeta = useMemo(() => run?.meta?.rubric_policy ?? null, [run]);
+  const rubricPolicySummary = useMemo(() => {
+    if (!rubricPolicyMeta?.applied) return null;
+    const ruleCount = Number.isFinite(rubricPolicyMeta.rule_count) ? rubricPolicyMeta.rule_count : 0;
+    const missingTerms = Array.isArray(rubricPolicyMeta.missing_terms)
+      ? rubricPolicyMeta.missing_terms
+      : [];
+    const adjustmentCount = Array.isArray(rubricPolicyMeta.adjustments)
+      ? rubricPolicyMeta.adjustments.length
+      : 0;
+
+    const parts = [`Custom rubric enforcement is active (${ruleCount} parsed rule${ruleCount === 1 ? '' : 's'}).`];
+    if (missingTerms.length > 0) {
+      parts.push(`Missing required mentions: ${missingTerms.join(', ')}.`);
+    } else {
+      parts.push('All required rubric mentions were detected in this run.');
+    }
+    if (adjustmentCount > 0) {
+      parts.push(`${adjustmentCount} score cap adjustment${adjustmentCount === 1 ? '' : 's'} applied.`);
+    }
+    return parts.join(' ');
+  }, [rubricPolicyMeta]);
+  const rubricPolicyAdjustments = useMemo(() => {
+    if (!rubricPolicyMeta?.applied || !Array.isArray(rubricPolicyMeta.adjustments)) return [];
+    return rubricPolicyMeta.adjustments.slice(0, 3);
+  }, [rubricPolicyMeta]);
 
   const onCopy = () => {
     if (!feedback) return;
@@ -784,6 +841,51 @@ export default function ResultsPage() {
           {fallbackWarning}
         </div>
       ) : null}
+      {rubricContextAppliedMessage ? (
+        <div
+          className="rounded-xl border px-3 py-2 text-xs"
+          style={{
+            color: '#60a5fa',
+            backgroundColor: 'rgba(96,165,250,0.10)',
+            borderColor: 'rgba(96,165,250,0.35)',
+          }}
+        >
+          {rubricContextAppliedMessage}
+        </div>
+      ) : null}
+      {rubricContextFallbackMessage ? (
+        <div
+          className="rounded-xl border px-3 py-2 text-xs"
+          style={{
+            color: '#f59e0b',
+            backgroundColor: 'rgba(245,158,11,0.12)',
+            borderColor: 'rgba(245,158,11,0.35)',
+          }}
+        >
+          {rubricContextFallbackMessage}
+        </div>
+      ) : null}
+      {rubricPolicySummary ? (
+        <div
+          className="rounded-xl border px-3 py-2 text-xs"
+          style={{
+            color: '#fda4af',
+            backgroundColor: 'rgba(244,63,94,0.10)',
+            borderColor: 'rgba(244,63,94,0.35)',
+          }}
+        >
+          <p>{rubricPolicySummary}</p>
+          {rubricPolicyAdjustments.length > 0 ? (
+            <div className="mt-2 space-y-1">
+              {rubricPolicyAdjustments.map((adjustment) => (
+                <p key={`${adjustment.rule_id}-${adjustment.category}`} style={{ color: '#fecdd3' }}>
+                  {adjustment.category}: {adjustment.before_score}/20 {'->'} {adjustment.after_score}/20 ({adjustment.reason})
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* ─── Recording ──────────────────────────────────────── */}
       <RecordingPlayer ref={recordingRef} recordingUrl={run.audioUrl} seekToSec={seekToSec} />
@@ -878,7 +980,7 @@ export default function ResultsPage() {
       <div className="results-tier-divider my-1" />
 
       <SectionAccordion
-        sections={feedback.section_feedback}
+        sections={sectionFeedback}
         onSeek={onSeek}
         canSeek={Boolean(run.audioUrl)}
         totalDurationSec={feedback.delivery_metrics.duration_seconds}

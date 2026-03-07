@@ -23,6 +23,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      'npm:@supabase/supabase-js@^2.97.0': '@supabase/supabase-js',
     },
   },
   assetsInclude: ['**/*.glsl'],

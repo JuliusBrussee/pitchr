@@ -172,6 +172,7 @@ export function RunDetailModal({ runId, onClose }: RunDetailModalProps) {
     () => (run?.outputs?.feedback ?? run?.analysis ?? null) as FeedbackOutput | null,
     [run],
   );
+  const rubricContextMeta = useMemo(() => run?.meta?.rubric_context ?? null, [run]);
 
   const scoreColor = feedback ? getScoreColor(feedback.overall_score) : '#6b7280';
   const bandLabel = feedback ? getScoreBandLabel(feedback.overall_score) : '';
@@ -278,6 +279,31 @@ export function RunDetailModal({ runId, onClose }: RunDetailModalProps) {
                     {formatDate(run.createdAt)}
                   </span>
                 </div>
+                {rubricContextMeta?.applied ? (
+                  <div
+                    className="rounded-lg border px-2.5 py-1.5 text-xs"
+                    style={{
+                      color: '#60a5fa',
+                      backgroundColor: 'rgba(96,165,250,0.10)',
+                      borderColor: 'rgba(96,165,250,0.35)',
+                    }}
+                  >
+                    Project rubric context applied
+                    {rubricContextMeta.hash ? ` (${rubricContextMeta.hash})` : ''}.
+                  </div>
+                ) : null}
+                {rubricContextMeta?.fallback_used ? (
+                  <div
+                    className="rounded-lg border px-2.5 py-1.5 text-xs"
+                    style={{
+                      color: '#f59e0b',
+                      backgroundColor: 'rgba(245,158,11,0.12)',
+                      borderColor: 'rgba(245,158,11,0.35)',
+                    }}
+                  >
+                    Default rubric fallback used: {rubricContextMeta.fallback_reason ?? 'Project context unavailable.'}
+                  </div>
+                ) : null}
 
                 {/* Score overview */}
                 <div

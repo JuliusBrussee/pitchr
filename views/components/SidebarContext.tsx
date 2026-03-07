@@ -5,7 +5,12 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 interface SidebarContextValue {
   onStartSession?: () => void;
   isSessionActive: boolean;
-  registerSession: (controls: { onStartSession: () => void; isSessionActive: boolean }) => void;
+  isProjectSwitchLocked: boolean;
+  registerSession: (controls: {
+    onStartSession: () => void;
+    isSessionActive: boolean;
+    isProjectSwitchLocked?: boolean;
+  }) => void;
   unregisterSession: () => void;
   isSidebarOpen: boolean;
   toggleSidebar: () => void;
@@ -14,6 +19,7 @@ interface SidebarContextValue {
 
 const SidebarContext = createContext<SidebarContextValue>({
   isSessionActive: false,
+  isProjectSwitchLocked: false,
   registerSession: () => {},
   unregisterSession: () => {},
   isSidebarOpen: false,
@@ -29,25 +35,35 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   const [sessionControls, setSessionControls] = useState<{
     onStartSession?: () => void;
     isSessionActive: boolean;
-  }>({ isSessionActive: false });
+    isProjectSwitchLocked: boolean;
+  }>({ isSessionActive: false, isProjectSwitchLocked: false });
 
   const registerSession = useCallback(
-    (controls: { onStartSession: () => void; isSessionActive: boolean }) => {
+    (controls: {
+      onStartSession: () => void;
+      isSessionActive: boolean;
+      isProjectSwitchLocked?: boolean;
+    }) => {
       setSessionControls((prev) => {
+        const nextLocked = controls.isProjectSwitchLocked === true;
         if (
           prev.onStartSession === controls.onStartSession &&
-          prev.isSessionActive === controls.isSessionActive
+          prev.isSessionActive === controls.isSessionActive &&
+          prev.isProjectSwitchLocked === nextLocked
         ) {
           return prev;
         }
-        return controls;
+        return {
+          ...controls,
+          isProjectSwitchLocked: nextLocked,
+        };
       });
     },
     [],
   );
 
   const unregisterSession = useCallback(() => {
-    setSessionControls({ isSessionActive: false });
+    setSessionControls({ isSessionActive: false, isProjectSwitchLocked: false });
   }, []);
 
   return (
@@ -55,6 +71,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
       value={{
         onStartSession: sessionControls.onStartSession,
         isSessionActive: sessionControls.isSessionActive,
+        isProjectSwitchLocked: sessionControls.isProjectSwitchLocked,
         registerSession,
         unregisterSession,
         isSidebarOpen,
@@ -72,7 +89,11 @@ export function useSidebar() {
 }
 
 /** Hook for the session page to register its controls with the sidebar */
-export function useSidebarSession(onStartSession: () => void, isSessionActive: boolean) {
+export function useSidebarSession(
+  onStartSession: () => void,
+  isSessionActive: boolean,
+  isProjectSwitchLocked = false,
+) {
   const { registerSession, unregisterSession } = useSidebar();
   const onStartSessionRef = useRef(onStartSession);
   onStartSessionRef.current = onStartSession;
@@ -81,8 +102,9 @@ export function useSidebarSession(onStartSession: () => void, isSessionActive: b
     registerSession({
       onStartSession: () => onStartSessionRef.current(),
       isSessionActive,
+      isProjectSwitchLocked,
     });
-  }, [registerSession, isSessionActive]);
+  }, [registerSession, isSessionActive, isProjectSwitchLocked]);
 
   useEffect(() => {
     return () => unregisterSession();

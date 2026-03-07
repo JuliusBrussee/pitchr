@@ -25,6 +25,7 @@ import { getScoreColor, getRubricColor, RUBRIC_COLORS } from '@/views/components
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import { useProject } from '@/views/components/ProjectProvider';
+import { normalizeRuns as normalizeSharedRuns } from '@/lib/runNormalization';
 
 /* ——— Types ——— */
 
@@ -44,6 +45,7 @@ interface DeliveryMetrics {
 
 interface RunRecord {
   id: string;
+  projectId?: string;
   overallScore: number;
   createdAt: string;
   analysis: {
@@ -66,18 +68,6 @@ interface RubricTrendPoint {
 
 /* ——— Helpers ——— */
 
-const DEFAULT_DELIVERY_METRICS: DeliveryMetrics = {
-  wpm: 0,
-  duration_seconds: 0,
-  filler_words: [],
-  repeated_phrases: [],
-  within_time_limit: false,
-};
-
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
-
 function toFiniteNumber(value: unknown, fallback = 0): number {
   const parsed =
     typeof value === 'number'
@@ -86,12 +76,6 @@ function toFiniteNumber(value: unknown, fallback = 0): number {
         ? Number.parseFloat(value)
         : Number.NaN;
   return Number.isFinite(parsed) ? parsed : fallback;
-}
-
-function toIsoDate(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : value;
 }
 
 function toDayKey(dateIso: string): string {
@@ -229,137 +213,6 @@ function normalizeCategory(rawCategory: string): string {
     return 'delivery';
   }
   return normalized;
-}
-
-function getObjectField(
-  source: Record<string, unknown>,
-  keys: string[],
-): unknown {
-  for (const key of keys) {
-    if (source[key] !== undefined) {
-      return source[key];
-    }
-  }
-  return undefined;
-}
-
-function normalizeRubricBreakdown(value: unknown): RubricBreakdownItem[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (!isObject(item)) return null;
-      const categoryRaw = item.category;
-      const category = typeof categoryRaw === 'string' ? normalizeCategory(categoryRaw) : null;
-      if (typeof category !== 'string' || category.trim().length === 0) return null;
-      const rawScore = toFiniteNumber(item.score, 0);
-      const rawMax = toFiniteNumber(item.max_score ?? item.maxScore, 20);
-      const scaledScore = rawScore > 0 && rawScore <= 1.2 ? rawScore * 20 : rawScore;
-      const scaledMax = rawMax > 0 && rawMax <= 1.2 ? rawMax * 20 : rawMax;
-      return {
-        category,
-        score: scaledScore,
-        max_score: scaledMax,
-      };
-    })
-    .filter((item): item is RubricBreakdownItem => item !== null);
-}
-
-function normalizeFillerWords(value: unknown): { word: string; count: number }[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (!isObject(item) || typeof item.word !== 'string') return null;
-      return { word: item.word, count: toFiniteNumber(item.count, 0) };
-    })
-    .filter((item): item is { word: string; count: number } => item !== null);
-}
-
-function normalizeRepeatedPhrases(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value
-    .map((item) => {
-      if (typeof item === 'string') return item;
-      if (isObject(item) && typeof item.phrase === 'string') return item.phrase;
-      return null;
-    })
-    .filter((item): item is string => item !== null && item.trim().length > 0);
-}
-
-function normalizeDeliveryMetrics(value: unknown): DeliveryMetrics {
-  if (!isObject(value)) return DEFAULT_DELIVERY_METRICS;
-  const rawWpm = toFiniteNumber(value.wpm, 0);
-  return {
-    wpm: rawWpm > 0 && rawWpm <= 2 ? rawWpm * 140 : rawWpm,
-    duration_seconds: toFiniteNumber(value.duration_seconds ?? value.durationSeconds, 0),
-    filler_words: normalizeFillerWords(value.filler_words ?? value.fillerWords),
-    repeated_phrases: normalizeRepeatedPhrases(value.repeated_phrases ?? value.repeatedPhrases),
-    within_time_limit: Boolean(value.within_time_limit),
-  };
-}
-
-function extractFeedback(rawRun: Record<string, unknown>): Record<string, unknown> | null {
-  const analysis = isObject(rawRun.analysis) ? rawRun.analysis : null;
-  const outputs = isObject(rawRun.outputs) ? rawRun.outputs : null;
-
-  if (analysis && Array.isArray(analysis.rubric_breakdown)) {
-    return analysis;
-  }
-  if (outputs && isObject(outputs.feedback)) {
-    return outputs.feedback;
-  }
-  if (analysis && isObject(analysis.outputs) && isObject(analysis.outputs.feedback)) {
-    return analysis.outputs.feedback;
-  }
-  if (analysis && isObject(analysis.analysis) && Array.isArray(analysis.analysis.rubric_breakdown)) {
-    return analysis.analysis;
-  }
-  return null;
-}
-
-function normalizeRunRecord(raw: unknown): RunRecord | null {
-  if (!isObject(raw)) return null;
-
-  const id = typeof raw.id === 'string' ? raw.id : null;
-  const createdAt = toIsoDate(raw.createdAt ?? raw.created_at);
-  const feedback = extractFeedback(raw);
-  if (!id || !createdAt || !feedback) return null;
-
-  const rubric_breakdown = normalizeRubricBreakdown(
-    getObjectField(feedback, ['rubric_breakdown', 'rubricBreakdown']),
-  );
-  const delivery_metrics = normalizeDeliveryMetrics(
-    getObjectField(feedback, ['delivery_metrics', 'deliveryMetrics']),
-  );
-
-  const rawOverall = toFiniteNumber(raw.overallScore ?? raw.overall_score, Number.NaN);
-  const feedbackOverall = toFiniteNumber(
-    getObjectField(feedback, ['overall_score', 'overallScore']),
-    Number.NaN,
-  );
-  const selectedOverall = Number.isFinite(rawOverall) && rawOverall > 0
-    ? rawOverall
-    : Number.isFinite(feedbackOverall)
-      ? feedbackOverall
-      : 0;
-  const overallScore =
-    selectedOverall > 0 && selectedOverall <= 1.2 ? selectedOverall * 100 : selectedOverall;
-
-  return {
-    id,
-    createdAt,
-    overallScore,
-    analysis: {
-      rubric_breakdown,
-      delivery_metrics,
-    },
-  };
-}
-
-function normalizeRuns(rawRuns: unknown): RunRecord[] {
-  if (!Array.isArray(rawRuns)) return [];
-  return rawRuns
-    .map((run) => normalizeRunRecord(run))
-    .filter((run): run is RunRecord => run !== null);
 }
 
 function sortChronological(runs: RunRecord[]): RunRecord[] {
@@ -550,31 +403,48 @@ export default function AnalyticsPage() {
   const [fetchError, setFetchError] = useState(false);
   const { showTooltip } = useSmartTooltip();
   const analyticsRef = useRef<HTMLDivElement | null>(null);
+  const loadRequestIdRef = useRef(0);
   const showSkeleton = useDelayedLoading(loading);
   const showTooltipRef = useRef(showTooltip);
   showTooltipRef.current = showTooltip;
 
   const loadRuns = useCallback(() => {
+    const requestId = ++loadRequestIdRef.current;
+    const requestedProjectId = activeProjectId;
     setFetchError(false);
-    if (!activeProjectId) {
+    if (!requestedProjectId) {
       setAllRuns([]);
       setLoading(false);
       return;
     }
     setLoading(true);
     fetchEdge('pitch-run', {
-      params: { projectId: activeProjectId, summary: 'true' },
+      cache: 'no-store',
+      params: { projectId: requestedProjectId, summary: 'true' },
     })
       .then((r) => r.json())
-      .then((payload: { runs?: unknown }) => setAllRuns(normalizeRuns(payload.runs)))
+      .then((payload: { runs?: unknown }) => {
+        if (requestId !== loadRequestIdRef.current) return;
+        const normalized = normalizeSharedRuns(payload.runs) as RunRecord[];
+        setAllRuns(
+          normalized.filter(
+            (run) => typeof run.projectId === 'string' && run.projectId === requestedProjectId,
+          ),
+        );
+      })
       .catch(() => {
+        if (requestId !== loadRequestIdRef.current) return;
         setAllRuns([]);
         setFetchError(true);
         if (analyticsRef.current) {
           showTooltipRef.current(analyticsRef.current, 'error', 'Failed to load analytics data. Check your connection and try again.');
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (requestId === loadRequestIdRef.current) {
+          setLoading(false);
+        }
+      });
   }, [activeProjectId]);
 
   useEffect(() => {

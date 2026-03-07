@@ -1,5 +1,6 @@
 import type { FeedbackOutput, ScoreCategory, SectionBeat, SectionFeedback } from '@/types/analysis-v2';
-import type { SectionSlice } from '@/services/sectioningService';
+import type { PitchMode } from '@/types/pitch';
+import { buildSectionSlices, type SectionSlice } from '@/services/sectioningService';
 
 const BEAT_CATEGORY_PRIORITY: Record<SectionBeat, ScoreCategory[]> = {
   intro: ['clarity', 'structure'],
@@ -66,4 +67,19 @@ export function buildSectionFeedback(
       confidence: slice.confidence,
     };
   });
+}
+
+export function resolveSectionFeedbackForDisplay(input: {
+  sections: SectionFeedback[] | undefined;
+  transcript: string;
+  mode: PitchMode;
+  feedback: FeedbackOutput;
+}): SectionFeedback[] {
+  const existing = input.sections ?? [];
+  if (existing.length > 0) return existing;
+  const fallbackSlices = buildSectionSlices({
+    transcript: input.transcript,
+    mode: input.mode,
+  });
+  return buildSectionFeedback(fallbackSlices, input.feedback);
 }

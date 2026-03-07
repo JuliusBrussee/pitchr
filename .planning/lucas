@@ -1,0 +1,8 @@
+﻿Lucas ownership marker for GSD planning workspace.
+
+Canonical GSD workspace for this effort:
+C:\dev\pitchr\.planning
+
+Scope:
+- Rubric/context roadmap and phase artifacts live here.
+- Use this path as the single source of truth to avoid cross-project confusion.

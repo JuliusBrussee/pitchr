@@ -61,4 +61,45 @@ describe('MetricsPanel', () => {
 
     expect(screen.getByText('failed')).toBeTruthy();
   });
+
+  it('renders live rubric preview and session beat progress', () => {
+    render(
+      <MetricsPanel
+        metrics={{ wpm: 140, fillerWords: 1, wordCount: 85, durationSecs: 45, fillerRate: 1.2 }}
+        checklist={checklist}
+        liveRubric={[
+          { category: 'structure', score20: 17 },
+          { category: 'clarity', score20: 16 },
+          { category: 'evidence', score20: 12 },
+          { category: 'market', score20: 15 },
+          { category: 'delivery', score20: 18 },
+        ]}
+        beatProgress={{
+          beats: [
+            {
+              id: 'intro_hook',
+              label: 'Introduction & hook',
+              status: 'completed',
+              required: true,
+            },
+            {
+              id: 'problem_statement',
+              label: 'Problem statement',
+              status: 'partial',
+              required: true,
+            },
+          ],
+          completed: 1,
+          total: 2,
+          nextBeatId: 'problem_statement',
+        }}
+        isSessionActive
+      />,
+    );
+
+    expect(screen.getByText('Live Rubric Preview')).toBeTruthy();
+    expect(screen.getByText('Beats 1/2')).toBeTruthy();
+    expect(screen.getByText('17/20')).toBeTruthy();
+    expect(screen.getByText('Session Beats: Next: Problem statement')).toBeTruthy();
+  });
 });

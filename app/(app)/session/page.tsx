@@ -20,6 +20,7 @@ import { useProject } from '@/views/components/ProjectProvider';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
 import { PITCH_MODE_CONFIG, OVERTIME_LIMIT_SECONDS } from '@/config/modes';
 import { PreSessionConfig } from '@/views/components/PreSessionConfig';
+import { computeLiveSessionFeedback } from '@/lib/liveFeedback';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
 import { useTutorial } from '@/hooks/useTutorial';
@@ -62,6 +63,8 @@ function SessionPageContent() {
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
   const hasStartedRef = useRef(false);
+  const lockedProjectIdRef = useRef<string | null>(null);
+  const [isProjectSwitchLocked, setIsProjectSwitchLocked] = useState(false);
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
   // Pre-session config state
@@ -91,6 +94,23 @@ function SessionPageContent() {
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
   const pitchMode = selectedMode;
   const modeConfig = PITCH_MODE_CONFIG[pitchMode];
+  const liveSessionFeedback = useMemo(
+    () =>
+      computeLiveSessionFeedback({
+        mode: pitchMode,
+        checklist: session.checklist,
+        metrics: session.metrics,
+        targetDurationSeconds: modeConfig.targetDurationSeconds,
+        targetWpm: modeConfig.targetWpm,
+      }),
+    [
+      pitchMode,
+      session.checklist,
+      session.metrics,
+      modeConfig.targetDurationSeconds,
+      modeConfig.targetWpm,
+    ],
+  );
 
   useEffect(() => {
     if (isProjectLoading) return;
@@ -239,6 +259,10 @@ function SessionPageContent() {
   }, [pitchMode, session.isSessionActive, resetSessionChecklist]);
 
   const handleStartSession = useCallback(() => {
+    if (!sessionProjectId) {
+      setAnalysisError('Select a project before starting a session.');
+      return;
+    }
     setAnalysisError(null);
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
@@ -248,6 +272,8 @@ function SessionPageContent() {
     const isFirstStart = !hasStartedRef.current;
     if (isFirstStart) {
       hasStartedRef.current = true;
+      lockedProjectIdRef.current = sessionProjectId;
+      setIsProjectSwitchLocked(true);
       session.startSession(pitchMode);
       stt.start({ mode: pitchMode });
       if (media.stream) {
@@ -258,7 +284,7 @@ function SessionPageContent() {
 
     session.resumeSession();
     stt.start({ mode: pitchMode, resume: true });
-  }, [media.stream, pitchMode, recorder, session, stt]);
+  }, [media.stream, pitchMode, recorder, session, sessionProjectId, stt]);
 
   const handlePauseSession = useCallback(() => {
     if (!session.isSessionActive) {
@@ -292,6 +318,8 @@ function SessionPageContent() {
     setAnalysisError(null);
     setIsPaused(false);
     hasStartedRef.current = false;
+    lockedProjectIdRef.current = null;
+    setIsProjectSwitchLocked(false);
     setShowDiscardConfirm(false);
   }, [session, stt, recorder]);
 
@@ -314,7 +342,7 @@ function SessionPageContent() {
   }, [session.isSessionActive, handleStartSession, handleStopSession]);
 
   // Register session controls with the shared sidebar
-  useSidebarSession(handleSessionToggle, session.isSessionActive);
+  useSidebarSession(handleSessionToggle, session.isSessionActive, isProjectSwitchLocked);
 
   useEffect(() => {
     if (!stt.saved || autoSubmitLockRef.current) {
@@ -342,6 +370,13 @@ function SessionPageContent() {
 
     autoSubmitLockRef.current = true;
     session.setOrbState('active');
+    const lockedProjectId = lockedProjectIdRef.current ?? sessionProjectId;
+    if (!lockedProjectId) {
+      autoSubmitLockRef.current = false;
+      setShowAnalyzing(false);
+      setAnalysisError('Select a project before running analysis.');
+      return;
+    }
 
     void (async () => {
       try {
@@ -368,7 +403,7 @@ function SessionPageContent() {
           }
         }
         const result = await runPitchAnalysis({
-          projectId: sessionProjectId ?? undefined,
+          projectId: lockedProjectId,
           mode: pitchMode,
           inputType: 'audio',
           transcript,
@@ -446,6 +481,8 @@ function SessionPageContent() {
           metrics={session.metrics}
           targetDurationSeconds={selectedDuration}
           checklist={session.checklist}
+          liveRubric={liveSessionFeedback.liveRubric}
+          beatProgress={liveSessionFeedback.beatProgress}
           isSessionActive={session.isSessionActive}
           hasStarted={hasStartedRef.current}
           engagementBand={engagementBand}

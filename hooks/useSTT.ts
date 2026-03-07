@@ -479,10 +479,10 @@ export function useSTT(): UseSTTReturn {
     setFeedbackQuestion(null);
     setFeedbackAnswer(null);
     setFeedbackError(null);
-    setChecklistError(null);
-    setChecklistSource(null);
     setLiveText('');
     if (!resume) {
+      setChecklistError(null);
+      setChecklistSource(null);
       setTranscriptSegments([]);
       setRealtimeChecklist(createInitialChecklistState(mode));
       setChecklistNextHint(null);
@@ -494,12 +494,6 @@ export function useSTT(): UseSTTReturn {
 
     const existingWs = wsRef.current;
     if (resume && existingWs && existingWs.readyState === WebSocket.OPEN) {
-      existingWs.send(
-        JSON.stringify({
-          type: 'session_config',
-          mode: modeRef.current,
-        }),
-      );
       const micReady = await startMicCapture();
       if (micReady) {
         setIsRecording(true);

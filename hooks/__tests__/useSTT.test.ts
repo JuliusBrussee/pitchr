@@ -155,4 +155,60 @@ describe('useSTT', () => {
 
     expect(result.current.checklistError).toBe('rate limited');
   });
+
+  it('resumes recording without resetting session checklist state', async () => {
+    const { result } = renderHook(() => useSTT());
+
+    await act(async () => {
+      await result.current.start({ mode: 'vc_pitch' });
+    });
+
+    await waitFor(() => {
+      expect(MockWebSocket.instances.length).toBe(1);
+      expect(result.current.isRecording).toBe(true);
+    });
+
+    const socket = MockWebSocket.instances[0];
+    const baseItems = createInitialChecklistState('vc_pitch');
+    baseItems[0] = {
+      ...baseItems[0],
+      status: 'partial',
+      confidence: 0.61,
+      evidence: 'My name is Alice and we are building...',
+    };
+
+    act(() => {
+      socket.emit({
+        type: 'checklist_update',
+        mode: 'vc_pitch',
+        source: 'llm',
+        items: baseItems,
+        progress: { completed: 1, total: 8 },
+        nextHint: 'Cover traction with one metric.',
+        updatedAt: new Date().toISOString(),
+      });
+    });
+
+    expect(result.current.realtimeChecklist[0].status).toBe('partial');
+
+    act(() => {
+      result.current.pause();
+    });
+    expect(result.current.isRecording).toBe(false);
+
+    await act(async () => {
+      await result.current.start({ mode: 'vc_pitch', resume: true });
+    });
+
+    await waitFor(() => {
+      expect(result.current.isRecording).toBe(true);
+    });
+
+    const sentPayloads = socket.sent.map((payload) => JSON.parse(payload));
+    const sessionConfigCount = sentPayloads.filter(
+      (payload) => payload.type === 'session_config',
+    ).length;
+    expect(sessionConfigCount).toBe(1);
+    expect(result.current.realtimeChecklist[0].status).toBe('partial');
+  });
 });

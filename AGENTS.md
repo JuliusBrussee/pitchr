@@ -6,6 +6,13 @@
 
 AI pitch coach MVP. Users record/paste a pitch, get scored analysis with fixes and a rewrite. See `PRD.md` for full spec, `.planning/codebase/ARCHITECTURE.md` for system design.
 
+## GSD Default Workspace
+
+- For any GSD workflow command (`$gsd-*`), always run from `C:\dev\pitchr`.
+- Treat `C:\dev\pitchr\.planning` as the canonical planning workspace for this project.
+- If the current shell path is different, switch to `C:\dev\pitchr` before running GSD.
+- Do not prompt for project selection unless the user explicitly requests a different project/repo.
+
 ## Agent: Backend (API + Storage + Pipeline)
 
 **Owns:** `types/`, `models/`, `app/api/`, `controllers/`, `config/`, `hooks/useAudioRecorder.ts`
@@ -37,3 +44,8 @@ AI pitch coach MVP. Users record/paste a pitch, get scored analysis with fixes a
 - **Package manager:** Always `yarn`, never `npm`
 - **Shared decisions:** UUIDs for run IDs, ISO 8601 timestamps, localStorage key `pitchr_runs`, error responses always `{error: string}`
 - **Demo path:** Dashboard -> Run a Pitch -> Select mode -> Input -> Analyze -> Results -> History
+
+## Merge Conflict Routing
+
+- Canonical merge-conflict documentation lives at `docs/merge-conflict-log.md`.
+- When resolving or auditing integration conflicts, update that file first and keep entries append-only.

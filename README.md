@@ -213,8 +213,15 @@ Detailed setup and payload behavior: `docs/integrations/paid-ai.md`
 | `yarn knowledge:build` | Build `knowledge/patterns.v1.json` |
 | `yarn knowledge:refresh` | Snapshot + build |
 | `yarn calibrate:weights` | Calibrate delivery weights from fixtures |
+| `yarn rubric:matrix:anthropic` | Run Anthropic-only baseline vs custom rubric matrix across cases |
+| `yarn rubric:matrix:anthropic:csv` | Export latest Anthropic matrix summary as CSV |
+| `yarn sync:rubric-matrix-runners` | Auto-generate per-project-type matrix runner scripts + registry |
 | `yarn check:encoding` | Verify UTF-8 encoding |
 | `yarn fix:encoding` | Normalize text files to UTF-8 |
+
+Rubric matrix runner registry (visible index for all project types):
+
+- `docs/rubric-matrix-runners.md`
 
 ### STT / live transcript / WPM not working
 

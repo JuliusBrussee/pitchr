@@ -37,6 +37,7 @@ interface AnalyzePitchInput {
   runId?: string;
   deckId?: string;
   deckText?: string;
+  systemPromptOverride?: string;
   stage?: 'pre_seed' | 'seed' | 'series_a' | 'series_b';
   transcriptSegments?: TranscriptSegment[];
   regenerate?: 'feedback' | 'qa_1min';
@@ -349,6 +350,7 @@ async function analyzeWithContext(
       transcript: input.transcript,
       deckText: input.deckText,
       context,
+      systemPromptOverride: input.systemPromptOverride,
     });
 
     let feedback = applyDeterministicScoring(judged.payload.feedback, context);
@@ -644,7 +646,11 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     knowledgeVersion: context.knowledge_version,
   });
 
-  const shouldUseCache = !input.regenerate && !input.deckId && !input.runId;
+  const shouldUseCache =
+    !input.regenerate &&
+    !input.deckId &&
+    !input.runId &&
+    !(input.systemPromptOverride?.trim()?.length ?? 0);
   if (shouldUseCache) {
     const cached = await getCachedAnalysis(cacheKey);
     if (cached) {

@@ -14,6 +14,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
   const { createProject } = useProject();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [scoringRequirements, setScoringRequirements] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -40,10 +41,15 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
       const created = await createProject({
         name: name.trim(),
         description: description.trim() || undefined,
+        extraNotes: scoringRequirements.trim() || undefined,
+        promptOverrides: scoringRequirements.trim()
+          ? { analysis_system_prompt: scoringRequirements.trim() }
+          : undefined,
         setActive: true,
       });
       setName('');
       setDescription('');
+      setScoringRequirements('');
       onCreated(created.id);
       handleClose();
     } catch (e) {
@@ -177,6 +183,33 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
               maxLength={200}
               placeholder="One-line description of your startup"
               className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all duration-200"
+              style={{
+                backgroundColor: 'var(--bg-surface)',
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-primary)',
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.3)'}
+              onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+            />
+          </div>
+
+          <div className="mb-6">
+            <label
+              className="block text-[11px] font-semibold mb-2 uppercase tracking-wider"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Scoring Requirements <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: '0' }}>(optional)</span>
+            </label>
+            <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
+              What should the AI judge explicitly check for?
+            </p>
+            <textarea
+              value={scoringRequirements}
+              onChange={(e) => setScoringRequirements(e.target.value)}
+              maxLength={4000}
+              rows={4}
+              placeholder='Example: Must mention SOC2 and 18-month runway. If missing, evidence cannot exceed 8/20.'
+              className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-all duration-200 resize-y"
               style={{
                 backgroundColor: 'var(--bg-surface)',
                 borderColor: 'var(--border-color)',
