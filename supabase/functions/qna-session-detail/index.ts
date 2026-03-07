@@ -5,7 +5,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { expireQASessionIfTimedOut } from '../_shared/qna-session-service.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 
@@ -31,6 +32,7 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'qna-session-detail');
     if (complianceResponse) return complianceResponse;
+    await checkRateLimit(user.id, 'qna-session-detail');
     const qaSession = await expireQASessionIfTimedOut(supabase, qaSessionId);
     if (!qaSession) {
       return errorResponse('QA session not found.', 404);
@@ -39,6 +41,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse('Authentication required', 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to fetch QA session.',

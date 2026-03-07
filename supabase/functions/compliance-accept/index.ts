@@ -1,6 +1,7 @@
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { acceptCompliance } from '../_shared/compliance-service.ts';
 
 interface AcceptBody {
@@ -12,6 +13,7 @@ interface AcceptBody {
 
 async function handlePost(req: Request): Promise<Response> {
   const { supabase, user } = await getAuthenticatedUser(req);
+  await checkRateLimit(user.id, 'compliance-accept');
 
   let body: AcceptBody;
   try {
@@ -50,6 +52,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to accept compliance terms',

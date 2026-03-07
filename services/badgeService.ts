@@ -37,7 +37,7 @@ function makeBadge(id: string): Badge | null {
   };
 }
 
-/** Get the start of the current ISO week (Monday 00:00 UTC). */
+/** Get the start of the current ISO week (Monday 00:00 UTC)s. */
 function getIsoWeekStart(): Date {
   const now = new Date();
   const day = now.getUTCDay(); // 0 = Sunday
@@ -232,7 +232,7 @@ export async function evaluateBadges(
       }
     } catch (err) {
       // Log but don't fail the whole evaluation for one badge
-      console.error('[badge-service] badge check error:', err);
+      console.error('[badge-service] badge check error:', err instanceof Error ? err.message : 'Unknown error');
     }
   }
 

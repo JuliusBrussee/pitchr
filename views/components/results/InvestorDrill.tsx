@@ -94,7 +94,7 @@ export function InvestorDrill({ qaPack, runId }: InvestorDrillProps) {
             Q&A budget used up
           </div>
           <Link
-            href="/settings#billing"
+            href="/settings?tab=billing"
             className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg no-underline text-xs font-medium transition-transform hover:scale-[1.02]"
             style={{ color: '#ff5941', backgroundColor: 'rgba(255,89,65,0.08)' }}
           >

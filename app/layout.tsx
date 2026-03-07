@@ -5,8 +5,10 @@ import { AnalyticsScripts } from '@/views/components/AnalyticsScripts';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://pitchr.live';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://pitchr.live'),
+  metadataBase: new URL(APP_URL),
   title: {
     default: 'Pitchr | AI Pitch Coach for Founders',
     template: '%s | Pitchr',
@@ -20,7 +22,7 @@ export const metadata: Metadata = {
     title: 'Pitchr | AI Pitch Coach for Founders',
     description:
       'Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.',
-    url: 'https://pitchr.live',
+    url: APP_URL,
     siteName: 'Pitchr',
     type: 'website',
     images: [

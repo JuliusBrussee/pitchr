@@ -221,7 +221,7 @@ export async function handleRunCompletion(
   try {
     streakResult = await updateStreak(supabase, userId);
   } catch (err) {
-    console.error('[run-completion] updateStreak failed:', err);
+    console.error('[run-completion] updateStreak failed:', err instanceof Error ? err.message : 'Unknown error');
   }
 
   // 2. Award streak milestone XP if applicable
@@ -234,7 +234,7 @@ export async function handleRunCompletion(
       );
       xpAwarded += milestoneXp;
     } catch (err) {
-      console.error('[run-completion] checkAndAwardStreakXp failed:', err);
+      console.error('[run-completion] checkAndAwardStreakXp failed:', err instanceof Error ? err.message : 'Unknown error');
     }
   }
 
@@ -250,7 +250,7 @@ export async function handleRunCompletion(
     );
     xpAwarded += XP_VALUES.PITCH_ANALYSIS;
   } catch (err) {
-    console.error('[run-completion] awardXp pitch_analysis failed:', err);
+    console.error('[run-completion] awardXp pitch_analysis failed:', err instanceof Error ? err.message : 'Unknown error');
   }
 
   return { streakResult, xpAwarded };

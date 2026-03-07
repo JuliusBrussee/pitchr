@@ -149,12 +149,12 @@ CREATE TABLE IF NOT EXISTS xp_events (
    INDEXES
    ==================================================================== */
 
-CREATE INDEX idx_challenges_active ON challenges(status, starts_at);
-CREATE INDEX idx_challenge_submissions_leaderboard ON challenge_submissions(challenge_id, total_score DESC);
-CREATE INDEX idx_league_memberships_ranking ON league_memberships(league_id, weekly_xp DESC);
-CREATE INDEX idx_xp_events_user_weekly ON xp_events(user_id, created_at);
-CREATE INDEX idx_game_mode_user ON game_mode_sessions(user_id, completed_at);
-CREATE INDEX idx_scenarios_approved ON scenarios(status, industry, difficulty);
+CREATE INDEX IF NOT EXISTS idx_challenges_active ON challenges(status, starts_at);
+CREATE INDEX IF NOT EXISTS idx_challenge_submissions_leaderboard ON challenge_submissions(challenge_id, total_score DESC);
+CREATE INDEX IF NOT EXISTS idx_league_memberships_ranking ON league_memberships(league_id, weekly_xp DESC);
+CREATE INDEX IF NOT EXISTS idx_xp_events_user_weekly ON xp_events(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_game_mode_user ON game_mode_sessions(user_id, completed_at);
+CREATE INDEX IF NOT EXISTS idx_scenarios_approved ON scenarios(status, industry, difficulty);
 
 /* ====================================================================
    ROW LEVEL SECURITY
@@ -171,18 +171,27 @@ ALTER TABLE xp_events ENABLE ROW LEVEL SECURITY;
 
 /* --- scenarios: publicly readable, admin-only write --- */
 
-CREATE POLICY scenarios_select ON scenarios
-  FOR SELECT USING (true);
+do $$ begin
+  CREATE POLICY scenarios_select ON scenarios
+    FOR SELECT USING (true);
+exception when duplicate_object then null;
+end $$;
 
 /* --- challenges: publicly readable, admin-only write --- */
 
-CREATE POLICY challenges_select ON challenges
-  FOR SELECT USING (true);
+do $$ begin
+  CREATE POLICY challenges_select ON challenges
+    FOR SELECT USING (true);
+exception when duplicate_object then null;
+end $$;
 
 /* --- challenge_submissions: read all (leaderboard), insert own --- */
 
-CREATE POLICY challenge_submissions_select ON challenge_submissions
-  FOR SELECT USING (true);
+do $$ begin
+  CREATE POLICY challenge_submissions_select ON challenge_submissions
+    FOR SELECT USING (true);
+exception when duplicate_object then null;
+end $$;
 
 do $$ begin
   CREATE POLICY challenge_submissions_insert_own ON challenge_submissions
@@ -206,13 +215,19 @@ end $$;
 
 /* --- leagues: publicly readable --- */
 
-CREATE POLICY leagues_select ON leagues
-  FOR SELECT USING (true);
+do $$ begin
+  CREATE POLICY leagues_select ON leagues
+    FOR SELECT USING (true);
+exception when duplicate_object then null;
+end $$;
 
 /* --- league_memberships: publicly readable (leaderboard), admin-only write --- */
 
-CREATE POLICY league_memberships_select ON league_memberships
-  FOR SELECT USING (true);
+do $$ begin
+  CREATE POLICY league_memberships_select ON league_memberships
+    FOR SELECT USING (true);
+exception when duplicate_object then null;
+end $$;
 
 /* --- user_stats: user can read own, admin-only write (services use admin client) --- */
 

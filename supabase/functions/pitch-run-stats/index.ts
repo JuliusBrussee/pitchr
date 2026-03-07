@@ -4,7 +4,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { getRunStats } from '../_shared/run-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
@@ -25,6 +26,7 @@ Deno.serve(async (req: Request) => {
     const { supabase, user } = await getAuthenticatedUser(req);
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run-stats');
     if (complianceResponse) return complianceResponse;
+    await checkRateLimit(user.id, 'pitch-run-stats');
     const url = new URL(req.url);
     const mode = url.searchParams.get('mode');
     const projectId = url.searchParams.get('projectId');
@@ -44,6 +46,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     if (error instanceof ProjectNotFoundError) {
       return errorResponse(error.message, 404);

@@ -5,7 +5,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import { getRun, deleteRun, RunNotFoundError, toRunResponse } from '../_shared/run-service.ts';
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
 import { deleteRecordingByUrl } from '../_shared/recording-service.ts';
@@ -16,6 +17,7 @@ async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run-detail');
   if (complianceResponse) return complianceResponse;
+  await checkRateLimit(user.id, 'pitch-run-detail');
   const url = new URL(req.url);
   const runId = url.searchParams.get('runId');
   if (!runId) return errorResponse('runId query parameter is required', 400);
@@ -35,6 +37,7 @@ async function handleDelete(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run-detail');
   if (complianceResponse) return complianceResponse;
+  await checkRateLimit(user.id, 'pitch-run-detail');
   const url = new URL(req.url);
   const runId = url.searchParams.get('runId');
   if (!runId) return errorResponse('runId query parameter is required', 400);
@@ -63,6 +66,9 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     if (error instanceof RunNotFoundError) {
       return errorResponse('Run not found', 404);

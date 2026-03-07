@@ -8,21 +8,24 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  FileAudio,
+  FileText,
 } from 'lucide-react';
 import { GlassCard } from '@/views/components/ui';
 import { UploadDropZone } from '@/views/components/UploadDropZone';
 import { ProjectSelect } from '@/views/components/ProjectSelect';
+import { ModeSegmentedControl } from '@/views/components/ModeSegmentedControl';
 import { useProject } from '@/views/components/ProjectProvider';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { createClient } from '@/lib/supabase/client';
 import { uploadRecording } from '@/services/recordingService';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
-import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { PitchMode } from '@/types/pitch';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 
 type UploadStage = 'idle' | 'uploading' | 'transcribing' | 'analyzing';
+type InputTab = 'audio' | 'text';
 
 const STAGE_LABELS: Record<UploadStage, string> = {
   idle: '',
@@ -30,6 +33,9 @@ const STAGE_LABELS: Record<UploadStage, string> = {
   transcribing: 'Transcribing audio...',
   analyzing: 'Analyzing your pitch...',
 };
+
+const MIN_TRANSCRIPT_LENGTH = 50;
+const MAX_TRANSCRIPT_LENGTH = 15_000;
 
 const TIPS = [
   'Record in a quiet environment',
@@ -48,7 +54,9 @@ export default function UploadPage() {
   const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
   const { runPitchAnalysis } = usePitchRun();
 
+  const [inputTab, setInputTab] = useState<InputTab>('audio');
   const [file, setFile] = useState<File | null>(null);
+  const [transcript, setTranscript] = useState('');
   const [pitchMode, setPitchMode] = useState<PitchMode>('vc_pitch');
   const [stage, setStage] = useState<UploadStage>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -109,35 +117,46 @@ export default function UploadPage() {
   }, []);
 
   const handleAnalyze = useCallback(async () => {
-    if (!file || !projectId) return;
+    if (!projectId) return;
+
+    if (inputTab === 'audio' && !file) return;
+    if (inputTab === 'text' && transcript.trim().length < MIN_TRANSCRIPT_LENGTH) return;
 
     setError(null);
-    setStage('uploading');
+    setStage(inputTab === 'audio' ? 'uploading' : 'analyzing');
 
     try {
-      // 1. Upload file to Supabase Storage
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated.');
+      let finalTranscript: string;
+      let audioUrl: string | undefined;
 
-      const tempId = crypto.randomUUID();
-      const ext = getExtension(file.name);
-      const audioUrl = await uploadRecording(supabase, user.id, tempId, file, ext);
+      if (inputTab === 'audio') {
+        // 1. Upload file to Supabase Storage
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated.');
 
-      // 2. Transcribe via edge function
-      setStage('transcribing');
-      const transcribeRes = await fetchEdge('transcribe-audio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audioUrl }),
-      });
+        const tempId = crypto.randomUUID();
+        const ext = getExtension(file!.name);
+        audioUrl = await uploadRecording(supabase, user.id, tempId, file!, ext);
 
-      if (!transcribeRes.ok) {
-        const errBody = await transcribeRes.json().catch(() => ({})) as { error?: string };
-        throw new Error(errBody.error ?? `Transcription failed (${transcribeRes.status}).`);
+        // 2. Transcribe via edge function
+        setStage('transcribing');
+        const transcribeRes = await fetchEdge('transcribe-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audioUrl }),
+        });
+
+        if (!transcribeRes.ok) {
+          const errBody = await transcribeRes.json().catch(() => ({})) as { error?: string };
+          throw new Error(errBody.error ?? `Transcription failed (${transcribeRes.status}).`);
+        }
+
+        const transcribeData = (await transcribeRes.json()) as { transcript: string };
+        finalTranscript = transcribeData.transcript;
+      } else {
+        finalTranscript = transcript.trim();
       }
-
-      const { transcript } = (await transcribeRes.json()) as { transcript: string };
 
       // 3. Load deck text if selected
       let deckText: string | undefined;
@@ -154,8 +173,8 @@ export default function UploadPage() {
       const result = await runPitchAnalysis({
         projectId,
         mode: pitchMode,
-        inputType: 'upload',
-        transcript,
+        inputType: inputTab === 'audio' ? 'upload' : 'text',
+        transcript: finalTranscript,
         audioUrl,
         deckId: selectedDeckId ?? undefined,
         deckText,
@@ -168,9 +187,11 @@ export default function UploadPage() {
         caughtError instanceof Error ? caughtError.message : 'Upload and analysis failed.',
       );
     }
-  }, [file, projectId, pitchMode, selectedDeckId, loadDeckText, runPitchAnalysis, router]);
+  }, [inputTab, file, transcript, projectId, pitchMode, selectedDeckId, loadDeckText, runPitchAnalysis, router]);
 
-  const canAnalyze = file && projectId && !isProcessing;
+  const canAnalyze = projectId && !isProcessing && (
+    inputTab === 'audio' ? !!file : transcript.trim().length >= MIN_TRANSCRIPT_LENGTH
+  );
 
   return (
     <main className="flex-1 flex flex-col gap-4 min-w-0 overflow-y-auto">
@@ -185,10 +206,10 @@ export default function UploadPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
-              Upload Recording
+              Upload Pitch
             </h1>
             <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-              Upload a pre-recorded pitch for AI analysis
+              Upload a recording or paste your pitch script for AI analysis
             </p>
           </div>
         </div>
@@ -231,29 +252,11 @@ export default function UploadPage() {
               >
                 Pitch Type
               </label>
-              <div
-                className="flex rounded-lg border overflow-hidden"
-                style={{ borderColor: 'var(--border-color)' }}
-              >
-                {(['vc_pitch', 'elevator'] as PitchMode[]).map((mode) => {
-                  const config = PITCH_MODE_CONFIG[mode];
-                  const isActive = pitchMode === mode;
-                  return (
-                    <button
-                      key={mode}
-                      onClick={() => setPitchMode(mode)}
-                      disabled={isProcessing}
-                      className="flex-1 px-4 py-2 text-sm font-medium transition-colors duration-150"
-                      style={{
-                        backgroundColor: isActive ? 'rgba(255, 89, 65, 0.1)' : 'transparent',
-                        color: isActive ? '#ff5941' : 'var(--text-muted)',
-                      }}
-                    >
-                      {config.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <ModeSegmentedControl
+                value={pitchMode}
+                onChange={setPitchMode}
+                disabled={isProcessing}
+              />
             </div>
 
             {/* Deck selector */}
@@ -282,17 +285,84 @@ export default function UploadPage() {
             )}
           </GlassCard>
 
-          {/* Drop zone */}
-          <GlassCard className="flex-1">
-            <UploadDropZone
-              file={file}
-              onFileSelect={setFile}
-              onFileRemove={() => {
-                setFile(null);
-                setError(null);
-              }}
-              disabled={isProcessing}
-            />
+          {/* Input area */}
+          <GlassCard className="flex-1 flex flex-col">
+            {/* Input tab toggle */}
+            <div
+              className="flex rounded-lg p-0.5 mb-4"
+              role="tablist"
+              aria-label="Input method"
+              style={{ backgroundColor: 'var(--bg-surface-hover)' }}
+            >
+              {([
+                { key: 'audio' as InputTab, label: 'Audio File', icon: FileAudio },
+                { key: 'text' as InputTab, label: 'Text Script', icon: FileText },
+              ]).map(({ key, label, icon: Icon }) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={inputTab === key}
+                  onClick={() => {
+                    setInputTab(key);
+                    setError(null);
+                  }}
+                  disabled={isProcessing}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all duration-200"
+                  style={{
+                    backgroundColor: inputTab === key ? 'var(--bg-surface)' : 'transparent',
+                    color: inputTab === key ? 'var(--text-primary)' : 'var(--text-muted)',
+                    boxShadow: inputTab === key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    cursor: isProcessing ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  <Icon size={14} />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Audio file drop zone */}
+            {inputTab === 'audio' && (
+              <UploadDropZone
+                file={file}
+                onFileSelect={setFile}
+                onFileRemove={() => {
+                  setFile(null);
+                  setError(null);
+                }}
+                disabled={isProcessing}
+              />
+            )}
+
+            {/* Text transcript input */}
+            {inputTab === 'text' && (
+              <div className="flex-1 flex flex-col">
+                <textarea
+                  value={transcript}
+                  onChange={(e) => {
+                    setTranscript(e.target.value);
+                    setError(null);
+                  }}
+                  disabled={isProcessing}
+                  maxLength={MAX_TRANSCRIPT_LENGTH}
+                  placeholder="Paste or type your pitch script here...&#10;&#10;e.g. &quot;We're building an AI-powered platform that helps founders practice and refine their investor pitches...&quot;"
+                  className="flex-1 min-h-[200px] w-full rounded-xl border p-4 text-sm leading-relaxed resize-none transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#ff5941] focus:ring-offset-1"
+                  style={{
+                    backgroundColor: 'var(--bg-surface-hover)',
+                    borderColor: 'var(--border-color)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+                <div className="flex justify-between mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span>
+                    {transcript.trim().length < MIN_TRANSCRIPT_LENGTH && transcript.trim().length > 0
+                      ? `At least ${MIN_TRANSCRIPT_LENGTH} characters required`
+                      : 'Paste your pitch transcript or script'}
+                  </span>
+                  <span>{transcript.trim().length} chars</span>
+                </div>
+              </div>
+            )}
 
             {/* Error */}
             {error && (
@@ -339,7 +409,7 @@ export default function UploadPage() {
                 opacity: canAnalyze ? 1 : 0.6,
               }}
             >
-              {isProcessing ? 'Processing...' : 'Upload & Analyze'}
+              {isProcessing ? 'Processing...' : inputTab === 'audio' ? 'Upload & Analyze' : 'Analyze Script'}
             </button>
           </GlassCard>
         </div>
@@ -409,7 +479,12 @@ export default function UploadPage() {
               What to expect
             </h3>
             <ul className="flex flex-col gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-              <li>Your recording will be transcribed automatically</li>
+              {inputTab === 'audio' && (
+                <li>Your recording will be transcribed automatically</li>
+              )}
+              {inputTab === 'text' && (
+                <li>Your script will be analyzed as-is (no delivery metrics)</li>
+              )}
               <li>AI analysis scores your pitch across 5 categories</li>
               <li>Get ranked fixes and a rewritten script</li>
               <li>Uses 1 analysis credit</li>

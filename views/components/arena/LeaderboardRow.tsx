@@ -23,10 +23,9 @@ function RankIcon({ rank }: { rank: number }) {
   return null;
 }
 
-function getUserLabel(userId: string, displayName?: string): string {
+function getUserLabel(_userId: string, displayName?: string): string {
   if (displayName) return displayName;
-  if (userId.length <= 12) return userId;
-  return `${userId.slice(0, 6)}...${userId.slice(-4)}`;
+  return 'Anonymous Pitcher';
 }
 
 export function LeaderboardRow({ submission, rank, isCurrentUser }: LeaderboardRowProps) {

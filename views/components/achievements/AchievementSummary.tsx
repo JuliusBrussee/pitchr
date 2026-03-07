@@ -55,7 +55,7 @@ export function AchievementSummary({ state, progress }: AchievementSummaryProps)
           </span>
         </div>
         <Link
-          href="/settings#achievements"
+          href="/settings?tab=rewards"
           className="text-[10px] font-medium no-underline transition-colors hover:opacity-80"
           style={{ color: '#ff5941' }}
         >

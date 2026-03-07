@@ -32,3 +32,20 @@ export function errorResponse(
     status,
   );
 }
+
+/**
+ * Create a 429 rate-limit response with Retry-After header.
+ */
+export function rateLimitResponse(
+  message: string,
+  retryAfter: number,
+): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status: 429,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'Retry-After': String(retryAfter),
+    },
+  });
+}

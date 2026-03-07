@@ -4,7 +4,8 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import type { IntegrationHealthResponse } from '../_shared/types.ts';
 
 function hasNonEmptyEnv(key: string): boolean {
@@ -61,11 +62,15 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    await getAuthenticatedUser(req);
+    const { user } = await getAuthenticatedUser(req);
+    await checkRateLimit(user.id, 'integration-health');
     return jsonResponse(buildIntegrationHealth(), 200);
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
+    }
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
     }
     return errorResponse(
       error instanceof Error ? error.message : 'Failed to build integration health response.',

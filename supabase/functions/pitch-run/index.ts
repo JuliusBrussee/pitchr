@@ -4,7 +4,7 @@
 
 import { handleCors } from '../_shared/cors.ts';
 import { getAuthenticatedUser, createAdminClient, AuthenticationError } from '../_shared/supabase.ts';
-import { jsonResponse, errorResponse } from '../_shared/response.ts';
+import { jsonResponse, errorResponse, rateLimitResponse } from '../_shared/response.ts';
 import {
   insertRun,
   updateRun,
@@ -22,12 +22,13 @@ import {
   type RubricContextRunMetadata,
 } from '../_shared/rubric-context.ts';
 import { tryCompleteReferral } from '../_shared/referral-service.ts';
+import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
 
-class RateLimitError extends Error {
+class UsageLimitError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'RateLimitError';
+    this.name = 'UsageLimitError';
   }
 }
 
@@ -53,6 +54,7 @@ interface ValidatedPitchRunRequest {
   audioUrl?: string;
   deckId?: string;
   deckText?: string;
+  targetDurationSeconds?: number;
 }
 
 function validateRequest(body: unknown): ValidatedPitchRunRequest {
@@ -70,6 +72,9 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
   if (typeof payload.transcript !== 'string' || payload.transcript.trim().length === 0) {
     throw new PitchValidationError('Transcript is required.');
   }
+  if ((payload.transcript as string).length > 15_000) {
+    throw new PitchValidationError('Transcript is too long (max 15,000 characters). A typical 5-minute pitch is around 4,000 characters.');
+  }
   if (payload.audioUrl !== undefined && typeof payload.audioUrl !== 'string') {
     throw new PitchValidationError('audioUrl must be a string when provided.');
   }
@@ -86,6 +91,12 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
   if (payload.deckText !== undefined && typeof payload.deckText !== 'string') {
     throw new PitchValidationError('deckText must be a string when provided.');
   }
+  if (payload.targetDurationSeconds !== undefined) {
+    const dur = Number(payload.targetDurationSeconds);
+    if (!Number.isFinite(dur) || dur < 30 || dur > 300) {
+      throw new PitchValidationError('targetDurationSeconds must be a number between 30 and 300.');
+    }
+  }
 
   return {
     mode: payload.mode as PitchMode,
@@ -95,6 +106,9 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
     audioUrl: payload.audioUrl as string | undefined,
     deckId: payload.deckId as string | undefined,
     deckText: (payload.deckText as string | undefined)?.trim() || undefined,
+    targetDurationSeconds: payload.targetDurationSeconds !== undefined
+      ? Number(payload.targetDurationSeconds)
+      : undefined,
   };
 }
 
@@ -106,6 +120,7 @@ interface ProcessQueuedRunInput {
   deckText?: string;
   systemPromptOverride?: string;
   rubricContextMeta: RubricContextRunMetadata;
+  targetDurationSeconds?: number;
 }
 
 async function processQueuedRun(
@@ -135,6 +150,7 @@ async function processQueuedRun(
       mode: input.mode,
       deckText: input.deckText,
       systemPromptOverride: input.systemPromptOverride,
+      targetDurationSeconds: input.targetDurationSeconds,
     });
 
     const overallScore = analysis.outputs?.feedback?.overall_score ?? 0;
@@ -240,13 +256,14 @@ function scheduleBackgroundJob(job: Promise<void>): void {
 
   // Fallback for local/test runtimes without EdgeRuntime.waitUntil.
   // Keep reference alive and catch rejections to avoid unhandled promise crashes.
-  job.catch((err) => console.error('[pitch-run] background job failed', err));
+  job.catch((err) => console.error('[pitch-run] background job failed', err instanceof Error ? err.message : 'Unknown error'));
 }
 
 async function handleGet(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
   if (complianceResponse) return complianceResponse;
+  await checkRateLimit(user.id, 'pitch-run-list');
   const url = new URL(req.url);
   const mode = url.searchParams.get('mode');
   const projectId = url.searchParams.get('projectId');
@@ -305,6 +322,10 @@ async function handlePost(req: Request) {
   const { supabase, user } = await getAuthenticatedUser(req);
   const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'pitch-run');
   if (complianceResponse) return complianceResponse;
+
+  // Rate limit check early — before project resolution to avoid unnecessary DB queries
+  await checkRateLimit(user.id, 'pitch-run');
+
   const payload = validateRequest(body);
   const project = await resolveProjectForRequest(supabase, user.id, {
     projectId: payload.projectId,
@@ -317,11 +338,10 @@ async function handlePost(req: Request) {
     projectUpdatedAt: project.updated_at,
   });
 
-  // Rate limit check
   const adminClient = createAdminClient();
   const usageCheck = await checkUsageLimit(adminClient, user.id, 'run');
   if (!usageCheck.allowed) {
-    throw new RateLimitError(
+    throw new UsageLimitError(
       `You've used ${usageCheck.used}/${usageCheck.limit} pitch analyses this period. ` +
       `Upgrade your plan for more analyses.`,
     );
@@ -331,7 +351,9 @@ async function handlePost(req: Request) {
 
   // Record usage eagerly so concurrent requests cannot bypass the limit.
   try {
-    await recordUsageEvent(adminClient, user.id, 'run', runId);
+    await recordUsageEvent(adminClient, user.id, 'run', runId, {
+      skipEventInsert: usageCheck.recordedAtomically,
+    });
   } catch (usageErr) {
     console.error('[pitch-run] failed to record usage event eagerly', {
       error: usageErr instanceof Error ? usageErr.message : String(usageErr),
@@ -373,6 +395,7 @@ async function handlePost(req: Request) {
       deckText: payload.deckText,
       systemPromptOverride: analysisSystemPrompt,
       rubricContextMeta,
+      targetDurationSeconds: payload.targetDurationSeconds,
     }),
   );
 
@@ -399,7 +422,10 @@ Deno.serve(async (req: Request) => {
     if (error instanceof AuthenticationError) {
       return errorResponse(error.message, 401);
     }
-    if (error instanceof RateLimitError) {
+    if (error instanceof RateLimitExceededError) {
+      return rateLimitResponse(error.message, error.retryAfter);
+    }
+    if (error instanceof UsageLimitError) {
       return errorResponse(error.message, 429);
     }
     if (error instanceof PitchValidationError) {

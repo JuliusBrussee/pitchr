@@ -235,6 +235,7 @@ export async function getLeaderboard(
   const { data, error } = await supabase
     .from('user_stats')
     .select('*, profiles:user_id(display_name)')
+    .gt('total_xp', 0)
     .order(sortBy, { ascending: false })
     .limit(limit);
 

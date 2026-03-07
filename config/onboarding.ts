@@ -7,6 +7,7 @@ export const ONBOARDING_STEPS = [
   'scoring-demo',
   'rewrite-demo',
   'personalization',
+  'project-setup',
 ] as const;
 
 export type OnboardingStep = typeof ONBOARDING_STEPS[number];

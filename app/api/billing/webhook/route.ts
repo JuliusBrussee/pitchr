@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       event.data.object as unknown as Record<string, unknown>,
     );
   } catch (err) {
-    console.error(`[billing/webhook] error processing ${event.type}:`, err);
+    console.error(`[billing/webhook] error processing ${event.type}:`, err instanceof Error ? err.message : 'Unknown error');
     // Return 500 so Stripe will retry this event
     return NextResponse.json(
       { error: 'Webhook handler failed' },
@@ -131,7 +131,7 @@ async function handleCheckoutCompleted(admin: ReturnType<typeof createAdminClien
     const paymentIntentId = session.payment_intent as string | null;
     await purchaseDayPass(admin, userId, paymentIntentId);
 
-    console.log('[billing/webhook] day pass activated', { userId });
+    console.log('[billing/webhook] day pass activated');
     return;
   }
 
@@ -149,7 +149,7 @@ async function handleCheckoutCompleted(admin: ReturnType<typeof createAdminClien
 
     if (packCredits > 0) {
       await addPurchasedCredits(admin, userId, packCredits, paymentIntentId ?? '', packSlug);
-      console.log('[billing/webhook] credit pack purchased', { userId, packSlug, packCredits });
+      console.log('[billing/webhook] credit pack purchased', { packSlug, packCredits });
     }
     return;
   }
@@ -166,10 +166,7 @@ async function handleCheckoutCompleted(admin: ReturnType<typeof createAdminClien
 
   // The subscription.created/updated event will handle the actual upsert.
   // Checkout completion is mainly for logging.
-  console.log('[billing/webhook] checkout completed', {
-    userId,
-    subscriptionId,
-  });
+  console.log('[billing/webhook] checkout completed');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -236,11 +233,7 @@ async function handleSubscriptionChange(admin: ReturnType<typeof createAdminClie
     await resetMonthlyCredits(admin, userId, monthlyLimit, periodStart, periodEnd);
   }
 
-  console.log('[billing/webhook] subscription updated', {
-    userId,
-    planId,
-    status,
-  });
+  console.log('[billing/webhook] subscription updated', { planId, status });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -258,9 +251,7 @@ async function handleSubscriptionDeleted(admin: ReturnType<typeof createAdminCli
   const freeEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   await resetMonthlyCredits(admin, userId, MONTHLY_CREDITS.free, now.toISOString(), freeEnd.toISOString());
 
-  console.log('[billing/webhook] subscription deleted, downgraded to free', {
-    userId,
-  });
+  console.log('[billing/webhook] subscription deleted, downgraded to free');
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -291,5 +282,5 @@ async function handlePaymentFailed(admin: ReturnType<typeof createAdminClient>, 
     }
   }
 
-  console.log('[billing/webhook] payment failed', { userId });
+  console.log('[billing/webhook] payment failed');
 }

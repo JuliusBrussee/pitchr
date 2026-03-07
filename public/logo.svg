@@ -1,37 +1,14 @@
-<svg width="462" height="462" viewBox="0 0 462 462" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_2_81)">
-<g clip-path="url(#clip1_2_81)">
-<mask id="mask0_2_81" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="17" y="39" width="424" height="423">
-<path d="M430.5 49V452H27.5V49H430.5Z" fill="white" stroke="white" stroke-width="20"/>
-</mask>
-<g mask="url(#mask0_2_81)">
-<path d="M123.25 212.789V288.401" stroke="black" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M176.125 187.573V313.416" stroke="black" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M229 303.202V338.629" stroke="black" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M229 162.375V249.619" stroke="black" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M281.875 187.573V313.416" stroke="black" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M334.75 212.789V288.401" stroke="black" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M88 144.75C65.9688 174.184 52.75 210.844 52.75 250.5C52.75 347.79 131.71 426.75 229 426.75C326.29 426.75 405.25 347.79 405.25 250.5C405.25 153.21 326.29 74.25 229 74.25C203.796 74.25 179.649 79.5371 157.971 89.2309" stroke="black" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-</g>
-</g>
-<g clip-path="url(#clip2_2_81)">
-<mask id="mask1_2_81" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="20" y="18" width="162" height="155">
-<path d="M181.857 18.9724H20.3401V172.972H181.857V18.9724Z" fill="white"/>
-</mask>
-<g mask="url(#mask1_2_81)">
-<path d="M142.043 93.4827C144.512 93.8222 144.512 98.1226 142.043 98.4621C115.255 102.148 107.575 109.47 103.71 135.012C103.354 137.366 98.8432 137.366 98.4872 135.012C94.6215 109.47 86.9419 102.148 60.1535 98.4621C57.6847 98.1226 57.6847 93.8222 60.1535 93.4827C86.9419 89.797 94.6215 82.4748 98.4872 56.933C98.8432 54.5791 103.354 54.5791 103.71 56.933C107.575 82.4748 115.255 89.797 142.043 93.4827Z" fill="black"/>
-</g>
-</g>
-</g>
-<defs>
-<clipPath id="clip0_2_81">
-<rect width="462" height="462" fill="white"/>
-</clipPath>
-<clipPath id="clip1_2_81">
-<rect width="423" height="423" fill="white" transform="translate(17.5 39)"/>
-</clipPath>
-<clipPath id="clip2_2_81">
-<rect width="161.516" height="154" fill="white" transform="translate(-10 -4)"/>
-</clipPath>
-</defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="430" height="559" fill="none" viewBox="0 0 430 559">
+  <style>
+    .logo-stroke { stroke: #0a0a0c; }
+    .logo-fill { fill: #0a0a0c; }
+    @media (prefers-color-scheme: dark) {
+      .logo-stroke { stroke: #F4F4F4; }
+      .logo-fill { fill: #fff; }
+    }
+  </style>
+  <path class="logo-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="70" d="M35 524V211c0-100 74-176 150-176h48c93 0 162 70 162 168 0 84-62 162-166 170l-80 6c-60 4-114 52-114 100"/>
+  <rect class="logo-fill" width="36" height="190" x="197" y="113" rx="18"/>
+  <rect class="logo-fill" width="31" height="151" x="267" y="136" rx="15.5"/>
+  <rect class="logo-fill" width="32" height="151" x="132" y="133" rx="16"/>
 </svg>

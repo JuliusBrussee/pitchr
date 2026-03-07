@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { SessionCanvas } from '@/views/components/SessionCanvas';
 import { MetricsPanel } from '@/views/components/MetricsPanel';
 import { useMediaStream } from '@/hooks/useMediaStream';
@@ -18,7 +18,8 @@ import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useProject } from '@/views/components/ProjectProvider';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
-import { PITCH_MODE_CONFIG } from '@/config/modes';
+import { PITCH_MODE_CONFIG, OVERTIME_LIMIT_SECONDS } from '@/config/modes';
+import { PreSessionConfig } from '@/views/components/PreSessionConfig';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
 import { useTutorial } from '@/hooks/useTutorial';
@@ -39,7 +40,6 @@ export default function SessionPage() {
 
 function SessionPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const media = useMediaStream();
   const session = useSessionState();
   const stt = useSTT();
@@ -66,14 +66,32 @@ function SessionPageContent() {
   const [isProjectSwitchLocked, setIsProjectSwitchLocked] = useState(false);
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
+  // Pre-session config state
+  const [selectedMode, setSelectedMode] = useState<PitchMode>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('pitchr_session_mode');
+      if (stored === 'elevator' || stored === 'vc_pitch') return stored;
+    }
+    return 'vc_pitch';
+  });
+  const [selectedDuration, setSelectedDuration] = useState(
+    () => PITCH_MODE_CONFIG[selectedMode].defaultDurationSeconds,
+  );
+  const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);
+
+  const handleModeChange = useCallback((mode: PitchMode) => {
+    setSelectedMode(mode);
+    setSelectedDuration(PITCH_MODE_CONFIG[mode].defaultDurationSeconds);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pitchr_session_mode', mode);
+    }
+  }, []);
+
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(true);
-  const modeParam = searchParams.get('mode');
-  const pitchMode: PitchMode = (modeParam === 'elevator' || modeParam === 'vc_pitch')
-    ? modeParam
-    : 'vc_pitch';
+  const pitchMode = selectedMode;
   const modeConfig = PITCH_MODE_CONFIG[pitchMode];
 
   useEffect(() => {
@@ -231,6 +249,7 @@ function SessionPageContent() {
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
     setIsPaused(false);
+    setIsConfigCollapsed(true);
 
     const isFirstStart = !hasStartedRef.current;
     if (isFirstStart) {
@@ -374,6 +393,7 @@ function SessionPageContent() {
           deckId: selectedDeckId ?? undefined,
           deckText,
           transcriptSegments: stt.transcriptSegments,
+          targetDurationSeconds: selectedDuration,
         });
         router.push(`/results/${result.runId}`);
       } catch (error) {
@@ -401,6 +421,14 @@ function SessionPageContent() {
   return (
     <div className="flex gap-4 h-full min-h-0">
       <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-2">
+        <PreSessionConfig
+          mode={selectedMode}
+          onModeChange={handleModeChange}
+          duration={selectedDuration}
+          onDurationChange={setSelectedDuration}
+          isCollapsed={isConfigCollapsed}
+          disabled={hasStartedRef.current}
+        />
         <SessionCanvas
           stream={media.stream}
           isCameraOn={media.isCameraOn}
@@ -426,13 +454,14 @@ function SessionPageContent() {
           isLoadingPdf={isLoadingPdf}
           pdfError={pdfError}
           elapsedSeconds={session.metrics.durationSecs}
-          targetSeconds={modeConfig.targetDurationSeconds}
+          targetSeconds={selectedDuration}
+          overtimeLimit={OVERTIME_LIMIT_SECONDS}
         />
       </div>
       <div data-tour="tour-session-metrics">
         <MetricsPanel
           metrics={session.metrics}
-          targetDurationSeconds={modeConfig.targetDurationSeconds}
+          targetDurationSeconds={selectedDuration}
           checklist={session.checklist}
           isSessionActive={session.isSessionActive}
           hasStarted={hasStartedRef.current}

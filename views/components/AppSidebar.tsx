@@ -22,6 +22,7 @@ import { useProject } from '@/views/components/ProjectProvider';
 import { ProjectSelect } from '@/views/components/ProjectSelect';
 import { StartSessionButton } from '@/views/components/StartSessionButton';
 import { useSidebar } from '@/views/components/SidebarContext';
+import { PitchrLogo } from '@/views/components/PitchrLogo';
 
 interface AppSidebarProps {
   onStartSession?: () => void;
@@ -66,9 +67,12 @@ export function AppSidebar({
     >
       {/* Logo + Theme Toggle */}
       <div className="flex items-center justify-between mb-6 px-2">
-        <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-          Pitchr
-        </span>
+        <div className="flex items-center gap-1.5">
+          <PitchrLogo size={14} />
+          <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            Pitchr
+          </span>
+        </div>
         <button
           onClick={() => setTheme(isDark ? 'light' : 'dark')}
           className="p-1.5 rounded-lg transition-colors hover:opacity-80"

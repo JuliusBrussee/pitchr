@@ -12,6 +12,7 @@ import {
 } from '@/views/components/landing/heroDeliveryFunnel.config';
 import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
 import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliveryFunnel';
+import { PitchrLogo } from '@/views/components/PitchrLogo';
 import '@/app/(marketing)/landing.css';
 
 const LandingBlog = dynamic(
@@ -50,7 +51,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   const deliveryTranscriptRef = useRef<HTMLDivElement>(null);
 
   const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [waitlistPrivacyAck, setWaitlistPrivacyAck] = useState(false);
+  const [waitlistPrivacyAck, setWaitlistPrivacyAck] = useState(true);
   const [waitlistNewsletterOptIn, setWaitlistNewsletterOptIn] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [waitlistMessage, setWaitlistMessage] = useState('');
@@ -140,12 +141,6 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
   async function handleWaitlistSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!waitlistEmail.trim()) return;
-    if (!waitlistPrivacyAck) {
-      setWaitlistStatus('error');
-      setWaitlistMessage('Please acknowledge the privacy notice to continue.');
-      return;
-    }
-
     setWaitlistStatus('loading');
     try {
       // Collect UTM params from current URL
@@ -290,7 +285,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       <nav className="nav" ref={navRef}>
         <div className="container nav-inner">
           <Link href="/" className="nav-logo">
-            <div className="nav-logo-dot" />
+            <PitchrLogo size={18} />
             Pitchr
           </Link>
           <div className="nav-links">
@@ -644,26 +639,20 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
                   </span>
                 </button>
               </div>
-              <label className="mt-3 text-xs flex items-start gap-2" style={{ color: 'var(--text-muted)' }}>
-                <input
-                  type="checkbox"
-                  checked={waitlistPrivacyAck}
-                  onChange={(event) => setWaitlistPrivacyAck(event.target.checked)}
-                  required
-                  className="mt-0.5"
-                />
-                <span>
-                  I have read the <Link href="/privacy" className="underline">Privacy Notice</Link>.
-                </span>
-              </label>
-              <label className="mt-2 text-xs flex items-start gap-2" style={{ color: 'var(--text-muted)' }}>
-                <input
-                  type="checkbox"
-                  checked={waitlistNewsletterOptIn}
-                  onChange={(event) => setWaitlistNewsletterOptIn(event.target.checked)}
-                  className="mt-0.5"
-                />
-                <span>Send me product updates by email (optional).</span>
+              <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
+                By joining, you agree to the <Link href="/privacy" className="underline">Privacy Notice</Link>.
+              </p>
+              <label className="waitlist-toggle-label mt-2">
+                <span className="waitlist-toggle-text">Send me product updates</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={waitlistNewsletterOptIn}
+                  className={`waitlist-toggle ${waitlistNewsletterOptIn ? 'waitlist-toggle--on' : ''}`}
+                  onClick={() => setWaitlistNewsletterOptIn(!waitlistNewsletterOptIn)}
+                >
+                  <span className="waitlist-toggle-knob" />
+                </button>
               </label>
               {waitlistStatus === 'error' && (
                 <p className="waitlist-error">{waitlistMessage}</p>
@@ -678,7 +667,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       <footer className="footer">
         <div className="container footer-inner">
           <div className="footer-left">
-            <div className="nav-logo-dot" style={{ width: '6px', height: '6px' }} />
+            <PitchrLogo size={16} />
             Pitchr — AI Pitch Coach
           </div>
           <div className="footer-links">

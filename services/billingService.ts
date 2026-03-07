@@ -399,7 +399,7 @@ export async function recordUsage(
     if (creditResource) {
       const result = await consumeCredits(supabase, userId, creditResource);
       if (!result.success) {
-        console.warn('[billing] credit consumption failed for', userId, creditResource);
+        console.warn('[billing] credit consumption failed for resource:', creditResource);
       }
     }
   }

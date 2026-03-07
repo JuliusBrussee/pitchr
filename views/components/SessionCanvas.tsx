@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, Download, Trash2 } from 'lucide-react';
+import { SessionTimer } from '@/views/components/SessionTimer';
 
 interface SessionCanvasProps {
   stream: MediaStream | null;
@@ -30,6 +31,7 @@ interface SessionCanvasProps {
   pdfError?: string | null;
   elapsedSeconds?: number;
   targetSeconds?: number;
+  overtimeLimit?: number;
 }
 
 export function SessionCanvas({
@@ -58,16 +60,13 @@ export function SessionCanvas({
   pdfError,
   elapsedSeconds = 0,
   targetSeconds,
+  overtimeLimit,
 }: SessionCanvasProps) {
   const [focusMode, setFocusMode] = useState<'slides' | 'camera'>('slides');
 
   // In mic-only mode (camera off), always show slides as primary
   const effectiveFocus = !isCameraOn ? 'slides' : focusMode;
   const hasTarget = typeof targetSeconds === 'number' && targetSeconds > 0;
-  const isOverrun = hasTarget && elapsedSeconds > targetSeconds;
-  const timerText = hasTarget
-    ? `${formatTimer(elapsedSeconds)} / ${formatTimer(targetSeconds)}`
-    : formatTimer(elapsedSeconds);
 
   return (
     <div className="flex flex-col gap-3 flex-1 min-w-0 min-h-0">
@@ -103,7 +102,11 @@ export function SessionCanvas({
         {isCameraOn && effectiveFocus === 'slides' && (
           <button
             onClick={() => setFocusMode('camera')}
-            className="absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg transition-transform duration-300 hover:scale-105 cursor-pointer"
+            className="pip-overlay absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/10 cursor-pointer"
+            style={{
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease',
+            }}
             aria-label="Focus on camera"
           >
             <CameraView stream={stream} isFocused={false} />
@@ -114,7 +117,11 @@ export function SessionCanvas({
         {isCameraOn && effectiveFocus === 'camera' && (
           <button
             onClick={() => setFocusMode('slides')}
-            className="absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg transition-transform duration-300 hover:scale-105 cursor-pointer"
+            className="pip-overlay absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/10 cursor-pointer"
+            style={{
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease',
+            }}
             aria-label="Focus on slides"
           >
             <SlideViewerMini pdfUrl={pdfUrl} renderSlideToCanvas={renderSlideToCanvas} currentSlide={currentSlide} />
@@ -122,6 +129,40 @@ export function SessionCanvas({
         )}
 
       </div>
+
+      <style jsx>{`
+        .pip-overlay:hover {
+          transform: scale(1.06);
+          border-color: rgba(255, 255, 255, 0.2) !important;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+        }
+        .pip-overlay:active {
+          transform: scale(0.98);
+        }
+        .media-toggle:hover {
+          transform: scale(1.06);
+        }
+        .media-toggle:active {
+          transform: scale(0.94);
+        }
+        .control-btn:hover {
+          transform: scale(1.1);
+        }
+        .control-btn:active {
+          transform: scale(0.92);
+        }
+        .control-btn-primary:hover {
+          box-shadow: 0 0 24px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+        .discard-btn:hover {
+          transform: scale(1.08);
+          background-color: rgba(239, 68, 68, 0.1) !important;
+          box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+        }
+        .discard-btn:active {
+          transform: scale(0.92);
+        }
+      `}</style>
 
       {/* Playback & Media Controls Bar */}
       <div
@@ -163,33 +204,38 @@ export function SessionCanvas({
           <ControlButton icon={SkipForward} onClick={() => onNextSlide?.()} label="Next slide" size={16} />
         </div>
 
-        {/* Right: Discard (replaces timer position when session started), timer, deck */}
+        {/* Right: Timer + Discard + Deck */}
         <div data-tour="tour-session-deck" className="flex items-center justify-end gap-2" style={{ minWidth: '8rem' }}>
-          {canStopSession && onDiscardSession ? (
+          {hasTarget ? (
+            <SessionTimer
+              elapsedSeconds={elapsedSeconds}
+              targetSeconds={targetSeconds}
+              overtimeLimit={overtimeLimit}
+              compact
+            />
+          ) : (
+            <span
+              className="text-xs font-medium tabular-nums px-2 py-1"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {formatTimer(elapsedSeconds)}
+            </span>
+          )}
+          {canStopSession && onDiscardSession && (
             <button
               type="button"
               onClick={onDiscardSession}
-              className="rounded-full p-2 transition-all duration-200 border flex items-center justify-center shrink-0"
+              className="discard-btn rounded-full p-2 border flex items-center justify-center shrink-0"
               style={{
-                borderColor: 'rgba(239,68,68,0.5)',
+                borderColor: 'rgba(239,68,68,0.4)',
                 color: '#ef4444',
                 backgroundColor: 'transparent',
+                transition: 'all 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
               }}
               aria-label="Discard recording"
             >
-              <Trash2 size={18} />
+              <Trash2 size={16} />
             </button>
-          ) : (
-            <span
-              className="text-xs font-medium px-2 py-1 rounded-md border"
-              style={{
-                color: isOverrun ? '#ef4444' : 'var(--text-secondary)',
-                borderColor: isOverrun ? 'rgba(239,68,68,0.45)' : 'var(--border-color)',
-                backgroundColor: isOverrun ? 'rgba(239,68,68,0.08)' : 'transparent',
-              }}
-            >
-              {timerText}
-            </span>
           )}
           {decks && decks.length > 0 && onSelectDeck ? (
             <DeckDropdown
@@ -228,12 +274,14 @@ function MediaToggle({
   return (
     <button
       onClick={onClick}
-      className="p-2 rounded-lg transition-all duration-200 border"
+      className="media-toggle p-2 rounded-lg border"
       style={{
-        backgroundColor: isActive ? 'var(--bg-surface)' : 'rgba(239,68,68,0.15)',
-        borderColor: isActive ? 'var(--border-color)' : 'rgba(239,68,68,0.3)',
+        backgroundColor: isActive ? 'var(--bg-surface)' : 'rgba(239,68,68,0.12)',
+        borderColor: isActive ? 'var(--border-color)' : 'rgba(239,68,68,0.25)',
         color: isActive ? 'var(--text-primary)' : '#ef4444',
         backdropFilter: `blur(var(--blur-strength))`,
+        transition: 'all 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        boxShadow: isActive ? 'none' : '0 0 8px rgba(239, 68, 68, 0.1)',
       }}
       aria-label={label}
     >
@@ -262,20 +310,24 @@ function ControlButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full transition-all duration-200 flex items-center justify-center ${
-        primary ? 'p-3' : 'p-2'
+      className={`control-btn rounded-full flex items-center justify-center ${
+        primary ? 'control-btn-primary p-3' : 'p-2'
       } ${dangerGhost ? 'border border-[rgba(239,68,68,0.5)]' : ''}`}
       style={{
         backgroundColor: primary
           ? 'var(--text-primary)'
           : danger
-            ? 'rgba(239,68,68,0.15)'
+            ? 'rgba(239,68,68,0.12)'
             : 'transparent',
         color: primary
           ? 'var(--bg-primary)'
           : danger || dangerGhost
             ? '#ef4444'
             : 'var(--text-secondary)',
+        transition: 'all 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        boxShadow: primary
+          ? '0 0 16px rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.2)'
+          : 'none',
       }}
       aria-label={label}
     >
