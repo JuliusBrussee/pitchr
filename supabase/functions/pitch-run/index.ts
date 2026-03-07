@@ -68,6 +68,9 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
   if (typeof payload.transcript !== 'string' || payload.transcript.trim().length === 0) {
     throw new PitchValidationError('Transcript is required.');
   }
+  if ((payload.transcript as string).length > 15_000) {
+    throw new PitchValidationError('Transcript is too long (max 15,000 characters). A typical 5-minute pitch is around 4,000 characters.');
+  }
   if (payload.audioUrl !== undefined && typeof payload.audioUrl !== 'string') {
     throw new PitchValidationError('audioUrl must be a string when provided.');
   }

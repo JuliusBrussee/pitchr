@@ -37,10 +37,10 @@ Deno.serve(async (req: Request) => {
     // Fetch the audio file from Supabase Storage
     const audioResponse = await fetch(audioUrl);
     if (!audioResponse.ok) {
-      return errorResponse(
-        `Failed to fetch audio file: ${audioResponse.status} ${audioResponse.statusText}`,
-        400,
-      );
+      const detail = audioResponse.status === 404
+        ? 'The uploaded audio file could not be found. It may have expired — please try uploading again.'
+        : `Failed to retrieve the audio file (${audioResponse.status}). Please try uploading again.`;
+      return errorResponse(detail, 400);
     }
 
     const audioBlob = await audioResponse.blob();
@@ -66,11 +66,22 @@ Deno.serve(async (req: Request) => {
       const errorText = await sttResponse.text();
       console.error('[transcribe-audio] ElevenLabs STT failed', {
         status: sttResponse.status,
+        errorText,
       });
-      return errorResponse(
-        `Transcription failed (${sttResponse.status}). Please try again.`,
-        502,
-      );
+
+      let userMessage: string;
+      if (sttResponse.status === 400) {
+        userMessage = 'The audio file could not be processed. It may be corrupted or in an unsupported format. Try converting it to MP3 or WAV and uploading again.';
+      } else if (sttResponse.status === 413) {
+        userMessage = 'The audio file is too large for transcription. Try trimming it to under 30 minutes or compressing it.';
+      } else if (sttResponse.status === 429) {
+        userMessage = 'Transcription service is temporarily busy. Please wait a moment and try again.';
+      } else if (sttResponse.status >= 500) {
+        userMessage = 'The transcription service is temporarily unavailable. Please try again in a few minutes.';
+      } else {
+        userMessage = `Transcription failed (${sttResponse.status}). Please try again.`;
+      }
+      return errorResponse(userMessage, 502);
     }
 
     const sttResult = await sttResponse.json() as { text?: string };
@@ -78,7 +89,7 @@ Deno.serve(async (req: Request) => {
 
     if (!transcript) {
       return errorResponse(
-        'No speech detected in the recording. Please upload a recording with audible speech.',
+        'No speech was detected in your recording. This can happen if the audio is too quiet, contains only background noise, or is mostly silence. Try re-recording in a quieter environment and speaking clearly into the microphone.',
         422,
       );
     }
