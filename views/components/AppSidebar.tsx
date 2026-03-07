@@ -26,6 +26,7 @@ import { useSidebar } from '@/views/components/SidebarContext';
 interface AppSidebarProps {
   onStartSession?: () => void;
   isSessionActive?: boolean;
+  isProjectSwitchLocked?: boolean;
 }
 
 const NAV_ITEMS = [
@@ -42,7 +43,11 @@ const TOOL_ITEMS = [
   { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
 
-export function AppSidebar({ onStartSession, isSessionActive = false }: AppSidebarProps) {
+export function AppSidebar({
+  onStartSession,
+  isSessionActive = false,
+  isProjectSwitchLocked = false,
+}: AppSidebarProps) {
   const { isDark, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
@@ -87,7 +92,7 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
           id="project-switcher"
           compact
           ariaLabel="Current project"
-          disabled={isProjectLoading || projects.length === 0 || isSessionActive}
+          disabled={isProjectLoading || projects.length === 0 || isSessionActive || isProjectSwitchLocked}
           value={activeProjectId ?? projects[0]?.id ?? ''}
           placeholder={isProjectLoading ? 'Loading projects...' : 'No projects'}
           options={projects.map((project) => ({
@@ -95,13 +100,13 @@ export function AppSidebar({ onStartSession, isSessionActive = false }: AppSideb
             label: project.name,
           }))}
           onChange={(nextProjectId) => {
-            if (isSessionActive || !nextProjectId || nextProjectId === activeProjectId) return;
+            if (isSessionActive || isProjectSwitchLocked || !nextProjectId || nextProjectId === activeProjectId) return;
             void setActiveProject(nextProjectId).catch(() => {});
           }}
         />
-        {isSessionActive ? (
+        {isSessionActive || isProjectSwitchLocked ? (
           <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            End this session to switch projects.
+            Finish or discard this session to switch projects.
           </p>
         ) : null}
       </div>

@@ -8,7 +8,14 @@ import { ProjectProvider } from '@/views/components/ProjectProvider';
 import { Menu, X } from 'lucide-react';
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
-  const { onStartSession, isSessionActive, isSidebarOpen, toggleSidebar, closeSidebar } = useSidebar();
+  const {
+    onStartSession,
+    isSessionActive,
+    isProjectSwitchLocked,
+    isSidebarOpen,
+    toggleSidebar,
+    closeSidebar,
+  } = useSidebar();
 
   return (
     <div className="flex h-screen p-4 gap-4 overflow-hidden relative">
@@ -48,6 +55,7 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
         <AppSidebar
           onStartSession={onStartSession}
           isSessionActive={isSessionActive}
+          isProjectSwitchLocked={isProjectSwitchLocked}
         />
       </div>
 

@@ -1,0 +1,7 @@
+Prioritize communication clarity and concreteness.
+
+Override guidance:
+- Penalize long sentences and stacked clauses.
+- Reward plain language over technical abstractions.
+- Weight clarity fixes above market narrative polish.
+- Require one explicit investor takeaway in the first 12 seconds.

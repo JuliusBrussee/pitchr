@@ -34,6 +34,7 @@ import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useTutorial } from '@/hooks/useTutorial';
 import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import { useProject } from '@/views/components/ProjectProvider';
+import { normalizeRuns as normalizeSharedRuns } from '@/lib/runNormalization';
 
 /* ——— Types ——— */
 
@@ -50,20 +51,6 @@ interface HistoryRun {
   projectName?: string;
   deck?: string;
   dateGroup: 'today' | 'yesterday' | 'thisWeek' | 'earlier';
-}
-
-interface RunRecord {
-  id: string;
-  mode: string;
-  inputType: string;
-  overallScore: number;
-  createdAt: string;
-  audioUrl?: string;
-  projectName?: string;
-  analysis: {
-    one_line_verdict: string;
-    delivery_metrics: { duration_seconds: number };
-  };
 }
 
 /* ——— Helpers ——— */
@@ -125,11 +112,13 @@ export default function HistoryPage() {
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('history');
   const runListRef = useRef<HTMLDivElement | null>(null);
+  const loadRequestIdRef = useRef(0);
   const showSkeleton = useDelayedLoading(loading);
   const showTooltipRef = useRef(showTooltip);
   showTooltipRef.current = showTooltip;
 
   const loadRuns = useCallback(() => {
+    const requestId = ++loadRequestIdRef.current;
     setFetchError(false);
     if (!activeProjectId) {
       setRuns([]);
@@ -141,15 +130,16 @@ export default function HistoryPage() {
       params: { projectId: activeProjectId },
     })
       .then((res) => res.json())
-      .then((payload: { runs?: RunRecord[] }) => {
-        const data = Array.isArray(payload.runs) ? payload.runs : [];
-        const mapped = (data as RunRecord[]).map((r, i) => ({
+      .then((payload: { runs?: unknown }) => {
+        if (requestId !== loadRequestIdRef.current) return;
+        const records = normalizeSharedRuns(payload.runs);
+        const mapped = records.map((r, i) => ({
           id: r.id,
-          number: data.length - i,
+          number: records.length - i,
           mode: r.mode as PitchMode,
-          inputType: r.inputType as 'audio' | 'text',
+          inputType: r.inputType as 'audio' | 'text' | 'upload',
           overallScore: r.overallScore,
-          one_line_verdict: r.analysis.one_line_verdict,
+          one_line_verdict: r.analysis.one_line_verdict || 'No verdict available.',
           createdAt: r.createdAt,
           duration_seconds: r.analysis.delivery_metrics.duration_seconds,
           audioUrl: r.audioUrl,
@@ -160,13 +150,18 @@ export default function HistoryPage() {
         setRuns(mapped);
       })
       .catch(() => {
+        if (requestId !== loadRequestIdRef.current) return;
         setRuns([]);
         setFetchError(true);
         if (runListRef.current) {
           showTooltipRef.current(runListRef.current, 'error', 'Failed to load pitch history. Check your connection and try again.');
         }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (requestId === loadRequestIdRef.current) {
+          setLoading(false);
+        }
+      });
   }, [activeProjectId]);
 
   useEffect(() => {

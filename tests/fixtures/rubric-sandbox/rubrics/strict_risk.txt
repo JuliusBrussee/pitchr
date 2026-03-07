@@ -1,0 +1,9 @@
+Prioritize downside risk testing for this project context.
+
+Investor lens overrides:
+- Treat evidence claims as weak unless each metric includes baseline, current value, and timeframe.
+- Penalize market scoring when TAM is presented without bottom-up expansion assumptions.
+- Penalize structure if risk disclosure and failure mode are absent.
+- Elevate critique quality on go-to-market realism and concentration risk in early customers.
+- Reward explicit milestone-linked capital plan more than narrative polish.
+- Keep grading strict: reserve scores above 75 only for unusually de-risked execution proof.

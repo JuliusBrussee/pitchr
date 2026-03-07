@@ -1,0 +1,7 @@
+We help independent restaurants cut food waste and raise margins with predictive prep planning.
+Today, managers estimate demand by gut feel, leading to over-ordering and nightly throwaways.
+Our platform ingests POS history and local signals, then gives each location a prep forecast by item and hour.
+In 12 pilot locations over the last 5 months, average food waste dropped 26 percent and gross margin improved 9 percent.
+We charge 399 dollars per location per month and we have 58 paying locations across two regional groups.
+Unlike generic BI tools, we are workflow-native and push decisions directly to prep and purchasing teams.
+We are raising 2.5 million dollars on a SAFE to fund sales hires, onboarding automation, and expansion to 400 locations in 18 months.

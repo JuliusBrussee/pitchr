@@ -62,6 +62,8 @@ function SessionPageContent() {
   const deckTextCacheRef = useRef<Record<string, string>>({});
   const autoSubmitLockRef = useRef(false);
   const hasStartedRef = useRef(false);
+  const lockedProjectIdRef = useRef<string | null>(null);
+  const [isProjectSwitchLocked, setIsProjectSwitchLocked] = useState(false);
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
   // Deck state
@@ -221,6 +223,10 @@ function SessionPageContent() {
   }, [pitchMode, session.isSessionActive, resetSessionChecklist]);
 
   const handleStartSession = useCallback(() => {
+    if (!sessionProjectId) {
+      setAnalysisError('Select a project before starting a session.');
+      return;
+    }
     setAnalysisError(null);
     setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
@@ -229,6 +235,8 @@ function SessionPageContent() {
     const isFirstStart = !hasStartedRef.current;
     if (isFirstStart) {
       hasStartedRef.current = true;
+      lockedProjectIdRef.current = sessionProjectId;
+      setIsProjectSwitchLocked(true);
       session.startSession(pitchMode);
       stt.start({ mode: pitchMode });
       if (media.stream) {
@@ -239,7 +247,7 @@ function SessionPageContent() {
 
     session.resumeSession();
     stt.start({ mode: pitchMode, resume: true });
-  }, [media.stream, pitchMode, recorder, session, stt]);
+  }, [media.stream, pitchMode, recorder, session, sessionProjectId, stt]);
 
   const handlePauseSession = useCallback(() => {
     if (!session.isSessionActive) {
@@ -273,6 +281,8 @@ function SessionPageContent() {
     setAnalysisError(null);
     setIsPaused(false);
     hasStartedRef.current = false;
+    lockedProjectIdRef.current = null;
+    setIsProjectSwitchLocked(false);
     setShowDiscardConfirm(false);
   }, [session, stt, recorder]);
 
@@ -295,7 +305,7 @@ function SessionPageContent() {
   }, [session.isSessionActive, handleStartSession, handleStopSession]);
 
   // Register session controls with the shared sidebar
-  useSidebarSession(handleSessionToggle, session.isSessionActive);
+  useSidebarSession(handleSessionToggle, session.isSessionActive, isProjectSwitchLocked);
 
   useEffect(() => {
     if (!stt.saved || autoSubmitLockRef.current) {
@@ -323,6 +333,13 @@ function SessionPageContent() {
 
     autoSubmitLockRef.current = true;
     session.setOrbState('active');
+    const lockedProjectId = lockedProjectIdRef.current ?? sessionProjectId;
+    if (!lockedProjectId) {
+      autoSubmitLockRef.current = false;
+      setShowAnalyzing(false);
+      setAnalysisError('Select a project before running analysis.');
+      return;
+    }
 
     void (async () => {
       try {
@@ -349,7 +366,7 @@ function SessionPageContent() {
           }
         }
         const result = await runPitchAnalysis({
-          projectId: sessionProjectId ?? undefined,
+          projectId: lockedProjectId,
           mode: pitchMode,
           inputType: 'audio',
           transcript,

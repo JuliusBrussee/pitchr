@@ -47,6 +47,7 @@ describe('AnalyticsPage', () => {
         runs: [
           {
             id: 'run-a',
+            projectId: 'project-alpha',
             created_at: dayA,
             overall_score: 72,
             outputs: {
@@ -67,6 +68,7 @@ describe('AnalyticsPage', () => {
           },
           {
             id: 'run-b',
+            projectId: 'project-alpha',
             createdAt: dayB,
             overallScore: 81,
             analysis: {
@@ -98,6 +100,7 @@ describe('AnalyticsPage', () => {
     });
 
     expect(mockFetchEdge).toHaveBeenCalledWith('pitch-run', {
+      cache: 'no-store',
       params: { projectId: 'project-alpha', summary: 'true' },
     });
     expect(screen.getByText('Score Trend')).toBeTruthy();
@@ -121,6 +124,7 @@ describe('AnalyticsPage', () => {
         runs: [
           {
             id: 'recent-run',
+            projectId: 'project-alpha',
             createdAt: recent,
             overallScore: 80,
             analysis: {
@@ -138,6 +142,7 @@ describe('AnalyticsPage', () => {
           },
           {
             id: 'older-run',
+            projectId: 'project-alpha',
             createdAt: older,
             overallScore: 66,
             analysis: {
@@ -184,5 +189,64 @@ describe('AnalyticsPage', () => {
     expect(allRangeScoreBars.length).toBeGreaterThanOrEqual(2);
     expect(allRangeRubricBars.length).toBe(allRangeScoreBars.length * 5);
     expect(countVisibleBars('score-trend-bar')).toBe(2);
+  });
+
+  it('keeps only runs for the active project when payload contains mixed projects', async () => {
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    const dayA = new Date(now - 2 * oneDay).toISOString();
+    const dayB = new Date(now - oneDay).toISOString();
+
+    mockFetchEdge.mockResolvedValue({
+      json: async () => ({
+        runs: [
+          {
+            id: 'run-alpha',
+            projectId: 'project-alpha',
+            createdAt: dayA,
+            overallScore: 82,
+            analysis: {
+              rubric_breakdown: [{ category: 'structure', score: 16, max_score: 20 }],
+              delivery_metrics: {
+                wpm: 146,
+                duration_seconds: 60,
+                filler_words: [],
+                repeated_phrases: [],
+                within_time_limit: true,
+              },
+            },
+          },
+          {
+            id: 'run-beta',
+            projectId: 'project-beta',
+            createdAt: dayB,
+            overallScore: 55,
+            analysis: {
+              rubric_breakdown: [{ category: 'structure', score: 11, max_score: 20 }],
+              delivery_metrics: {
+                wpm: 121,
+                duration_seconds: 69,
+                filler_words: [],
+                repeated_phrases: [],
+                within_time_limit: false,
+              },
+            },
+          },
+        ],
+      }),
+    });
+
+    mockUseProject.mockReturnValue({
+      activeProjectId: 'project-alpha',
+    });
+
+    render(<AnalyticsPage />);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Sessions This Period')).toBeTruthy();
+    });
+
+    expect(getStatValue('Sessions This Period')).toBe('1');
+    expect(countVisibleBars('score-trend-bar')).toBe(1);
   });
 });

@@ -4,6 +4,7 @@ import {
   JUDGE_RESPONSE_SCHEMA_TEXT,
   JUDGE_SYSTEM_PROMPT,
 } from '@/lib/prompts/judge';
+import { buildLayeredSystemPrompt } from '@/supabase/functions/_shared/rubric-context';
 import type {
   AnalysisMeta,
   Citation,
@@ -47,6 +48,7 @@ export interface JudgeAgentInput {
   transcript: string;
   deckText?: string;
   context: ScoringContext;
+  systemPromptOverride?: string;
 }
 
 export interface JudgeAgentPayload {
@@ -250,11 +252,16 @@ export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentR
     deckText: input.deckText,
     context: input.context,
   });
+  const systemPromptOverride = input.systemPromptOverride?.trim();
+  const systemPrompt =
+    systemPromptOverride && systemPromptOverride.length > 0
+      ? buildLayeredSystemPrompt(JUDGE_SYSTEM_PROMPT, systemPromptOverride)
+      : JUDGE_SYSTEM_PROMPT;
 
   let response: Awaited<ReturnType<typeof completeWithLlmRouterWithTelemetry>>;
   try {
     response = await completeWithLlmRouterWithTelemetry({
-      systemPrompt: JUDGE_SYSTEM_PROMPT,
+      systemPrompt,
       userPrompt: promptBuild.userPrompt,
       responseFormat: 'json',
       temperature: 0.2,
