@@ -307,6 +307,24 @@ export interface RubricContextRunMeta {
   fallback_reason?: string;
 }
 
+export interface RubricPolicyScoreAdjustmentMeta {
+  rule_id: string;
+  category: string;
+  required_term: string;
+  max_score: number;
+  before_score: number;
+  after_score: number;
+  reason: string;
+}
+
+export interface RubricPolicyRunMeta {
+  applied: boolean;
+  policy_hash?: string;
+  rule_count: number;
+  missing_terms: string[];
+  adjustments: RubricPolicyScoreAdjustmentMeta[];
+}
+
 export interface AnalysisMeta {
   provider_used: 'openrouter' | 'anthropic' | 'gemini' | 'none';
   fallback_used: boolean;
@@ -315,6 +333,7 @@ export interface AnalysisMeta {
   latency_ms: number;
   attempt_count: number;
   rubric_context?: RubricContextRunMeta;
+  rubric_policy?: RubricPolicyRunMeta;
   economics?: RunEconomics;
   telemetry?: {
     sectioning_confidence?: number;

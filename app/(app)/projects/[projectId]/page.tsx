@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Archive, Loader2, MoreHorizontal, Settings2, Zap, Trash2 } from 'lucide-react';
+import { ArrowLeft, Archive, Loader2, MoreHorizontal, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useProject } from '@/views/components/ProjectProvider';
-import { ProjectContextForm } from '@/views/components/ProjectContextForm';
 import { ProjectDeckManager } from '@/views/components/ProjectDeckManager';
+import { ProjectRubricRequirementsEditor } from '@/views/components/ProjectRubricRequirementsEditor';
 import type { Project } from '@/types/project';
 
 export default function ProjectDetailPage() {
@@ -187,14 +187,6 @@ export default function ProjectDetailPage() {
         {/* Divider */}
         <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)' }} />
 
-        {/* Project Context */}
-        <section
-          className="rounded-xl border p-5"
-          style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-surface-hover)' }}
-        >
-          <ProjectContextForm project={project} />
-        </section>
-
         {/* Deck manager */}
         <section
           className="rounded-xl border p-5"
@@ -203,62 +195,7 @@ export default function ProjectDetailPage() {
           <ProjectDeckManager projectId={project.id} />
         </section>
 
-        {/* Prompt overrides */}
-        <details
-          className="rounded-xl border p-5 group/details"
-          style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-surface-hover)' }}
-        >
-          <summary
-            className="text-[13px] font-semibold cursor-pointer select-none flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden"
-            style={{ color: 'var(--text-secondary)' }}
-          >
-            <div
-              className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: 'var(--bg-surface)' }}
-            >
-              <Settings2 size={12} style={{ color: 'var(--text-muted)' }} />
-            </div>
-            <span>Advanced: Prompt Overrides</span>
-            <svg
-              className="ml-auto w-4 h-4 transition-transform duration-200 group-open/details:rotate-180"
-              style={{ color: 'var(--text-muted)' }}
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </summary>
-          <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-              Analysis System Prompt Override
-            </label>
-            <textarea
-              defaultValue={project.promptOverrides?.analysis_system_prompt ?? ''}
-              onBlur={(e) => {
-                const value = e.target.value.trim();
-                const current = project.promptOverrides?.analysis_system_prompt ?? '';
-                if (value !== current) {
-                  void updateProject({
-                    projectId: project.id,
-                    promptOverrides: {
-                      ...project.promptOverrides,
-                      analysis_system_prompt: value || undefined,
-                    },
-                  });
-                }
-              }}
-              rows={4}
-              placeholder="Leave blank to use the default system prompt..."
-              className="w-full rounded-xl border px-4 py-3 text-xs font-mono outline-none resize-none transition-colors duration-200"
-              style={{
-                backgroundColor: 'var(--bg-surface)',
-                borderColor: 'var(--border-color)',
-                color: 'var(--text-primary)',
-              }}
-              onFocus={(e) => e.currentTarget.style.borderColor = 'rgba(255, 89, 65, 0.3)'}
-              onBlurCapture={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
-            />
-          </div>
-        </details>
+        <ProjectRubricRequirementsEditor project={project} isActive={isActive} />
       </div>
     </main>
   );

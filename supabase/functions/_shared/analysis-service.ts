@@ -9,6 +9,10 @@ import {
   type AnalysisPromptProfile,
 } from './analysis-profiles.ts';
 import { buildLayeredSystemPrompt } from './rubric-context.ts';
+import {
+  applyRubricPolicyToFeedback,
+  type RubricPolicy,
+} from './rubric-policy.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -112,6 +116,21 @@ interface AnalysisResultV2 {
     llm_calls_used: number;
     latency_ms: number;
     attempt_count: number;
+    rubric_policy?: {
+      applied: boolean;
+      policy_hash?: string;
+      rule_count: number;
+      missing_terms: string[];
+      adjustments: Array<{
+        rule_id: string;
+        category: string;
+        required_term: string;
+        max_score: number;
+        before_score: number;
+        after_score: number;
+        reason: string;
+      }>;
+    };
     error_details?: {
       message: string;
       timeout: boolean;
@@ -133,6 +152,7 @@ interface AnalyzePitchInput {
   mode: PitchMode;
   deckText?: string;
   systemPromptOverride?: string;
+  rubricPolicy?: RubricPolicy;
   targetDurationSeconds?: number;
 }
 
@@ -298,7 +318,7 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
         },
         body: JSON.stringify({
           model: CLAUDE_MODEL,
-          temperature: 0.3,
+          temperature: 0,
           max_tokens: 4096,
           system: systemPrompt,
           messages: [{ role: 'user', content: userPrompt }],
@@ -374,7 +394,7 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
           { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
         ],
         generationConfig: {
-          temperature: 0.3,
+          temperature: 0,
           maxOutputTokens: 4096,
         },
       }),
@@ -575,7 +595,13 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     const rawText = await callClaude(systemPrompt, userPrompt);
     const jsonText = extractJson(rawText);
     const parsed = JSON.parse(jsonText);
-    const { feedback, qa_1min } = validateAndNormalize(parsed);
+    const { feedback: rawFeedback, qa_1min } = validateAndNormalize(parsed);
+    const rubricPolicyResult = applyRubricPolicyToFeedback(rawFeedback, {
+      policy: input.rubricPolicy,
+      transcript: input.transcript,
+      deckText: input.deckText,
+    });
+    const feedback = rubricPolicyResult.feedback;
 
     const analysis: AnalysisResultV2 = {
       analysisVersion: 'v2',
@@ -588,6 +614,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
         llm_calls_used: llmCallsUsed,
         latency_ms: Date.now() - startedAt,
         attempt_count: attemptCount,
+        rubric_policy: rubricPolicyResult.evaluation,
       },
       analysis: feedback,
       fallback: false,
@@ -614,7 +641,13 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       const rawText = await callGemini(systemPrompt, userPrompt);
       const jsonText = extractJson(rawText);
       const parsed = JSON.parse(jsonText);
-      const { feedback, qa_1min } = validateAndNormalize(parsed);
+      const { feedback: rawFeedback, qa_1min } = validateAndNormalize(parsed);
+      const rubricPolicyResult = applyRubricPolicyToFeedback(rawFeedback, {
+        policy: input.rubricPolicy,
+        transcript: input.transcript,
+        deckText: input.deckText,
+      });
+      const feedback = rubricPolicyResult.feedback;
 
       const analysis: AnalysisResultV2 = {
         analysisVersion: 'v2',
@@ -627,6 +660,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
           llm_calls_used: llmCallsUsed,
           latency_ms: Date.now() - startedAt,
           attempt_count: attemptCount,
+          rubric_policy: rubricPolicyResult.evaluation,
         },
         analysis: feedback,
         fallback: false,
@@ -648,6 +682,12 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       // Fall back to sample result
       const fallback = cloneSample();
       fallback.coverage = input.deckText ? 'spoken+deck' : 'spoken_only';
+      const rubricPolicyResult = applyRubricPolicyToFeedback(fallback.outputs.feedback, {
+        policy: input.rubricPolicy,
+        transcript: input.transcript,
+        deckText: input.deckText,
+      });
+      fallback.outputs.feedback = rubricPolicyResult.feedback;
       fallback.meta = {
         provider_used: 'none',
         fallback_used: true,
@@ -655,6 +695,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
         llm_calls_used: llmCallsUsed,
         latency_ms: Date.now() - startedAt,
         attempt_count: attemptCount,
+        rubric_policy: rubricPolicyResult.evaluation,
         error_details: {
           message: `Claude: ${claudeMsg}; Gemini: ${geminiMsg}`,
           timeout:

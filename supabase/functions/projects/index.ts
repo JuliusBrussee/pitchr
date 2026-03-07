@@ -17,6 +17,10 @@ import {
   withRubricContextPromptMetadata,
 } from '../_shared/rubric-context.ts';
 import {
+  buildRubricPolicy,
+  RUBRIC_POLICY_KEY,
+} from '../_shared/rubric-policy.ts';
+import {
   createProject,
   getActiveProjectId,
   getProjectById,
@@ -52,6 +56,7 @@ function normalizePromptOverrides(
   const normalizedPromptOverrides = {
     ...promptOverrides,
     analysis_system_prompt: validation.value,
+    [RUBRIC_POLICY_KEY]: buildRubricPolicy(validation.value),
   };
 
   if (!opts?.updatedBy) {

@@ -54,3 +54,16 @@ This file is the canonical running log for merge-conflict tracking and conflict-
 1. Add a new timestamped snapshot entry after each merge or rebase touching these areas.
 2. Record any real marker conflicts and final chosen resolution.
 3. Keep this log append-only for auditability.
+- Timestamp: `2026-03-07 22:55:00 +01:00`
+- Scope: rubric UX simplification + scoring-context plumbing update.
+- Conflict-prone files touched:
+  - `app/(app)/projects/[projectId]/page.tsx`
+  - `views/components/ProjectRubricRequirementsEditor.tsx`
+  - `views/components/CreateProjectModal.tsx`
+  - `supabase/functions/pitch-run/index.ts`
+- Integration note:
+  - Removed multi-field project context form from project detail and consolidated rubric/context editing into one saved textarea.
+  - Pitch-run now injects project description/target_market/key_metrics/extra_notes into analysis system prompt context so non-rubric notes influence scoring.
+- Validation:
+  - `yarn typecheck` -> passed.
+  - `yarn test tests/projects-rubric-context.test.tsx tests/rubric-policy.test.ts tests/projects-edge-rubric-context.test.ts` -> passed (15 tests).

@@ -21,6 +21,10 @@ import {
   resolveRunRubricContext,
   type RubricContextRunMetadata,
 } from '../_shared/rubric-context.ts';
+import {
+  resolveRubricPolicyFromPromptOverrides,
+  type RubricPolicy,
+} from '../_shared/rubric-policy.ts';
 import { tryCompleteReferral } from '../_shared/referral-service.ts';
 import { checkRateLimit, RateLimitExceededError } from '../_shared/rate-limit.ts';
 import type { PitchMode, InputType, Run, ListPitchRunsResponse } from '../_shared/types.ts';
@@ -33,6 +37,55 @@ class UsageLimitError extends Error {
 }
 
 class PitchValidationError extends Error {}
+
+function appendProjectContextSection(
+  lines: string[],
+  label: string,
+  value: string | null | undefined,
+): void {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  if (!normalized) return;
+  lines.push(`- ${label}: ${normalized}`);
+}
+
+function buildProjectScoringContext(
+  project: {
+    description: string | null;
+    target_market: string | null;
+    key_metrics: string | null;
+    extra_notes: string | null;
+  },
+  rubricOverride?: string,
+): string | undefined {
+  const sections: string[] = [];
+
+  const rubric = rubricOverride?.trim();
+  if (rubric) {
+    sections.push(
+      [
+        'User-uploaded rubric requirements:',
+        rubric,
+      ].join('\n'),
+    );
+  }
+
+  const contextLines: string[] = [];
+  appendProjectContextSection(contextLines, 'Project description', project.description);
+  appendProjectContextSection(contextLines, 'Target market', project.target_market);
+  appendProjectContextSection(contextLines, 'Key metrics', project.key_metrics);
+  appendProjectContextSection(contextLines, 'Additional user notes', project.extra_notes);
+  if (contextLines.length > 0) {
+    sections.push(
+      [
+        'Additional project context supplied by the user:',
+        ...contextLines,
+      ].join('\n'),
+    );
+  }
+
+  if (sections.length === 0) return undefined;
+  return sections.join('\n\n');
+}
 
 function isPitchMode(value: unknown): value is PitchMode {
   return value === 'elevator' || value === 'vc_pitch';
@@ -119,6 +172,7 @@ interface ProcessQueuedRunInput {
   transcript: string;
   deckText?: string;
   systemPromptOverride?: string;
+  rubricPolicy?: RubricPolicy;
   rubricContextMeta: RubricContextRunMetadata;
   targetDurationSeconds?: number;
 }
@@ -150,6 +204,7 @@ async function processQueuedRun(
       mode: input.mode,
       deckText: input.deckText,
       systemPromptOverride: input.systemPromptOverride,
+      rubricPolicy: input.rubricPolicy,
       targetDurationSeconds: input.targetDurationSeconds,
     });
 
@@ -337,6 +392,8 @@ async function handlePost(req: Request) {
   } = resolveRunRubricContext(project.prompt_overrides, {
     projectUpdatedAt: project.updated_at,
   });
+  const scoringContextPrompt = buildProjectScoringContext(project, analysisSystemPrompt);
+  const rubricPolicy = resolveRubricPolicyFromPromptOverrides(project.prompt_overrides);
 
   const adminClient = createAdminClient();
   const usageCheck = await checkUsageLimit(adminClient, user.id, 'run');
@@ -382,6 +439,20 @@ async function handlePost(req: Request) {
       latency_ms: 0,
       attempt_count: 0,
       rubric_context: rubricContextMeta,
+      rubric_policy: rubricPolicy
+        ? {
+          applied: true,
+          policy_hash: rubricPolicy.source_hash,
+          rule_count: rubricPolicy.hard_caps.length,
+          missing_terms: [],
+          adjustments: [],
+        }
+        : {
+          applied: false,
+          rule_count: 0,
+          missing_terms: [],
+          adjustments: [],
+        },
     },
     is_fallback: false,
   });
@@ -393,7 +464,8 @@ async function handlePost(req: Request) {
       mode,
       transcript: payload.transcript,
       deckText: payload.deckText,
-      systemPromptOverride: analysisSystemPrompt,
+      systemPromptOverride: scoringContextPrompt,
+      rubricPolicy,
       rubricContextMeta,
       targetDurationSeconds: payload.targetDurationSeconds,
     }),

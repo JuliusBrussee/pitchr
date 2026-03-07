@@ -52,6 +52,10 @@ function buildProject(overrides?: Record<string, unknown>) {
 
 function buildAdminClientLookup(projectRow: { id: string; user_id: string } | null) {
   return {
+    rpc: vi.fn().mockResolvedValue({
+      data: { allowed: true, current: 1, limit: 15, retry_after: 0 },
+      error: null,
+    }),
     from: () => ({
       select: () => ({
         eq: () => ({
@@ -153,14 +157,20 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
     expect(mockCreateProject).toHaveBeenCalledWith(
       expect.anything(),
       'user-123',
-      expect.objectContaining({
-        promptOverrides: expect.objectContaining({
-          analysis_system_prompt: 'Keep this concise.',
-          analysis_system_prompt_meta: expect.objectContaining({
-            updated_by: 'user-123',
-            updated_at: expect.any(String),
+        expect.objectContaining({
+          promptOverrides: expect.objectContaining({
+            analysis_system_prompt: 'Keep this concise.',
+            analysis_system_prompt_policy: expect.objectContaining({
+              version: 'v1',
+              source_chars: 'Keep this concise.'.length,
+              required_terms: expect.any(Array),
+              hard_caps: expect.any(Array),
+            }),
+            analysis_system_prompt_meta: expect.objectContaining({
+              updated_by: 'user-123',
+              updated_at: expect.any(String),
+            }),
           }),
-        }),
       }),
     );
 
@@ -175,12 +185,49 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
       expect.anything(),
       'user-123',
       '22222222-2222-4222-8222-222222222222',
+        expect.objectContaining({
+          promptOverrides: expect.objectContaining({
+            analysis_system_prompt: 'Refine the ask and proof.',
+            analysis_system_prompt_policy: expect.objectContaining({
+              version: 'v1',
+              source_chars: 'Refine the ask and proof.'.length,
+              required_terms: expect.any(Array),
+              hard_caps: expect.any(Array),
+            }),
+            analysis_system_prompt_meta: expect.objectContaining({
+              updated_by: 'user-123',
+              updated_at: expect.any(String),
+            }),
+          }),
+        }),
+      );
+    });
+
+  it('stores parsed hard-cap policy when rubric includes explicit cap rule', async () => {
+    const response = await invokeProjectsHandler('POST', {
+      name: 'My Project',
+      type: 'two_min_pitch',
+      promptOverrides: {
+        analysis_system_prompt:
+          'If "pineapple" is absent, do not score any category above 6/20.',
+      },
+    });
+
+    expect(response.status).toBe(201);
+    expect(mockCreateProject).toHaveBeenCalledWith(
+      expect.anything(),
+      'user-123',
       expect.objectContaining({
         promptOverrides: expect.objectContaining({
-          analysis_system_prompt: 'Refine the ask and proof.',
-          analysis_system_prompt_meta: expect.objectContaining({
-            updated_by: 'user-123',
-            updated_at: expect.any(String),
+          analysis_system_prompt_policy: expect.objectContaining({
+            required_terms: expect.arrayContaining(['pineapple']),
+            hard_caps: expect.arrayContaining([
+              expect.objectContaining({
+                scope: 'all',
+                required_term: 'pineapple',
+                max_score: 6,
+              }),
+            ]),
           }),
         }),
       }),
@@ -222,7 +269,7 @@ describe('projects edge rubric context validation (ProjectValidationError mappin
     mockGetProjectById.mockRejectedValueOnce(
       new ProjectNotFoundError('22222222-2222-4222-8222-222222222222'),
     );
-    mockCreateAdminClient.mockReturnValueOnce(
+    mockCreateAdminClient.mockReturnValue(
       buildAdminClientLookup({
         id: '22222222-2222-4222-8222-222222222222',
         user_id: 'someone-else',
