@@ -6,3 +6,4 @@ export { PlanHeroBanner } from './PlanHeroBanner';
 export { GeneralTab } from './GeneralTab';
 export { BillingTab } from './BillingTab';
 export { RewardsTab } from './RewardsTab';
+export { DeleteAccountDialog } from './DeleteAccountDialog';

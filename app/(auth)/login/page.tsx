@@ -3,9 +3,31 @@
 import { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, ArrowRight } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import { isRateLimitError } from '@/lib/supabase/edge-error';
+
+function getFriendlyLoginError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('invalid login credentials') || lower.includes('invalid_credentials')) {
+    return 'Incorrect email or password. Please try again.';
+  }
+  if (lower.includes('email not confirmed')) {
+    return 'Please confirm your email before signing in. Check your inbox for the confirmation link.';
+  }
+  if (lower.includes('rate limit') || lower.includes('too many requests')) {
+    return 'Too many attempts. Please wait a minute and try again.';
+  }
+  if (lower.includes('network') || lower.includes('fetch')) {
+    return 'Connection error. Please check your internet and try again.';
+  }
+  if (lower.includes('user not found')) {
+    return 'No account found with this email. Check your spelling or create an account.';
+  }
+  return message;
+}
 
 export default function LoginPage() {
   return (
@@ -19,31 +41,46 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+  const callbackError = searchParams.get('error');
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    callbackError === 'auth_callback_failed'
+      ? 'Your confirmation link has expired or is invalid. Please sign up again.'
+      : null,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const { isRateLimited, rateLimitMessage, triggerCooldown } = useRateLimitCooldown();
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (signInError) {
-      setError(signInError.message);
+      if (signInError) {
+        if (isRateLimitError(signInError.message)) {
+          triggerCooldown(60);
+        }
+        setError(getFriendlyLoginError(signInError.message));
+        setIsLoading(false);
+        return;
+      }
+
+      router.push(redirectTo);
+    } catch (err) {
+      console.error('[auth] login error:', err);
+      setError('Something went wrong. Please try again.');
       setIsLoading(false);
-      return;
     }
-
-    router.push(redirectTo);
   }
 
   async function handleGoogleLogin() {
@@ -107,16 +144,17 @@ function LoginForm() {
         </div>
 
         {/* Error */}
-        {error && (
+        {(rateLimitMessage ?? error) && (
           <div
-            className="mb-4 rounded-xl px-3.5 py-2.5 text-[13px] font-medium"
+            className="mb-4 rounded-xl px-3.5 py-2.5 text-[13px] font-medium flex items-start gap-2.5"
             style={{
               backgroundColor: 'rgba(239,68,68,0.08)',
               color: '#ef4444',
               border: '1px solid rgba(239,68,68,0.12)',
             }}
           >
-            {error}
+            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+            <span>{rateLimitMessage ?? error}</span>
           </div>
         )}
 
@@ -202,10 +240,19 @@ function LoginForm() {
               }}
             />
           </div>
+          <div className="flex justify-end -mt-1 mb-1">
+            <Link
+              href="/forgot-password"
+              className="text-[12px] font-medium no-underline transition-colors duration-200 hover:underline"
+              style={{ color: '#ff5941' }}
+            >
+              Forgot password?
+            </Link>
+          </div>
           <button
             type="submit"
-            disabled={isLoading}
-            className="auth-btn group relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100 mt-1"
+            disabled={isLoading || isRateLimited}
+            className="auth-btn group relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
             style={{
               background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
               boxShadow: '0 1px 2px rgba(0,0,0,0.1), 0 4px 12px rgba(255,89,65,0.25)',
@@ -216,6 +263,8 @@ function LoginForm() {
                 <span className="auth-spinner" />
                 Signing in...
               </span>
+            ) : isRateLimited ? (
+              rateLimitMessage
             ) : (
               <>
                 Sign in

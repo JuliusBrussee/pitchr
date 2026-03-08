@@ -47,7 +47,8 @@ export async function getCustomer(customerId: string): Promise<Stripe.Customer |
     const customer = await stripe.customers.retrieve(customerId);
     if (customer.deleted) return null;
     return customer as Stripe.Customer;
-  } catch {
+  } catch (err) {
+    console.warn('[stripe] getCustomer failed:', customerId, err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -119,7 +120,8 @@ export async function getSubscription(
   const stripe = getStripe();
   try {
     return await stripe.subscriptions.retrieve(subscriptionId);
-  } catch {
+  } catch (err) {
+    console.warn('[stripe] getSubscription failed:', subscriptionId, err instanceof Error ? err.message : err);
     return null;
   }
 }
@@ -144,6 +146,13 @@ export async function resumeSubscription(
   return stripe.subscriptions.update(subscriptionId, {
     cancel_at_period_end: false,
   });
+}
+
+/* ——— Customer Deletion ——— */
+
+export async function deleteCustomer(customerId: string): Promise<void> {
+  const stripe = getStripe();
+  await stripe.customers.del(customerId);
 }
 
 /* ——— Webhook Verification ——— */

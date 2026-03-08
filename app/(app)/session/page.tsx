@@ -46,7 +46,7 @@ function SessionPageContent() {
   const session = useSessionState();
   const stt = useSTT();
   const recorder = useRecorder();
-  const { runPitchAnalysis, error: runError } = usePitchRun();
+  const { runPitchAnalysis, error: runError, isRateLimited: isPitchRateLimited, secondsRemaining: pitchCooldownSeconds } = usePitchRun();
   const {
     activeProject,
     isLoading: isProjectLoading,
@@ -494,14 +494,19 @@ function SessionPageContent() {
           checklistNextHint={stt.checklistNextHint}
           checklistError={stt.checklistError}
           sttError={
-            analysisError
+            (isPitchRateLimited ? `Too many requests. Try again in ${pitchCooldownSeconds}s.` : null)
+            ?? analysisError
             ?? runError
             ?? stt.error
             ?? (!isProjectLoading && !sessionProjectId ? 'Select a project before starting a session.' : null)
           }
           sttSaved={stt.saved && !showAnalyzing}
           isAnalyzing={showAnalyzing}
-          analysisError={analysisError ?? runError}
+          analysisError={
+            (isPitchRateLimited ? `Too many requests. Try again in ${pitchCooldownSeconds}s.` : null)
+            ?? analysisError
+            ?? runError
+          }
         />
       </div>
       <video

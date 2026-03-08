@@ -29,6 +29,7 @@ import {
   getModeBgColor,
   getModeLabel,
 } from '@/views/components/ui';
+import { MicWaveIllustration } from '@/views/components/ui/empty-state-illustrations';
 import type { PitchMode } from '@/views/components/ui/colors';
 import {
   computeRubricAverages,
@@ -245,24 +246,15 @@ export default function DashboardPage() {
         ) : totalRuns === 0 ? (
           <GlassCard animationDelay="0.26s">
             <EmptyState
-              icon={<Mic size={32} style={{ color: 'var(--text-muted)' }} />}
-              message={fetchError ? 'Failed to load pitch runs.' : 'No pitch runs yet. Run your first pitch to see your breakdown here.'}
+              illustration={fetchError ? undefined : <MicWaveIllustration />}
+              icon={fetchError ? <Mic size={32} style={{ color: 'var(--text-muted)' }} /> : undefined}
+              title={fetchError ? 'Failed to load pitch runs' : 'Your pitch journey starts here'}
+              description={fetchError ? 'Check your connection and try again.' : 'Run your first pitch session to see your score, insights, and coaching.'}
+              cta={fetchError ? undefined : { label: 'Start First Session', href: '/session', icon: <Zap size={15} /> }}
+              secondaryAction={fetchError ? { label: 'Try Again', onClick: loadRuns } : undefined}
+              variant={fetchError ? 'error' : 'default'}
+              showGlow={!fetchError}
             />
-            {fetchError && (
-              <div className="flex justify-center mt-3">
-                <button
-                  onClick={loadRuns}
-                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
-                  style={{
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--text-secondary)',
-                    backgroundColor: 'var(--bg-surface-hover)',
-                  }}
-                >
-                  Try Again
-                </button>
-              </div>
-            )}
           </GlassCard>
         ) : (
           <>

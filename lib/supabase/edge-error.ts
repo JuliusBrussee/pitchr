@@ -36,3 +36,30 @@ export function getEdgeRedirectTo(
 ): string | null {
   return asNonEmptyString(payload?.redirectTo);
 }
+
+/**
+ * Detect rate-limit errors from Supabase auth error messages.
+ */
+export function isRateLimitError(message: string): boolean {
+  const lower = message.toLowerCase();
+  return lower.includes('rate limit') || lower.includes('too many requests');
+}
+
+/**
+ * Parse retry_after from an edge function 429 response.
+ * Checks JSON body `retry_after`, then `Retry-After` header, defaults to 60.
+ */
+export function parseRetryAfter(
+  response: Response,
+  body?: Record<string, unknown>,
+): number {
+  if (body && typeof body.retry_after === 'number' && body.retry_after > 0) {
+    return Math.ceil(body.retry_after);
+  }
+  const header = response.headers.get('Retry-After');
+  if (header) {
+    const parsed = parseInt(header, 10);
+    if (!isNaN(parsed) && parsed > 0) return parsed;
+  }
+  return 60;
+}

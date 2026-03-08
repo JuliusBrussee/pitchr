@@ -1,13 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Challenge } from '@/types/arena';
 import type { LeagueTier } from '@/config/arena';
+import {
+  emailLayout,
+  emailHeading,
+  emailSubheading,
+  emailParagraph,
+  emailCta,
+  emailCallout,
+  emailMutedText,
+} from '@/lib/emailTemplate';
 
 /* ——————————————————————————————————————————————————————————
  * Arena Notification Service
  *
  * Email notifications for arena events: challenge drops,
  * league promotions/demotions, and streak-at-risk warnings.
- * Uses the Resend API via fetch (same pattern as emailService).
+ * Uses the Resend API via fetch.
  * —————————————————————————————————————————————————————————— */
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
@@ -56,7 +65,7 @@ async function sendEmail(params: {
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const message = (data as { error?: { message?: string } }).error?.message ?? 'Failed to send email';
-    console.error('[arena-notify] send failed:', message);
+    throw new Error(`[arena-notify] send failed: ${message}`);
   }
 }
 
@@ -69,7 +78,6 @@ export async function sendChallengeDropNotification(
   const appUrl = getAppBaseUrl();
   const challengeUrl = `${appUrl}/arena/challenge/${challenge.id}`;
 
-  // Fetch all Pro users' emails
   const { data: subscriptions } = await supabase
     .from('subscriptions')
     .select('user_id')
@@ -87,24 +95,45 @@ export async function sendChallengeDropNotification(
     .filter((u) => userIds.includes(u.id) && u.email)
     .map((u) => u.email!);
 
-  const subject = `New Challenge: ${challenge.title}`;
+  const subject = `New challenge: ${challenge.title}`;
 
+  const body = [
+    emailHeading('New weekly challenge'),
+    emailSubheading('A new challenge is live in the Arena.'),
+    emailCallout(
+      `<p style="margin:0 0 4px;font-size:17px;font-weight:400;color:#111827;letter-spacing:-0.01em;font-family:Georgia,'Times New Roman',Times,serif;">${challenge.title}</p>` +
+      (challenge.description
+        ? `<p style="margin:8px 0 0;font-size:14px;color:#6b7280;line-height:1.6;">${challenge.description}</p>`
+        : ''),
+    ),
+    emailCta(challengeUrl, 'Compete Now'),
+    emailMutedText('Challenges reset weekly. Submit before the window closes.'),
+  ].join('\n');
+
+  const html = emailLayout({
+    preheader: `New challenge: ${challenge.title}`,
+    body,
+  });
+
+  const text = [
+    `New weekly challenge: ${challenge.title}`,
+    '',
+    challenge.description ?? '',
+    '',
+    `Compete: ${challengeUrl}`,
+  ].join('\n');
+
+  let failCount = 0;
   for (const email of proEmails) {
-    await sendEmail({
-      to: email,
-      subject,
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #111827;">
-          <h2 style="margin: 0 0 12px;">New Weekly Challenge</h2>
-          <p style="margin: 0 0 8px; font-size: 18px; font-weight: 600;">${challenge.title}</p>
-          ${challenge.description ? `<p style="margin: 0 0 16px; color: #6b7280;">${challenge.description}</p>` : ''}
-          <a href="${challengeUrl}" style="display: inline-block; padding: 10px 24px; background: linear-gradient(135deg, #ff5941, #e63b26); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            Compete Now
-          </a>
-        </div>
-      `,
-      text: `New Weekly Challenge: ${challenge.title}\n\n${challenge.description ?? ''}\n\nCompete: ${challengeUrl}`,
-    });
+    try {
+      await sendEmail({ to: email, subject, html, text });
+    } catch (err) {
+      failCount++;
+      console.error('[arena-notify] Failed to send challenge drop to:', email, err instanceof Error ? err.message : err);
+    }
+  }
+  if (failCount > 0) {
+    console.warn(`[arena-notify] ${failCount}/${proEmails.length} challenge drop emails failed`);
   }
 }
 
@@ -125,28 +154,48 @@ export async function sendLeagueResultsNotification(
   if (!email) return;
 
   const tierLabel = newTier.charAt(0).toUpperCase() + newTier.slice(1);
-  const resultMessages = {
-    promoted: { subject: `Promoted to ${tierLabel} League!`, emoji: '', message: `Congratulations! You have been promoted to ${tierLabel} League.` },
-    demoted: { subject: `League update: ${tierLabel}`, emoji: '', message: `You have moved to ${tierLabel} League. Keep pitching to climb back up!` },
-    stayed: { subject: `Week complete — ${tierLabel} League`, emoji: '', message: `You held your ground in ${tierLabel} League. New week, new chance to climb!` },
+
+  const config = {
+    promoted: {
+      subject: `Promoted to ${tierLabel} League`,
+      heading: `${tierLabel} League`,
+      message: `Your pitches earned you a promotion. The competition is tougher here.`,
+    },
+    demoted: {
+      subject: `League update: ${tierLabel}`,
+      heading: 'New week, new start',
+      message: `You moved to ${tierLabel} League. A few strong pitches and you are back.`,
+    },
+    stayed: {
+      subject: `Week complete — ${tierLabel} League`,
+      heading: 'Holding steady',
+      message: `You held your ground in ${tierLabel} League. One strong week to move up.`,
+    },
   };
 
-  const { subject, message } = resultMessages[result];
+  const c = config[result];
 
-  await sendEmail({
-    to: email,
-    subject,
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #111827;">
-        <h2 style="margin: 0 0 12px;">${subject}</h2>
-        <p style="margin: 0 0 16px;">${message}</p>
-        <a href="${appUrl}/arena" style="display: inline-block; padding: 10px 24px; background: linear-gradient(135deg, #ff5941, #e63b26); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600;">
-          View Arena
-        </a>
-      </div>
-    `,
-    text: `${subject}\n\n${message}\n\nView Arena: ${appUrl}/arena`,
+  const body = [
+    emailHeading(c.heading),
+    emailSubheading(c.subject),
+    emailParagraph(c.message),
+    emailCta(`${appUrl}/arena`, 'View Arena'),
+  ].join('\n');
+
+  const html = emailLayout({
+    preheader: c.message,
+    body,
   });
+
+  const text = [
+    c.subject,
+    '',
+    c.message,
+    '',
+    `View Arena: ${appUrl}/arena`,
+  ].join('\n');
+
+  await sendEmail({ to: email, subject: c.subject, html, text });
 }
 
 /* ——— Streak At-Risk Notification ——— */
@@ -164,25 +213,29 @@ export async function sendStreakRiskNotification(
   const email = userData?.user?.email;
   if (!email) return;
 
-  const subject = `Your ${currentStreak}-day streak is at risk!`;
+  const subject = `${currentStreak}-day streak at risk`;
 
-  await sendEmail({
-    to: email,
-    subject,
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #111827;">
-        <h2 style="margin: 0 0 12px;">Don't lose your streak!</h2>
-        <p style="margin: 0 0 8px;">
-          You have a <strong>${currentStreak}-day streak</strong> going. Complete a pitch today to keep it alive.
-        </p>
-        <p style="margin: 0 0 16px; color: #6b7280; font-size: 14px;">
-          ${currentStreak >= 7 ? 'You are on an incredible run — don\'t let it slip!' : 'Every day counts. Keep the momentum going!'}
-        </p>
-        <a href="${appUrl}/arena/game-mode" style="display: inline-block; padding: 10px 24px; background: linear-gradient(135deg, #ff5941, #e63b26); color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600;">
-          Quick Practice
-        </a>
-      </div>
-    `,
-    text: `Your ${currentStreak}-day streak is at risk!\n\nComplete a pitch today to keep it alive.\n\nQuick Practice: ${appUrl}/arena/game-mode`,
+  const body = [
+    emailHeading(`${currentStreak}-day streak`),
+    emailSubheading('Your streak expires today.'),
+    emailParagraph(
+      `Complete one pitch to keep it alive.${currentStreak >= 7 ? ' You are on a serious run — do not let it slip.' : ''}`,
+    ),
+    emailCta(`${appUrl}/arena/game-mode`, 'Quick Practice'),
+  ].join('\n');
+
+  const html = emailLayout({
+    preheader: `Your ${currentStreak}-day streak expires today — one pitch to save it`,
+    body,
   });
+
+  const text = [
+    subject,
+    '',
+    `Complete one pitch today to keep your ${currentStreak}-day streak alive.`,
+    '',
+    `Quick Practice: ${appUrl}/arena/game-mode`,
+  ].join('\n');
+
+  await sendEmail({ to: email, subject, html, text });
 }

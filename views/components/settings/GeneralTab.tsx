@@ -14,18 +14,23 @@ import {
   MessageCircle,
   Trash2,
   Download,
+  AlertTriangle,
 } from 'lucide-react';
 import { useTheme, type ThemePreference } from '@/views/components/ThemeProvider';
 import { useSettings } from '@/hooks/useSettings';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTutorial } from '@/hooks/useTutorial';
 import { useCompliance } from '@/hooks/useCompliance';
+import { useBilling } from '@/hooks/useBilling';
+import { useAuth } from '@/views/components/AuthProvider';
 import { useToast } from '@/views/components/Toast';
 import { useRouter } from 'next/navigation';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { createClient } from '@/lib/supabase/client';
 import { ConfirmDialog } from '@/views/components/ui';
 import { SectionCard } from './SectionCard';
 import { SettingRow } from './SettingRow';
+import { DeleteAccountDialog } from './DeleteAccountDialog';
 
 const THEME_OPTIONS: { key: ThemePreference; label: string; icon: React.ReactNode }[] = [
   { key: 'system', label: 'System', icon: <Monitor size={12} /> },
@@ -40,6 +45,8 @@ export function GeneralTab() {
   const onboarding = useOnboarding();
   const { resetTours } = useTutorial();
   const compliance = useCompliance();
+  const billing = useBilling();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [analyticsConsent, setAnalyticsConsent] = useState(false);
@@ -47,6 +54,11 @@ export function GeneralTab() {
   const [isConsentSaving, setIsConsentSaving] = useState(false);
   const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+
+  const hasActivePaidPlan = billing.subscription
+    ? billing.subscription.planId !== 'free' && billing.subscription.status === 'active'
+    : false;
 
   useEffect(() => {
     if (!compliance.status) return;
@@ -80,7 +92,8 @@ export function GeneralTab() {
       a.download = `pitchr-export-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (err) {
+      console.error('[settings] export failed:', err);
       toast('error', 'Failed to export data.');
     }
   };
@@ -92,10 +105,18 @@ export function GeneralTab() {
         params: { includePending: 'true', allProjects: 'true' },
       }).then((r) => r.json());
       const allRuns = Array.isArray(payload?.runs) ? payload.runs : [];
-      await Promise.all(allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
-      toast('success', 'All data cleared successfully.');
+      const results = await Promise.allSettled(
+        allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })),
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        toast('error', `Failed to delete ${failed} of ${allRuns.length} items.`);
+      } else {
+        toast('success', 'All data cleared successfully.');
+      }
       setShowClearAllConfirm(false);
-    } catch {
+    } catch (err) {
+      console.error('[settings] clear all failed:', err);
       toast('error', 'Failed to clear data.');
     } finally {
       setIsClearing(false);
@@ -309,6 +330,41 @@ export function GeneralTab() {
         </div>
       </SectionCard>
 
+      {/* Danger Zone */}
+      <SectionCard
+        icon={AlertTriangle}
+        title="Danger Zone"
+        delay={200}
+        iconColor="#ef4444"
+        titleColor="#ef4444"
+        borderColor="rgba(239, 68, 68, 0.25)"
+        compact
+      >
+        {hasActivePaidPlan ? (
+          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            You must cancel your subscription before deleting your account.
+            Go to the <strong>Billing</strong> tab and use &quot;Manage Subscription&quot; to cancel first.
+          </p>
+        ) : (
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            Permanently delete your account and all associated data. This cannot be undone.
+          </p>
+        )}
+        <button
+          onClick={() => setShowDeleteAccount(true)}
+          disabled={hasActivePaidPlan}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-40"
+          style={{
+            color: '#ef4444',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            backgroundColor: 'transparent',
+          }}
+        >
+          <Trash2 size={13} />
+          Delete Account
+        </button>
+      </SectionCard>
+
       <ConfirmDialog
         open={showClearAllConfirm}
         onClose={() => setShowClearAllConfirm(false)}
@@ -319,6 +375,28 @@ export function GeneralTab() {
         isConfirming={isClearing}
         onConfirm={handleClearAll}
       />
+
+      {user?.email && (
+        <DeleteAccountDialog
+          open={showDeleteAccount}
+          onClose={() => setShowDeleteAccount(false)}
+          userEmail={user.email}
+          onConfirm={async (email, password) => {
+            const res = await fetch('/api/account', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              throw new Error(data.error || 'Failed to delete account.');
+            }
+            const supabase = createClient();
+            await supabase.auth.signOut();
+            window.location.href = '/';
+          }}
+        />
+      )}
     </div>
   );
 }

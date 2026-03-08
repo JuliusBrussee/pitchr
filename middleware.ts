@@ -23,5 +23,7 @@ export const config = {
     '/projects/:path*',
     '/demo/:path*',
     '/compliance/:path*',
+    '/forgot-password/:path*',
+    '/reset-password/:path*',
   ],
 };

@@ -3,9 +3,33 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Mail, Lock, User, ArrowRight, Check } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import { isRateLimitError } from '@/lib/supabase/edge-error';
+
+type ErrorType = 'error' | 'account_exists';
+
+function getFriendlySignupError(message: string): { text: string; type: ErrorType } {
+  const lower = message.toLowerCase();
+  if (lower.includes('rate limit') || lower.includes('too many requests')) {
+    return { text: 'Too many attempts. Please wait a minute and try again.', type: 'error' };
+  }
+  if (lower.includes('already registered') || lower.includes('already been registered')) {
+    return { text: 'An account with this email already exists.', type: 'account_exists' };
+  }
+  if (lower.includes('valid email') || lower.includes('invalid email')) {
+    return { text: 'Please enter a valid email address.', type: 'error' };
+  }
+  if (lower.includes('password') && lower.includes('short')) {
+    return { text: 'Password must be at least 8 characters.', type: 'error' };
+  }
+  if (lower.includes('network') || lower.includes('fetch')) {
+    return { text: 'Connection error. Please check your internet and try again.', type: 'error' };
+  }
+  return { text: message, type: 'error' };
+}
 
 export default function SignupPage() {
   return (
@@ -23,10 +47,11 @@ function SignupForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ text: string; type: ErrorType } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const { isRateLimited, rateLimitMessage, triggerCooldown } = useRateLimitCooldown();
 
   const passwordLength = password.length;
   const passwordStrength = passwordLength === 0 ? 0 : passwordLength < 8 ? 1 : passwordLength < 12 ? 2 : 3;
@@ -38,35 +63,55 @@ function SignupForm() {
     setError(null);
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError({ text: 'Password must be at least 8 characters.', type: 'error' });
       return;
     }
 
     setIsLoading(true);
 
-    const supabase = createClient();
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name.trim() },
-        emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
-      },
-    });
+    try {
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name.trim() },
+          emailRedirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+        },
+      });
 
-    if (signUpError) {
-      setError(signUpError.message);
+      if (signUpError) {
+        if (isRateLimitError(signUpError.message)) {
+          triggerCooldown(60);
+        }
+        setError(getFriendlySignupError(signUpError.message));
+        setIsLoading(false);
+        return;
+      }
+
+      // Supabase returns a fake user with empty identities for repeated signups
+      // to prevent email enumeration. No confirmation email is sent in this case.
+      if (data.user?.identities?.length === 0) {
+        setError({
+          text: 'An account with this email already exists.',
+          type: 'account_exists',
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.user && !data.session) {
+        setConfirmationSent(true);
+        setIsLoading(false);
+        return;
+      }
+
+      router.push(redirectTo);
+    } catch (err) {
+      console.error('[auth] signup error:', err);
+      setError({ text: 'Something went wrong. Please try again.', type: 'error' });
       setIsLoading(false);
-      return;
     }
-
-    if (data.user && !data.session) {
-      setConfirmationSent(true);
-      setIsLoading(false);
-      return;
-    }
-
-    router.push(redirectTo);
   }
 
   async function handleGoogleSignup() {
@@ -80,7 +125,7 @@ function SignupForm() {
     });
 
     if (oauthError) {
-      setError(oauthError.message);
+      setError({ text: oauthError.message, type: 'error' });
     }
   }
 
@@ -196,16 +241,31 @@ function SignupForm() {
         </div>
 
         {/* Error */}
-        {error && (
+        {(rateLimitMessage ?? error) && (
           <div
-            className="mb-4 rounded-xl px-3.5 py-2.5 text-[13px] font-medium"
+            className="mb-4 rounded-xl px-3.5 py-2.5 text-[13px] font-medium flex items-start gap-2.5"
             style={{
               backgroundColor: 'rgba(239,68,68,0.08)',
               color: '#ef4444',
               border: '1px solid rgba(239,68,68,0.12)',
             }}
           >
-            {error}
+            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+            <div>
+              {rateLimitMessage ?? error?.text}
+              {!rateLimitMessage && error?.type === 'account_exists' && (
+                <>
+                  {' '}
+                  <Link
+                    href={`/login${redirectTo !== '/setup' ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`}
+                    className="font-semibold underline underline-offset-2 transition-opacity hover:opacity-80"
+                    style={{ color: '#ef4444' }}
+                  >
+                    Sign in instead
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         )}
 
@@ -341,7 +401,7 @@ function SignupForm() {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isRateLimited}
             className="auth-btn group relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100 mt-1"
             style={{
               background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
@@ -353,6 +413,8 @@ function SignupForm() {
                 <span className="auth-spinner" />
                 Creating account...
               </span>
+            ) : isRateLimited ? (
+              rateLimitMessage
             ) : (
               <>
                 Create account

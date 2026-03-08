@@ -15,6 +15,7 @@ import {
   PlanCard,
   CreditBalance,
   CreditPackCard,
+  CancelConfirmModal,
 } from '@/views/components/billing';
 import { getAllPlans, CREDIT_PACKS_STATIC } from '@/config/billing';
 import type { BillingPlanId, BillingInterval } from '@/types/billing';
@@ -27,6 +28,8 @@ export function BillingTab() {
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('month');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const [isCreditPackLoading, setIsCreditPackLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isCancelLoading, setIsCancelLoading] = useState(false);
 
   const handleUpgradeCheckout = async (planId: BillingPlanId, interval: BillingInterval) => {
     try {
@@ -69,18 +72,63 @@ export function BillingTab() {
                 )}
               </div>
               {billing.subscription.hasStripeSubscription && (
-                <button
-                  onClick={() => billing.openPortal()}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-[1.02]"
-                  style={{
-                    color: 'var(--text-secondary)',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'transparent',
-                  }}
-                >
-                  <ExternalLink size={12} />
-                  Manage
-                </button>
+                <div className="flex items-center gap-2">
+                  {billing.subscription.planId === 'pro' && !billing.subscription.cancelAtPeriodEnd && (
+                    <button
+                      onClick={() => setShowCancelModal(true)}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-[1.02]"
+                      style={{
+                        color: '#ff5941',
+                        border: '1px solid rgba(255, 89, 65, 0.3)',
+                        backgroundColor: 'rgba(255, 89, 65, 0.06)',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  {billing.subscription.cancelAtPeriodEnd && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          setIsCancelLoading(true);
+                          await billing.resumeSubscription();
+                          toast('success', 'Subscription resumed!');
+                        } catch (err) {
+                          toast('error', err instanceof Error ? err.message : 'Failed to resume');
+                        } finally {
+                          setIsCancelLoading(false);
+                        }
+                      }}
+                      disabled={isCancelLoading}
+                      className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-[1.02] disabled:opacity-50"
+                      style={{
+                        color: '#22c55e',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.06)',
+                      }}
+                    >
+                      {isCancelLoading ? 'Resuming...' : 'Resume'}
+                    </button>
+                  )}
+                  <button
+                    onClick={async () => {
+                      try {
+                        await billing.openPortal();
+                      } catch (err) {
+                        toast('error', err instanceof Error ? err.message : 'Failed to open billing portal');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all duration-200 hover:scale-[1.02]"
+                    style={{
+                      color: 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'transparent',
+                    }}
+                  >
+                    <ExternalLink size={12} />
+                    Manage
+                  </button>
+                </div>
               )}
             </div>
             {billing.usage && (
@@ -215,6 +263,22 @@ export function BillingTab() {
             </span>
           </div>
         </SectionCard>
+      )}
+      {showCancelModal && billing.subscription && (
+        <CancelConfirmModal
+          periodEnd={billing.subscription.currentPeriodEnd}
+          onConfirm={async () => {
+            try {
+              await billing.cancelSubscription();
+              toast('success', 'Subscription will cancel at period end');
+            } catch (err) {
+              toast('error', err instanceof Error ? err.message : 'Cancel failed');
+            } finally {
+              setShowCancelModal(false);
+            }
+          }}
+          onClose={() => setShowCancelModal(false)}
+        />
       )}
     </div>
   );

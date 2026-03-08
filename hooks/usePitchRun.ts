@@ -8,7 +8,8 @@ import type {
   CreatePitchRunRequest,
   CreatePitchRunResponse,
 } from '@/types/pitch';
-import { getEdgeErrorCode, getEdgeRedirectTo } from '@/lib/supabase/edge-error';
+import { getEdgeErrorCode, getEdgeRedirectTo, parseRetryAfter } from '@/lib/supabase/edge-error';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 
 export interface RunPitchAnalysisResult {
   runId: string;
@@ -27,6 +28,8 @@ export interface RunPitchAnalysisResult {
 export interface UsePitchRunReturn {
   isAnalyzing: boolean;
   error: string | null;
+  isRateLimited: boolean;
+  secondsRemaining: number;
   runPitchAnalysis: (
     input: CreatePitchRunRequest,
   ) => Promise<RunPitchAnalysisResult>;
@@ -35,6 +38,7 @@ export interface UsePitchRunReturn {
 export function usePitchRun(): UsePitchRunReturn {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isRateLimited, secondsRemaining, triggerCooldown } = useRateLimitCooldown();
 
   const runPitchAnalysis = useCallback(
     async (input: CreatePitchRunRequest): Promise<RunPitchAnalysisResult> => {
@@ -53,6 +57,14 @@ export function usePitchRun(): UsePitchRunReturn {
         const payload = (await response.json()) as CreatePitchRunResponse | CreatePitchRunErrorResponse;
 
         if (!response.ok) {
+          // Handle 429 rate limit before other errors
+          if (response.status === 429) {
+            const body = payload as unknown as Record<string, unknown>;
+            const retryAfter = parseRetryAfter(response, body);
+            triggerCooldown(retryAfter);
+            throw new Error('Too many requests. Please try again shortly.');
+          }
+
           const edgePayload = payload as unknown as Record<string, unknown>;
           const code = getEdgeErrorCode(edgePayload);
           const redirectTo = getEdgeRedirectTo(edgePayload);
@@ -105,12 +117,14 @@ export function usePitchRun(): UsePitchRunReturn {
         setIsAnalyzing(false);
       }
     },
-    [],
+    [triggerCooldown],
   );
 
   return {
     isAnalyzing,
     error,
+    isRateLimited,
+    secondsRemaining,
     runPitchAnalysis,
   };
 }
