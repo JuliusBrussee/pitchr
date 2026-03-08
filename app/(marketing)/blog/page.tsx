@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { getAllPosts, getCategories } from '@/lib/blog';
 import { BlogCard } from '@/views/components/blog/BlogCard';
 import { BlogHero } from '@/views/components/blog/BlogHero';
+import { BlogNavbar } from '@/views/components/blog/BlogNavbar';
 import './blog.css';
 
 export const metadata: Metadata = {
@@ -44,6 +43,8 @@ export default function BlogPage() {
 
   return (
     <div className="blog-listing">
+      <BlogNavbar />
+
       {/* Marquee ticker */}
       <div className="blog-ticker">
         <div className="blog-ticker-track">
@@ -55,64 +56,62 @@ export default function BlogPage() {
         </div>
       </div>
 
-      <header className="blog-listing-header">
-        <div className="blog-header-top">
-          <Link href="/" className="blog-back-link">
-            <ArrowLeft size={14} />
-            Back to Pitchr
-          </Link>
-          <span className="blog-listing-issue">{issueDate}</span>
-        </div>
+      <div className="blog-listing-body">
+        <header className="blog-listing-header">
+          <div className="blog-header-top">
+            <span className="blog-listing-issue">{issueDate}</span>
+          </div>
 
-        <div className="blog-header-divider" />
+          <div className="blog-header-divider" />
 
-        <div className="blog-listing-title-wrap">
-          <h1 className="blog-listing-title">
-            The Pitch{' '}
-            <span className="title-accent">Journal</span>
-          </h1>
-          <p className="blog-listing-subtitle">
-            Frameworks, tips, and insights to help founders nail every pitch.
-          </p>
-        </div>
+          <div className="blog-listing-title-wrap">
+            <h1 className="blog-listing-title">
+              The Pitch{' '}
+              <span className="title-accent">Journal</span>
+            </h1>
+            <p className="blog-listing-subtitle">
+              Frameworks, tips, and insights to help founders nail every pitch.
+            </p>
+          </div>
 
-        {categories.length > 1 && (
+          {categories.length > 1 && (
+            <>
+              <div className="blog-header-divider" />
+              <div className="blog-categories">
+                {categories.map((cat) => (
+                  <span key={cat} className="blog-category-pill">
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
+        </header>
+
+        {featured && (
           <>
-            <div className="blog-header-divider" />
-            <div className="blog-categories">
-              {categories.map((cat) => (
-                <span key={cat} className="blog-category-pill">
-                  {cat}
-                </span>
+            <div className="blog-section-label">Featured</div>
+            <BlogHero post={featured} />
+          </>
+        )}
+
+        {remaining.length > 0 && (
+          <>
+            <div className="blog-section-label">Latest Articles</div>
+            <div className="blog-grid">
+              {remaining.map((post, i) => (
+                <BlogCard key={post.slug} post={post} index={i + 1} />
               ))}
             </div>
           </>
         )}
-      </header>
 
-      {featured && (
-        <>
-          <div className="blog-section-label">Featured</div>
-          <BlogHero post={featured} />
-        </>
-      )}
-
-      {remaining.length > 0 && (
-        <>
-          <div className="blog-section-label">Latest Articles</div>
-          <div className="blog-grid">
-            {remaining.map((post, i) => (
-              <BlogCard key={post.slug} post={post} index={i + 1} />
-            ))}
+        {posts.length === 0 && (
+          <div className="blog-empty">
+            <p>No posts yet. Check back soon.</p>
           </div>
-        </>
-      )}
-
-      {posts.length === 0 && (
-        <div className="blog-empty">
-          <p>No posts yet. Check back soon.</p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

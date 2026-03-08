@@ -36,7 +36,7 @@ function YouTube({ id }: { id: string }) {
 function Quote({ children, author }: { children: React.ReactNode; author?: string }) {
   return (
     <blockquote className="blog-quote">
-      {children}
+      <div className="blog-quote-content">{children}</div>
       {author && <cite className="blog-quote-author">{author}</cite>}
     </blockquote>
   );
@@ -74,7 +74,9 @@ export const mdxComponents: MDXComponents = {
   FAQSection,
   FAQItem,
   h1: (props) => <h1 className="blog-h1" {...props} />,
-  h2: (props) => <h2 className="blog-h2" {...props} />,
+  h2: (props) => (
+    <h2 className="blog-h2" {...props} />
+  ),
   h3: (props) => <h3 className="blog-h3" {...props} />,
   p: (props) => <p className="blog-p" {...props} />,
   ul: (props) => <ul className="blog-ul" {...props} />,
