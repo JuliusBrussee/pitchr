@@ -1241,24 +1241,27 @@
 
 /* ── Layout: sidebar + content ── */
 .blog-post-layout {
-  position: relative;
-  max-width: 720px;
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  max-width: calc(180px + 40px + 720px + 40px + 180px);
   margin: 0 auto;
   padding: 48px 32px 100px;
   animation: fadeIn 0.6s ease 0.3s both;
 }
 
 .blog-post-sidebar {
-  position: absolute;
-  right: calc(100% + 40px);
-  top: 48px;
+  flex-shrink: 0;
   width: 180px;
+  order: -1;
+  align-self: flex-start;
+  position: sticky;
+  top: 80px;
 }
+
 
 /* ═══ TABLE OF CONTENTS ═══ */
 .blog-toc {
-  position: sticky;
-  top: 72px;
 }
 
 .blog-toc-title {
@@ -1310,7 +1313,9 @@
 
 /* ═══ MDX CONTENT ═══ */
 .blog-content {
-  max-width: 100%;
+  max-width: 720px;
+  width: 100%;
+  min-width: 0;
   font-size: 18px;
   line-height: 1.72;
   color: var(--text);
@@ -1347,6 +1352,7 @@
   letter-spacing: -0.01em;
   padding-top: 28px;
   border-top: 1px solid var(--border);
+  scroll-margin-top: 80px;
 }
 
 .blog-h3 {
@@ -1356,6 +1362,7 @@
   margin: 40px 0 12px;
   letter-spacing: -0.005em;
   color: var(--text);
+  scroll-margin-top: 80px;
 }
 
 .blog-p {
