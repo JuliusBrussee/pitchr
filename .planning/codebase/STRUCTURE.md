@@ -74,9 +74,9 @@ pitchr/
 
 **`lib/`:**
 - Purpose: Shared low-level integration and utility modules.
-- Contains: Supabase client factories, LLM router/providers, prompt builders, analytics/head-tracking helpers.
-- Key files: `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/admin.ts`, `lib/supabase/fetch-edge.ts`, `lib/llm/router.ts`, `lib/prompts/judge.ts`.
-- Subdirectories: `lib/supabase/`, `lib/llm/`, `lib/prompts/`, `lib/headTracking/`, `lib/review/`.
+- Contains: Supabase client factories, LLM router/providers, prompt builders, analytics/head-tracking helpers, and public-site metadata utilities.
+- Key files: `lib/site.ts`, `lib/metadata/publicPageMetadata.ts`, `lib/supabase/client.ts`, `lib/supabase/server.ts`, `lib/supabase/admin.ts`, `lib/supabase/fetch-edge.ts`, `lib/llm/router.ts`, `lib/prompts/judge.ts`.
+- Subdirectories: `lib/metadata/`, `lib/supabase/`, `lib/llm/`, `lib/prompts/`, `lib/headTracking/`, `lib/review/`.
 
 **`models/`:**
 - Purpose: Data-access-centric model modules.
@@ -144,6 +144,8 @@ pitchr/
 - `lib/supabase/admin.ts`: service-role Supabase client.
 - `lib/supabase/auth-helpers.ts`: authenticated-user helper for Next API routes.
 - `lib/supabase/fetch-edge.ts`: client transport to edge functions with auth headers.
+- `lib/site.ts`: shared public site URL, canonical URL, and sitemap route helpers.
+- `lib/metadata/publicPageMetadata.ts`: shared public metadata and breadcrumb JSON-LD builders.
 
 **Testing:**
 - `services/__tests__/*`: service-level tests.

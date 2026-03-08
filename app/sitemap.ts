@@ -1,49 +1,31 @@
 import type { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
-
-const BASE_URL = 'https://pitchr.live';
+import { buildCanonicalUrl, PUBLIC_MARKETING_ROUTES } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const posts = getAllPosts();
+  const staticEntries: MetadataRoute.Sitemap = PUBLIC_MARKETING_ROUTES.map((route) => ({
+    url: buildCanonicalUrl(route.path),
+    lastModified: new Date(),
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
+  }));
 
   const blogEntries: MetadataRoute.Sitemap = posts.map((post) => ({
-    url: `${BASE_URL}/blog/${post.slug}`,
+    url: buildCanonicalUrl(`/blog/${post.slug}`),
     lastModified: new Date(post.lastModified || post.date),
     changeFrequency: 'monthly',
     priority: 0.7,
   }));
+  const blogIndex = staticEntries.findIndex((entry) => entry.url === buildCanonicalUrl('/blog'));
+
+  if (blogIndex === -1) {
+    return [...staticEntries, ...blogEntries];
+  }
 
   return [
-    {
-      url: BASE_URL,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
-    {
-      url: `${BASE_URL}/blog`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
+    ...staticEntries.slice(0, blogIndex + 1),
     ...blogEntries,
-    {
-      url: `${BASE_URL}/about`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      url: `${BASE_URL}/terms`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
-    },
-    {
-      url: `${BASE_URL}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.3,
-    },
+    ...staticEntries.slice(blogIndex + 1),
   ];
 }

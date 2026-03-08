@@ -67,3 +67,49 @@ This file is the canonical running log for merge-conflict tracking and conflict-
 - Validation:
   - `yarn typecheck` -> passed.
   - `yarn test tests/projects-rubric-context.test.tsx tests/rubric-policy.test.ts tests/projects-edge-rubric-context.test.ts` -> passed (15 tests).
+- Timestamp: `2026-03-08 13:10:00 +01:00`
+- Scope: adaptive mode-native scoring runtime + schema-driven results rendering.
+- Conflict-prone files touched:
+  - `supabase/functions/_shared/analysis-service.ts`
+  - `supabase/functions/pitch-run/index.ts`
+  - `views/components/results/ResultsPresentation.tsx`
+  - `app/(app)/results/[runId]/page.tsx`
+  - `types/analysis-v2.ts`
+  - `types/adaptive-analysis.ts`
+- Integration note:
+  - The edge analysis path now compiles a runtime evaluation schema from transcript-derived mode artifacts plus uploaded rubric text, then projects legacy summary fields from adaptive dimension results for backward compatibility.
+  - Results rendering now resolves runtime presentation schemas and can render adaptive alert and dimension-group sections without changing the existing visual system.
+- Validation:
+  - `yarn tsc --noEmit --pretty false` -> passed.
+  - `yarn vitest run tests/adaptive-rubric-compiler.test.ts tests/judge-agent-service.test.ts tests/results-presentation.test.tsx tests/run-normalization.test.ts tests/analysis-normalization.test.ts tests/analytics-page.test.tsx tests/history-page.test.tsx` -> passed.
+- Timestamp: `2026-03-08 19:36:35 +01:00`
+- Scope: merged current `main` into `lucasfeature`, then restored the local adaptive-scoring/results worktree changes.
+- Merge commit: `32cf056` (`Merge branch 'main' into lucasfeature`).
+- Real merge conflicts resolved:
+  - none
+- Stash reapply conflicts resolved:
+  - none
+- Integration note:
+  - `main` brought in the blog layout/content refresh, STT/transcription updates, session/history changes, and shared UI additions on top of `lucasfeature`.
+  - Local adaptive analysis, results presentation, and schema-generation work reapplied cleanly after the merge without dropping the in-progress files.
+- Validation:
+  - `rg -n "<<<<<<<|=======|>>>>>>>" -g "*.ts" -g "*.tsx" -g "*.md" .` -> no live conflict markers outside the log's instructional text.
+  - `yarn typecheck` -> passed.
+  - `yarn test` -> passed (59 files, 330 tests).
+- Timestamp: `2026-03-08 20:10:00 +01:00`
+- Scope: phase 05-01 public route ownership and landing crawlability handoffs.
+- Conflict-prone files:
+  - `app/(marketing)/page.tsx`
+  - `views/components/landing/LandingClient.tsx`
+- Integration note:
+  - Added dedicated `/delivery-rubric`, `/scoring-logic`, and `/growth-pricing` marketing routes from the shared public-page shell.
+  - Landing navigation, footer, and story handoffs now point to dedicated routes, and launch/blog/pricing teaser content no longer depends on `ssr: false` route gaps.
+- Timestamp: `2026-03-08 20:24:27 +01:00`
+- Scope: phase 05-02 public SEO and discoverability foundation.
+- Conflict-prone files:
+  - `app/sitemap.ts`
+  - `playwright.config.ts`
+  - `tests/public-seo-foundations.test.ts`
+- Integration note:
+  - Public-route canonical URLs now resolve from the shared site helper used by page metadata, JSON-LD, and sitemap generation.
+  - Playwright smoke coverage now depends on `yarn dev` and validates the landing-to-deep-page handoff cluster plus Journal routing.

@@ -1,126 +1,172 @@
 # Feature Research
 
-**Domain:** Hackathon pitch feedback mode for an existing elevator/VC pitch coaching product
-**Researched:** 2026-03-05
+**Domain:** Public problem-intent deep-dive pages for Pitchr v1.1 growth surfaces
+**Researched:** 2026-03-08
 **Confidence:** MEDIUM
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
+#### Information Architecture
+
 Features users assume exist. Missing these = product feels incomplete.
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Hackathon rubric scoring + gap diagnosis | ETHGlobal and HackHarvard publish explicit multi-criterion judging rubrics; Devpost also expects clear criteria for judging. | MEDIUM | Map event criteria to a normalized schema, then return per-criterion scores plus top fixes. |
-| Submission readiness and compliance checks | Devpost and ETHGlobal require specific submission assets (public demo video, repo, description, category selection) and strict deadlines. | MEDIUM | Validate required links, video constraints, visibility, and missing fields before final submit. |
-| Demo narrative coach (2-4 minute format) | ETHGlobal requires a short demo video, and Devpost emphasizes a clear opening elevator pitch and product demo. | MEDIUM | Score for problem clarity, solution clarity, product-in-action proof, and pacing. |
-| Finalist pitch + Q&A simulator | ETHGlobal finalist format includes timed demo and judge Q&A. | HIGH | Simulate timed rounds and score concise answers to common judge questions. |
-| Track/prize alignment helper | Major hackathons use partner tracks and require explicit track selection and fit statements. | MEDIUM | Recommend best-fit tracks and generate track-specific evidence prompts. |
-| Iterative rehearsal loop with delta tracking | Teams iterate quickly before deadlines and need to know what improved vs what regressed per attempt. | MEDIUM | Compare attempt N to N+1 by rubric dimension and prioritize the next highest-ROI fix. |
+| Intent-specific hub-and-spoke page set | Best product-led sites give each core problem or use case its own destination instead of forcing every query into one long landing page. | MEDIUM | One canonical page each for Delivery Rubric, Scoring Logic, Growth Pricing, and Journal. Each page needs its own slug, title, H1, meta description, and internal links. GEO note: make the page topic and entity clear in the URL, title, and opening copy. |
+| Visible page hierarchy and jump navigation | Strong long-form product pages make scanning easy and show users where they are in the product story. | LOW | Use breadcrumbs plus an in-page section nav for long pages. Breadcrumb structured data is worth implementing because it helps both users and crawlers interpret hierarchy. |
+| Cross-link network between deep pages and supporting surfaces | Users and crawlers expect a coherent cluster, not isolated pages with no semantic relationship. | MEDIUM | Every page should link to adjacent surfaces: Journal, Pricing, Scoring Logic, Delivery Rubric, and free signup. This is table stakes for both SEO and LLM retrieval context. |
+
+#### Content Modules
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Answer-first hero with explicit problem, audience, and outcome | Best-in-class product pages immediately answer what the product does, who it is for, and why this page exists. | LOW | The first 150-200 words should define Pitchr, the page topic, the user problem, and the promised output in plain language. Important copy must be text, not animation-only. |
+| How-it-works explainer with annotated visuals or demos | Visitors expect to see the workflow before they commit to signup. | MEDIUM | Each page needs one concrete narrative: input -> scoring or feedback -> outcome. Delivery Rubric and Scoring Logic especially need step-by-step explanation supported by screenshots or visual examples. |
+| Trust, proof, and objection-handling block | Product-led pages routinely include proof, guardrails, and common objections so users do not need to dig elsewhere. | MEDIUM | Include proof of product quality, methodology guardrails, limitations, and trust signals. For Growth Pricing, this also means explicit free-plan clarity and upgrade boundaries. |
+| Plain-language FAQ or Q&A section | Users expect direct answers to core objections without leaving the page. | LOW | Good for skimming and extraction. Keep Q&A visible in HTML. Do not rely on FAQ rich results because Google limits those for most non-government and non-health sites. |
+| Crawlable SEO and GEO baseline content structure | Search and AI features depend on helpful text, hierarchy, internal links, and structured data that matches visible content. | MEDIUM | Use a clean H1/H2 structure, canonical tags, breadcrumbs, sitemap inclusion, internal links, textual summaries, and structured data that mirrors visible copy. Journal entries should also use Article metadata. |
+
+#### Conversion Modules
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Persistent free-signup CTA with page-specific copy | Product-led sites let visitors self-serve directly from every deep page. | LOW | Use a hero CTA, one mid-page CTA, and one bottom CTA. Match the CTA copy to intent, for example `Try free rubric scoring` or `See your scoring logic`. |
+| Low-friction CTA support modules | Users need enough context to say yes without booking sales or reading more pages first. | LOW | Support CTA conversion with a concise free-plan summary, what happens after signup, and at least one sample result or preview. Keep sales or demo requests secondary. |
 
 ### Differentiators (Competitive Advantage)
 
-Features that set the product apart. Not required, but valuable.
+#### Information Architecture
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Winner-corpus evidence engine | Feedback is grounded in patterns from verified winning hackathon pitches, not generic speaking advice. | HIGH | Requires verified corpus, transcription quality, and pattern extraction with citation traces. |
-| Event-rule ingestion from URL/PDF | Adapts coaching to a specific hackathon's rules, rubric names, and submission constraints. | MEDIUM | Parse rules into structured config with a human-review checkpoint. |
-| Multi-judge persona simulation (technical, UX, sponsor) | Better prepares teams for mixed judging contexts and async-plus-live evaluation flows. | HIGH | Use persona-specific prompts and output disagreement analysis with consensus advice. |
-| Build integrity + AI attribution auditor | Reduces disqualification risk from unclear build history or undocumented AI usage. | MEDIUM | Check commit timeline consistency and AI usage disclosure completeness. |
-| Submission packet autoprep | Compresses final-hour prep into one package: final script, checklist, submission text, and links. | MEDIUM | Generate event-ready copy for fields commonly required in submission portals. |
+| Knowledge-cluster linking across Delivery Rubric, Scoring Logic, Journal, and Pricing | Makes Pitchr feel like a coherent authority rather than a set of unrelated marketing pages. | MEDIUM | Each page should explicitly explain how it connects to the others. This improves user comprehension and also helps LLM retrieval because entity relationships are stated, not implied. |
+
+#### Content Modules
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Interactive scored example or rubric simulator | Lets visitors see rubric-grounded feedback instead of reading abstract claims about AI scoring. | HIGH | Strongest differentiator for Pitchr. A sample pitch with score changes is more convincing than generic motion or abstract UI. |
+| Citation-backed methodology blocks | Turns `AI scoring` into auditable reasoning with sources, constraints, and evidence. | MEDIUM | Most useful on Scoring Logic and Delivery Rubric pages. Link factual claims to first-party methodology, product evidence, or authoritative external sources when relevant. GEO note: cited claims are easier to trust and quote. |
+| Before-and-after or generic-vs-rubric comparison module | Makes Pitchr's core value legible fast: project-specific rubric feedback beats generic pitch advice. | MEDIUM | High-value module for visitors arriving from comparison or problem-intent queries. Can be static at launch and interactive later. |
+| Journal insight snippets embedded into deep pages | Converts the Journal from a blog into proof and supporting context for product pages. | MEDIUM | Pull one or two concise insights from Journal content with links back to the full article. This adds freshness and depth without turning the product page into an article. |
+| Transparent `what we score` and `what we do not score` section | Builds trust, sharpens entity clarity, and reduces overclaim risk. | LOW | Especially valuable on Scoring Logic. LLMs also benefit when page boundaries and definitions are explicit. |
+
+#### Conversion Modules
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Intent-aware signup routing | Preserves the page story into the free signup flow instead of restarting the user journey after the click. | MEDIUM | Example: visitors from Delivery Rubric land in a rubric-scoring first run; Pricing visitors land on free-tier activation. Requires attribution plumbing and deep links. |
+| Page-specific sample asset handoff | Gives visitors something tangible before signup, increasing confidence without hiding the main value behind a gate. | MEDIUM | Example assets: sample score report, rubric checklist, or scoring explainer PDF derived from first-party content. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Features that seem good but create problems.
-
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| VC-first default coaching inside hackathon mode | Existing users are familiar with investor-style pitch structures. | MLH explicitly distinguishes hackathons from startup contests and advises judges to avoid business-first framing. | Keep commercialization prompts optional and off by default in hackathon mode. |
-| Single opaque "overall score" only | Teams want a quick rank number. | Hackathon judging is multi-criterion; one score hides actionable weaknesses and creates poor iteration guidance. | Always show per-criterion scores, evidence, and top fixes. |
-| Fully auto-generated pitch/video/deck output | Teams want speed near deadline. | ETHGlobal rules require meaningful participant contribution and transparent AI use; over-automation increases risk and hurts live Q&A readiness. | AI-assisted drafting and coaching with human-delivered final presentation. |
-| Presentation polish over working proof | Teams believe slick storytelling can compensate for product gaps. | Common judging criteria heavily include technicality, functionality, and practicality. | Gate polish features behind a "working demo proven" check. |
-| Always-on background meeting monitoring | Users ask for passive continuous coaching. | Creates privacy/trust friction and is unnecessary for focused hackathon prep workflows. | Use explicit opt-in rehearsal sessions with clear recording controls. |
+| Dozens of thin keyword pages generated from one template | Feels like fast SEO coverage for every pitch or scoring phrase. | Google warns against mass content made mainly to attract search visits. Thin pages also weaken trust and LLM retrieval quality. | Build one strong page per real intent cluster, then expand only where Pitchr has distinct first-party expertise and unique examples. |
+| Motion-first pages where core facts only exist in video, canvas, or scroll effects | Feels premium and visually distinctive. | Google says important content for AI features should be available in textual form. LLMs also miss or underweight facts hidden inside animation layers. | Keep motion as support. Put definitions, claims, steps, and FAQs in rendered HTML text. |
+| GEO gimmicks as a substitute for crawlable pages | Teams hear about `llms.txt`, AI-only feeds, or other supposed GEO shortcuts. | Google says there are no extra AI-feature technical requirements and no special AI text files or schema needed. Chasing gimmicks delays the work that actually matters. | Focus on crawlability, internal linking, entity clarity, citations, and structured data that matches visible content. Treat `llms.txt` as experimental only. |
+| Over-claiming opaque AI authority | Sounds persuasive because it promises magic. | It undermines trust, weakens people-first content quality, and gives LLMs nothing grounded to quote accurately. | Show methodology, scored examples, explicit limits, and proof instead of vague `our AI knows best` claims. |
+| High-friction conversion on product-intent pages | Demo forms and sales-first CTAs feel safer to internal stakeholders. | This conflicts with the milestone goal of free-signup conversion and breaks product-led intent for visitors arriving from search or AI answers. | Keep free signup as the default CTA. Demo or sales contact should remain secondary. |
+| FAQ schema as a primary SEO strategy | Teams remember older FAQ rich-result wins. | Google limits FAQ rich results to well-known government and health sites, so SaaS pages should not plan around this tactic. | Keep strong visible Q&A for users and extraction. Use breadcrumb and article schema where it actually fits. |
+
+## GEO-Specific Requirements
+
+- Keep primary claims, definitions, and answers in rendered HTML text. Animations, diagrams, and videos should reinforce the copy, not contain the only copy.
+- Make entity relationships explicit in the opening sections: `Pitchr`, the page topic (`Delivery Rubric`, `Scoring Logic`, `Growth Pricing`, `Journal`), the target user, and the output they get.
+- Use structured data that matches visible content. `BreadcrumbList` is worth using across all deep pages. `Article` is appropriate for Journal entries. Treat `FAQPage` as low-ROI for Google rich results, but keep visible Q&A blocks.
+- Support major claims with first-party proof or cited external sources. For Pitchr, `how scoring works`, `what free includes`, and any performance or statistical claim should link to evidence.
+- Ensure discoverability is not accidentally blocked. Allow Googlebot, OAI-SearchBot, and Claude search crawlers where intended, validate canonical and indexing behavior, and keep deep pages in the XML sitemap and internal link graph.
+
+## Page-Type Mapping
+
+| Page | Primary Search Intent | Must-Have Modules |
+|------|-----------------------|-------------------|
+| Delivery Rubric | `how to score pitch delivery`, `pitch rubric feedback` | answer-first hero, rubric dimensions, scored example, methodology proof, FAQ, free-signup CTA |
+| Scoring Logic | `how pitch scoring works`, `AI pitch scoring explained` | methodology explainer, `what we score / do not score` block, cited proof, demo, FAQ, CTA |
+| Growth Pricing | `Pitchr pricing`, `free pitch scoring tool pricing` | free-plan clarity, plan comparison, upgrade triggers, FAQ, repeated CTA |
+| Journal | problem-intent educational queries | article template, author and date, citations, explicit connection to product page, contextual CTA |
 
 ## Feature Dependencies
 
-```
-[Event Rules Ingestion]
-  -> requires -> [Rubric Mapper]
-  -> requires -> [Submission Compliance Checker]
+```text
+[Intent-Specific Page IA]
+  -> requires -> [Problem or keyword cluster map]
+  -> requires -> [Unique metadata + canonical + sitemap inclusion]
 
-[Rubric Mapper]
-  -> enables -> [Rubric Gap Diagnosis]
-  -> enables -> [Prioritized Fix Plan]
+[Visible Entity Framing]
+  -> enables -> [LLM-readable extraction]
+  -> enables -> [FAQ and direct-answer blocks]
 
-[Demo Transcript + Timing Analysis]
-  -> enables -> [Demo Narrative Coach]
-  -> required for -> [Q&A Simulator]
+[How-It-Works + Scored Example]
+  -> requires -> [Reusable demo assets]
+  -> enhances -> [Trust and CTA conversion]
 
-[Track/Prize Metadata]
-  -> required for -> [Track Selection Helper]
+[Citation-Backed Methodology]
+  -> requires -> [Source library + editorial review]
+  -> strengthens -> [Scoring Logic page]
+  -> strengthens -> [Delivery Rubric page]
 
-[Verified Winner Corpus]
-  -> required for -> [Winner-Corpus Evidence Engine]
+[Intent-Aware Signup Routing]
+  -> requires -> [Attribution + deep-link support]
+  -> enhances -> [Free CTA conversion]
 
-[VC-Style Investor Coaching Defaults]
-  -> conflicts -> [Hackathon Mode Defaults]
+[Journal-to-Product Linking]
+  -> requires -> [Consistent entity vocabulary]
+  -> enhances -> [Authority cluster]
+  -> enhances -> [Internal linking]
+
+[Thin Programmatic Page Expansion]
+  -> conflicts -> [People-first authority pages]
 ```
 
 ### Dependency Notes
 
-- **Event Rules Ingestion requires Rubric Mapper:** Raw rules text must be normalized before scoring/coaching can be consistent.
-- **Rubric Mapper enables Rubric Gap Diagnosis:** Without mapped criteria, there is no reliable per-dimension weakness detection.
-- **Demo Transcript + Timing Analysis enables Demo Narrative Coach:** Narrative and pacing feedback require transcript and timing signals.
-- **Demo Narrative Coach is required for Q&A Simulator:** The simulator should target weak narrative areas found in demo analysis.
-- **Track/Prize Metadata is required for Track Selection Helper:** Prize-fit recommendations depend on up-to-date track definitions.
-- **Verified Winner Corpus is required for Winner-Corpus Evidence Engine:** Evidence-grounded coaching fails without verified high-signal examples.
-- **VC-style defaults conflict with Hackathon defaults:** Conflicting objective functions produce inconsistent guidance.
+- **Intent-Specific Page IA requires a problem or keyword cluster map:** each page needs one dominant intent so the title, H1, CTA, and internal links do not blur together.
+- **Visible Entity Framing enables LLM-readable extraction:** AI systems retrieve better when the page states exactly what Pitchr is, what the page is about, and who it serves.
+- **How-It-Works + Scored Example requires reusable demo assets:** the same sample pitch, transcript, and score data should power multiple pages to keep claims consistent.
+- **Citation-Backed Methodology requires a source library and editorial review:** once Pitchr cites scoring logic or statistics, it needs a repeatable way to keep those claims current and defensible.
+- **Intent-Aware Signup Routing requires attribution and deep links:** conversion modules are strongest when the signup flow continues the exact story the page started.
+- **Journal-to-Product Linking requires consistent entity vocabulary:** the same terms for rubric, scoring logic, and free plan should appear across product pages and Journal content.
+- **Thin programmatic expansion conflicts with people-first authority pages:** scale should only happen after the first four pages prove demand and content quality.
 
 ## MVP Definition
 
 ### Launch With (v1)
 
-Minimum viable product - what is needed to validate hackathon mode.
-
-- [ ] Hackathon rubric scoring + gap diagnosis - core value anchor for judging-aligned feedback.
-- [ ] Submission readiness and compliance checks - prevents avoidable disqualification and submission errors.
-- [ ] Demo narrative coach (2-4 minute format) - directly improves the most visible judging artifact.
-- [ ] Finalist pitch + Q&A simulator - covers live judging pressure scenario.
-- [ ] Iterative rehearsal loop with delta tracking - supports fast pre-deadline improvement.
+- [ ] Intent-specific hub-and-spoke IA for the four new public pages with unique metadata, breadcrumbs, and internal links.
+- [ ] Answer-first hero, how-it-works module, trust or FAQ block, and repeated free-signup CTA on every deep page.
+- [ ] Crawlable SEO and GEO baseline: canonical and indexable pages, important copy in HTML text, sitemap inclusion, and structured data that matches visible content.
+- [ ] One concrete product demo or scored example on each page, with the strongest interactive version reserved for Delivery Rubric or Scoring Logic.
 
 ### Add After Validation (v1.x)
 
-Features to add once core flow is proven.
-
-- [ ] Track/prize alignment helper - add once baseline scoring quality is trusted.
-- [ ] Event-rule ingestion from URL/PDF - add when demand for event-specific adaptation is confirmed.
-- [ ] Submission packet autoprep - add when teams ask for final-hour workflow acceleration.
+- [ ] Interactive rubric simulator with live score deltas after static scored-example blocks prove useful.
+- [ ] Citation-backed methodology and comparison modules once the editorial and source workflow is stable.
+- [ ] Intent-aware signup routing once attribution data shows which pages and CTA variants convert best.
 
 ### Future Consideration (v2+)
 
-Features to defer until mode maturity.
-
-- [ ] Winner-corpus evidence engine - highest upside, but depends on corpus quality and provenance workflows.
-- [ ] Multi-judge persona simulation - valuable but model-intensive and best after baseline mode stability.
-- [ ] Build integrity + AI attribution auditor - high trust value, but broader implementation surface.
+- [ ] Carefully expanded long-tail page set, only where Pitchr has genuine first-party expertise and unique examples.
+- [ ] Experimental AI-discovery add-ons such as `llms.txt` or machine-readable knowledge exports, but only after the core pages are already crawlable and cited.
+- [ ] Deeper personalization by visitor segment or acquisition source, once the baseline public page system is converting.
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Hackathon rubric scoring + gap diagnosis | HIGH | MEDIUM | P1 |
-| Submission readiness and compliance checks | HIGH | MEDIUM | P1 |
-| Demo narrative coach (2-4 minute format) | HIGH | MEDIUM | P1 |
-| Finalist pitch + Q&A simulator | HIGH | HIGH | P1 |
-| Iterative rehearsal loop with delta tracking | HIGH | MEDIUM | P1 |
-| Track/prize alignment helper | MEDIUM | MEDIUM | P2 |
-| Event-rule ingestion from URL/PDF | MEDIUM | MEDIUM | P2 |
-| Submission packet autoprep | MEDIUM | MEDIUM | P2 |
-| Winner-corpus evidence engine | HIGH | HIGH | P3 |
-| Multi-judge persona simulation | MEDIUM | HIGH | P3 |
-| Build integrity + AI attribution auditor | MEDIUM | MEDIUM | P3 |
+| Intent-specific hub-and-spoke IA | HIGH | MEDIUM | P1 |
+| Answer-first hero + entity framing | HIGH | LOW | P1 |
+| How-it-works explainer + demo | HIGH | MEDIUM | P1 |
+| Trust / FAQ / objection handling | HIGH | MEDIUM | P1 |
+| Free-signup CTA system | HIGH | LOW | P1 |
+| Crawlable SEO and GEO baseline | HIGH | MEDIUM | P1 |
+| Interactive scored example or simulator | HIGH | HIGH | P2 |
+| Citation-backed methodology blocks | HIGH | MEDIUM | P2 |
+| Journal-to-product knowledge cluster | MEDIUM | MEDIUM | P2 |
+| Intent-aware signup routing | MEDIUM | MEDIUM | P2 |
+| Long-tail page expansion | MEDIUM | HIGH | P3 |
 
 **Priority key:**
 - P1: Must have for launch
@@ -129,30 +175,28 @@ Features to defer until mode maturity.
 
 ## Competitor Feature Analysis
 
-| Feature | Yoodli | Orai | Our Approach |
-|---------|--------|------|--------------|
-| Real-time speaking analytics | Yes (pitch practice, real-time/private feedback) | Yes (filler words, pace, confidence, transcript) | Yes, but tied to hackathon judging dimensions. |
-| Hackathon rubric alignment | No explicit event-rubric mapping in core docs | No | Yes, event-specific and criteria-driven. |
-| Submission compliance checks (rules, links, video constraints) | No | No | Yes, first-class readiness checks. |
-| Timed finalist Q&A simulation | Partial (pitch practice with follow-up questions) | No | Yes, aligned to finalist judging formats. |
-| Evidence from winning hackathon corpus | No | No | Yes, planned differentiator. |
+| Feature | Notion AI Meeting Notes | Figma Dev Mode | Stripe Billing | Our Approach |
+|---------|-------------------------|----------------|----------------|--------------|
+| Problem-led hero + free CTA | Strong hero, immediate free CTA, proof near the top | Clear persona framing, free CTA, secondary sales path | Clear hero, product summary, start now plus contact sales | Match this with page-specific free CTA copy tied to Pitchr intent |
+| Scan-friendly long-page structure | Broad ecosystem nav, page relies on guided section flow | Clear section progression for developer use case | Explicit Overview, Features, Pricing, and Docs pathways | Use breadcrumbs plus in-page jump nav on every long-form page |
+| Product walkthrough visuals | Multiple workflow visuals and use-case blocks | Deep capability blocks with screenshots and related links | Feature breakdown with linked docs and guides | Use annotated scoring examples and visual rubric explanations |
+| Trust, proof, and Q&A | Logos, quotes, security and privacy, Q&A | Logos, customer proof, supporting help content | Docs, guides, pricing clarity, repeated CTA | Combine proof with explicit methodology and scoring boundaries |
+| Connected ecosystem paths | Links to buyer guides, pricing, use cases, and help | Links to help docs and code resources | Links to docs, pricing, and guides | Build a tighter Journal + product-page cluster than competitors typically show |
 
 ## Sources
 
-- `C:\dev\pitchr\.planning\PROJECT.md` (project scope and constraints)
-- Devpost Help - Judging and public voting (official criteria/weighting guidance): https://help.devpost.com/article/64-judging-public-voting
-- Devpost Help - Submission period setup (required fields, video, visibility): https://help.devpost.com/article/145-how-do-i-set-up-the-submission-period
-- Devpost Help - Video-making best practices: https://help.devpost.com/article/84-video-making-best-practices
-- Devpost Blog - Submission and judging criteria guide: https://info.devpost.com/blog/understanding-hackathon-submission-and-judging-criteria
-- ETHGlobal ETHOnline 2025 Start (process, criteria overview): https://ethglobal.com/events/ethonline2025/info/start
-- ETHGlobal ETHOnline 2025 Details (timings, rules, rubric, Q&A format): https://ethglobal.com/events/ethonline2025/info/details
-- MLH Hackathon Organizer Guide - Judging Plan: https://guide.mlh.io/general-information/judging-and-submissions/judging-plan
-- MLH Hackathon Organizer Guide - Judges Communication and Recruiting: https://guide.mlh.io/general-information/judging-and-submissions/judges-communication-and-recruiting
-- MLH Hackathon Organizer Guide - Hackathon Submission Portal: https://guide.mlh.io/general-information/judging-and-submissions/hackathon-submission-portal
-- HackHarvard Handbook - Judging Criteria: https://info.hhuh.io/rules/judging_criteria/
-- Yoodli Support - Overview: https://support.yoodli.ai/en/articles/9550461-yoodli-overview
-- Orai App Store listing (feature set): https://apps.apple.com/us/app/orai-improve-public-speaking/id1203178170
+- `C:\dev\pitchr\.planning\PROJECT.md`
+- Google Search Central, "Creating helpful, reliable, people-first content" (HIGH): https://developers.google.com/search/docs/fundamentals/creating-helpful-content
+- Google Search Central, "AI features and your website" (HIGH): https://developers.google.com/search/docs/appearance/ai-features
+- Google Search Central, "Breadcrumb (`BreadcrumbList`) structured data" (HIGH): https://developers.google.com/search/docs/appearance/structured-data/breadcrumb
+- Google Search Central, "Article structured data" (HIGH): https://developers.google.com/search/docs/appearance/structured-data/article
+- Google Search Central, "FAQ (`FAQPage`) structured data" (HIGH for feature limitation guidance): https://developers.google.com/search/docs/appearance/structured-data/faqpage
+- OpenAI, "Overview of OpenAI crawlers" (HIGH): https://developers.openai.com/api/docs/bots
+- Claude Help Center, "Does Anthropic crawl data from the web, and how can site owners block the crawler?" (HIGH): https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler
+- Notion, AI Meeting Notes product page (MEDIUM, observed product-page pattern): https://www.notion.com/product/ai-meeting-notes
+- Figma, Dev Mode product page (MEDIUM, observed product-page pattern): https://www.figma.com/dev-mode/
+- Stripe, Billing product page (MEDIUM, observed product-page pattern): https://stripe.com/billing
 
 ---
-*Feature research for: Hackathon pitch feedback mode*
-*Researched: 2026-03-05*
+*Feature research for: Public deep-dive pages for Pitchr v1.1 growth surfaces*
+*Researched: 2026-03-08*

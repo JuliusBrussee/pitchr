@@ -1,76 +1,105 @@
-﻿# Requirements: Pitchr Project-Specific Rubric Context
+# Requirements: Pitchr Brand Experience Growth Surfaces
 
-**Defined:** 2026-03-05
+**Defined:** 2026-03-08
 **Core Value:** Users get feedback that reflects their actual project-specific rubric and constraints, not generic pitch advice.
 
 ## v1 Requirements
 
-### Project Configuration
+### Public Surfaces
 
-- [x] **PRJC-01**: User can open a selected project and access a dedicated `Rubric & Context` configuration section.
-- [x] **PRJC-02**: User can paste project-specific rubric/context text and save it to that project.
-- [ ] **PRJC-03**: System persists the saved rubric/context with `updated_at` and `updated_by` metadata.
+- [x] **SURF-01**: Public visitor can navigate from the landing page hub to a dedicated Delivery Rubric page.
+- [x] **SURF-02**: Public visitor can navigate from the landing page hub to a dedicated Scoring Logic page.
+- [x] **SURF-03**: Public visitor can navigate from the landing page hub to a dedicated Growth Pricing page.
+- [x] **SURF-04**: Public deep-dive pages share a consistent marketing shell, internal links, and section structure.
 
-### Permissions
+### Delivery Rubric
 
-- [ ] **PERM-01**: Only project owner/admin can create or update project rubric/context.
-- [ ] **PERM-02**: Non-owner users cannot edit project rubric/context through UI or API.
+- [ ] **DRUB-01**: Delivery Rubric page explains how Pitchr evaluates delivery-specific pitch signals in plain language.
+- [ ] **DRUB-02**: Delivery Rubric page shows a concrete scored example or annotated visual that makes delivery feedback legible to a first-time visitor.
 
-### Scoring Integration
+### Scoring Logic
 
-- [ ] **SCOR-01**: Every scoring run for a project automatically loads that project's saved rubric/context.
-- [ ] **SCOR-02**: Scoring logic layers project rubric/context on top of the default rubric (does not replace baseline rubric).
-- [ ] **SCOR-03**: Feedback output reflects project-specific rubric/context in recommendations and critique emphasis.
-- [ ] **SCOR-04**: Run metadata stores which rubric/context reference was used for that run.
+- [ ] **LOGC-01**: Scoring Logic page explains how Pitchr turns a pitch input into a score, ranked fixes, and rewritten guidance.
+- [ ] **LOGC-02**: Scoring Logic page explicitly states what Pitchr scores and what it does not score.
+- [ ] **LOGC-03**: Scoring Logic page includes one flagship interactive scored example or simulator for visitors.
 
-### Validation and UX Clarity
+### Growth Pricing
 
-- [x] **VAL-01**: System validates rubric/context input as non-empty and within configured max length.
-- [ ] **VAL-02**: Project settings clearly state that saved rubric/context is automatically applied to all project runs.
-- [ ] **VAL-03**: If project rubric/context is unavailable or invalid at run time, system falls back to default rubric and records the event.
+- [ ] **PRIC-01**: Growth Pricing page clearly explains free-tier access, usage limits, and paid upgrade boundaries.
+- [ ] **PRIC-02**: Growth Pricing page ties plan value to concrete user outcomes rather than generic pricing copy.
 
-## v2 Requirements
+### Conversion
 
-### Input Expansion
+- [ ] **CONV-01**: Every deep-dive page includes a primary free-signup CTA above the fold and near the end of the page.
+- [ ] **CONV-02**: CTA copy reflects the page's user intent instead of using one generic message everywhere.
 
-- **INPT-01**: User can upload rubric documents (PDF/DOCX) and extract text automatically.
-- **INPT-02**: User can manage multiple rubric/context entries per project with selection controls.
+### Discoverability
 
-### Control and Transparency
+- [x] **DISC-01**: Every deep-dive page ships with unique title, meta description, canonical URL, OG data, and sitemap inclusion.
+- [ ] **DISC-02**: Every deep-dive page keeps its core explanation in semantic HTML text with answer-first structure.
+- [ ] **DISC-03**: Every deep-dive page includes internal links, breadcrumbs, and structured data that match visible page content.
 
-- **CTRL-01**: User can optionally enable/disable project rubric/context per run.
-- **CTRL-02**: Results view includes explicit rubric-influence explanation for each run.
+### Motion and UX
+
+- [ ] **MOTN-01**: New public pages use a shared motion system that preserves brand consistency without making animation required for comprehension.
+- [ ] **MOTN-02**: Reduced-motion and mobile users get a fully legible fallback experience on all new public pages.
+
+## Future Requirements
+
+### Journal Expansion
+
+- **JOUR-01**: Existing `/blog` hub is visually refreshed and positioned as Journal support content within the public growth system.
+- **JOUR-02**: Journal articles include stronger related-page links and conversion modules back to public deep-dive pages.
+- **JOUR-03**: `/journal` alias or full route migration is introduced only with a redirect and canonical plan.
+
+### Demo Expansion
+
+- **DEMO-01**: Delivery Rubric page adds its own interactive simulator after the flagship Scoring Logic demo proves useful.
+- **DEMO-02**: Multiple public pages gain richer interactive demos beyond the first flagship experience.
+
+### Expansion Surfaces
+
+- **COMP-01**: Comparison or use-case pages are added once the first three deep-dive pages establish a clear content cluster.
+- **GEO-01**: Additional structured knowledge exports or experimental GEO artifacts are added after the crawlable pages are proven.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| File upload and OCR/parsing in v1 | Increases scope and failure modes; v1 focuses on fast, reliable text input |
-| Full replacement of default rubric | Reduces scoring consistency and comparability across runs |
-| Per-run include/exclude toggle in v1 | Adds behavior ambiguity; v1 prioritizes predictable always-on project context |
+| Completing prior rubric roadmap phases 2-4 in this milestone | This milestone is intentionally focused on public growth surfaces, not private scoring-flow continuation |
+| Full `/blog` to `/journal` route migration now | Adds redirect and canonical migration risk without improving first-launch page quality |
+| Interactive demos on every new public page | Too much complexity for the first release; one flagship interactive demo is higher leverage |
+| New CMS or content platform | The repo already has a working MDX content pipeline that is sufficient for this milestone |
+| Site-wide 3D or WebGL-first presentation layer | High performance and accessibility risk for little first-release value |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PRJC-01 | TBD | Complete |
-| PRJC-02 | TBD | Complete |
-| PRJC-03 | TBD | Pending |
-| PERM-01 | TBD | Pending |
-| PERM-02 | TBD | Pending |
-| SCOR-01 | TBD | Pending |
-| SCOR-02 | TBD | Pending |
-| SCOR-03 | TBD | Pending |
-| SCOR-04 | TBD | Pending |
-| VAL-01 | TBD | Complete |
-| VAL-02 | TBD | Pending |
-| VAL-03 | TBD | Pending |
+| SURF-01 | Phase 5 | Complete |
+| SURF-02 | Phase 5 | Complete |
+| SURF-03 | Phase 5 | Complete |
+| SURF-04 | Phase 5 | Complete |
+| DRUB-01 | Phase 6 | Pending |
+| DRUB-02 | Phase 6 | Pending |
+| LOGC-01 | Phase 6 | Pending |
+| LOGC-02 | Phase 6 | Pending |
+| LOGC-03 | Phase 7 | Pending |
+| PRIC-01 | Phase 6 | Pending |
+| PRIC-02 | Phase 6 | Pending |
+| CONV-01 | Phase 8 | Pending |
+| CONV-02 | Phase 8 | Pending |
+| DISC-01 | Phase 5 | Complete |
+| DISC-02 | Phase 6 | Pending |
+| DISC-03 | Phase 6 | Pending |
+| MOTN-01 | Phase 7 | Pending |
+| MOTN-02 | Phase 7 | Pending |
 
 **Coverage:**
-- v1 requirements: 12 total
-- Mapped to phases: 0
-- Unmapped: 12
+- v1 requirements: 18 total
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
-*Requirements defined: 2026-03-05*
-*Last updated: 2026-03-05 after initial definition*
+*Requirements defined: 2026-03-08*
+*Last updated: 2026-03-08 after milestone v1.1 scoping*

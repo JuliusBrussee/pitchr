@@ -1,8 +1,12 @@
-﻿# Roadmap: Pitchr Project-Specific Rubric Context
+# Roadmap: Pitchr Brand Experience Growth Surfaces
+
+## Milestones
+
+- 🚧 **v1.1 Brand Experience Growth Surfaces** - Phases 5-8 (in progress)
 
 ## Overview
 
-This roadmap delivers project-specific rubric context as a focused extension of Pitchr's existing project and scoring flow. The sequence moves from project-level configuration, to secure ownership controls, to automatic scoring integration, and then to user-visible feedback specificity and UX clarity.
+This roadmap shifts Pitchr's next milestone toward public, no-login growth surfaces. The sequence starts by fixing route ownership and crawlable rendering, then builds the three deep-dive pages, layers in premium motion and a flagship interactive scoring demo, and finally hardens conversion and discoverability so the new public surfaces can convert and compound authority.
 
 ## Phases
 
@@ -10,67 +14,78 @@ This roadmap delivers project-specific rubric context as a focused extension of 
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [x] **Phase 1: Rubric Context Entry** - Users can access project rubric settings and save valid project context text. (completed 2026-03-06)
-- [ ] **Phase 2: Permissioned Context Management** - Only owner/admin can create or update saved project context with edit attribution.
-- [ ] **Phase 3: Run-Time Rubric Layering** - Every project run automatically layers saved context onto default rubric with provenance and fallback handling.
-- [ ] **Phase 4: Context-Aware Feedback UX** - Feedback and settings messaging clearly reflect project-context influence and behavior.
+- [x] **Phase 5: Public IA and SEO Foundation** - Landing and public routes become server-first, crawlable, and ready for deep-dive pages.
+- [ ] **Phase 6: Deep-Dive Pages and Content System** - Delivery Rubric, Scoring Logic, and Growth Pricing pages ship with shared content and section architecture.
+- [ ] **Phase 7: Motion, Demos, and Brand System** - A shared motion layer and one flagship interactive scoring demo bring the new public pages to life.
+- [ ] **Phase 8: Conversion and Discoverability Hardening** - Page-specific signup routing, attribution, and crawl/discoverability validation turn the new surfaces into a working growth system.
 
 ## Phase Details
 
-### Phase 1: Rubric Context Entry
-**Goal**: Users can open a project, enter rubric/context text, and save only valid input.
-**Depends on**: Nothing (first phase)
-**Requirements**: PRJC-01, PRJC-02, VAL-01
+### Phase 5: Public IA and SEO Foundation
+**Goal**: Public marketing routes become server-first, indexable, and structurally ready for dedicated deep-dive pages.
+**Depends on**: Phase 4
+**Requirements**: SURF-01, SURF-02, SURF-03, SURF-04, DISC-01
 **Success Criteria** (what must be TRUE):
-  1. User can open a selected project and find a dedicated `Rubric & Context` section.
-  2. User can paste rubric/context text and save it when the text is non-empty and within the configured max length.
-  3. User sees clear validation errors for empty or oversized input, and invalid input is not saved.
+  1. Visitor can navigate from the landing hub to dedicated Delivery Rubric, Scoring Logic, and Growth Pricing routes.
+  2. Each new route has unique metadata, canonical URL, and sitemap coverage.
+  3. Source HTML for the new public routes contains meaningful explanatory content before client JS runs.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md - Shared rubric/context validation contract and edge enforcement
-- [ ] 01-02-PLAN.md - Projects page Rubric & Context editor UX, save flow, and integration tests
+- [x] 05-01: Decompose marketing route ownership and move SEO-critical content to server-rendered surfaces
+- [x] 05-02: Implement metadata, schema, sitemap, breadcrumb, and internal-link foundations for new public pages
 
-### Phase 2: Permissioned Context Management
-**Goal**: Project rubric/context can only be edited by authorized users, with clear edit attribution.
-**Depends on**: Phase 1
-**Requirements**: PRJC-03, PERM-01, PERM-02
+### Phase 6: Deep-Dive Pages and Content System
+**Goal**: Pitchr ships three dedicated public deep-dive pages backed by reusable content and facts.
+**Depends on**: Phase 5
+**Requirements**: DRUB-01, DRUB-02, LOGC-01, LOGC-02, PRIC-01, PRIC-02, DISC-02, DISC-03
 **Success Criteria** (what must be TRUE):
-  1. Project owner/admin can create and update rubric/context for their project.
-  2. Non-owner users cannot edit rubric/context through project settings UI.
-  3. Unauthorized create/update attempts are rejected through API enforcement.
-  4. After a successful save, the project context reflects the latest `updated_at` and `updated_by` attribution.
-**Plans**: TBD
+  1. Delivery Rubric page explains delivery evaluation in plain language and includes an annotated example.
+  2. Scoring Logic page explains how Pitchr scores a pitch and clearly states what is and is not scored.
+  3. Growth Pricing page explains free-tier access and upgrade thresholds in concrete terms.
+  4. Deep-dive pages are linked to one another and to the existing `/blog` Journal surface in a coherent public content cluster.
+**Plans**: 2 plans
 
-### Phase 3: Run-Time Rubric Layering
-**Goal**: Scoring runs consistently use project context on top of default rubric, with traceable run provenance and resilient fallback.
-**Depends on**: Phase 2
-**Requirements**: SCOR-01, SCOR-02, SCOR-04, VAL-03
-**Success Criteria** (what must be TRUE):
-  1. Every scoring run in a project automatically loads that project's saved rubric/context.
-  2. Scoring behavior preserves default rubric baseline while layering project rubric/context on top.
-  3. Run details record which rubric/context reference was applied for that specific run.
-  4. If project rubric/context is unavailable or invalid at run time, scoring falls back to default rubric and records the fallback event.
-**Plans**: TBD
+Plans:
+- [ ] 06-01: Build Delivery Rubric and Scoring Logic content surfaces with reusable section components
+- [ ] 06-02: Build Growth Pricing surface and align Journal or blog linking with the new public information architecture
 
-### Phase 4: Context-Aware Feedback UX
-**Goal**: Users receive feedback and product messaging that clearly reflects project-specific rubric influence.
-**Depends on**: Phase 3
-**Requirements**: SCOR-03, VAL-02
+### Phase 7: Motion, Demos, and Brand System
+**Goal**: Public deep-dive pages gain a shared interaction system and one flagship interactive scoring demo without sacrificing legibility.
+**Depends on**: Phase 6
+**Requirements**: LOGC-03, MOTN-01, MOTN-02
 **Success Criteria** (what must be TRUE):
-  1. Feedback recommendations and critique emphasis reflect project-specific rubric/context rather than generic guidance.
-  2. Project settings explicitly state that saved rubric/context is automatically applied to all runs in that project.
-  3. Users can observe different critique emphasis when the same pitch is analyzed under different project rubric/context definitions.
-**Plans**: TBD
+  1. Scoring Logic page includes one flagship interactive scored example or simulator.
+  2. New public pages share a recognizable motion system and brand interaction language.
+  3. Reduced-motion and mobile users can access all page meaning without depending on animation.
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01: Implement shared motion utilities, fallbacks, and reusable visual interaction patterns
+- [ ] 07-02: Build the flagship scoring demo and page-specific storytelling visuals
+
+### Phase 8: Conversion and Discoverability Hardening
+**Goal**: The new public surfaces convert intent into free signup and validate their discoverability quality.
+**Depends on**: Phase 7
+**Requirements**: CONV-01, CONV-02
+**Success Criteria** (what must be TRUE):
+  1. Every deep-dive page includes strong page-specific free-signup CTA placements above the fold and near the end of the page.
+  2. Signup or trial routing preserves page intent or attribution for measurement.
+  3. Public growth pages pass crawlability, indexing, and discoverability verification after launch hardening.
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01: Implement conversion CTA routing, page-intent attribution, and signup handoff
+- [ ] 08-02: Harden performance, crawlability, and discoverability verification for the new public cluster
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
+Phases execute in numeric order: 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rubric Context Entry | 2/2 | Complete   | 2026-03-06 |
-| 2. Permissioned Context Management | 0/TBD | Not started | - |
-| 3. Run-Time Rubric Layering | 0/TBD | Not started | - |
-| 4. Context-Aware Feedback UX | 0/TBD | Not started | - |
+| 5. Public IA and SEO Foundation | 2/2 | Complete | 05-01, 05-02 |
+| 6. Deep-Dive Pages and Content System | 0/2 | Not started | - |
+| 7. Motion, Demos, and Brand System | 0/2 | Not started | - |
+| 8. Conversion and Discoverability Hardening | 0/2 | Not started | - |

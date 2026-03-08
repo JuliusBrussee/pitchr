@@ -1,181 +1,154 @@
 # Project Research Summary
 
-**Project:** Pitchr Hackathon Mode
-**Domain:** Hackathon-specific pitch coaching and scoring extension for an existing multi-mode pitch platform
-**Researched:** 2026-03-05
-**Confidence:** MEDIUM-HIGH
+**Project:** Pitchr: Project-Specific Rubric Context
+**Domain:** Public deep-dive growth pages, Journal alignment, premium motion design, and SEO/GEO discoverability for an existing Next.js product
+**Researched:** 2026-03-08
+**Confidence:** HIGH
 
 ## Executive Summary
 
-This is a brownfield product extension, not a net-new app. The recommended path is to add a `hackathon_pitch` mode to the existing Pitchr orchestration (`prep -> judge -> scoring -> qa_1min`) while introducing a separate asynchronous corpus pipeline that verifies winner sources, transcribes them, and publishes versioned theme packs. Experts in this domain keep online scoring read-only and low-latency, and move corpus ingestion and extraction to queue-driven workers with strict status transitions.
+This milestone is not a rebrand and not a generic "make the landing page nicer" effort. It is a brownfield growth expansion inside an existing Next.js App Router product. The correct move is to keep Pitchr's landing page as a hub, then build a small set of dedicated public deep-dive pages that each own one clear user intent: Delivery Rubric, Growth Pricing, Scoring Logic, and Journal support content. Those pages should educate, prove trust, and convert directly to free signup.
 
-The strongest implementation choice is to stay inside the current stack: Supabase Postgres + RLS, `pg_jsonschema` for rubric contract enforcement, `pgvector` for retrieval, and `pgmq` queues for reliability. On the model side, use Anthropic structured outputs for deterministic scoring payloads and prompt caching to control cost; use Voyage embeddings as the default retrieval path. This minimizes integration risk and preserves existing operational knowledge.
+Research points to one consistent architecture choice: server-first public pages with narrow client islands for motion and interactive demos. The repo already has the right baseline for this. The main technical debt today is that the landing page is still one large client component and some SEO-relevant sections are disabled for SSR. The priority is to separate crawlable content from motion, not to add more visual complexity on top of the current structure.
 
-The biggest risks are data quality and trust failures, not UI polish. If winner provenance, rights compliance, transcript quality, and score stability are weak, the product will produce plausible but unreliable coaching. Mitigation is clear: enforce provenance and rights metadata at ingest, gate low-confidence transcripts, calibrate rubric outputs against a locked human-reviewed set, require evidence-linked recommendations, and block launch unless stability and security gates pass.
+The biggest risk is building something that looks premium but performs poorly, explains too little, or sends visitors into the wrong CTA flow. Notion is useful here as a pattern reference, not a template: it feels fast because it serves meaningful HTML first, aggressively caches hashed assets, preloads only critical media, and uses demos as support for the story rather than as a replacement for text.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Research supports a single-database, queue-backed architecture in Supabase for both operational data and retrieval. This preserves transaction boundaries and avoids cross-system consistency bugs while adding enough structure for reproducible scoring behavior.
+Stay inside the current stack. Next.js 15, React 19, local MDX, the existing blog pipeline, GSAP, metadata builders, JSON-LD, and `next/image` are enough to ship this milestone without bringing in a new CMS or animation framework. The right design choice is not "which new tool do we need"; it is "where do we stop hydrating content that should be static HTML."
 
 **Core technologies:**
-- Supabase Postgres + RLS: source of truth for projects, corpus state, transcripts, and run metadata with tenant-safe boundaries.
-- `pg_jsonschema`: database-level validation for rubric and scoring payload contracts, preventing silent schema drift.
-- `pgvector` (`v0.8.2` baseline): semantic retrieval for long-form hackathon guidance with project-scoped filtering.
-- Supabase Queues (`pgmq`): staged async jobs for verify -> transcribe -> extract with retry and visibility semantics.
-- Next.js 15 Route Handlers and Server Actions: native mutation and orchestration surfaces in the existing app.
-- Anthropic Messages API (structured outputs + prompt caching): schema-valid scoring output and lower repeated-context cost.
-- Voyage embeddings (`voyage-4` default; `voyage-4-lite` cost path): recommended embedding provider alignment.
-
-**Critical versions and constraints:**
-- `pgmq` requires Postgres `15.6.1.143+`.
-- Next.js `15` requires React `19`.
-- Voyage default embedding dimension is `1024` (align `vector(1024)` schema).
+- Next.js App Router: static public routes, metadata, sitemap, and robots control
+- React 19: selective hydration and composable route sections
+- Local MDX plus `gray-matter` and `next-mdx-remote`: long-form product pages and Journal content
+- GSAP: premium motion inside isolated client islands
+- Next metadata, JSON-LD, `next/image`, and `next/font`: SEO/GEO structure and performance primitives
 
 ### Expected Features
 
-The feature set splits clearly between launch-critical judging alignment and post-launch leverage features.
+The must-have set is clear: one hub-and-spoke IA, one strong deep page per core intent, answer-first HTML copy, proof and FAQ blocks, repeated free-signup CTA, and a crawlable content cluster linking Journal, Pricing, Delivery Rubric, and Scoring Logic together. The strongest differentiators are not "more animation"; they are interactive scored examples, methodology transparency, and concrete before/after comparisons that show why Pitchr is better than generic feedback.
 
 **Must have (table stakes):**
-- Hackathon rubric scoring with per-criterion gap diagnosis.
-- Submission readiness and compliance checks (assets, links, constraints).
-- Demo narrative coach for 2-4 minute format.
-- Finalist pitch plus timed Q&A simulator.
-- Iterative rehearsal loop with delta tracking across attempts.
+- Dedicated public deep-dive pages with unique slugs, titles, H1s, and internal links
+- Answer-first hero, how-it-works section, trust or FAQ block, and repeated free-signup CTA on every page
+- Crawlable SEO and GEO baseline: HTML-first copy, sitemap inclusion, canonicals, breadcrumbs, and matching structured data
+- Journal support content linked directly into product pages
 
 **Should have (competitive):**
-- Track/prize alignment helper.
-- Event-rule ingestion from URL/PDF with human review.
-- Submission packet auto-prep.
+- Interactive scored example or rubric simulator
+- Citation-backed methodology blocks on Scoring Logic and Delivery Rubric pages
+- Intent-aware CTA copy and deep-link routing into signup
 
 **Defer (v2+):**
-- Full winner-corpus evidence engine UX.
-- Multi-judge persona simulation.
-- Build integrity and AI attribution auditor.
+- Broad long-tail page expansion
+- CMS migration
+- Site-wide 3D or WebGL presentation system
 
 ### Architecture Approach
 
-The architecture should be staged and mode-driven: new corpus intake and worker functions feed immutable, versioned theme packs; existing `pitch-run` and `qna-session` consume only published packs. This keeps run latency predictable and allows replay/rollback when scoring behavior changes.
+The recommended architecture keeps all indexable growth pages under `app/(marketing)`, reuses `/blog` as the underlying Journal route, loads content from local MDX, and pushes motion into explicit client enhancement boundaries. That gives Pitchr the right tradeoff: strong HTML output, low operational overhead, and enough room to build ambitious motion without repeating the current monolithic landing-page pattern.
 
 **Major components:**
-1. `hackathon-corpus-submit` plus corpus services: ingest links, dedupe, enqueue verification.
-2. Verification/transcription/theme workers: enforce source legitimacy, transcript quality, and publish theme pack versions.
-3. `analysis-service` and `analysis-profiles` extension: inject active hackathon guidance into existing scoring flow.
-4. `pitch-run` and `qna-session` extensions: preserve lifecycle parity while carrying mode-aware context and references.
-5. Data layer additions (`hackathon_corpus_*`, `hackathon_theme_packs`): status-driven contracts and run-level provenance.
+1. `app/(marketing)` public route layer - landing hub, deep-dive pages, blog routes, sitemap, and robots
+2. `lib/marketing/*` content and metadata layer - route registry, content loader, schema builders, and CTA/related-link configuration
+3. `views/components/marketing/*` section system - reusable heroes, proof blocks, FAQs, comparison modules, and signup CTAs
+4. `views/components/marketing/motion/*` client enhancement layer - GSAP scenes, reduced-motion handling, and page-specific animations
 
 ### Critical Pitfalls
 
-1. **Winner corpus contamination** - Require proof URL, prize tier, verifier, and status for every source; reject unverifiable rows.
-2. **Rights and policy violations in ingestion** - Fail closed on uncertain rights, log authorization scope, avoid unofficial scraping paths.
-3. **Transcript fidelity bias** - Track confidence and quality signals, and human-review low-confidence segments before extraction.
-4. **Pipeline divergence from existing Pitchr flow** - Implement hackathon as a mode extension, not a parallel service branch.
-5. **Ungrounded coaching and score instability** - Enforce evidence-linked structured output and launch gates for rerun variance/human agreement.
+1. **Client-only SEO regressions** - keep core public copy server-rendered and visible in source HTML
+2. **Motion harming Core Web Vitals** - isolate motion, lazy-load it, and keep poster or HTML fallbacks
+3. **Deep pages with no unique intent** - assign one clear question and answer per page
+4. **Wrong CTA path** - route deep-page traffic to free signup, not legacy waitlist flows
+5. **Journal/blog authority split** - keep one canonical editorial route and align branding around it
 
 ## Implications for Roadmap
 
-Based on dependencies and risk concentration, use this phase structure:
+Based on research, this milestone should start at **Phase 5**, because the current roadmap's highest existing phase is 4.
 
-### Phase 1: Data Contracts and Governance Foundation
-**Rationale:** Everything else depends on strong schema, status model, and security boundaries.
-**Delivers:** New `hackathon_pitch` project type, corpus/transcript/theme-pack tables, provenance and rights fields, RLS and JSON schema constraints.
-**Addresses:** Verified winner corpus requirement and project-type integration baseline.
-**Avoids:** Corpus contamination, rights violations, early schema drift.
+### Phase 5: Public IA and SEO Foundation
+**Rationale:** The page structure, route ownership, metadata strategy, and server-first rendering model must be fixed before any premium visuals are added.
+**Delivers:** Marketing route boundaries, deep-page slug plan, metadata/schema builders, sitemap/robots updates, and decomposition of SEO-critical content out of the monolithic landing client.
+**Addresses:** hub-and-spoke IA, crawlability, entity framing, and unique page intent
+**Avoids:** client-only SEO regressions and duplicated intent pages
 
-### Phase 2: Corpus Intake and Verification Pipeline
-**Rationale:** Verified data must exist before transcription and extraction.
-**Delivers:** `hackathon-corpus-submit`, dedupe, verification worker, compliance logging, queue retry behavior.
-**Addresses:** Winner-link intake, legitimacy verification, provenance tracking.
-**Avoids:** Untrusted data ingestion, unreliable sourcing, injection at intake.
+### Phase 6: Deep-Dive Pages and Content System
+**Rationale:** Once the route and metadata contract exist, Pitchr can build the real content surfaces without drift.
+**Delivers:** Delivery Rubric, Growth Pricing, and Scoring Logic pages; Journal alignment via the existing `/blog` pipeline; shared section components; content sourced from MDX and typed config
+**Uses:** local MDX, existing `lib/blog.ts`, billing config, rubric config
+**Implements:** content and facts merge pattern
 
-### Phase 3: Transcription Quality and Theme Pack Publishing
-**Rationale:** Scoring quality depends on transcript quality and versioned guidance artifacts.
-**Delivers:** Transcription worker with quality gates, normalized transcripts, theme extraction worker, immutable theme pack vN plus active pointer.
-**Addresses:** Transcript storage and pattern extraction requirements.
-**Avoids:** Transcript bias, non-reproducible guidance, hidden drift.
+### Phase 7: Motion, Demos, and Brand System
+**Rationale:** Motion should enhance already-correct pages, not define them.
+**Delivers:** shared motion boundary, page-specific scroll scenes, annotated demos, scored examples, and reduced-motion fallbacks
+**Addresses:** the user's visual ambition without sacrificing legibility or accessibility
+**Avoids:** performance collapse and "beautiful but vague" storytelling
 
-### Phase 4: Runtime Hackathon Scoring Integration
-**Rationale:** Only after published theme packs exist should scoring consume winner-derived context.
-**Delivers:** `analysis-profiles` hackathon mode, active theme-pack resolver, `pitch-run` integration, run metadata with `theme_pack_ref`, evidence-linked recommendation schema.
-**Addresses:** Hackathon-specific feedback grounded in winner patterns.
-**Avoids:** Ungrounded coaching, unstable prompt behavior, latency regressions from online ingestion.
-
-### Phase 5: Q&A Parity and Submission Readiness UX
-**Rationale:** User-visible value requires end-to-end flow parity with current modes.
-**Delivers:** Hackathon-aware Q&A context in `qna-session`, submission compliance checks, rehearsal delta tracking, initial finalist simulation workflows.
-**Addresses:** `qa_1min` parity and practical pre-submission coaching outcomes.
-**Avoids:** Feature mismatch with existing modes and weak user trust in actionability.
-
-### Phase 6: Calibration, Security Hardening, and Launch Gates
-**Rationale:** Release quality is determined by reliability and trust metrics, not feature count.
-**Delivers:** Locked eval sets (dev/holdout/canary), human-agreement and rerun-variance thresholds, adversarial prompt-injection/poisoning tests, monitoring and rollback playbooks.
-**Addresses:** Production readiness and go/no-go criteria.
-**Avoids:** Evaluation leakage, score jitter, security-driven regressions post-launch.
+### Phase 8: Conversion and Discoverability Hardening
+**Rationale:** The final stage should focus on funnel quality and search/LLM discoverability after the content surfaces exist.
+**Delivers:** free-signup CTA routing, attribution, analytics hardening, public web-vitals checks, proof or FAQ refinement, and validation of crawl/index behavior
+**Addresses:** signup conversion, GEO readiness, and page cluster authority
+**Avoids:** earning traffic that still drops into the wrong flow
 
 ### Phase Ordering Rationale
 
-- Build order mirrors hard dependencies: schema -> verified corpus -> transcripts/themes -> runtime scoring -> UX parity -> launch gates.
-- Grouping separates offline pipeline risk from online scoring risk, reducing blast radius and enabling staged rollout.
-- This order directly neutralizes highest-severity pitfalls early (data contamination, rights issues, architecture divergence).
+- Phase 5 comes first because public IA and crawlable rendering are structural decisions, not polish decisions.
+- Phase 6 follows because content and product facts need a stable route, metadata, and section contract.
+- Phase 7 comes after that so motion enhances an already-sound page system instead of defining it.
+- Phase 8 closes the loop with conversion and discoverability validation, which only makes sense once the pages exist.
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2:** Source-policy and rights enforcement details per platform/API (compliance-critical).
-- **Phase 3:** Transcription provider benchmarking and quality-gate threshold selection.
-- **Phase 6:** LLM-as-judge calibration protocol and statistical stability acceptance criteria.
+- **Phase 7:** precise motion budget and visual implementation details if a 3D hero or more advanced graphics are considered
+- **Phase 8:** conversion instrumentation details and how signup context should be preserved
 
 Phases with standard patterns (skip research-phase):
-- **Phase 1:** Supabase schema, RLS, and JSON schema enforcement are well-documented.
-- **Phase 4:** Existing Pitchr mode-extension pattern is already established in current architecture.
-- **Phase 5:** Q&A parity is an extension of current `qa_1min` flow, not a new system design.
+- **Phase 5:** route groups, metadata, sitemap, and robots work are well-documented
+- **Phase 6:** local MDX content architecture and typed config integration are already established in this repo
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Based largely on official Supabase, Next.js, Anthropic, and provider docs with explicit compatibility constraints. |
-| Features | MEDIUM | Strong event-source grounding, but some differentiators are inferred from market gaps and need user validation. |
-| Architecture | HIGH | Directly grounded in existing Pitchr code boundaries and integration points. |
-| Pitfalls | MEDIUM | Risks are credible and well-supported, but mitigation thresholds still require project-specific validation. |
+| Stack | HIGH | Strongly grounded in the current repo and official Next.js patterns |
+| Features | HIGH | User intent is clear and matches strong public-page patterns in comparable product-led sites |
+| Architecture | HIGH | Directly grounded in existing `app/(marketing)`, blog pipeline, and landing implementation |
+| Pitfalls | HIGH | Risks are concrete, repo-specific, and already visible in the current landing structure |
 
-**Overall confidence:** MEDIUM-HIGH
+**Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Winner-source rights policy matrix:** Define exactly which platforms and ingestion methods are allowed in v1.
-- **Transcript quality thresholds:** Set concrete confidence/WER proxy cutoffs and review sampling rates.
-- **Calibration benchmark:** Build a human-labeled, non-overlapping holdout set for launch gating.
-- **Evidence contract strictness:** Decide whether uncited recommendations are blocked, downgraded, or retried.
-- **Model/provider fallback policy:** Define behavior for embedding or LLM provider degradation without changing score semantics.
+- Decide whether the public brand label remains `Journal` in UI while the canonical route stays `/blog`
+- Decide whether the first interactive demo should live on Delivery Rubric or Scoring Logic
+- Decide how much motion budget is acceptable on mobile before degrading to static or low-motion versions
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `.planning/research/STACK.md` - stack recommendations and version constraints.
-- `.planning/research/ARCHITECTURE.md` - component boundaries, data flow, build order.
-- `.planning/PROJECT.md` - scope, constraints, parity requirements.
-- Supabase docs (RLS, `pg_jsonschema`, `pgvector`, queues, cron): https://supabase.com/docs
-- Next.js App Router and v15 upgrade docs: https://nextjs.org/docs
-- Anthropic structured outputs, prompt caching, token counting: https://platform.claude.com/docs
+- `.planning/PROJECT.md`
+- `.planning/research/STACK.md`
+- `.planning/research/FEATURES.md`
+- `.planning/research/ARCHITECTURE.md`
+- `.planning/research/PITFALLS.md`
+- `app/(marketing)/page.tsx`
+- `views/components/landing/LandingClient.tsx`
+- `lib/blog.ts`
+- `app/sitemap.ts`
+- `app/robots.ts`
 
 ### Secondary (MEDIUM confidence)
-- `.planning/research/FEATURES.md` - table stakes/differentiators from hackathon ecosystem analysis.
-- `.planning/research/PITFALLS.md` - operational and model risk synthesis.
-- Voyage embedding docs: https://docs.voyageai.com/docs/embeddings
-- Devpost, ETHGlobal, MLH judging and submission guidance:
-  - https://help.devpost.com
-  - https://ethglobal.com
-  - https://guide.mlh.io
+- `docs/seo.md`
+- Direct inspection of `https://www.notion.com/` on 2026-03-08 via Playwright and response-header analysis
+- Google Search Central, helpful content: https://developers.google.com/search/docs/fundamentals/creating-helpful-content
+- Google Search Central, AI features: https://developers.google.com/search/docs/appearance/ai-features
 
-### Tertiary (LOW-MEDIUM confidence)
-- Research papers and security references used in pitfalls calibration and threat framing:
-  - https://arxiv.org/abs/2406.12624
-  - https://arxiv.org/abs/2406.07791
-  - https://arxiv.org/abs/2410.14479
-  - https://owasp.org/www-project-top-10-for-large-language-model-applications/
+### Tertiary (LOW confidence)
+- Pattern comparison against public product pages from Notion, Figma, and Stripe for interaction and page-structure ideas
 
 ---
-*Research completed: 2026-03-05*
+*Research completed: 2026-03-08*
 *Ready for roadmap: yes*

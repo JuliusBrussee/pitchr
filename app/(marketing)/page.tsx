@@ -11,7 +11,7 @@ export default function LandingPage() {
   return (
     <>
       <HomeJsonLd />
-      <LandingClient posts={posts} />
+      <LandingClient posts={posts} initialNowMs={Date.now()} />
     </>
   );
 }
