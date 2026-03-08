@@ -4,8 +4,8 @@ import { Fragment, useEffect, useState } from 'react';
 
 const LAUNCH_MS = new Date('2026-03-13T09:00:00-04:00').getTime();
 
-function remaining() {
-  const d = Math.max(0, LAUNCH_MS - Date.now());
+function remaining(nowMs: number = Date.now()) {
+  const d = Math.max(0, LAUNCH_MS - nowMs);
   return {
     days: Math.floor(d / 86_400_000),
     hours: Math.floor((d % 86_400_000) / 3_600_000),
@@ -20,20 +20,19 @@ const p2 = (n: number) => String(n).padStart(2, '0');
 const LABELS = ['Days', 'Hours', 'Min', 'Sec'] as const;
 
 export function LaunchCountdown({
+  initialNowMs,
   onCtaClick,
 }: {
+  initialNowMs: number;
   onCtaClick: (e: React.MouseEvent) => void;
 }) {
-  const [t, setT] = useState(remaining);
-  const [ready, setReady] = useState(false);
+  const [t, setT] = useState(() => remaining(initialNowMs));
 
   useEffect(() => {
-    setReady(true);
+    setT(remaining());
     const id = setInterval(() => setT(remaining()), 1000);
     return () => clearInterval(id);
   }, []);
-
-  if (!ready) return null;
 
   const digits = [p2(t.days), p2(t.hours), p2(t.min), p2(t.sec)];
 

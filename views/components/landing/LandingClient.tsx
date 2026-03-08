@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useCallback, useState, type CSSProperties } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { HeroPresenterTiles } from '@/views/components/landing/HeroPresenterTiles';
+import { LandingBlog } from '@/views/components/landing/LandingBlog';
+import { LandingPricing } from '@/views/components/landing/LandingPricing';
+import { LaunchCountdown } from '@/views/components/landing/LaunchCountdown';
 import type { BlogPostMeta } from '@/types/blog';
 import {
   DELIVERY_WAVE_BARS,
@@ -15,23 +17,15 @@ import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliver
 import { PitchrLogo } from '@/views/components/PitchrLogo';
 import '@/app/(marketing)/landing.css';
 
-const LandingBlog = dynamic(
-  () => import('@/views/components/landing/LandingBlog').then((m) => m.LandingBlog),
-  { ssr: false }
-);
-
-const LandingPricing = dynamic(
-  () => import('@/views/components/landing/LandingPricing').then((m) => m.LandingPricing),
-  { ssr: false }
-);
-
 const PRIVACY_NOTICE_VERSION = process.env.NEXT_PUBLIC_GDPR_POLICY_VERSION || '2026-03-04';
-const LaunchCountdown = dynamic(
-  () => import('@/views/components/landing/LaunchCountdown').then((m) => m.LaunchCountdown),
-  { ssr: false }
-);
 
-export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
+export function LandingClient({
+  posts,
+  initialNowMs,
+}: {
+  posts: BlogPostMeta[];
+  initialNowMs: number;
+}) {
   const { isDark, setTheme } = useTheme();
   const landingRef = useRef<HTMLDivElement>(null);
   const navRef = useRef<HTMLElement>(null);
@@ -289,17 +283,17 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
             Pitchr
           </Link>
           <div className="nav-links">
-            <a href="#delivery" className="nav-link" onClick={(e) => scrollToSection(e, 'delivery')}>
-              Delivery
-            </a>
-            <a href="#rubric" className="nav-link" onClick={(e) => scrollToSection(e, 'rubric')}>
-              Rubric
-            </a>
-            <a href="#growth" className="nav-link" onClick={(e) => scrollToSection(e, 'growth')}>
-              Growth
-            </a>
+            <Link href="/delivery-rubric" className="nav-link">
+              Delivery Rubric
+            </Link>
+            <Link href="/scoring-logic" className="nav-link">
+              Scoring Logic
+            </Link>
+            <Link href="/growth-pricing" className="nav-link">
+              Growth Pricing
+            </Link>
             <a href="#pricing" className="nav-link" onClick={(e) => scrollToSection(e, 'pricing')}>
-              Pricing
+              Plans
             </a>
             <Link href="/blog" className="nav-link">
               Journal
@@ -393,7 +387,7 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
       </section>
 
       {/* ═══ LAUNCH COUNTDOWN ═══ */}
-      <LaunchCountdown onCtaClick={scrollToWaitlist} />
+      <LaunchCountdown initialNowMs={initialNowMs} onCtaClick={scrollToWaitlist} />
 
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
       <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>
@@ -410,6 +404,11 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--accent)' }}>
               {'> Analyzes WPM, Pauses, and Fillers'}
             </p>
+            <div style={{ marginTop: '20px' }}>
+              <Link href="/delivery-rubric" className="nav-link">
+                See the delivery rubric
+              </Link>
+            </div>
           </div>
           <div className="story-visual reveal" ref={deliveryVisualRef}>
             <svg
@@ -493,6 +492,11 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--green)' }}>
               {'> Score: 100/100 (Perfectly Balanced)'}
             </p>
+            <div style={{ marginTop: '20px' }}>
+              <Link href="/scoring-logic" className="nav-link">
+                Read how the score is built
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -512,6 +516,11 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--blue)' }}>
               {'> Delta: +45 points in 3 sessions'}
             </p>
+            <div style={{ marginTop: '20px' }}>
+              <Link href="/growth-pricing" className="nav-link">
+                Compare the free and growth path
+              </Link>
+            </div>
           </div>
           <div className="story-visual reveal" id="chartReveal">
             <div className="chart-container">
@@ -674,15 +683,15 @@ export function LandingClient({ posts }: { posts: BlogPostMeta[] }) {
             <Link href="/about" className="footer-link">
               About
             </Link>
-            <a href="#delivery" className="footer-link" onClick={(e) => scrollToSection(e, 'delivery')}>
-              Delivery
-            </a>
-            <a href="#rubric" className="footer-link" onClick={(e) => scrollToSection(e, 'rubric')}>
-              Rubric
-            </a>
-            <a href="#pricing" className="footer-link" onClick={(e) => scrollToSection(e, 'pricing')}>
-              Pricing
-            </a>
+            <Link href="/delivery-rubric" className="footer-link">
+              Delivery Rubric
+            </Link>
+            <Link href="/scoring-logic" className="footer-link">
+              Scoring Logic
+            </Link>
+            <Link href="/growth-pricing" className="footer-link">
+              Growth Pricing
+            </Link>
             <Link href="/blog" className="footer-link">
               Journal
             </Link>
