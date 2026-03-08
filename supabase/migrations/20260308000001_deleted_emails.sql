@@ -1,6 +1,5 @@
 -- Tombstone table to track deleted accounts and prevent credit farming
 -- on re-signup with the same email address.
--- No RLS — accessed only via service-role admin client.
 
 CREATE TABLE deleted_emails (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -11,3 +10,6 @@ CREATE TABLE deleted_emails (
 );
 
 CREATE INDEX idx_deleted_emails_email ON deleted_emails (email);
+
+-- RLS enabled with no policies = service-role only access
+ALTER TABLE deleted_emails ENABLE ROW LEVEL SECURITY;

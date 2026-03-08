@@ -17,9 +17,16 @@ export async function POST() {
     const admin = createAdminClient();
 
     const sub = await getSubscription(admin, user.id);
-    if (!sub?.stripeSubscriptionId) {
+    if (!sub?.stripeSubscriptionId || sub.status !== 'active') {
       return NextResponse.json(
         { error: 'No active subscription found' },
+        { status: 400 },
+      );
+    }
+
+    if (sub.cancelAtPeriodEnd) {
+      return NextResponse.json(
+        { error: 'Subscription is already set to cancel' },
         { status: 400 },
       );
     }
@@ -27,10 +34,18 @@ export async function POST() {
     await cancelSubscription(sub.stripeSubscriptionId);
 
     // Update local record
-    await admin
+    const { error: updateError } = await admin
       .from('subscriptions')
       .update({ cancel_at_period_end: true, updated_at: new Date().toISOString() })
       .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('[billing/cancel] DB update failed after Stripe cancel:', updateError.message);
+      return NextResponse.json(
+        { error: 'Subscription canceled in Stripe but local update failed. Please refresh.' },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -55,9 +70,16 @@ export async function DELETE() {
     const admin = createAdminClient();
 
     const sub = await getSubscription(admin, user.id);
-    if (!sub?.stripeSubscriptionId) {
+    if (!sub?.stripeSubscriptionId || sub.status !== 'active') {
       return NextResponse.json(
         { error: 'No active subscription found' },
+        { status: 400 },
+      );
+    }
+
+    if (!sub.cancelAtPeriodEnd) {
+      return NextResponse.json(
+        { error: 'Subscription is not set to cancel' },
         { status: 400 },
       );
     }
@@ -65,10 +87,18 @@ export async function DELETE() {
     await resumeSubscription(sub.stripeSubscriptionId);
 
     // Update local record
-    await admin
+    const { error: updateError } = await admin
       .from('subscriptions')
       .update({ cancel_at_period_end: false, updated_at: new Date().toISOString() })
       .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('[billing/cancel] DB update failed after Stripe resume:', updateError.message);
+      return NextResponse.json(
+        { error: 'Subscription resumed in Stripe but local update failed. Please refresh.' },
+        { status: 500 },
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

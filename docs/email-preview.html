@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pitchr Email Templates Preview</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@400;500;600&display=swap');
+    /* No external fonts — Helvetica Neue / system stack only */
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0a0a0a; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e5e5e5; }
+    body { background: #0a0a0a; font-family: 'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e5e5e5; }
     .preview-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(10,10,10,0.92); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 24px; display: flex; align-items: center; height: 52px; gap: 0; overflow-x: auto; }
     .preview-nav .logo { font-size: 15px; font-weight: 700; color: #ededec; letter-spacing: -0.5px; white-space: nowrap; padding-right: 20px; border-right: 1px solid rgba(255,255,255,0.08); margin-right: 8px; }
     .preview-nav a { font-size: 12px; color: #6b7280; text-decoration: none; white-space: nowrap; padding: 6px 10px; border-radius: 6px; transition: color 0.15s; letter-spacing: 0.01em; }
@@ -15,10 +15,10 @@
     .preview-section { padding: 80px 24px 0; max-width: 680px; margin: 0 auto; }
     .preview-section:first-of-type { padding-top: 100px; }
     .section-label { font-size: 11px; font-weight: 500; color: #ff5941; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; }
-    .section-title { font-size: 28px; font-weight: 400; color: #ededec; margin-bottom: 6px; letter-spacing: -0.02em; font-family: 'Instrument Serif', Georgia, serif; }
+    .section-title { font-size: 28px; font-weight: 400; color: #ededec; margin-bottom: 6px; letter-spacing: -0.02em; font-family: 'Helvetica Neue', Helvetica, -apple-system, sans-serif; }
     .section-desc { font-size: 14px; color: #6b7280; margin-bottom: 28px; line-height: 1.5; }
     .email-frame { border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); }
-    .email-frame iframe { width: 100%; height: 580px; border: none; background: #f9f9fb; }
+    .email-frame iframe { width: 100%; height: 580px; border: none; background: #0f0f11; }
     .spacer { height: 1px; max-width: 680px; margin: 64px auto 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.06) 80%, transparent); }
   </style>
 </head>
@@ -47,28 +47,28 @@
   <div class="section-title">Waitlist welcome</div>
   <div class="section-desc">Sent when a user joins the waitlist via POST /api/waitlist.</div>
   <div class="email-frame">
-    <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="color-scheme" content="light"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">You&rsquo;re on the list</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">We are opening early access in small waves. Waitlist members get in first.</p>
-<p style="margin:0 0 18px;font-size:15px;color:#111827;line-height:1.7;">Pitchr scores your pitch out of 100, ranks your weakest points, and rewrites your script. We built it because rehearsing alone is a guessing game &mdash; and investors notice.</p>
-<p style="margin:0 0 18px;font-size:15px;color:#111827;line-height:1.7;"><strong>What happens next</strong></p>
+    <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><meta name="color-scheme" content="dark"></head>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">You&rsquo;re on the list</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">We are opening early access in small waves. Waitlist members get in first.</p>
+<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;">Pitchr scores your pitch out of 100, ranks your weakest points, and rewrites your script. We built it because rehearsing alone is a guessing game &mdash; and investors notice.</p>
+<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;"><strong>What happens next</strong></p>
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:16px 0 24px;">
-<tr><td style="padding:0 10px 10px 0;vertical-align:top;color:#ff5941;font-size:8px;line-height:22px;" width="14">&bull;</td><td style="padding:0 0 10px;font-size:15px;color:#111827;line-height:1.6;">Short weekly updates on what shipped and what is coming</td></tr>
-<tr><td style="padding:0 10px 10px 0;vertical-align:top;color:#ff5941;font-size:8px;line-height:22px;" width="14">&bull;</td><td style="padding:0 0 10px;font-size:15px;color:#111827;line-height:1.6;">Your invite link arrives by email when your cohort opens</td></tr>
-<tr><td style="padding:0 10px 0 0;vertical-align:top;color:#ff5941;font-size:8px;line-height:22px;" width="14">&bull;</td><td style="padding:0;font-size:15px;color:#111827;line-height:1.6;">One-click unsubscribe at any time</td></tr>
+<tr><td style="padding:0 10px 10px 0;vertical-align:top;color:#ff5941;font-size:8px;line-height:22px;" width="14">&bull;</td><td style="padding:0 0 10px;font-size:14px;color:#d1d1cf;line-height:1.6;">Short weekly updates on what shipped and what is coming</td></tr>
+<tr><td style="padding:0 10px 10px 0;vertical-align:top;color:#ff5941;font-size:8px;line-height:22px;" width="14">&bull;</td><td style="padding:0 0 10px;font-size:14px;color:#d1d1cf;line-height:1.6;">Your invite link arrives by email when your cohort opens</td></tr>
+<tr><td style="padding:0 10px 0 0;vertical-align:top;color:#ff5941;font-size:8px;line-height:22px;" width="14">&bull;</td><td style="padding:0;font-size:14px;color:#d1d1cf;line-height:1.6;">One-click unsubscribe at any time</td></tr>
 </table>
-<p style="margin:0 0 18px;font-size:15px;color:#111827;line-height:1.7;">Want to shape the product? Reply to this email with your biggest pitch challenge in one sentence. We read every response.</p>
-<p style="margin:0;font-size:15px;color:#6b7280;">&mdash; Team Pitchr</p>
-<p style="margin:20px 0 0;font-size:12px;color:#9ca3af;text-align:center;line-height:1.6;">You signed up for Pitchr updates. <a href="#" style="color:#9ca3af;text-decoration:underline;">Unsubscribe</a></p>
+<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;">Want to shape the product? Reply to this email with your biggest pitch challenge in one sentence. We read every response.</p>
+<p style="margin:0;font-size:14px;color:#9ca3af;">&mdash; Team Pitchr</p>
+<p style="margin:20px 0 0;font-size:12px;color:#6b7280;text-align:center;line-height:1.6;">You signed up for Pitchr updates. <a href="#" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a></p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -81,23 +81,23 @@
   <div class="section-desc">Sent to all Pro subscribers when a new weekly challenge drops.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">New weekly challenge</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">A new challenge is live in the Arena.</p>
-<div style="margin:24px 0;padding:20px 24px;background:rgba(0,0,0,0.02);border-radius:12px;border:1px solid rgba(0,0,0,0.08);">
-<p style="margin:0 0 4px;font-size:17px;font-weight:400;color:#111827;letter-spacing:-0.01em;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">The 60-Second Elevator Pitch</p>
-<p style="margin:8px 0 0;font-size:14px;color:#6b7280;line-height:1.6;">Convince a skeptical VC to take a meeting using only 60 seconds. Focus on traction and market size.</p>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">New weekly challenge</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">A new challenge is live in the Arena.</p>
+<div style="margin:24px 0;padding:20px 24px;background:rgba(255,89,65,0.06);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+<p style="margin:0 0 4px;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.01em;font-family:Helvetica,Arial,sans-serif;">The 60-Second Elevator Pitch</p>
+<p style="margin:8px 0 0;font-size:14px;color:#9ca3af;line-height:1.6;">Convince a skeptical VC to take a meeting using only 60 seconds. Focus on traction and market size.</p>
 </div>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">Compete Now</a></div>
-<p style="margin:0;color:#9ca3af;font-size:13px;text-align:center;line-height:1.6;">Challenges reset weekly. Submit before the window closes.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">Compete Now</a></div>
+<p style="margin:0;color:#6b7280;font-size:13px;text-align:center;line-height:1.6;">Challenges reset weekly. Submit before the window closes.</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -110,19 +110,19 @@
   <div class="section-desc">Sent when a user gets promoted to a higher league tier.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">Gold League</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">Promoted to Gold League</p>
-<p style="margin:0 0 18px;font-size:15px;color:#111827;line-height:1.7;">Your pitches earned you a promotion. The competition is tougher here.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">View Arena</a></div>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">Gold League</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">Promoted to Gold League</p>
+<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;">Your pitches earned you a promotion. The competition is tougher here.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">View Arena</a></div>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -135,19 +135,19 @@
   <div class="section-desc">Sent when a user drops to a lower league tier.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">New week, new start</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">League update: Silver League</p>
-<p style="margin:0 0 18px;font-size:15px;color:#111827;line-height:1.7;">You moved to Silver League. A few strong pitches and you are back.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">View Arena</a></div>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">New week, new start</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">League update: Silver League</p>
+<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;">You moved to Silver League. A few strong pitches and you are back.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">View Arena</a></div>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -160,19 +160,19 @@
   <div class="section-desc">Sent when a user holds their league position.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">Holding steady</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">Week complete &mdash; Gold League</p>
-<p style="margin:0 0 18px;font-size:15px;color:#111827;line-height:1.7;">You held your ground in Gold League. One strong week to move up.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">View Arena</a></div>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">Holding steady</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">Week complete &mdash; Gold League</p>
+<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;">You held your ground in Gold League. One strong week to move up.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">View Arena</a></div>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -185,19 +185,19 @@
   <div class="section-desc">Sent when a user's pitch streak is about to expire.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">12-day streak</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">Your streak expires today.</p>
-<p style="margin:0 0 18px;font-size:15px;color:#111827;line-height:1.7;">Complete one pitch to keep it alive. You are on a serious run &mdash; do not let it slip.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">Quick Practice</a></div>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">12-day streak</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">Your streak expires today.</p>
+<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;">Complete one pitch to keep it alive. You are on a serious run &mdash; do not let it slip.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">Quick Practice</a></div>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -212,19 +212,19 @@
   <div class="section-desc">Sent automatically when a user registers. Paste into Dashboard > Auth > Email Templates.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">Confirm your email</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">Verify your email to activate your Pitchr account.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">Confirm Email</a></div>
-<p style="margin:16px 0 0;color:#9ca3af;font-size:13px;text-align:center;line-height:1.6;">Did not create a Pitchr account? You can safely ignore this email.</p>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">Confirm your email</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">Verify your email to activate your Pitchr account.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">Confirm Email</a></div>
+<p style="margin:16px 0 0;color:#6b7280;font-size:13px;text-align:center;line-height:1.6;">Did not create a Pitchr account? You can safely ignore this email.</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -237,19 +237,19 @@
   <div class="section-desc">Sent when an admin invites a user.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">You have been invited</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">Someone thinks you should try Pitchr. Score your pitch, get ranked fixes, and see a rewritten script.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">Accept Invite</a></div>
-<p style="margin:16px 0 0;color:#9ca3af;font-size:13px;text-align:center;line-height:1.6;">Not expecting this? You can safely ignore this email.</p>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">You have been invited</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">Someone thinks you should try Pitchr. Score your pitch, get ranked fixes, and see a rewritten script.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">Accept Invite</a></div>
+<p style="margin:16px 0 0;color:#6b7280;font-size:13px;text-align:center;line-height:1.6;">Not expecting this? You can safely ignore this email.</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -262,19 +262,19 @@
   <div class="section-desc">Sent when a user requests passwordless sign-in.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">Sign in to Pitchr</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">This link expires in 10 minutes and can only be used once.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">Sign In</a></div>
-<p style="margin:16px 0 0;color:#9ca3af;font-size:13px;text-align:center;line-height:1.6;">Did not request this link? You can safely ignore this email.</p>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">Sign in to Pitchr</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">This link expires in 10 minutes and can only be used once.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">Sign In</a></div>
+<p style="margin:16px 0 0;color:#6b7280;font-size:13px;text-align:center;line-height:1.6;">Did not request this link? You can safely ignore this email.</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -287,19 +287,19 @@
   <div class="section-desc">Sent when a user changes their email address.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">Confirm your new email</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">You requested to change your email address on Pitchr.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">Confirm New Email</a></div>
-<p style="margin:16px 0 0;color:#9ca3af;font-size:13px;text-align:center;line-height:1.6;">Did not request this? Your account may be compromised. Reset your password immediately.</p>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">Confirm your new email</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">You requested to change your email address on Pitchr.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">Confirm New Email</a></div>
+<p style="margin:16px 0 0;color:#6b7280;font-size:13px;text-align:center;line-height:1.6;">Did not request this? Your account may be compromised. Reset your password immediately.</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -312,19 +312,19 @@
   <div class="section-desc">Sent when a user requests a password reset.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">Reset your password</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">We received a request to reset your Pitchr password.</p>
-<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background-color:#ff5941;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;">Reset Password</a></div>
-<p style="margin:16px 0 0;color:#9ca3af;font-size:13px;text-align:center;line-height:1.6;">Did not request this? You can safely ignore this email. Your password will not change.</p>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">Reset your password</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">We received a request to reset your Pitchr password.</p>
+<div style="text-align:center;margin:32px 0 12px;"><a href="#" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,#ff5941,#e63b26);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;box-shadow:0 4px 16px rgba(255,89,65,0.3);">Reset Password</a></div>
+<p style="margin:16px 0 0;color:#6b7280;font-size:13px;text-align:center;line-height:1.6;">Did not request this? You can safely ignore this email. Your password will not change.</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>
@@ -337,21 +337,21 @@
   <div class="section-desc">Sent for sensitive actions requiring identity verification. Uses a one-time code.</div>
   <div class="email-frame">
     <iframe srcdoc='<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background-color:#f9f9fb;-webkit-font-smoothing:antialiased;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f9fb;"><tr><td align="center" style="padding:48px 16px;">
-<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-<tr><td style="height:2px;background-color:#ff5941;font-size:0;line-height:0;">&nbsp;</td></tr>
-<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#111827;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">pitchr</div></td></tr>
-<tr><td style="padding:32px 40px 40px;font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,Roboto,sans-serif;color:#111827;line-height:1.7;font-size:15px;">
-<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:#111827;line-height:1.25;font-family:Georgia,&quot;Times New Roman&quot;,Times,serif;">Verification code</h2>
-<p style="margin:0 0 28px;font-size:15px;color:#6b7280;line-height:1.6;">Enter this code to verify your identity.</p>
+<body style="margin:0;padding:0;background-color:#0f0f11;font-family:Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f0f11;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4),0 2px 8px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.08);">
+<tr><td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,#ff5941,#ffaa33);">&nbsp;</td></tr>
+<tr><td style="padding:36px 40px 0;text-align:center;"><div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#ededec;font-family:Helvetica,Arial,sans-serif;">Pitchr<span style="color:#ff5941;">.</span></div></td></tr>
+<tr><td style="padding:32px 40px 40px;font-family:Helvetica,Arial,sans-serif;color:#d1d1cf;line-height:1.65;font-size:14px;">
+<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:Helvetica,Arial,sans-serif;">Verification code</h2>
+<p style="margin:0 0 28px;font-size:14px;color:#9ca3af;line-height:1.6;">Enter this code to verify your identity.</p>
 <div style="text-align:center;margin:28px 0;">
-<div style="display:inline-block;padding:16px 40px;background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.08);border-radius:12px;font-size:32px;font-weight:500;letter-spacing:6px;color:#111827;font-family:&quot;SF Mono&quot;,SFMono-Regular,Consolas,&quot;Liberation Mono&quot;,Menlo,monospace;">847291</div>
+<div style="display:inline-block;padding:16px 40px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;font-size:32px;font-weight:500;letter-spacing:6px;color:#ededec;font-family:&quot;SF Mono&quot;,SFMono-Regular,Consolas,&quot;Liberation Mono&quot;,Menlo,monospace;">847291</div>
 </div>
-<p style="margin:16px 0 0;color:#9ca3af;font-size:13px;text-align:center;line-height:1.6;">This code expires in 10 minutes. Did not request this? Change your password immediately.</p>
+<p style="margin:16px 0 0;color:#6b7280;font-size:13px;text-align:center;line-height:1.6;">This code expires in 10 minutes. Did not request this? Change your password immediately.</p>
 </td></tr>
-<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(0,0,0,0.08) 20%,rgba(0,0,0,0.08) 80%,transparent);"></div></td></tr>
-<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#9ca3af;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
+<tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.08) 20%,rgba(255,255,255,0.08) 80%,transparent);"></div></td></tr>
+<tr><td style="padding:20px 40px 24px;text-align:center;"><span style="color:#6b7280;font-size:12px;">pitchr &mdash; ai pitch coach</span></td></tr>
 </table></td></tr></table>
 </body></html>'></iframe>
   </div>

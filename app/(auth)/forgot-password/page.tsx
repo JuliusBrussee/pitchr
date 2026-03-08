@@ -49,7 +49,8 @@ export default function ForgotPasswordPage() {
 
       setEmailSent(true);
       setIsLoading(false);
-    } catch {
+    } catch (err) {
+      console.error('[auth] forgot-password error:', err);
       setError('Something went wrong. Please try again.');
       setIsLoading(false);
     }

@@ -107,7 +107,8 @@ function SignupForm() {
       }
 
       router.push(redirectTo);
-    } catch {
+    } catch (err) {
+      console.error('[auth] signup error:', err);
       setError({ text: 'Something went wrong. Please try again.', type: 'error' });
       setIsLoading(false);
     }
@@ -124,7 +125,7 @@ function SignupForm() {
     });
 
     if (oauthError) {
-      setError(oauthError.message);
+      setError({ text: oauthError.message, type: 'error' });
     }
   }
 

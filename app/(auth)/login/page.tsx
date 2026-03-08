@@ -76,7 +76,8 @@ function LoginForm() {
       }
 
       router.push(redirectTo);
-    } catch {
+    } catch (err) {
+      console.error('[auth] login error:', err);
       setError('Something went wrong. Please try again.');
       setIsLoading(false);
     }

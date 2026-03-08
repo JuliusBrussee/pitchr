@@ -75,7 +75,8 @@ async function sendEmail(params: SendEmailParams): Promise<EmailSendResult> {
   let data: ResendSendResponse = {};
   try {
     data = (await response.json()) as ResendSendResponse;
-  } catch {
+  } catch (err) {
+    console.warn('[email] Failed to parse Resend response as JSON:', err instanceof Error ? err.message : err);
     data = {};
   }
 

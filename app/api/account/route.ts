@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getSubscription } from '@/services/billingService';
@@ -49,8 +50,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Re-authenticate with password to verify identity
-    const { error: signInError } = await admin.auth.signInWithPassword({
+    // Re-authenticate with a disposable client (not the admin singleton)
+    const verifyClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+    const { error: signInError } = await verifyClient.auth.signInWithPassword({
       email: userEmail,
       password,
     });
@@ -67,32 +73,32 @@ export async function DELETE(request: NextRequest) {
     const stripeCustomerId = subscription?.stripeCustomerId ?? null;
     const hadPaidPlan = subscription ? subscription.planId !== 'free' : false;
 
-    // Clean up storage buckets
+    // Clean up storage buckets (best-effort, log failures)
     for (const bucket of ['decks', 'recordings']) {
-      const { data: files } = await admin.storage
+      const { data: files, error: listError } = await admin.storage
         .from(bucket)
         .list(user.id);
 
+      if (listError) {
+        console.warn(`[account] Failed to list storage bucket "${bucket}" for user ${user.id}:`, listError.message);
+        continue;
+      }
+
       if (files && files.length > 0) {
         const paths = files.map((f) => `${user.id}/${f.name}`);
-        await admin.storage.from(bucket).remove(paths);
+        const { error: removeError } = await admin.storage.from(bucket).remove(paths);
+        if (removeError) {
+          console.warn(`[account] Failed to remove files from "${bucket}" for user ${user.id}:`, removeError.message);
+        }
       }
     }
 
-    // Insert tombstone record
-    await admin.from('deleted_emails').insert({
-      email: userEmail.toLowerCase(),
-      stripe_customer_id: stripeCustomerId,
-      had_paid_plan: hadPaidPlan,
-    });
-
-    // Delete Stripe customer if exists
+    // Delete Stripe customer if exists (best-effort, log failures)
     if (stripeCustomerId) {
       try {
         await deleteCustomer(stripeCustomerId);
-      } catch {
-        // Non-blocking — Stripe cleanup is best-effort
-        console.warn('[account] Failed to delete Stripe customer:', stripeCustomerId);
+      } catch (err) {
+        console.warn('[account] Failed to delete Stripe customer:', stripeCustomerId, err);
       }
     }
 
@@ -103,6 +109,16 @@ export async function DELETE(request: NextRequest) {
         { error: 'Failed to delete account. Please try again.' },
         { status: 500 },
       );
+    }
+
+    // Insert tombstone AFTER successful user deletion (anti-abuse)
+    const { error: tombstoneError } = await admin.from('deleted_emails').insert({
+      email: userEmail.toLowerCase(),
+      stripe_customer_id: stripeCustomerId,
+      had_paid_plan: hadPaidPlan,
+    });
+    if (tombstoneError) {
+      console.error('[account] Failed to insert tombstone for deleted user:', userEmail, tombstoneError.message);
     }
 
     return NextResponse.json({ success: true });

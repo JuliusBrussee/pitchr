@@ -72,7 +72,8 @@ export default function ResetPasswordPage() {
 
       setIsSuccess(true);
       setIsLoading(false);
-    } catch {
+    } catch (err) {
+      console.error('[auth] reset-password error:', err);
       setError('Something went wrong. Please try again.');
       setIsLoading(false);
     }

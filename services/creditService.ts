@@ -44,7 +44,11 @@ export async function getOrCreateCreditBalance(
   let monthlyLimit = MONTHLY_CREDITS[planId];
 
   // Check if this user previously deleted their account (anti-abuse)
-  const { data: userData } = await supabase.auth.admin.getUserById(userId);
+  // Requires service-role client for admin.getUserById
+  const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+  if (userError) {
+    console.warn('[credits] Could not verify user email for tombstone check:', userError.message);
+  }
   if (userData?.user?.email) {
     const { data: tombstone } = await supabase
       .from('deleted_emails')

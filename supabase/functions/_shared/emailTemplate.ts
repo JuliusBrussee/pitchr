@@ -2,19 +2,23 @@
  * Shared Email Template System (Edge Function / Deno)
  *
  * Mirror of lib/emailTemplate.ts for Supabase Edge Functions.
- * Editorial design: Georgia serif headings, strategic coral,
- * generous whitespace, restrained typography.
+ * Dark glassmorphic design: near-black bg, glass-bordered cards,
+ * gradient coral accents, layered shadows. Email-safe simulation.
  * —————————————————————————————————————————————————————————— */
 
 const BRAND = {
   coral: '#ff5941',
-  textPrimary: '#111827',
-  textMuted: '#9ca3af',
-  bgPage: '#f9f9fb',
-  bgCard: '#ffffff',
-  border: 'rgba(0, 0, 0, 0.08)',
+  coralEnd: '#ffaa33',
+  coralDark: '#e63b26',
+  textPrimary: '#ededec',
+  textMuted: '#6b7280',
+  bgPage: '#0f0f11',
+  bgCard: '#1a1a1f',
+  bgCardBorder: 'rgba(255,255,255,0.08)',
+  border: 'rgba(255,255,255,0.08)',
+  cardShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
   sansStack:
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
 } as const;
 
 interface EmailLayoutOptions {
@@ -38,8 +42,8 @@ export function emailLayout(options: EmailLayoutOptions): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
-  <meta name="color-scheme" content="light">
-  <meta name="supported-color-schemes" content="light">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
   <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
   <style>
     * { box-sizing: border-box; }
@@ -57,17 +61,20 @@ export function emailLayout(options: EmailLayoutOptions): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND.bgPage};">
     <tr>
       <td align="center" style="padding:48px 16px;" class="email-container">
-        <table role="presentation" width="520" cellpadding="0" cellspacing="0" class="email-card" style="background-color:${BRAND.bgCard};border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <!--[if mso]><table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;"><tr><td><![endif]-->
+        <table role="presentation" width="520" cellpadding="0" cellspacing="0" class="email-card" style="background-color:${BRAND.bgCard};border-radius:16px;overflow:hidden;box-shadow:${BRAND.cardShadow};border:1px solid ${BRAND.bgCardBorder};">
           <tr>
-            <td style="height:2px;background-color:${BRAND.coral};font-size:0;line-height:0;">&nbsp;</td>
-          </tr>
-          <tr>
-            <td style="padding:36px 40px 0;text-align:center;">
-              <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:${BRAND.textPrimary};font-family:${BRAND.sansStack};">pitchr</div>
+            <td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,${BRAND.coral},${BRAND.coralEnd});">
+              <!--[if mso]><v:rect style="width:520px;height:3px;" stroked="false"><v:fill type="gradient" color="${BRAND.coral}" color2="${BRAND.coralEnd}" angle="90"/></v:rect><![endif]-->
             </td>
           </tr>
           <tr>
-            <td style="padding:32px 40px 40px;font-family:${BRAND.sansStack};color:${BRAND.textPrimary};line-height:1.7;font-size:15px;" class="email-body">
+            <td style="padding:36px 40px 0;text-align:center;">
+              <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:${BRAND.textPrimary};font-family:${BRAND.sansStack};">Pitchr<span style="color:${BRAND.coral};">.</span></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px 40px 40px;font-family:${BRAND.sansStack};color:#d1d1cf;line-height:1.65;font-size:14px;" class="email-body">
               ${options.body}
             </td>
           </tr>
@@ -82,6 +89,7 @@ export function emailLayout(options: EmailLayoutOptions): string {
             </td>
           </tr>
         </table>
+        <!--[if mso]></td></tr></table><![endif]-->
       </td>
     </tr>
   </table>

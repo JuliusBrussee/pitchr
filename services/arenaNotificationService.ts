@@ -65,7 +65,7 @@ async function sendEmail(params: {
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
     const message = (data as { error?: { message?: string } }).error?.message ?? 'Failed to send email';
-    console.error('[arena-notify] send failed:', message);
+    throw new Error(`[arena-notify] send failed: ${message}`);
   }
 }
 
@@ -123,8 +123,17 @@ export async function sendChallengeDropNotification(
     `Compete: ${challengeUrl}`,
   ].join('\n');
 
+  let failCount = 0;
   for (const email of proEmails) {
-    await sendEmail({ to: email, subject, html, text });
+    try {
+      await sendEmail({ to: email, subject, html, text });
+    } catch (err) {
+      failCount++;
+      console.error('[arena-notify] Failed to send challenge drop to:', email, err instanceof Error ? err.message : err);
+    }
+  }
+  if (failCount > 0) {
+    console.warn(`[arena-notify] ${failCount}/${proEmails.length} challenge drop emails failed`);
   }
 }
 

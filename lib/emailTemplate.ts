@@ -2,23 +2,30 @@
  * Shared Email Template System
  *
  * Branded Pitchr email layout used by all Resend emails.
- * Matches the editorial design language of the landing page:
- * Georgia serif headings (weight 400), strategic coral accents,
- * generous whitespace, and restrained typography.
+ * Dark glassmorphic design: near-black bg, glass-bordered cards,
+ * gradient coral accents, layered shadows. Email-safe simulation
+ * (no backdrop-filter). MSO fallbacks for Outlook.
  * —————————————————————————————————————————————————————————— */
 
 const BRAND = {
   coral: '#ff5941',
-  textPrimary: '#111827',
-  textSecondary: '#6b7280',
-  textMuted: '#9ca3af',
-  bgPage: '#f9f9fb',
-  bgCard: '#ffffff',
-  bgSubtle: 'rgba(0, 0, 0, 0.02)',
-  border: 'rgba(0, 0, 0, 0.08)',
-  serifStack: "Georgia, 'Times New Roman', Times, serif",
+  coralEnd: '#ffaa33',
+  coralDark: '#e63b26',
+  textPrimary: '#ededec',
+  textSecondary: '#9ca3af',
+  textMuted: '#6b7280',
+  bgPage: '#0f0f11',
+  bgCard: '#1a1a1f',
+  bgCardBorder: 'rgba(255,255,255,0.08)',
+  bgSubtle: 'rgba(255,255,255,0.04)',
+  bgCallout: 'rgba(255,89,65,0.06)',
+  border: 'rgba(255,255,255,0.08)',
+  cardShadow: '0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3)',
+  ctaGlow: '0 4px 16px rgba(255,89,65,0.3)',
+  serifStack:
+    "'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
   sansStack:
-    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "'Helvetica Neue', Helvetica, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif",
   monoStack:
     "'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace",
 } as const;
@@ -44,8 +51,8 @@ export function emailLayout(options: EmailLayoutOptions): string {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="x-apple-disable-message-reformatting">
-  <meta name="color-scheme" content="light">
-  <meta name="supported-color-schemes" content="light">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
   <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
   <style>
     * { box-sizing: border-box; }
@@ -63,20 +70,23 @@ export function emailLayout(options: EmailLayoutOptions): string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${BRAND.bgPage};">
     <tr>
       <td align="center" style="padding:48px 16px;" class="email-container">
-        <table role="presentation" width="520" cellpadding="0" cellspacing="0" class="email-card" style="background-color:${BRAND.bgCard};border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.04);">
-          <!-- Accent bar -->
+        <!--[if mso]><table role="presentation" width="520" cellpadding="0" cellspacing="0" style="background-color:#1a1a1f;"><tr><td><![endif]-->
+        <table role="presentation" width="520" cellpadding="0" cellspacing="0" class="email-card" style="background-color:${BRAND.bgCard};border-radius:16px;overflow:hidden;box-shadow:${BRAND.cardShadow};border:1px solid ${BRAND.bgCardBorder};">
+          <!-- Gradient accent bar -->
           <tr>
-            <td style="height:2px;background-color:${BRAND.coral};font-size:0;line-height:0;">&nbsp;</td>
+            <td style="height:3px;font-size:0;line-height:0;background:linear-gradient(90deg,${BRAND.coral},${BRAND.coralEnd});">
+              <!--[if mso]><v:rect style="width:520px;height:3px;" stroked="false"><v:fill type="gradient" color="${BRAND.coral}" color2="${BRAND.coralEnd}" angle="90"/></v:rect><![endif]-->
+            </td>
           </tr>
           <!-- Logo -->
           <tr>
             <td style="padding:36px 40px 0;text-align:center;">
-              <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:${BRAND.textPrimary};font-family:${BRAND.sansStack};">pitchr</div>
+              <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:${BRAND.textPrimary};font-family:${BRAND.sansStack};">Pitchr<span style="color:${BRAND.coral};">.</span></div>
             </td>
           </tr>
           <!-- Body -->
           <tr>
-            <td style="padding:32px 40px 40px;font-family:${BRAND.sansStack};color:${BRAND.textPrimary};line-height:1.7;font-size:15px;" class="email-body">
+            <td style="padding:32px 40px 40px;font-family:${BRAND.sansStack};color:#d1d1cf;line-height:1.65;font-size:14px;" class="email-body">
               ${options.body}
             </td>
           </tr>
@@ -92,6 +102,7 @@ export function emailLayout(options: EmailLayoutOptions): string {
             </td>
           </tr>
         </table>
+        <!--[if mso]></td></tr></table><![endif]-->
       </td>
     </tr>
   </table>
@@ -100,20 +111,20 @@ export function emailLayout(options: EmailLayoutOptions): string {
 }
 
 export function emailHeading(text: string): string {
-  return `<h2 style="margin:0 0 8px;font-size:26px;font-weight:400;letter-spacing:-0.02em;color:${BRAND.textPrimary};line-height:1.25;font-family:${BRAND.serifStack};">${text}</h2>`;
+  return `<h2 style="margin:0 0 12px;font-size:28px;font-weight:600;letter-spacing:-0.03em;color:#ffffff;line-height:1.2;font-family:${BRAND.sansStack};">${text}</h2>`;
 }
 
 export function emailSubheading(text: string): string {
-  return `<p style="margin:0 0 28px;font-size:15px;color:${BRAND.textSecondary};line-height:1.6;">${text}</p>`;
+  return `<p style="margin:0 0 28px;font-size:14px;color:${BRAND.textSecondary};line-height:1.6;">${text}</p>`;
 }
 
 export function emailParagraph(text: string): string {
-  return `<p style="margin:0 0 18px;font-size:15px;color:${BRAND.textPrimary};line-height:1.7;">${text}</p>`;
+  return `<p style="margin:0 0 18px;font-size:14px;color:#d1d1cf;line-height:1.65;">${text}</p>`;
 }
 
 export function emailCta(href: string, label: string): string {
   return `<div style="text-align:center;margin:32px 0 12px;">
-  <a href="${href}" style="display:inline-block;padding:12px 28px;background-color:${BRAND.coral};color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;font-family:${BRAND.sansStack};">
+  <a href="${href}" style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,${BRAND.coral},${BRAND.coralDark});color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;font-family:${BRAND.sansStack};box-shadow:${BRAND.ctaGlow};">
     ${label}
   </a>
 </div>`;
@@ -124,7 +135,7 @@ export function emailDivider(): string {
 }
 
 export function emailCallout(content: string): string {
-  return `<div style="margin:24px 0;padding:20px 24px;background:${BRAND.bgSubtle};border-radius:12px;border:1px solid ${BRAND.border};">
+  return `<div style="margin:24px 0;padding:20px 24px;background:${BRAND.bgCallout};border-radius:12px;border:1px solid ${BRAND.bgCardBorder};">
   ${content}
 </div>`;
 }
@@ -135,7 +146,7 @@ export function emailList(items: string[]): string {
       (item) =>
         `<tr>
   <td style="padding:0 10px 10px 0;vertical-align:top;color:${BRAND.coral};font-size:8px;line-height:22px;" width="14">&bull;</td>
-  <td style="padding:0 0 10px;font-size:15px;color:${BRAND.textPrimary};line-height:1.6;font-family:${BRAND.sansStack};">${item}</td>
+  <td style="padding:0 0 10px;font-size:14px;color:#d1d1cf;line-height:1.6;font-family:${BRAND.sansStack};">${item}</td>
 </tr>`,
     )
     .join('');

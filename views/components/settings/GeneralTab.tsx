@@ -92,7 +92,8 @@ export function GeneralTab() {
       a.download = `pitchr-export-${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (err) {
+      console.error('[settings] export failed:', err);
       toast('error', 'Failed to export data.');
     }
   };
@@ -104,10 +105,18 @@ export function GeneralTab() {
         params: { includePending: 'true', allProjects: 'true' },
       }).then((r) => r.json());
       const allRuns = Array.isArray(payload?.runs) ? payload.runs : [];
-      await Promise.all(allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
-      toast('success', 'All data cleared successfully.');
+      const results = await Promise.allSettled(
+        allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })),
+      );
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        toast('error', `Failed to delete ${failed} of ${allRuns.length} items.`);
+      } else {
+        toast('success', 'All data cleared successfully.');
+      }
       setShowClearAllConfirm(false);
-    } catch {
+    } catch (err) {
+      console.error('[settings] clear all failed:', err);
       toast('error', 'Failed to clear data.');
     } finally {
       setIsClearing(false);
