@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Calendar, Clock } from 'lucide-react';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
@@ -13,6 +12,7 @@ import { mdxComponents } from '@/views/components/blog/MDXComponents';
 import { TableOfContents } from '@/views/components/blog/TableOfContents';
 import { ReadingProgress } from '@/views/components/blog/ReadingProgress';
 import { BlogCard } from '@/views/components/blog/BlogCard';
+import { BlogNavbar } from '@/views/components/blog/BlogNavbar';
 import '../blog.css';
 
 interface Props {
@@ -163,6 +163,12 @@ export default async function BlogPostPage({ params }: Props) {
 
   const jsonLdString = JSON.stringify(schemas);
 
+  const formattedDate = new Date(meta.date).toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
   return (
     <div className="blog-post">
       <ReadingProgress />
@@ -171,47 +177,54 @@ export default async function BlogPostPage({ params }: Props) {
         {jsonLdString}
       </script>
 
-      <header className="blog-post-header">
-        <Link href="/blog" className="blog-back-link">
-          <ArrowLeft size={14} />
-          Back to journal
-        </Link>
-        <span className="blog-post-category">{meta.category}</span>
-        <h1 className="blog-post-title">{meta.title}</h1>
-        <div className="blog-post-meta">
-          <span className="blog-post-meta-item">
-            <Calendar size={14} />
-            {new Date(meta.date).toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </span>
-          <span className="blog-post-meta-item">
-            <Clock size={14} />
-            {meta.readingTime} min read
-          </span>
-          <span className="blog-post-author">by {meta.author}</span>
-        </div>
-        {authorProfile && (
-          <p className="blog-post-author-bio">
-            <strong>{authorProfile.role}.</strong> {authorProfile.bio}
-          </p>
-        )}
-      </header>
+      <BlogNavbar />
 
-      {meta.coverImage && (
-        <div className="blog-post-cover">
-          <Image
-            src={meta.coverImage}
-            alt={meta.title}
-            fill
-            sizes="100vw"
-            priority
-            className="blog-post-cover-img"
-          />
+      {/* Full-bleed hero with cover image */}
+      {meta.coverImage ? (
+        <div className="blog-post-hero">
+          <div className="blog-post-hero-image">
+            <Image
+              src={meta.coverImage}
+              alt={meta.title}
+              fill
+              sizes="100vw"
+              priority
+              className="blog-post-cover-img"
+            />
+            <div className="blog-post-hero-overlay" />
+          </div>
+          <div className="blog-post-hero-content">
+            <span className="blog-post-category">{meta.category}</span>
+            <h1 className="blog-post-title">{meta.title}</h1>
+            <p className="blog-post-excerpt">{meta.excerpt}</p>
+          </div>
         </div>
+      ) : (
+        <header className="blog-post-header">
+          <span className="blog-post-category">{meta.category}</span>
+          <h1 className="blog-post-title">{meta.title}</h1>
+          <p className="blog-post-excerpt">{meta.excerpt}</p>
+        </header>
       )}
+
+      {/* Byline bar — newspaper dateline style */}
+      <div className="blog-post-byline-bar">
+        <div className="blog-post-byline-inner">
+          <div className="blog-post-byline-left">
+            <span className="blog-post-byline-author">
+              By <strong>{meta.author}</strong>
+            </span>
+            {authorProfile && (
+              <span className="blog-post-byline-role">{authorProfile.role}</span>
+            )}
+          </div>
+          <div className="blog-post-byline-right">
+            <time className="blog-post-byline-date" dateTime={meta.date}>{formattedDate}</time>
+            <span className="blog-post-byline-separator" aria-hidden="true" />
+            <span className="blog-post-byline-reading">{meta.readingTime} min read</span>
+          </div>
+        </div>
+      </div>
 
       <div className="blog-post-layout">
         <aside className="blog-post-sidebar">
@@ -234,9 +247,14 @@ export default async function BlogPostPage({ params }: Props) {
         </article>
       </div>
 
+      {/* Editorial footer */}
       {related.length > 0 && (
         <section className="blog-related">
-          <h3 className="blog-related-title">Continue reading</h3>
+          <div className="blog-related-header">
+            <div className="blog-related-rule" />
+            <span className="blog-related-label">More from The Pitch Journal</span>
+            <div className="blog-related-rule" />
+          </div>
           <div className="blog-related-grid">
             {related.map((p) => (
               <BlogCard key={p.slug} post={p} />

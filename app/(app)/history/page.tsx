@@ -15,6 +15,7 @@ import {
   Upload,
 } from 'lucide-react';
 import {
+  ConfirmDialog,
   GlassCard,
   ScoreBadge,
   TagPill,
@@ -107,6 +108,7 @@ export default function HistoryPage() {
   const { activeProjectId } = useProject();
   const [visibleCount, setVisibleCount] = useState(8);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteRun, setConfirmDeleteRun] = useState<{ id: string; number: number } | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState(false);
   const { showTooltip } = useSmartTooltip();
@@ -200,17 +202,17 @@ export default function HistoryPage() {
     return acc;
   }, {});
 
-  /* Handle delete with confirmation */
-  const handleDelete = async (id: string, runNumber: number) => {
-    if (!window.confirm(`Delete Pitch #${runNumber}? This cannot be undone.`)) return;
+  /* Perform delete (called from ConfirmDialog onConfirm) */
+  const performDelete = useCallback(async (id: string) => {
     setDeletingId(id);
     try {
       await fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: id } });
       setRuns((prev) => prev.filter((r) => r.id !== id));
+      setConfirmDeleteRun(null);
     } finally {
       setDeletingId(null);
     }
-  };
+  }, []);
 
   /* Running index for stagger animations */
   let animIndex = 0;
@@ -472,7 +474,7 @@ export default function HistoryPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDelete(run.id, run.number);
+                            setConfirmDeleteRun({ id: run.id, number: run.number });
                           }}
                           className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg transition-all duration-150 flex-shrink-0"
                           style={{ color: 'var(--text-muted)' }}
@@ -547,7 +549,7 @@ export default function HistoryPage() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDelete(run.id, run.number);
+                              setConfirmDeleteRun({ id: run.id, number: run.number });
                             }}
                             className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg transition-all duration-150"
                             style={{ color: 'var(--text-muted)' }}
@@ -679,6 +681,19 @@ export default function HistoryPage() {
         </div>
       </GlassCard>
 
+      <ConfirmDialog
+        open={!!confirmDeleteRun}
+        onClose={() => setConfirmDeleteRun(null)}
+        title={confirmDeleteRun ? `Delete Pitch #${confirmDeleteRun.number}?` : ''}
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        isConfirming={!!confirmDeleteRun && deletingId === confirmDeleteRun.id}
+        onConfirm={async () => {
+          if (!confirmDeleteRun) return;
+          await performDelete(confirmDeleteRun.id);
+        }}
+      />
       <RunDetailModal
         runId={selectedRunId}
         onClose={() => setSelectedRunId(null)}

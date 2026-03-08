@@ -34,6 +34,7 @@ export interface SessionState {
   startSession: (mode: PitchMode) => void;
   stopSession: () => void;
   resumeSession: () => void;
+  resetSession: (mode?: PitchMode) => void;
 }
 
 const FILLER_WORDS = new Set([
@@ -262,10 +263,12 @@ export function useSessionState(): SessionState {
 
       wordCountRef.current = nextWordCount;
       fillerWordsRef.current = nextFillerWords;
-      // Consume transcript updates immediately, but update rendered trend metrics
-      // on a slower timer so values stay stable and trend-like.
+      // Refresh metrics when transcript changes: during session (live WPM) or after stop (final update).
+      if (nextWordCount > 0 || nextFillerWords > 0) {
+        refreshTrendMetrics(nextWordCount, nextFillerWords);
+      }
     },
-    [],
+    [isSessionActive, refreshTrendMetrics],
   );
 
   const resetChecklist = useCallback((mode: PitchMode) => {
@@ -295,6 +298,27 @@ export function useSessionState(): SessionState {
     setOrbState('idle');
   }, []);
 
+  const resetSession = useCallback((mode: PitchMode = 'elevator') => {
+    if (durationIntervalRef.current) {
+      clearInterval(durationIntervalRef.current);
+      durationIntervalRef.current = null;
+    }
+    setIsSessionActive(false);
+    setOrbState('idle');
+    sessionStartRef.current = null;
+    pausedAtRef.current = 0;
+    totalPausedMsRef.current = 0;
+    lastTranscriptRef.current = '';
+    lastCommittedTranscriptRef.current = '';
+    wordCountRef.current = 0;
+    fillerWordsRef.current = 0;
+    wpmSamplesRef.current = [];
+    smoothedWpmRef.current = 0;
+    smoothedFillerRateRef.current = 0;
+    setMetrics({ wpm: 0, fillerWords: 0, wordCount: 0, durationSecs: 0, fillerRate: 0 });
+    setChecklist(createInitialChecklistState(mode));
+  }, []);
+
   const resumeSession = useCallback(() => {
     if (!sessionStartRef.current) {
       sessionStartRef.current = Date.now();
@@ -320,5 +344,6 @@ export function useSessionState(): SessionState {
     startSession,
     stopSession,
     resumeSession,
+    resetSession,
   };
 }

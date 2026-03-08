@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { TrendingUp } from 'lucide-react';
 import type { ScoreTrend } from '@/lib/analytics';
+import { ChartTooltip } from '@/views/components/ui/ChartTooltip';
 
 interface SparklineProps {
   trend: ScoreTrend;
@@ -9,6 +11,12 @@ interface SparklineProps {
 
 export function Sparkline({ trend }: SparklineProps) {
   const { points, bestImprovement } = trend;
+  const [hoveredPoint, setHoveredPoint] = useState<{
+    index: number;
+    anchorEl: SVGElement;
+  } | null>(null);
+  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
+
   if (points.length < 2) return null;
 
   const width = 300;
@@ -94,9 +102,45 @@ export function Sparkline({ trend }: SparklineProps) {
             fill={i === coords.length - 1 ? '#ff5941' : 'var(--bg-primary)'}
             stroke="#ff5941"
             strokeWidth={i === coords.length - 1 ? 2 : 1.5}
+            onMouseEnter={(e) => {
+              setHoveredPoint({ index: i, anchorEl: e.currentTarget });
+              setCursorPosition({ x: e.clientX, y: e.clientY });
+            }}
+            onMouseMove={(e) =>
+              setCursorPosition({ x: e.clientX, y: e.clientY })
+            }
+            onMouseLeave={() => {
+              setHoveredPoint(null);
+              setCursorPosition(null);
+            }}
+            aria-label={`Session ${i + 1}, score ${points[i].score} out of 100`}
           />
         ))}
       </svg>
+      {hoveredPoint !== null && (
+        <ChartTooltip
+          visible
+          anchorEl={hoveredPoint.anchorEl}
+          cursorPosition={cursorPosition}
+          offset={14}
+          content={
+            <div className="flex flex-col gap-0.5">
+              <span className="tabular-nums font-semibold">
+                Session {hoveredPoint.index + 1}: {points[hoveredPoint.index].score}/100
+              </span>
+              <span
+                className="text-[11px]"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {new Date(points[hoveredPoint.index].date).toLocaleDateString(
+                  'en-US',
+                  { month: 'short', day: 'numeric', year: 'numeric' }
+                )}
+              </span>
+            </div>
+          }
+        />
+      )}
       <div className="flex justify-between mt-1.5">
         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
           {points.length} sessions
