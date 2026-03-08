@@ -1,11 +1,13 @@
 import { createElement } from 'react';
 import { render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import sitemap from '@/app/sitemap';
 import { PUBLIC_PAGES } from '@/content/publicPages';
 import { HomeJsonLd } from '@/views/components/seo/HomeJsonLd';
 import * as deliveryRubricPageModule from '@/app/(marketing)/delivery-rubric/page';
 import * as scoringLogicPageModule from '@/app/(marketing)/scoring-logic/page';
 import * as growthPricingPageModule from '@/app/(marketing)/growth-pricing/page';
+import playwrightConfig from '../playwright.config';
 
 const ORIGINAL_APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
@@ -114,5 +116,21 @@ describe('public SEO foundations', () => {
     );
 
     homeView.unmount();
+  });
+
+  it('includes the deep-dive routes in the sitemap and uses yarn for the public smoke server', () => {
+    const urls = sitemap().map((entry) => entry.url);
+    const webServer = Array.isArray(playwrightConfig.webServer)
+      ? playwrightConfig.webServer[0]
+      : playwrightConfig.webServer;
+
+    expect(urls).toEqual(
+      expect.arrayContaining([
+        'https://preview.pitchr.test/delivery-rubric',
+        'https://preview.pitchr.test/scoring-logic',
+        'https://preview.pitchr.test/growth-pricing',
+      ]),
+    );
+    expect(webServer?.command).toBe('yarn dev');
   });
 });
