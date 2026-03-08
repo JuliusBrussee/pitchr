@@ -14,6 +14,7 @@ import { uploadRecording } from '@/services/recordingService';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { usePitchRun } from '@/hooks/usePitchRun';
 import { useTheme } from '@/views/components/ThemeProvider';
+import { ConfirmDialog } from '@/views/components/ui';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useProject } from '@/views/components/ProjectProvider';
@@ -67,18 +68,20 @@ function SessionPageContent() {
   const [isProjectSwitchLocked, setIsProjectSwitchLocked] = useState(false);
   const { setChecklist: setSessionChecklist, resetChecklist: resetSessionChecklist } = session;
 
-  // Pre-session config state
-  const [selectedMode, setSelectedMode] = useState<PitchMode>(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('pitchr_session_mode');
-      if (stored === 'elevator' || stored === 'vc_pitch') return stored;
-    }
-    return 'vc_pitch';
-  });
+  // Pre-session config state (deterministic defaults for SSR; stored preference applied in useEffect)
+  const [selectedMode, setSelectedMode] = useState<PitchMode>('vc_pitch');
   const [selectedDuration, setSelectedDuration] = useState(
-    () => PITCH_MODE_CONFIG[selectedMode].defaultDurationSeconds,
+    () => PITCH_MODE_CONFIG['vc_pitch'].defaultDurationSeconds,
   );
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('pitchr_session_mode');
+    if (stored === 'elevator' || stored === 'vc_pitch') {
+      setSelectedMode(stored);
+      setSelectedDuration(PITCH_MODE_CONFIG[stored].defaultDurationSeconds);
+    }
+  }, []);
 
   const handleModeChange = useCallback((mode: PitchMode) => {
     setSelectedMode(mode);
@@ -311,7 +314,7 @@ function SessionPageContent() {
   }, []);
 
   const handleConfirmDiscard = useCallback(() => {
-    session.stopSession();
+    session.resetSession(pitchMode);
     stt.discard();
     void recorder.stopRecording(); // ignore blob; stt.saved never set so auto-submit won't run
     setShowAnalyzing(false);
@@ -321,7 +324,7 @@ function SessionPageContent() {
     lockedProjectIdRef.current = null;
     setIsProjectSwitchLocked(false);
     setShowDiscardConfirm(false);
-  }, [session, stt, recorder]);
+  }, [session, stt, recorder, pitchMode]);
 
   // Warn before navigating away during analysis
   useEffect(() => {
@@ -515,63 +518,15 @@ function SessionPageContent() {
         aria-hidden="true"
       />
       <AnalyzingOverlay isVisible={showAnalyzing} />
-      {showDiscardConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-            backdropFilter: 'blur(8px)',
-          }}
-          onClick={() => setShowDiscardConfirm(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="discard-confirm-title"
-        >
-          <div
-            className="w-full max-w-[360px] rounded-2xl border p-5"
-            style={{
-              backgroundColor: 'var(--bg-primary)',
-              borderColor: 'var(--border-color)',
-              boxShadow: '0 25px 80px rgba(0, 0, 0, 0.35)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p
-              id="discard-confirm-title"
-              className="text-base font-medium mb-5"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Discard this recording? It cannot be recovered.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowDiscardConfirm(false)}
-                className="px-4 py-2 rounded-xl border font-medium transition-colors"
-                style={{
-                  backgroundColor: 'var(--bg-surface)',
-                  borderColor: 'var(--border-color)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDiscard}
-                className="px-4 py-2 rounded-xl font-medium transition-colors"
-                style={{
-                  backgroundColor: 'rgba(239,68,68,0.15)',
-                  border: '1px solid rgba(239,68,68,0.5)',
-                  color: '#ef4444',
-                }}
-              >
-                Discard
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        title="Discard this recording?"
+        description="It cannot be recovered."
+        confirmLabel="Discard"
+        variant="danger"
+        onConfirm={handleConfirmDiscard}
+      />
     </div>
   );
 }

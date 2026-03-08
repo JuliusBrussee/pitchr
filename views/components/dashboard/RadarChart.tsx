@@ -1,13 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import type { RubricCategory } from '@/lib/analytics';
 import { getRubricColor } from '@/views/components/ui/colors';
+import { ChartTooltip } from '@/views/components/ui/ChartTooltip';
 
 interface RadarChartProps {
   categories: RubricCategory[];
 }
 
 export function RadarChart({ categories }: RadarChartProps) {
+  const [hoveredCategory, setHoveredCategory] = useState<{
+    index: number;
+    anchorEl: SVGElement;
+  } | null>(null);
+  const [cursorPosition, setCursorPosition] = useState<{ x: number; y: number } | null>(null);
+
   const size = 280;
   const center = size / 2;
   const maxRadius = 90;
@@ -115,6 +123,18 @@ export function RadarChart({ categories }: RadarChartProps) {
               stroke="var(--bg-primary)"
               strokeWidth={2}
               className="dash-radar-dot"
+              onMouseEnter={(e) => {
+                setHoveredCategory({ index: i, anchorEl: e.currentTarget });
+                setCursorPosition({ x: e.clientX, y: e.clientY });
+              }}
+              onMouseMove={(e) =>
+                setCursorPosition({ x: e.clientX, y: e.clientY })
+              }
+              onMouseLeave={() => {
+                setHoveredCategory(null);
+                setCursorPosition(null);
+              }}
+              aria-label={`${categories[i].label}, score ${categories[i].score} out of ${categories[i].maxScore}`}
             />
           ))}
           {/* Labels */}
@@ -137,6 +157,21 @@ export function RadarChart({ categories }: RadarChartProps) {
           })}
         </svg>
       </div>
+      {hoveredCategory !== null && (
+        <ChartTooltip
+          visible
+          anchorEl={hoveredCategory.anchorEl}
+          cursorPosition={cursorPosition}
+          offset={12}
+          content={
+            <span className="tabular-nums">
+              {categories[hoveredCategory.index].label}:{' '}
+              {categories[hoveredCategory.index].score}/
+              {categories[hoveredCategory.index].maxScore}
+            </span>
+          }
+        />
+      )}
 
       {/* Category rows — clean, no dropdowns */}
       <div className="flex flex-col gap-2 mt-4">

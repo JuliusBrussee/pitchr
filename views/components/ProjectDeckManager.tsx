@@ -17,7 +17,7 @@ import {
   FolderOpen,
   X,
 } from 'lucide-react';
-import { SearchInput, EmptyState } from '@/views/components/ui';
+import { ConfirmDialog, SearchInput, EmptyState } from '@/views/components/ui';
 import { GenerateDeckModal } from '@/views/components/GenerateDeckModal';
 import { useProject } from '@/views/components/ProjectProvider';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
@@ -196,6 +196,8 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
   const [isGenerateOpen, setIsGenerateOpen] = useState(false);
   const [moveOpenDeckId, setMoveOpenDeckId] = useState<string | null>(null);
   const [hoveredDeckId, setHoveredDeckId] = useState<string | null>(null);
+  const [deckToDelete, setDeckToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingDeck, setIsDeletingDeck] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const fetchDecks = useCallback(async () => {
@@ -251,15 +253,20 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
     }
   }, [projectId, fetchDecks]);
 
-  const handleDelete = async (deckId: string) => {
+  const performDeleteDeck = useCallback(async (deckId: string) => {
+    setIsDeletingDeck(true);
+    setError(null);
     try {
       const res = await fetchEdge('deck-detail', { method: 'DELETE', params: { deckId } });
       if (!res.ok) throw new Error('Failed to delete deck');
       setDecks((prev) => prev.filter((d) => d.id !== deckId));
+      setDeckToDelete(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to delete deck');
+    } finally {
+      setIsDeletingDeck(false);
     }
-  };
+  }, []);
 
   const handleDownload = async (deck: DeckRecord) => {
     try {
@@ -489,7 +496,7 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
                     </button>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleDelete(deck.id); }}
+                    onClick={(e) => { e.stopPropagation(); setDeckToDelete({ id: deck.id, name: deck.name }); }}
                     className="p-1.5 rounded-lg text-white/70 hover:text-red-400 transition-colors"
                     style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)', backdropFilter: 'blur(4px)' }}
                     aria-label="Delete"
@@ -526,6 +533,19 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
         })}
       </div>
 
+      <ConfirmDialog
+        open={!!deckToDelete}
+        onClose={() => setDeckToDelete(null)}
+        title="Delete deck?"
+        description={deckToDelete ? `"${deckToDelete.name}" will be removed. This cannot be undone.` : ''}
+        confirmLabel="Delete"
+        variant="danger"
+        isConfirming={isDeletingDeck}
+        onConfirm={async () => {
+          if (!deckToDelete) return;
+          await performDeleteDeck(deckToDelete.id);
+        }}
+      />
       <GenerateDeckModal
         isOpen={isGenerateOpen}
         onClose={() => setIsGenerateOpen(false)}

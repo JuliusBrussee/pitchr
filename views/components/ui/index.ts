@@ -1,3 +1,5 @@
+export { ChartTooltip } from './ChartTooltip';
+export { ConfirmDialog } from './ConfirmDialog';
 export { GlassCard } from './GlassCard';
 export { StatCard } from './StatCard';
 export { ScoreBadge } from './ScoreBadge';

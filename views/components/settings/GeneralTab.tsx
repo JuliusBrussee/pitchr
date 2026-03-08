@@ -23,6 +23,7 @@ import { useCompliance } from '@/hooks/useCompliance';
 import { useToast } from '@/views/components/Toast';
 import { useRouter } from 'next/navigation';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { ConfirmDialog } from '@/views/components/ui';
 import { SectionCard } from './SectionCard';
 import { SettingRow } from './SettingRow';
 
@@ -44,6 +45,8 @@ export function GeneralTab() {
   const [analyticsConsent, setAnalyticsConsent] = useState(false);
   const [marketingConsent, setMarketingConsent] = useState(false);
   const [isConsentSaving, setIsConsentSaving] = useState(false);
+  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     if (!compliance.status) return;
@@ -83,7 +86,7 @@ export function GeneralTab() {
   };
 
   const handleClearAll = async () => {
-    if (!confirm('Delete ALL pitch runs and reset achievements? This cannot be undone.')) return;
+    setIsClearing(true);
     try {
       const payload = await fetchEdge('pitch-run', {
         params: { includePending: 'true', allProjects: 'true' },
@@ -91,8 +94,11 @@ export function GeneralTab() {
       const allRuns = Array.isArray(payload?.runs) ? payload.runs : [];
       await Promise.all(allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
       toast('success', 'All data cleared successfully.');
+      setShowClearAllConfirm(false);
     } catch {
       toast('error', 'Failed to clear data.');
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -277,7 +283,7 @@ export function GeneralTab() {
         </p>
         <div className="flex items-center gap-3">
           <button
-            onClick={handleClearAll}
+            onClick={() => setShowClearAllConfirm(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
             style={{
               color: '#ef4444',
@@ -302,6 +308,17 @@ export function GeneralTab() {
           </button>
         </div>
       </SectionCard>
+
+      <ConfirmDialog
+        open={showClearAllConfirm}
+        onClose={() => setShowClearAllConfirm(false)}
+        title="Delete ALL pitch runs and reset achievements?"
+        description="This cannot be undone."
+        confirmLabel="Delete all"
+        variant="danger"
+        isConfirming={isClearing}
+        onConfirm={handleClearAll}
+      />
     </div>
   );
 }

@@ -7,7 +7,7 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - Frontend: Next.js App Router (`app/`) + React 19 + Tailwind 4
 - Analysis: queued async runs (`queued -> running -> complete|failed`) with polling UI
 - Persistence: Supabase Postgres (`runs`, `decks`, `slides`) + Supabase Storage (`decks`, `recordings`)
-- STT: ElevenLabs realtime via local WebSocket proxy (`server.ts`)
+- STT: AssemblyAI via local WebSocket proxy (`server.ts`); transcription runs on stop
 - LLM routing: Anthropic (default) or OpenRouter (env-selected)
 - Paid AI: optional value-proof signal sync on completed runs (`services/paidService.ts`)
 - Fallback: deterministic/sample analysis payload if model calls fail
@@ -29,7 +29,7 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - Yarn 4 (project is pinned to `yarn@4.12.0`)
 - Supabase project (URL + anon key)
 - Anthropic key (or OpenRouter key) for analysis/deck generation
-- ElevenLabs STT key for live recording
+- AssemblyAI key for recording and upload transcription
 - Optional: LibreOffice (`soffice`) for PPTX -> PDF conversion
 
 ## Quick Start
@@ -44,7 +44,7 @@ Fill required values in `.env.local`:
 ```env
 LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=
-ELEVENLABS_API_KEY_STT=
+ASSEMBLYAI_API_KEY=
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
@@ -89,7 +89,7 @@ Required for core flow:
 - `LLM_PROVIDER` (`anthropic` or `openrouter`)
 - `ANTHROPIC_API_KEY` (if Anthropic selected)
 - `OPENROUTER_API_KEY` (if OpenRouter selected)
-- `ELEVENLABS_API_KEY_STT`
+- `ASSEMBLYAI_API_KEY`
 - `ELEVENLABS_API_KEY_CONVAI` (for live VC Q&A)
 - `ELEVENLABS_CONVAI_AGENT_ID` (for signed URL generation)
 - `NEXT_PUBLIC_SUPABASE_URL`
@@ -228,7 +228,7 @@ Rubric matrix runner registry (visible index for all project types):
 You don’t need to install anything new. Use this checklist:
 
 1. **Run `yarn dev`** (not only `next dev`) That starts Next.js on port 3000 and the STT proxy on port 3001. If the STT server isn’t running, the app can’t get live transcript or WPM.
-2. **Set `ELEVENLABS_API_KEY_STT=your_key`** in `.env.local`. Restart after any env change (Ctrl+C, then `yarn dev` again).
+2. **Set `ASSEMBLYAI_API_KEY=your_key`** in `.env.local`. Restart after any env change (Ctrl+C, then `yarn dev` again).
 3. **Use `http://localhost:3000`** so the app connects to the STT backend at `ws://localhost:3001/ws`. Optional: `NEXT_PUBLIC_WS_URL=http://localhost:3001`.
 4. **Check the terminal** for errors (e.g. missing key or WebSocket failures).
 

@@ -19,14 +19,10 @@
   - Evidence: `supabase/functions/_shared/analysis-service.ts`
 
 **Voice / Speech:**
-- ElevenLabs Realtime STT - Live transcription for sidecar WS server.
-  - Integration method: WebSocket to `wss://api.elevenlabs.io/v1/speech-to-text/realtime`
-  - Auth: `ELEVENLABS_API_KEY_STT` (or `ELEVENLABS_API_KEY`)
-  - Evidence: `server.ts`, `hooks/useSTT.ts`
-- ElevenLabs file STT - Batch transcription edge function.
-  - Integration method: HTTPS `POST` to `https://api.elevenlabs.io/v1/speech-to-text`
-  - Auth: `ELEVENLABS_API_KEY_STT`
-  - Evidence: `supabase/functions/transcribe-audio/index.ts`
+- AssemblyAI STT - Transcription for sidecar (buffer on stop) and for upload flow.
+  - Integration method: HTTPS upload + transcript + poll to `https://api.assemblyai.com/v2/*` (or `ASSEMBLYAI_BASE_URL` for EU).
+  - Auth: `ASSEMBLYAI_API_KEY`
+  - Evidence: `lib/stt/assemblyai.ts`, `server.ts`, `supabase/functions/_shared/assemblyai-stt.ts`, `supabase/functions/transcribe-audio/index.ts`, `stt.ts`
 - ElevenLabs ConvAI - Live Q&A session URLs and conversation retrieval.
   - Integration method: HTTPS `GET` to `https://api.elevenlabs.io/v1/convai/*`
   - Auth: `ELEVENLABS_API_KEY_CONVAI` (fallbacks to STT key)

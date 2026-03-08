@@ -1,5 +1,5 @@
 /**
- * Realtime STT proxy: serves static frontend and relays browser audio to ElevenLabs over WebSocket.
+ * Realtime STT proxy: serves static frontend, buffers browser audio, transcribes via AssemblyAI on stop.
  * API key stays server-side; client connects to this server only.
  * On session stop, generates one LLM-created Q&A from the transcript and optional TTS.
  */
@@ -13,6 +13,8 @@ import WebSocket, { WebSocketServer } from "ws";
 import { generateFeedbackQuestion, getCoachFeedback } from "./lib/llm/feedbackQA";
 import { getPitchFromEnv } from "./lib/llm/pitchCoach";
 import { synthesizeMp3 } from "./lib/elevenlabs/tts";
+import { transcribeAudio } from "./lib/stt/assemblyai";
+import { createAssemblyAIStreamingSession } from "./lib/stt/assemblyai-streaming";
 import {
   buildChecklistUpdateMessage,
   createRealtimeChecklistSessionState,
@@ -37,15 +39,33 @@ if (!hasTtsKey || !hasVoiceId) {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT ?? 3000;
-const ELEVENLABS_WS_URL = "wss://api.elevenlabs.io/v1/speech-to-text/realtime";
 const DEFAULT_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"];
 
-function getElevenLabsSttApiKey(): string {
-  const direct = process.env.ELEVENLABS_API_KEY?.trim();
-  if (direct) return direct;
-  const stt = process.env.ELEVENLABS_API_KEY_STT?.trim();
-  if (stt) return stt;
-  return "";
+function getAssemblyAIApiKey(): string {
+  const key = process.env.ASSEMBLYAI_API_KEY?.trim();
+  if (!key) return "";
+  return key;
+}
+
+/** Build 44-byte WAV header for PCM 16-bit mono at 16000 Hz. */
+function buildWavHeader(pcmByteLength: number): Buffer {
+  const header = Buffer.alloc(44);
+  const dataSize = pcmByteLength;
+  const fileSize = 36 + dataSize;
+  header.write("RIFF", 0);
+  header.writeUInt32LE(fileSize, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16); // chunk size
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(1, 22); // mono
+  header.writeUInt32LE(16000, 24); // sample rate
+  header.writeUInt32LE(32000, 28); // byte rate
+  header.writeUInt16LE(2, 32); // block align
+  header.writeUInt16LE(16, 34); // bits per sample
+  header.write("data", 36);
+  header.writeUInt32LE(dataSize, 40);
+  return header;
 }
 
 function parseAllowedOrigins(): Set<string> {
@@ -143,45 +163,33 @@ wss.on("connection", (clientWs, req) => {
     return;
   }
 
-  const apiKey = getElevenLabsSttApiKey();
-  if (!apiKey) {
+  const sttApiKey = getAssemblyAIApiKey();
+  if (!sttApiKey) {
     clientWs.send(
       JSON.stringify({
         type: "error",
-        error: "Server configuration error: missing ELEVENLABS_API_KEY (or ELEVENLABS_API_KEY_STT).",
+        error: "Server configuration error: missing ASSEMBLYAI_API_KEY.",
       })
     );
     clientWs.close();
     return;
   }
 
-  const params = new URLSearchParams({
-    model_id: "scribe_v2_realtime",
-    audio_format: "pcm_16000",
-    include_timestamps: "true",
-    commit_strategy: "vad",
-    vad_threshold: "0.25",
-    vad_silence_threshold_secs: "1.5",
-    min_silence_duration_ms: "150",
-  });
-  const elevenLabsUrl = `${ELEVENLABS_WS_URL}?${params.toString()}`;
-  const headers = { "xi-api-key": apiKey };
-
-  let elevenLabsWs: WebSocket | null = null;
   let sessionStarted = false;
-  const audioQueue: string[] = [];
+  const pcmChunks: Buffer[] = [];
   let transcript = "";
   let livePartialTranscript = "";
   const segments: { text: string; start: number; end: number }[] = [];
   let stopRequested = false;
   let saveDone = false;
   let saveTimeout: ReturnType<typeof setTimeout> | null = null;
-  let fallbackTimeout: ReturnType<typeof setTimeout> | null = null;
   let answerMode = false;
   let checklistSession = createRealtimeChecklistSessionState("elevator");
   let checklistInFlight = false;
   let checklistPending = false;
   let checklistPendingForce = false;
+  let transcriptionInProgress = false;
+  let streamingSession: ReturnType<typeof createAssemblyAIStreamingSession> | null = null;
 
   function forwardToClient(obj: object) {
     if (clientWs.readyState === WebSocket.OPEN) {
@@ -293,10 +301,6 @@ wss.on("connection", (clientWs, req) => {
       clearTimeout(saveTimeout);
       saveTimeout = null;
     }
-    if (fallbackTimeout) {
-      clearTimeout(fallbackTimeout);
-      fallbackTimeout = null;
-    }
     const finalTranscript = getChecklistTranscript();
     const baseDir = path.join(process.cwd(), "transcript");
     const txtDir = path.join(baseDir, "txt");
@@ -351,110 +355,65 @@ wss.on("connection", (clientWs, req) => {
     if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
   }
 
-  /** Handle a normalized transcript message (same shape from either provider). */
-  function handleProviderTranscript(msg: {
-    message_type?: string;
-    text?: string;
-    words?: { text?: string; start?: number; end?: number }[];
-  }) {
-    forwardToClient(msg);
-    if (msg.message_type === "partial_transcript") {
-      const nextPartial = msg.text?.trim() ?? "";
-      if (nextPartial !== livePartialTranscript) {
-        livePartialTranscript = nextPartial;
-        queueChecklistEvaluation(false);
+  async function runAssemblyAIAndFinish(isAnswer: boolean): Promise<void> {
+    if (transcriptionInProgress) return;
+    transcriptionInProgress = true;
+
+    const concat = Buffer.concat(pcmChunks);
+    if (concat.length === 0) {
+      if (isAnswer) {
+        forwardToClient({ type: "answer_transcript", text: "" });
+        if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
+      } else {
+        transcript = "";
+        flushAndSave();
       }
+      transcriptionInProgress = false;
       return;
     }
 
-    const isCommitted =
-      msg.message_type === "committed_transcript_with_timestamps" ||
-      msg.message_type === "committed_transcript";
+    const wavHeader = buildWavHeader(concat.length);
+    const wavBuffer = Buffer.concat([wavHeader, concat]);
 
-    if (isCommitted && msg.text) {
-      livePartialTranscript = "";
-      const lastText = segments.length > 0 ? segments[segments.length - 1].text : null;
-      const words = msg.words ?? [];
-      const lastEnd = segments.length > 0 ? segments[segments.length - 1].end : 0;
-      const start = words.length ? Math.min(...words.map((w) => w.start ?? 0)) : lastEnd;
-      const end = words.length
-        ? Math.max(...words.map((w) => w.end ?? 0))
-        : start + Math.max(msg.text.trim().split(/\s+/).length * 0.28, 0.25);
-
-      if (segments.length > 0 && lastText === msg.text) return;
-
-      if (segments.length > 0 && lastText && msg.text.length > lastText.length && msg.text.startsWith(lastText)) {
-        transcript = transcript.slice(0, -lastText.length) + msg.text;
-        segments.pop();
-        segments.push({ text: msg.text, start, end });
-        queueChecklistEvaluation(stopRequested);
-        if (!answerMode && stopRequested && !saveDone && !saveTimeout) {
-          if (fallbackTimeout) {
-            clearTimeout(fallbackTimeout);
-            fallbackTimeout = null;
-          }
-          saveTimeout = setTimeout(async () => {
-            saveTimeout = null;
-            flushAndSave();
-            if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
-          }, 800);
-        }
-        return;
+    try {
+      const result = await transcribeAudio({ bytes: wavBuffer, mimeType: "audio/wav" });
+      transcript = result.text ?? "";
+      if (result.words && result.words.length > 0) {
+        const start = result.words[0].start;
+        const end = result.words[result.words.length - 1].end;
+        segments.length = 0;
+        segments.push({ text: transcript, start, end });
+      } else if (transcript) {
+        segments.length = 0;
+        segments.push({ text: transcript, start: 0, end: Math.max(0.25, transcript.split(/\s+/).length * 0.28) });
       }
 
-      transcript += msg.text;
-      segments.push({ text: msg.text, start, end });
-      queueChecklistEvaluation(stopRequested);
-      if (!answerMode && stopRequested && !saveDone && !saveTimeout) {
-        if (fallbackTimeout) {
-          clearTimeout(fallbackTimeout);
-          fallbackTimeout = null;
-        }
-        saveTimeout = setTimeout(async () => {
-          saveTimeout = null;
-          flushAndSave();
-          if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
-        }, 800);
+      if (isAnswer) {
+        forwardToClient({ type: "answer_transcript", text: transcript });
+        if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
+      } else {
+        forwardToClient({
+          message_type: "committed_transcript_with_timestamps",
+          text: transcript,
+          words: result.words?.map((w) => ({ text: w.text, start: w.start, end: w.end })),
+        });
+        flushAndSave();
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Transcription failed";
+      console.error("[STT] AssemblyAI error:", msg);
+      forwardToClient({ type: "error", error: msg });
+      if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
+    } finally {
+      transcriptionInProgress = false;
     }
   }
 
-  elevenLabsWs = new WebSocket(elevenLabsUrl, { headers });
-
-  elevenLabsWs.on("open", () => {
-    sessionStarted = true;
-    sendChecklistSnapshot("heuristic");
-    while (audioQueue.length > 0) {
-      const msg = audioQueue.shift();
-      if (msg && elevenLabsWs?.readyState === WebSocket.OPEN) elevenLabsWs.send(msg);
-    }
-  });
-
-  elevenLabsWs.on("message", (data: Buffer | string) => {
-    const raw = data.toString();
-    let msg: { message_type?: string; text?: string; words?: { text?: string; start?: number; end?: number }[] };
-    try {
-      msg = JSON.parse(raw) as typeof msg;
-    } catch {
-      return;
-    }
-    handleProviderTranscript(msg);
-  });
-
-  elevenLabsWs.on("error", (err) => {
-    console.error("ElevenLabs WS error:", err.message);
-    forwardToClient({ type: "error", error: err.message });
-  });
-
-  elevenLabsWs.on("close", () => {
-    elevenLabsWs = null;
-  });
-
   clientWs.on("message", (data: Buffer | string) => {
     const raw = typeof data === "string" ? data : data.toString();
-    let msg: { type?: string; message_type?: string; question?: string; mode?: string };
+    let msg: { type?: string; message_type?: string; question?: string; mode?: string; audio_base_64?: string };
     try {
-      msg = JSON.parse(raw) as { type?: string; message_type?: string; question?: string; mode?: string };
+      msg = JSON.parse(raw) as typeof msg;
     } catch {
       return;
     }
@@ -467,73 +426,91 @@ wss.on("connection", (clientWs, req) => {
         forwardToClient({ type: "checklist_error", error: "Invalid pitch mode." });
         return;
       }
+      sessionStarted = true;
       checklistSession = createRealtimeChecklistSessionState(msg.mode, Date.now());
       livePartialTranscript = "";
+      transcript = "";
+      segments.length = 0;
+      if (streamingSession) {
+        streamingSession.close();
+        streamingSession = null;
+      }
+      try {
+        streamingSession = createAssemblyAIStreamingSession({
+          onPartial(payload) {
+            livePartialTranscript = payload.text?.trim() ?? "";
+            forwardToClient({ message_type: "partial_transcript", text: payload.text ?? "" });
+          },
+          onFinal(payload) {
+            const text = payload.text?.trim() ?? "";
+            if (text) {
+              transcript = transcript ? `${transcript} ${text}` : text;
+              livePartialTranscript = "";
+              const words = payload.words ?? [];
+              const start = words.length > 0 ? (words[0]?.start ?? 0) : 0;
+              const end = words.length > 0 ? (words[words.length - 1]?.end ?? start + 0.25) : start + 0.25;
+              segments.push({ text, start, end });
+              forwardToClient({
+                message_type: "committed_transcript_with_timestamps",
+                text,
+                words: words.map((w) => ({ text: w.text, start: w.start, end: w.end })),
+              });
+            }
+          },
+          onError(err) {
+            if (process.env.NODE_ENV !== "production") {
+              console.warn("[STT] Streaming error:", err);
+            }
+          },
+        });
+      } catch (e) {
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("[STT] Streaming session create failed:", e);
+        }
+      }
       sendChecklistSnapshot("heuristic");
       return;
     }
     if (msg.type === "stop") {
       stopRequested = true;
       queueChecklistEvaluation(true);
+      if (streamingSession) {
+        streamingSession.close();
+        streamingSession = null;
+      }
       if (answerMode) {
-        console.log("[answer] Stop received, sending answer_transcript in 1.5s, transcript length:", transcript.length);
-        if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
-          elevenLabsWs.send(
-            JSON.stringify({
-              message_type: "input_audio_chunk",
-              audio_base_64: "",
-              commit: true,
-              sample_rate: 16000,
-            })
-          );
-        }
-        if (fallbackTimeout) clearTimeout(fallbackTimeout);
-        fallbackTimeout = setTimeout(() => {
-          fallbackTimeout = null;
-          if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
-          if (clientWs.readyState === WebSocket.OPEN) {
-            clientWs.send(JSON.stringify({ type: "answer_transcript", text: transcript }));
-            setTimeout(() => {
-              if (clientWs.readyState === WebSocket.OPEN) clientWs.close();
-            }, 200);
-          }
-        }, 1500);
+        void runAssemblyAIAndFinish(true);
         return;
       }
-      if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
-        elevenLabsWs.send(
-          JSON.stringify({
-            message_type: "input_audio_chunk",
-            audio_base_64: "",
-            commit: true,
-            sample_rate: 16000,
-          })
-        );
-      }
-      if (fallbackTimeout) clearTimeout(fallbackTimeout);
-      fallbackTimeout = setTimeout(async () => {
-        fallbackTimeout = null;
-        flushAndSave();
-        if (elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) elevenLabsWs.close();
-      }, 1500);
+      void runAssemblyAIAndFinish(false);
       return;
     }
     if (msg.message_type === "input_audio_chunk") {
-      if (sessionStarted && elevenLabsWs?.readyState === WebSocket.OPEN) {
-        elevenLabsWs.send(raw);
-      } else {
-        audioQueue.push(raw);
+      if (!sessionStarted) sessionStarted = true;
+      const b64 = typeof msg.audio_base_64 === "string" ? msg.audio_base_64 : "";
+      if (b64) {
+        try {
+          const buf = Buffer.from(b64, "base64");
+          pcmChunks.push(buf);
+          streamingSession?.sendAudio(buf);
+        } catch (_) {
+          // ignore malformed chunk
+        }
       }
     }
   });
 
   clientWs.on("close", () => {
-    if (!stopRequested && elevenLabsWs && elevenLabsWs.readyState === WebSocket.OPEN) {
-      elevenLabsWs.close();
+    if (streamingSession) {
+      streamingSession.close();
+      streamingSession = null;
     }
   });
 });
 
 httpServer.listen(PORT, () => {
   console.log(`Server at http://localhost:${PORT}`);
+  if (!getAssemblyAIApiKey()) {
+    console.warn("[STT] ASSEMBLYAI_API_KEY not set — live transcript and WPM will not work. Set it in .env.local and restart.");
+  }
 });
