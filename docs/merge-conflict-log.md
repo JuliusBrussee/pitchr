@@ -104,3 +104,12 @@ This file is the canonical running log for merge-conflict tracking and conflict-
 - Integration note:
   - Added dedicated `/delivery-rubric`, `/scoring-logic`, and `/growth-pricing` marketing routes from the shared public-page shell.
   - Landing navigation, footer, and story handoffs now point to dedicated routes, and launch/blog/pricing teaser content no longer depends on `ssr: false` route gaps.
+- Timestamp: `2026-03-08 20:24:27 +01:00`
+- Scope: phase 05-02 public SEO and discoverability foundation.
+- Conflict-prone files:
+  - `app/sitemap.ts`
+  - `playwright.config.ts`
+  - `tests/public-seo-foundations.test.ts`
+- Integration note:
+  - Public-route canonical URLs now resolve from the shared site helper used by page metadata, JSON-LD, and sitemap generation.
+  - Playwright smoke coverage now depends on `yarn dev` and validates the landing-to-deep-page handoff cluster plus Journal routing.
