@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Mail, ArrowLeft, ArrowRight, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import { isRateLimitError } from '@/lib/supabase/edge-error';
 
 function getFriendlyResetError(message: string): string {
   const lower = message.toLowerCase();
@@ -23,6 +25,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const { isRateLimited, rateLimitMessage, triggerCooldown } = useRateLimitCooldown();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,6 +39,9 @@ export default function ForgotPasswordPage() {
       });
 
       if (resetError) {
+        if (isRateLimitError(resetError.message)) {
+          triggerCooldown(60);
+        }
         setError(getFriendlyResetError(resetError.message));
         setIsLoading(false);
         return;
@@ -172,7 +178,7 @@ export default function ForgotPasswordPage() {
         </div>
 
         {/* Error */}
-        {error && (
+        {(rateLimitMessage ?? error) && (
           <div
             className="mb-4 rounded-xl px-3.5 py-2.5 text-[13px] font-medium flex items-start gap-2.5"
             style={{
@@ -182,7 +188,7 @@ export default function ForgotPasswordPage() {
             }}
           >
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
-            <span>{error}</span>
+            <span>{rateLimitMessage ?? error}</span>
           </div>
         )}
 
@@ -213,7 +219,7 @@ export default function ForgotPasswordPage() {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isRateLimited}
             className="auth-btn group relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100 mt-1"
             style={{
               background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
@@ -225,6 +231,8 @@ export default function ForgotPasswordPage() {
                 <span className="auth-spinner" />
                 Sending link...
               </span>
+            ) : isRateLimited ? (
+              rateLimitMessage
             ) : (
               <>
                 Send reset link

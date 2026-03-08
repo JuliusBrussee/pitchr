@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Loader2, Check, Wand2, FileText, Palette } from 'lucide-react';
 import { TEMPLATE_LIST } from '@/config/deckTemplates';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import { parseRetryAfter } from '@/lib/supabase/edge-error';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import type { TemplateId } from '@/types/deckGeneration';
 
 interface GenerateDeckModalProps {
@@ -235,6 +237,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
   const [genStep, setGenStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { isRateLimited, rateLimitMessage, triggerCooldown } = useRateLimitCooldown();
 
   // Animate in
   useEffect(() => {
@@ -284,6 +287,11 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
 
       if (!res.ok) {
         const data = await res.json();
+        if (res.status === 429) {
+          const retryAfter = parseRetryAfter(res, data as Record<string, unknown>);
+          triggerCooldown(retryAfter);
+          throw new Error('Too many requests. Please try again shortly.');
+        }
         throw new Error(data.error || 'Generation failed');
       }
 
@@ -471,7 +479,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
           </div>
 
           {/* Error */}
-          {error && (
+          {(rateLimitMessage ?? error) && (
             <div
               className="mb-5 px-4 py-3 rounded-xl text-sm flex items-start gap-2 animate-fade-in-up"
               style={{
@@ -483,19 +491,19 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
               <div className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)' }}>
                 <X size={10} />
               </div>
-              <span className="flex-1">{error}</span>
+              <span className="flex-1">{rateLimitMessage ?? error}</span>
             </div>
           )}
 
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
-            disabled={!isValid || isGenerating}
+            disabled={!isValid || isGenerating || isRateLimited}
             className="relative w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed generate-btn-hover"
             style={{
               background: 'linear-gradient(135deg, #ff5941, #e63b26)',
               color: '#ffffff',
-              boxShadow: isValid && !isGenerating
+              boxShadow: isValid && !isGenerating && !isRateLimited
                 ? '0 4px 24px rgba(255, 89, 65, 0.35), 0 1px 3px rgba(0, 0, 0, 0.1)'
                 : 'none',
             }}
@@ -509,7 +517,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
               }}
             />
             <Sparkles size={16} />
-            Generate Pitch Deck
+            {isRateLimited ? rateLimitMessage : 'Generate Pitch Deck'}
           </button>
 
           {/* Footer hint */}

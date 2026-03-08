@@ -7,8 +7,7 @@ import {
   emailSubheading,
   emailParagraph,
   emailCta,
-  emailHighlightBox,
-  emailDivider,
+  emailCallout,
   emailMutedText,
 } from '@/lib/emailTemplate';
 
@@ -96,28 +95,28 @@ export async function sendChallengeDropNotification(
     .filter((u) => userIds.includes(u.id) && u.email)
     .map((u) => u.email!);
 
-  const subject = `New Challenge: ${challenge.title}`;
+  const subject = `New challenge: ${challenge.title}`;
 
   const body = [
     emailHeading('New weekly challenge'),
-    emailSubheading('A fresh challenge just dropped in the Arena.'),
-    emailHighlightBox(
-      `<p style="margin:0 0 4px;font-size:18px;font-weight:700;color:#111827;letter-spacing:-0.2px;">${challenge.title}</p>` +
+    emailSubheading('A new challenge is live in the Arena.'),
+    emailCallout(
+      `<p style="margin:0 0 4px;font-size:17px;font-weight:400;color:#111827;letter-spacing:-0.01em;font-family:Georgia,'Times New Roman',Times,serif;">${challenge.title}</p>` +
       (challenge.description
-        ? `<p style="margin:6px 0 0;font-size:14px;color:#6b7280;line-height:1.5;">${challenge.description}</p>`
+        ? `<p style="margin:8px 0 0;font-size:14px;color:#6b7280;line-height:1.6;">${challenge.description}</p>`
         : ''),
     ),
     emailCta(challengeUrl, 'Compete Now'),
-    emailMutedText('Challenges reset weekly. Submit your best pitch before the timer runs out.'),
+    emailMutedText('Challenges reset weekly. Submit before the window closes.'),
   ].join('\n');
 
   const html = emailLayout({
-    preheader: `New challenge: ${challenge.title} — compete now in the Pitchr Arena`,
+    preheader: `New challenge: ${challenge.title}`,
     body,
   });
 
   const text = [
-    `New Weekly Challenge: ${challenge.title}`,
+    `New weekly challenge: ${challenge.title}`,
     '',
     challenge.description ?? '',
     '',
@@ -150,24 +149,18 @@ export async function sendLeagueResultsNotification(
   const config = {
     promoted: {
       subject: `Promoted to ${tierLabel} League`,
-      heading: 'You got promoted!',
-      message: `Your pitches earned you a spot in <strong>${tierLabel} League</strong>. The competition is tougher here — bring your A-game.`,
-      icon: '&#128640;',
-      ctaLabel: 'View Your League',
+      heading: `${tierLabel} League`,
+      message: `Your pitches earned you a promotion. The competition is tougher here.`,
     },
     demoted: {
       subject: `League update: ${tierLabel}`,
-      heading: 'New week, fresh start',
-      message: `You have moved to <strong>${tierLabel} League</strong>. A few strong pitches and you will climb right back.`,
-      icon: '&#128170;',
-      ctaLabel: 'Start Climbing',
+      heading: 'New week, new start',
+      message: `You moved to ${tierLabel} League. A few strong pitches and you are back.`,
     },
     stayed: {
       subject: `Week complete — ${tierLabel} League`,
       heading: 'Holding steady',
-      message: `You held your ground in <strong>${tierLabel} League</strong>. One strong week is all it takes to move up.`,
-      icon: '&#9878;&#65039;',
-      ctaLabel: 'Keep Going',
+      message: `You held your ground in ${tierLabel} League. One strong week to move up.`,
     },
   };
 
@@ -175,25 +168,20 @@ export async function sendLeagueResultsNotification(
 
   const body = [
     emailHeading(c.heading),
-    emailSubheading(`${tierLabel} League`),
-    emailHighlightBox(
-      `<table role="presentation" cellpadding="0" cellspacing="0"><tr>` +
-      `<td style="padding-right:14px;vertical-align:top;font-size:28px;line-height:1;">${c.icon}</td>` +
-      `<td style="font-size:15px;color:#111827;line-height:1.5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${c.message}</td>` +
-      `</tr></table>`,
-    ),
-    emailCta(`${appUrl}/arena`, c.ctaLabel),
+    emailSubheading(c.subject),
+    emailParagraph(c.message),
+    emailCta(`${appUrl}/arena`, 'View Arena'),
   ].join('\n');
 
   const html = emailLayout({
-    preheader: c.message.replace(/<[^>]*>/g, ''),
+    preheader: c.message,
     body,
   });
 
   const text = [
     c.subject,
     '',
-    c.message.replace(/<[^>]*>/g, ''),
+    c.message,
     '',
     `View Arena: ${appUrl}/arena`,
   ].join('\n');
@@ -216,38 +204,26 @@ export async function sendStreakRiskNotification(
   const email = userData?.user?.email;
   if (!email) return;
 
-  const subject = `Your ${currentStreak}-day streak is at risk`;
-
-  const encouragement = currentStreak >= 7
-    ? 'You are on an incredible run — do not let it slip.'
-    : 'Every day counts. Keep the momentum going.';
+  const subject = `${currentStreak}-day streak at risk`;
 
   const body = [
-    emailHeading("Don't break the chain"),
-    emailSubheading(`${currentStreak}-day streak at risk`),
-    emailHighlightBox(
-      `<table role="presentation" cellpadding="0" cellspacing="0"><tr>` +
-      `<td style="padding-right:14px;vertical-align:top;font-size:28px;line-height:1;">&#128293;</td>` +
-      `<td style="font-size:15px;color:#111827;line-height:1.5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">` +
-      `You have a <strong>${currentStreak}-day streak</strong>. Complete one pitch today to keep it alive.` +
-      `<br><span style="color:#6b7280;font-size:14px;">${encouragement}</span>` +
-      `</td>` +
-      `</tr></table>`,
+    emailHeading(`${currentStreak}-day streak`),
+    emailSubheading('Your streak expires today.'),
+    emailParagraph(
+      `Complete one pitch to keep it alive.${currentStreak >= 7 ? ' You are on a serious run — do not let it slip.' : ''}`,
     ),
     emailCta(`${appUrl}/arena/game-mode`, 'Quick Practice'),
-    emailMutedText('One pitch is all it takes.'),
   ].join('\n');
 
   const html = emailLayout({
-    preheader: `Your ${currentStreak}-day streak is about to expire — pitch now to keep it alive`,
+    preheader: `Your ${currentStreak}-day streak expires today — one pitch to save it`,
     body,
   });
 
   const text = [
     subject,
     '',
-    `You have a ${currentStreak}-day streak. Complete one pitch today to keep it alive.`,
-    encouragement,
+    `Complete one pitch today to keep your ${currentStreak}-day streak alive.`,
     '',
     `Quick Practice: ${appUrl}/arena/game-mode`,
   ].join('\n');

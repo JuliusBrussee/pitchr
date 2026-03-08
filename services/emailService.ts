@@ -3,9 +3,7 @@ import {
   emailHeading,
   emailSubheading,
   emailParagraph,
-  emailCta,
-  emailHighlightBox,
-  emailIconList,
+  emailList,
   emailSignoff,
   emailUnsubscribeFooter,
 } from '@/lib/emailTemplate';
@@ -100,23 +98,22 @@ export async function sendWaitlistWelcomeEmail(
     ? `${appBaseUrl}/api/newsletter/unsubscribe?token=${params.unsubscribeToken}`
     : null;
 
-  const subject = "You're in — welcome to Pitchr";
+  const subject = "You're on the list — Pitchr";
 
   const body = [
-    emailHeading("You're on the list."),
-    emailSubheading('Early access is opening in small waves — you will be first to know.'),
+    emailHeading("You're on the list"),
+    emailSubheading('We are opening early access in small waves. Waitlist members get in first.'),
     emailParagraph(
-      'Pitchr is an AI pitch coach that scores your pitch out of 100, gives you ranked fixes, and rewrites your script. We built it because practicing pitches alone is a guessing game — and investors notice.',
+      'Pitchr scores your pitch out of 100, ranks your weakest points, and rewrites your script. We built it because rehearsing alone is a guessing game — and investors notice.',
     ),
-    emailHighlightBox(
-      emailIconList([
-        { icon: '&#128232;', text: '<strong>Weekly updates</strong> — what shipped, what is next' },
-        { icon: '&#127919;', text: '<strong>Priority invite</strong> — waitlist gets access first' },
-        { icon: '&#9889;', text: '<strong>One-click out</strong> — unsubscribe any time' },
-      ]),
-    ),
+    emailParagraph('<strong>What happens next</strong>'),
+    emailList([
+      'Short weekly updates on what shipped and what is coming',
+      'Your invite link arrives by email when your cohort opens',
+      'One-click unsubscribe at any time',
+    ]),
     emailParagraph(
-      'Want to shape the product? Hit <strong>reply</strong> and tell us your biggest pitch challenge in one sentence. We read every response.',
+      'Want to shape the product? Reply to this email with your biggest pitch challenge in one sentence. We read every response.',
     ),
     emailSignoff(),
     emailUnsubscribeFooter(unsubscribeUrl),
@@ -128,18 +125,18 @@ export async function sendWaitlistWelcomeEmail(
   });
 
   const textParts = [
-    "You're in — welcome to Pitchr",
+    "You're on the list",
     '',
-    'Early access is opening in small waves — you will be first to know.',
+    'We are opening early access in small waves. Waitlist members get in first.',
     '',
-    'Pitchr is an AI pitch coach that scores your pitch out of 100, gives you ranked fixes, and rewrites your script.',
+    'Pitchr scores your pitch out of 100, ranks your weakest points, and rewrites your script.',
     '',
     'What happens next:',
-    '- Weekly updates on what shipped and what is next',
-    '- Priority invite — waitlist gets access first',
-    '- One-click out — unsubscribe any time',
+    '- Short weekly updates on what shipped and what is coming',
+    '- Your invite link arrives by email when your cohort opens',
+    '- One-click unsubscribe at any time',
     '',
-    'Want to shape the product? Hit reply and tell us your biggest pitch challenge in one sentence. We read every response.',
+    'Want to shape the product? Reply with your biggest pitch challenge in one sentence. We read every response.',
     '',
     '— Team Pitchr',
   ];

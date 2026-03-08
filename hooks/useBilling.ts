@@ -154,6 +154,24 @@ export function useBilling() {
     [],
   );
 
+  const cancelSubscription = useCallback(async () => {
+    const res = await fetch('/api/billing/cancel', { method: 'POST' });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Cancel failed');
+    }
+    await fetchBilling();
+  }, [fetchBilling]);
+
+  const resumeSubscription = useCallback(async () => {
+    const res = await fetch('/api/billing/cancel', { method: 'DELETE' });
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Resume failed');
+    }
+    await fetchBilling();
+  }, [fetchBilling]);
+
   const purchaseCreditPack = useCallback(async (packSlug: string) => {
     const res = await fetch('/api/billing/credits', {
       method: 'POST',
@@ -176,6 +194,8 @@ export function useBilling() {
     startCheckout,
     openPortal,
     checkUsage,
+    cancelSubscription,
+    resumeSubscription,
     purchaseCreditPack,
   };
 }

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Lock, ArrowRight, AlertCircle, CheckCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import { isRateLimitError } from '@/lib/supabase/edge-error';
 
 function getFriendlyUpdateError(message: string): string {
   const lower = message.toLowerCase();
@@ -32,6 +34,7 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const { isRateLimited, rateLimitMessage, triggerCooldown } = useRateLimitCooldown();
 
   const passwordLength = password.length;
   const passwordStrength = passwordLength === 0 ? 0 : passwordLength < 8 ? 1 : passwordLength < 12 ? 2 : 3;
@@ -59,6 +62,9 @@ export default function ResetPasswordPage() {
       const { error: updateError } = await supabase.auth.updateUser({ password });
 
       if (updateError) {
+        if (isRateLimitError(updateError.message)) {
+          triggerCooldown(60);
+        }
         setError(getFriendlyUpdateError(updateError.message));
         setIsLoading(false);
         return;
@@ -169,7 +175,7 @@ export default function ResetPasswordPage() {
         </div>
 
         {/* Error */}
-        {error && (
+        {(rateLimitMessage ?? error) && (
           <div
             className="mb-4 rounded-xl px-3.5 py-2.5 text-[13px] font-medium flex items-start gap-2.5"
             style={{
@@ -180,8 +186,8 @@ export default function ResetPasswordPage() {
           >
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
             <span>
-              {error}
-              {error.includes('expired') && (
+              {rateLimitMessage ?? error}
+              {!rateLimitMessage && error?.includes('expired') && (
                 <>
                   {' '}
                   <Link
@@ -273,7 +279,7 @@ export default function ResetPasswordPage() {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isRateLimited}
             className="auth-btn group relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100 mt-1"
             style={{
               background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
@@ -285,6 +291,8 @@ export default function ResetPasswordPage() {
                 <span className="auth-spinner" />
                 Updating password...
               </span>
+            ) : isRateLimited ? (
+              rateLimitMessage
             ) : (
               <>
                 Update password

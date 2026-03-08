@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { Mail, Lock, User, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
+import { isRateLimitError } from '@/lib/supabase/edge-error';
 
 type ErrorType = 'error' | 'account_exists';
 
@@ -49,6 +51,7 @@ function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const { isRateLimited, rateLimitMessage, triggerCooldown } = useRateLimitCooldown();
 
   const passwordLength = password.length;
   const passwordStrength = passwordLength === 0 ? 0 : passwordLength < 8 ? 1 : passwordLength < 12 ? 2 : 3;
@@ -78,6 +81,9 @@ function SignupForm() {
       });
 
       if (signUpError) {
+        if (isRateLimitError(signUpError.message)) {
+          triggerCooldown(60);
+        }
         setError(getFriendlySignupError(signUpError.message));
         setIsLoading(false);
         return;
@@ -234,7 +240,7 @@ function SignupForm() {
         </div>
 
         {/* Error */}
-        {error && (
+        {(rateLimitMessage ?? error) && (
           <div
             className="mb-4 rounded-xl px-3.5 py-2.5 text-[13px] font-medium flex items-start gap-2.5"
             style={{
@@ -245,8 +251,8 @@ function SignupForm() {
           >
             <AlertCircle size={14} className="shrink-0 mt-0.5" />
             <div>
-              {error.text}
-              {error.type === 'account_exists' && (
+              {rateLimitMessage ?? error?.text}
+              {!rateLimitMessage && error?.type === 'account_exists' && (
                 <>
                   {' '}
                   <Link
@@ -394,7 +400,7 @@ function SignupForm() {
           </div>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || isRateLimited}
             className="auth-btn group relative flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100 mt-1"
             style={{
               background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
@@ -406,6 +412,8 @@ function SignupForm() {
                 <span className="auth-spinner" />
                 Creating account...
               </span>
+            ) : isRateLimited ? (
+              rateLimitMessage
             ) : (
               <>
                 Create account

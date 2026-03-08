@@ -146,6 +146,13 @@ export async function resumeSubscription(
   });
 }
 
+/* ——— Customer Deletion ——— */
+
+export async function deleteCustomer(customerId: string): Promise<void> {
+  const stripe = getStripe();
+  await stripe.customers.del(customerId);
+}
+
 /* ——— Webhook Verification ——— */
 
 export function constructWebhookEvent(

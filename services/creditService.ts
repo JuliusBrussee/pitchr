@@ -41,7 +41,23 @@ export async function getOrCreateCreditBalance(
   const existing = await getCreditBalance(supabase, userId);
   if (existing) return existing;
 
-  const monthlyLimit = MONTHLY_CREDITS[planId];
+  let monthlyLimit = MONTHLY_CREDITS[planId];
+
+  // Check if this user previously deleted their account (anti-abuse)
+  const { data: userData } = await supabase.auth.admin.getUserById(userId);
+  if (userData?.user?.email) {
+    const { data: tombstone } = await supabase
+      .from('deleted_emails')
+      .select('id')
+      .eq('email', userData.user.email.toLowerCase())
+      .limit(1)
+      .maybeSingle();
+
+    if (tombstone) {
+      monthlyLimit = 0;
+    }
+  }
+
   const now = new Date();
   const periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
