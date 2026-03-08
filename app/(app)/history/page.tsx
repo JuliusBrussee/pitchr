@@ -28,6 +28,7 @@ import {
   getModeBgColor,
   getModeLabel,
 } from '@/views/components/ui';
+import { TimelineIllustration } from '@/views/components/ui/empty-state-illustrations';
 import type { PitchMode } from '@/views/components/ui';
 import { RecordingPlayer } from '@/views/components/RecordingPlayer';
 import { RunDetailModal } from '@/views/components/RunDetailModal';
@@ -348,33 +349,40 @@ export default function HistoryPage() {
             </div>
           ) : null
         ) : Object.keys(groupedVisible).length === 0 ? (
-          <>
-            <EmptyState
-              icon={<Clock size={32} style={{ color: 'var(--text-muted)' }} />}
-              message={
-                fetchError
-                  ? 'Failed to load pitch history.'
-                  : searchQuery || modeFilter !== 'all'
-                    ? 'No runs match your filters.'
-                    : 'No pitch runs yet. Start your first session!'
-              }
-            />
-            {fetchError && (
-              <div className="flex justify-center mt-3">
-                <button
-                  onClick={loadRuns}
-                  className="px-4 py-2 rounded-lg border text-sm font-medium transition-colors"
-                  style={{
-                    borderColor: 'var(--border-color)',
-                    color: 'var(--text-secondary)',
-                    backgroundColor: 'var(--bg-surface-hover)',
-                  }}
-                >
-                  Try Again
-                </button>
-              </div>
-            )}
-          </>
+          <EmptyState
+            illustration={
+              !fetchError && !(searchQuery || modeFilter !== 'all')
+                ? <TimelineIllustration />
+                : undefined
+            }
+            icon={
+              fetchError || searchQuery || modeFilter !== 'all'
+                ? <Clock size={32} style={{ color: 'var(--text-muted)' }} />
+                : undefined
+            }
+            title={
+              fetchError
+                ? 'Failed to load pitch history'
+                : searchQuery || modeFilter !== 'all'
+                  ? 'No matching runs'
+                  : 'No pitch history yet'
+            }
+            description={
+              fetchError
+                ? 'Check your connection and try again.'
+                : searchQuery || modeFilter !== 'all'
+                  ? 'Try adjusting your search or filters.'
+                  : 'Run your first pitch session to start building your history.'
+            }
+            cta={
+              !fetchError && !(searchQuery || modeFilter !== 'all')
+                ? { label: 'Start First Session', href: '/session', icon: <Play size={15} /> }
+                : undefined
+            }
+            secondaryAction={fetchError ? { label: 'Try Again', onClick: loadRuns } : undefined}
+            variant={fetchError ? 'error' : searchQuery || modeFilter !== 'all' ? 'filtered' : 'default'}
+            showGlow={!fetchError && !(searchQuery || modeFilter !== 'all')}
+          />
         ) : viewMode === 'list' ? (
           /* ——— List View ——— */
           <div className="flex flex-col gap-5">

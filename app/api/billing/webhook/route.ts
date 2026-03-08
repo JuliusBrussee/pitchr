@@ -195,8 +195,16 @@ async function handleSubscriptionChange(admin: ReturnType<typeof createAdminClie
 
   const status: SubscriptionStatus = statusMap[sub.status] ?? 'active';
 
-  const periodStart = new Date(sub.current_period_start * 1000).toISOString();
-  const periodEnd = new Date(sub.current_period_end * 1000).toISOString();
+  // Stripe API 2025+ nests period under `current_period` object
+  const rawStart = sub.current_period_start ?? sub.current_period?.start;
+  const rawEnd = sub.current_period_end ?? sub.current_period?.end;
+  const now = new Date();
+  const periodStart = rawStart
+    ? new Date(rawStart * 1000).toISOString()
+    : now.toISOString();
+  const periodEnd = rawEnd
+    ? new Date(rawEnd * 1000).toISOString()
+    : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const previousSubscription = await getSubscription(admin, userId);
 
   await upsertSubscription(admin, {

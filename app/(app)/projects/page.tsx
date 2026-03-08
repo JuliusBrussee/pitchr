@@ -2,9 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Loader2, ArrowUpRight, Clock, Layers, Sparkles } from 'lucide-react';
+import { Plus, Loader2, ArrowUpRight, Clock, Layers } from 'lucide-react';
 import { useProject } from '@/views/components/ProjectProvider';
 import { CreateProjectModal } from '@/views/components/CreateProjectModal';
+import { EmptyState } from '@/views/components/ui';
+import { RocketIllustration } from '@/views/components/ui/empty-state-illustrations';
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -91,45 +93,16 @@ export default function ProjectsPage() {
         ) : nonArchivedProjects.length === 0 ? (
           /* Empty state */
           <div
-            className="relative flex flex-col items-center justify-center gap-5 rounded-2xl py-20 overflow-hidden"
+            className="rounded-2xl overflow-hidden"
             style={{ backgroundColor: 'var(--bg-surface-hover)' }}
           >
-            {/* Background glow */}
-            <div
-              className="absolute top-1/2 left-1/2 w-[300px] h-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
-              style={{
-                background: 'radial-gradient(circle, rgba(255, 89, 65, 0.06) 0%, transparent 70%)',
-              }}
+            <EmptyState
+              illustration={<RocketIllustration />}
+              title="No projects yet"
+              description="Create your first project to start analyzing and improving your pitch."
+              cta={{ label: 'Create Project', onClick: () => setIsCreateOpen(true), icon: <Plus size={15} /> }}
+              showGlow
             />
-            <div
-              className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255, 89, 65, 0.12), rgba(255, 170, 51, 0.06))',
-                boxShadow: '0 0 40px rgba(255, 89, 65, 0.08)',
-              }}
-            >
-              <Sparkles size={24} style={{ color: '#ff5941' }} />
-            </div>
-            <div className="relative text-center">
-              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                No projects yet
-              </p>
-              <p className="text-xs mt-1.5 max-w-[240px]" style={{ color: 'var(--text-muted)' }}>
-                Create your first project to start analyzing and improving your pitch.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsCreateOpen(true)}
-              className="relative inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-300 hover:brightness-110 active:scale-[0.97]"
-              style={{
-                background: 'linear-gradient(135deg, #ff5941 0%, #e63b26 100%)',
-                color: '#ffffff',
-                boxShadow: '0 4px 20px rgba(255, 89, 65, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <Plus size={15} strokeWidth={2.5} />
-              Create project
-            </button>
           </div>
         ) : (
           /* Project grid */
