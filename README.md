@@ -1,6 +1,6 @@
 # Pitchr
 
-Pitchr is an AI pitch coaching app for founder pitch practice. It supports live recording + transcription, async analysis runs, run history, deck upload/generation, and Miro fix-board export.
+Pitchr is an AI pitch coaching app for founder pitch practice. It supports live recording + transcription, async analysis runs, run history, and deck upload/generation.
 
 ## Repo Snapshot (February 22, 2026)
 
@@ -21,8 +21,6 @@ Pitchr is an AI pitch coaching app for founder pitch practice. It supports live 
 - `Live QA`: dedicated 60-second VC Q&A route with persisted session logs
 - `History`: filter/search, grouped history, delete runs
 - `Deck`: upload PDF/PPTX, extract slide text, generate AI deck PDFs
-- `Miro`: create/sync fix boards or export markdown fallback
-
 ## Requirements
 
 - Node.js 18+
@@ -109,8 +107,6 @@ Optional:
 - `APP_BASE_URL` (for email links)
 - `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO`
 - `NEWSLETTER_CRON_BEARER_TOKEN` (Supabase Edge secret for newsletter cron auth)
-- `MIRO_ENABLED`, `MIRO_PROVIDER`, `MIRO_ACCESS_TOKEN`, `MIRO_TEAM_ID`
-- `MIRO_HYBRID_VISUAL_MODE` (`true` by default; set `false` to disable second visual pass)
 - `PAID_ENABLED` (`true` to enable Paid AI sync)
 - `PAID_API_KEY` (required when `PAID_ENABLED=true`)
 - `PAID_API_BASE_URL` (default: `https://api.paid.ai`)
@@ -142,18 +138,6 @@ Decks:
 - `GET /api/deck/[deckId]` -> deck + slide text
 - `DELETE /api/deck/[deckId]` -> delete deck + assets
 - `POST /api/deck/generate` -> generate a deck PDF via LLM
-
-Miro:
-
-- `POST /api/miro/fix-board` (supports optional `transcript`; LLM copy generation)
-- `GET /api/miro/fix-board/sync`
-- `POST /api/miro/fix-board/markdown`
-
-Miro content generation behavior:
-- On create/recreate only, board copy is generated via OpenRouter first.
-- If OpenRouter fails, Anthropic is attempted automatically.
-- If both fail (or JSON is invalid), deterministic template copy is used and board creation continues.
-- When `MIRO_HYBRID_VISUAL_MODE` is enabled, a second LLM pass refines visual composition (mind map + tool selection) while preserving fix-rank integrity.
 
 Live VC Q&A:
 
@@ -238,7 +222,7 @@ You don’t need to install anything new. Use this checklist:
 app/                  # Next.js routes (UI + API)
 views/components/     # Reusable UI components
 hooks/                # Client hooks (session, STT, recorder, run submission)
-services/             # Business logic (analysis, scoring, deck, run, miro)
+services/             # Business logic (analysis, scoring, deck, run)
 controllers/          # API request validation/orchestration
 lib/llm/              # LLM providers + router
 lib/prompts/          # Prompt templates
