@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <!-- Repeating practice rings -->
+  <circle cx="800" cy="450" r="300" stroke="#ffaa33" stroke-width="3" opacity="0.2"/>
+  <circle cx="800" cy="450" r="240" stroke="#ffaa33" stroke-width="5" opacity="0.35"/>
+  <circle cx="800" cy="450" r="180" stroke="#ff5941" stroke-width="8" opacity="0.5"/>
+  <circle cx="800" cy="450" r="120" stroke="#ff5941" stroke-width="12" opacity="0.7"/>
+  <circle cx="800" cy="450" r="60" fill="#e63b26" opacity="0.9"/>
+  <!-- Progress arc -->
+  <path d="M800 150A300 300 0 0 1 1100 450" stroke="#ffaa33" stroke-width="14" stroke-linecap="round" opacity="0.85"/>
+  <!-- Microphone silhouette -->
+  <rect x="770" y="500" width="60" height="120" rx="16" fill="#1f2937" stroke="#ffaa33" stroke-opacity="0.6"/>
+  <rect x="786" y="540" width="28" height="80" rx="8" fill="#0b1020"/>
+  <!-- Sound wave lines -->
+  <line x1="700" y1="420" x2="700" y2="480" stroke="#ff5941" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <line x1="680" y1="400" x2="680" y2="500" stroke="#ff5941" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+  <line x1="660" y1="420" x2="660" y2="480" stroke="#ff5941" stroke-width="4" stroke-linecap="round" opacity="0.3"/>
+  <line x1="900" y1="420" x2="900" y2="480" stroke="#ff5941" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <line x1="920" y1="400" x2="920" y2="500" stroke="#ff5941" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+  <line x1="940" y1="420" x2="940" y2="480" stroke="#ff5941" stroke-width="4" stroke-linecap="round" opacity="0.3"/>
+  <!-- Accent glow -->
+  <circle cx="350" cy="200" r="100" fill="#ff5941" fill-opacity="0.12"/>
+  <circle cx="1250" cy="700" r="80" fill="#ffaa33" fill-opacity="0.1"/>
+</svg>
