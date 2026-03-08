@@ -89,7 +89,7 @@ describe('public SEO foundations', () => {
 
       expect(within(breadcrumbNav).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/');
       expect(
-        screen.getByText(page.breadcrumbs[page.breadcrumbs.length - 1].label),
+        within(breadcrumbNav).getByText(page.breadcrumbs[page.breadcrumbs.length - 1].label),
       ).toHaveAttribute('aria-current', 'page');
 
       view.unmount();

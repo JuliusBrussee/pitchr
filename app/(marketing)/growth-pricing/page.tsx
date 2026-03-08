@@ -1,9 +1,17 @@
+import type { Metadata } from 'next';
 import { PUBLIC_PAGES } from '@/content/publicPages';
+import { buildPublicPageMetadata } from '@/lib/metadata/publicPageMetadata';
 import { PublicPageShell } from '@/views/components/public/PublicPageShell';
 
 export const dynamic = 'force-static';
 export const revalidate = 3600;
 
+const PAGE = PUBLIC_PAGES.growthPricing;
+
+export function generateMetadata(): Metadata {
+  return buildPublicPageMetadata(PAGE);
+}
+
 export default function GrowthPricingPage() {
-  return <PublicPageShell page={PUBLIC_PAGES.growthPricing} />;
+  return <PublicPageShell page={PAGE} />;
 }

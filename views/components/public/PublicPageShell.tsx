@@ -1,12 +1,20 @@
 import type { PublicPageDefinition } from '@/content/publicPages';
+import { buildBreadcrumbSchema } from '@/lib/metadata/publicPageMetadata';
 import { PublicBreadcrumbs } from '@/views/components/public/PublicBreadcrumbs';
 import { PublicFaq } from '@/views/components/public/PublicFaq';
 import { PublicRelatedLinks } from '@/views/components/public/PublicRelatedLinks';
 
 export function PublicPageShell({ page }: { page: PublicPageDefinition }) {
+  const breadcrumbSchema = buildBreadcrumbSchema(page.breadcrumbs);
+
   return (
     <main className="bg-[var(--bg-primary)] text-[var(--text-primary)]">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-16 md:px-10 md:py-20">
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+        />
         <PublicBreadcrumbs items={page.breadcrumbs} />
 
         <section className="space-y-5">
