@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { Play, Pause } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface StartSessionButtonProps {
   onClick: () => void;
@@ -12,6 +13,7 @@ export function StartSessionButton({ onClick, isSessionActive }: StartSessionBut
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const counter = useRef(0);
   const busyRef = useRef(false);
+  const { t } = useTranslation();
 
   const spawnRipple = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -43,7 +45,7 @@ export function StartSessionButton({ onClick, isSessionActive }: StartSessionBut
         ))}
         <span className="session-rec-dot" />
         <Pause size={13} fill="currentColor" />
-        <span>Pause Session</span>
+        <span>{t.nav.pauseSession}</span>
       </button>
     );
   }
@@ -65,7 +67,7 @@ export function StartSessionButton({ onClick, isSessionActive }: StartSessionBut
         <span className="session-start-btn__icon">
           <Play size={15} fill="currentColor" />
         </span>
-        Start Session
+        {t.nav.startSession}
       </button>
     </div>
   );

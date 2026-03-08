@@ -14,8 +14,11 @@ import {
   MessageCircle,
   Trash2,
   Download,
+  Globe,
 } from 'lucide-react';
 import { useTheme, type ThemePreference } from '@/views/components/ThemeProvider';
+import { useLocaleContext } from '@/views/components/LocaleProvider';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useSettings } from '@/hooks/useSettings';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useTutorial } from '@/hooks/useTutorial';
@@ -25,16 +28,15 @@ import { useRouter } from 'next/navigation';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { SectionCard } from './SectionCard';
 import { SettingRow } from './SettingRow';
-
-const THEME_OPTIONS: { key: ThemePreference; label: string; icon: React.ReactNode }[] = [
-  { key: 'system', label: 'System', icon: <Monitor size={12} /> },
-  { key: 'light', label: 'Light', icon: <Sun size={12} /> },
-  { key: 'dark', label: 'Dark', icon: <Moon size={12} /> },
-];
+import { SUPPORTED_LOCALES, LOCALE_CONFIGS } from '@/types/locale';
+import type { SupportedLocale } from '@/types/locale';
+import { t as interp } from '@/lib/locale/interpolate';
 
 export function GeneralTab() {
   const router = useRouter();
   const { preference, setTheme } = useTheme();
+  const { locale, isAutoDetect, setLocale, setAutoDetect } = useLocaleContext();
+  const { t } = useTranslation();
   const { settings, adjustTimer } = useSettings();
   const onboarding = useOnboarding();
   const { resetTours } = useTutorial();
@@ -56,7 +58,7 @@ export function GeneralTab() {
     try {
       await compliance.updateConsents(next);
     } catch (error) {
-      throw new Error(error instanceof Error ? error.message : 'Failed to update privacy preferences.');
+      throw new Error(error instanceof Error ? error.message : t.settings.privacy.analyticsError);
     } finally {
       setIsConsentSaving(false);
     }
@@ -65,6 +67,12 @@ export function GeneralTab() {
   const timerMin = Math.floor(settings.timerDuration / 60);
   const timerSec = settings.timerDuration % 60;
   const formattedTimer = `${timerMin}:${String(timerSec).padStart(2, '0')}`;
+
+  const THEME_OPTIONS: { key: ThemePreference; label: string; icon: React.ReactNode }[] = [
+    { key: 'system', label: t.settings.appearance.system, icon: <Monitor size={12} /> },
+    { key: 'light', label: t.settings.appearance.light, icon: <Sun size={12} /> },
+    { key: 'dark', label: t.settings.appearance.dark, icon: <Moon size={12} /> },
+  ];
 
   const handleExport = async () => {
     try {
@@ -78,29 +86,29 @@ export function GeneralTab() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      toast('error', 'Failed to export data.');
+      toast('error', t.settings.data.exportFailed);
     }
   };
 
   const handleClearAll = async () => {
-    if (!confirm('Delete ALL pitch runs and reset achievements? This cannot be undone.')) return;
+    if (!confirm(t.settings.data.deleteConfirm)) return;
     try {
       const payload = await fetchEdge('pitch-run', {
         params: { includePending: 'true', allProjects: 'true' },
       }).then((r) => r.json());
       const allRuns = Array.isArray(payload?.runs) ? payload.runs : [];
       await Promise.all(allRuns.map((r: { id: string }) => fetchEdge('pitch-run-detail', { method: 'DELETE', params: { runId: r.id } })));
-      toast('success', 'All data cleared successfully.');
+      toast('success', t.settings.data.deleteSuccess);
     } catch {
-      toast('error', 'Failed to clear data.');
+      toast('error', t.settings.data.deleteFailed);
     }
   };
 
   return (
     <div className="flex flex-col gap-5">
       {/* Appearance */}
-      <SectionCard icon={Palette} title="Appearance" delay={0} compact>
-        <SettingRow label="Theme" description="Choose your preferred color mode">
+      <SectionCard icon={Palette} title={t.settings.appearance.title} delay={0} compact>
+        <SettingRow label={t.settings.appearance.theme} description={t.settings.appearance.themeDescription}>
           <div
             className="inline-flex rounded-lg overflow-hidden"
             style={{ border: '1px solid var(--border-color)' }}
@@ -124,9 +132,50 @@ export function GeneralTab() {
         </SettingRow>
       </SectionCard>
 
+      {/* Language */}
+      <SectionCard icon={Globe} title={t.settings.language.title} delay={20} iconColor="#8b5cf6" compact>
+        <SettingRow label={t.settings.language.language} description={t.settings.language.description}>
+          <select
+            value={locale}
+            disabled={isAutoDetect}
+            onChange={(e) => setLocale(e.target.value as SupportedLocale)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200"
+            style={{
+              backgroundColor: 'var(--bg-surface-hover)',
+              color: isAutoDetect ? 'var(--text-muted)' : 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              opacity: isAutoDetect ? 0.6 : 1,
+              cursor: isAutoDetect ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {SUPPORTED_LOCALES.map((code) => (
+              <option key={code} value={code}>
+                {LOCALE_CONFIGS[code].label} ({LOCALE_CONFIGS[code].englishLabel})
+              </option>
+            ))}
+          </select>
+        </SettingRow>
+        <div className="h-px my-1" style={{ backgroundColor: 'var(--border-color)' }} />
+        <SettingRow
+          label={t.settings.language.autoDetect}
+          description={t.settings.language.autoDetectDescription}
+        >
+          <input
+            type="checkbox"
+            checked={isAutoDetect}
+            onChange={(e) => setAutoDetect(e.target.checked)}
+          />
+        </SettingRow>
+        {isAutoDetect && (
+          <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            {interp(t.settings.language.detected, { language: LOCALE_CONFIGS[locale].label })}
+          </p>
+        )}
+      </SectionCard>
+
       {/* Session Defaults */}
-      <SectionCard icon={Sliders} title="Session Defaults" delay={40} compact>
-        <SettingRow label="Timer Duration" description="Default practice timer length">
+      <SectionCard icon={Sliders} title={t.settings.session.title} delay={40} compact>
+        <SettingRow label={t.settings.session.timerLabel} description={t.settings.session.timerDescription}>
           <div className="flex items-center gap-2">
             <button
               onClick={() => adjustTimer(-30)}
@@ -159,13 +208,13 @@ export function GeneralTab() {
           </div>
         </SettingRow>
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-          Workflow defaults now follow your selected project. Choose project before each session.
+          {t.settings.session.projectNote}
         </p>
       </SectionCard>
 
       {/* Onboarding & Tips */}
-      <SectionCard icon={RotateCcw} title="Onboarding & Tips" delay={80} iconColor="#3b82f6" compact>
-        <SettingRow label="Replay onboarding" description="Walk through the product introduction again">
+      <SectionCard icon={RotateCcw} title={t.settings.onboarding.title} delay={80} iconColor="#3b82f6" compact>
+        <SettingRow label={t.settings.onboarding.replay} description={t.settings.onboarding.replayDescription}>
           <button
             onClick={() => {
               onboarding.reset();
@@ -179,15 +228,15 @@ export function GeneralTab() {
             }}
           >
             <RotateCcw size={13} />
-            Replay
+            {t.settings.onboarding.replayButton}
           </button>
         </SettingRow>
         <div className="h-px my-1" style={{ backgroundColor: 'var(--border-color)' }} />
-        <SettingRow label="Reset page tips" description="Show guided tours again on each page">
+        <SettingRow label={t.settings.onboarding.resetTips} description={t.settings.onboarding.resetTipsDescription}>
           <button
             onClick={() => {
               resetTours();
-              toast('success', 'Page tips have been reset.');
+              toast('success', t.settings.onboarding.resetTipsSuccess);
             }}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors"
             style={{
@@ -197,22 +246,22 @@ export function GeneralTab() {
             }}
           >
             <MessageCircle size={13} />
-            Reset Tips
+            {t.settings.onboarding.resetTipsButton}
           </button>
         </SettingRow>
       </SectionCard>
 
       {/* Privacy */}
-      <SectionCard icon={Shield} title="Privacy Preferences" delay={120} iconColor="#16a34a" compact>
+      <SectionCard icon={Shield} title={t.settings.privacy.title} delay={120} iconColor="#16a34a" compact>
         {compliance.isLoading ? (
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            Loading privacy preferences...
+            {t.settings.privacy.loadingPrivacy}
           </p>
         ) : (
           <>
             <SettingRow
-              label="Analytics Cookies"
-              description="Allow analytics scripts to improve product quality."
+              label={t.settings.privacy.analytics}
+              description={t.settings.privacy.analyticsDescription}
             >
               <input
                 type="checkbox"
@@ -226,15 +275,15 @@ export function GeneralTab() {
                     await persistConsents({ analyticsOptIn: next });
                   } catch (error) {
                     setAnalyticsConsent(previous);
-                    toast('error', error instanceof Error ? error.message : 'Failed to update analytics preference.');
+                    toast('error', error instanceof Error ? error.message : t.settings.privacy.analyticsError);
                   }
                 }}
               />
             </SettingRow>
             <div className="h-px my-1" style={{ backgroundColor: 'var(--border-color)' }} />
             <SettingRow
-              label="Product Update Emails"
-              description="Allow product update and launch emails."
+              label={t.settings.privacy.marketing}
+              description={t.settings.privacy.marketingDescription}
             >
               <input
                 type="checkbox"
@@ -248,7 +297,7 @@ export function GeneralTab() {
                     await persistConsents({ marketingOptIn: next });
                   } catch (error) {
                     setMarketingConsent(previous);
-                    toast('error', error instanceof Error ? error.message : 'Failed to update marketing preference.');
+                    toast('error', error instanceof Error ? error.message : t.settings.privacy.marketingError);
                   }
                 }}
               />
@@ -265,7 +314,7 @@ export function GeneralTab() {
       {/* Data Management */}
       <SectionCard
         icon={Shield}
-        title="Data Management"
+        title={t.settings.data.title}
         delay={160}
         iconColor="#ef4444"
         titleColor="#ef4444"
@@ -273,7 +322,7 @@ export function GeneralTab() {
         compact
       >
         <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-          Export your data or clear everything. Clearing is irreversible.
+          {t.settings.data.description}
         </p>
         <div className="flex items-center gap-3">
           <button
@@ -286,7 +335,7 @@ export function GeneralTab() {
             }}
           >
             <Trash2 size={13} />
-            Delete All Data
+            {t.settings.data.deleteAll}
           </button>
           <button
             onClick={handleExport}
@@ -298,7 +347,7 @@ export function GeneralTab() {
             }}
           >
             <Download size={13} />
-            Export Data
+            {t.settings.data.exportData}
           </button>
         </div>
       </SectionCard>

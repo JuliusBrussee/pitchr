@@ -1,6 +1,8 @@
 import { DECK_RUBRIC_CATEGORIES, RUBRIC_CATEGORIES } from '@/config/rubric';
 import type { KnowledgeDigest, ScoringContext } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
+import type { SupportedLocale } from '@/types/locale';
+import { withLocaleDirective } from '@/lib/prompts/locale';
 
 const MAX_PROMPT_CHARS = 9000;
 const PROMPT_WARN_THRESHOLD = 8600;
@@ -456,6 +458,20 @@ export const SECTION_RESPONSE_SCHEMA_TEXT = `{
     }
   ]
 }`;
+
+/**
+ * Return the judge system prompt with an optional locale directive appended.
+ */
+export function getJudgeSystemPrompt(locale?: SupportedLocale): string {
+  return locale ? withLocaleDirective(JUDGE_SYSTEM_PROMPT, locale) : JUDGE_SYSTEM_PROMPT;
+}
+
+/**
+ * Return the section analysis system prompt with an optional locale directive.
+ */
+export function getSectionAnalysisSystemPrompt(locale?: SupportedLocale): string {
+  return locale ? withLocaleDirective(SECTION_ANALYSIS_SYSTEM_PROMPT, locale) : SECTION_ANALYSIS_SYSTEM_PROMPT;
+}
 
 export function buildSectionAnalysisPrompt({
   transcript,

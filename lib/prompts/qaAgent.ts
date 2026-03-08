@@ -1,10 +1,13 @@
 import type { OneMinuteQAPack } from '@/types/analysis-v2';
+import type { SupportedLocale } from '@/types/locale';
+import { withLocaleDirective } from '@/lib/prompts/locale';
 
 export interface QaAgentPromptInput {
   starterContext: string;
   weakestCategories: string[];
   timeLimitSeconds?: number;
   drillPack?: OneMinuteQAPack;
+  locale?: SupportedLocale;
 }
 
 function buildDrillGuidance(drillPack: OneMinuteQAPack): string {
@@ -33,7 +36,7 @@ export function buildQaAgentSystemPrompt(input: QaAgentPromptInput): string {
     ? buildDrillGuidance(input.drillPack)
     : '';
 
-  return [
+  const prompt = [
     'You are a venture investor running a rapid-fire follow-up round.',
     `Session hard limit: ${timeLimitSeconds} seconds.`,
     'Ask concise, high-signal questions and force concrete answers.',
@@ -47,4 +50,6 @@ export function buildQaAgentSystemPrompt(input: QaAgentPromptInput): string {
     'Ground your questions in this context:',
     input.starterContext,
   ].filter(Boolean).join('\n');
+
+  return input.locale ? withLocaleDirective(prompt, input.locale) : prompt;
 }

@@ -98,8 +98,22 @@ export async function getEdgeHeaders(
 }
 
 /**
+ * Read the user's locale preference from localStorage.
+ * Falls back to 'en' if not available.
+ */
+function getStoredLocale(): string {
+  if (typeof window === 'undefined') return 'en';
+  try {
+    return localStorage.getItem('pitchr_locale') ?? 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+/**
  * Fetch from an edge function with automatic auth.
  * Drop-in replacement for fetch('/api/...', options).
+ * Automatically includes X-Pitchr-Locale header from user preferences.
  */
 export async function fetchEdge(
   functionName: string,
@@ -114,6 +128,7 @@ export async function fetchEdge(
     ...init,
     headers: {
       ...authHeaders,
+      'X-Pitchr-Locale': getStoredLocale(),
       ...(init?.headers as Record<string, string> | undefined),
     },
   });

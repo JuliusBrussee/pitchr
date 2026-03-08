@@ -1,17 +1,21 @@
 import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { Fix } from '@/types/analysis';
 import type { PitchMode } from '@/types/pitch';
+import type { SupportedLocale } from '@/types/locale';
+import { LOCALE_CONFIGS } from '@/types/locale';
 
 interface BuildRewritePromptInput {
   mode: PitchMode;
   transcript: string;
   topFixes: Fix[];
+  locale?: SupportedLocale;
 }
 
 export function buildRewritePrompt({
   mode,
   transcript,
   topFixes,
+  locale,
 }: BuildRewritePromptInput): string {
   const modeConfig = PITCH_MODE_CONFIG[mode];
   const fixesText = topFixes
@@ -33,5 +37,9 @@ ${transcript}
 Top fixes to incorporate:
 ${fixesText || 'None provided'}
 
-Return only the rewritten pitch text. No markdown, no JSON, no explanation.`;
+Return only the rewritten pitch text. No markdown, no JSON, no explanation.${
+    locale && locale !== 'en'
+      ? `\n\nIMPORTANT: Write the rewritten pitch in ${LOCALE_CONFIGS[locale].englishLabel}.`
+      : ''
+  }`;
 }

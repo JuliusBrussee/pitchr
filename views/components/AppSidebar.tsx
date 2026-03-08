@@ -23,6 +23,7 @@ import { ProjectSelect } from '@/views/components/ProjectSelect';
 import { StartSessionButton } from '@/views/components/StartSessionButton';
 import { useSidebar } from '@/views/components/SidebarContext';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface AppSidebarProps {
   onStartSession?: () => void;
@@ -30,19 +31,19 @@ interface AppSidebarProps {
   isProjectSwitchLocked?: boolean;
 }
 
-const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-  { id: 'session', label: 'Session', icon: Radio, href: '/session' },
-  { id: 'history', label: 'History', icon: Clock, href: '/history' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, href: '/analytics' },
-  { id: 'progress', label: 'Progress', icon: TrendingUp, href: '/progress' },
-  { id: 'arena', label: 'Arena', icon: Swords, href: '/arena' },
-];
+const NAV_ICON_MAP = {
+  dashboard: LayoutDashboard,
+  session: Radio,
+  history: Clock,
+  analytics: BarChart3,
+  progress: TrendingUp,
+  arena: Swords,
+} as const;
 
-const TOOL_ITEMS = [
-  { id: 'projects', label: 'Projects', icon: FolderOpen, href: '/projects' },
-  { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
-];
+const TOOL_ICON_MAP = {
+  projects: FolderOpen,
+  settings: Settings,
+} as const;
 
 export function AppSidebar({
   onStartSession,
@@ -54,6 +55,21 @@ export function AppSidebar({
   const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
   const pathname = usePathname();
   const { closeSidebar } = useSidebar();
+  const { t } = useTranslation();
+
+  const NAV_ITEMS = [
+    { id: 'dashboard' as const, label: t.nav.dashboard, href: '/dashboard' },
+    { id: 'session' as const, label: t.nav.session, href: '/session' },
+    { id: 'history' as const, label: t.nav.history, href: '/history' },
+    { id: 'analytics' as const, label: t.nav.analytics, href: '/analytics' },
+    { id: 'progress' as const, label: t.nav.progress, href: '/progress' },
+    { id: 'arena' as const, label: t.nav.arena, href: '/arena' },
+  ];
+
+  const TOOL_ITEMS = [
+    { id: 'projects' as const, label: t.nav.projects, href: '/projects' },
+    { id: 'settings' as const, label: t.nav.settings, href: '/settings' },
+  ];
 
   return (
     <aside
@@ -90,15 +106,15 @@ export function AppSidebar({
           className="text-[11px] font-medium block mb-1"
           style={{ color: 'var(--text-muted)' }}
         >
-          Current project
+          {t.nav.currentProject}
         </label>
         <ProjectSelect
           id="project-switcher"
           compact
-          ariaLabel="Current project"
+          ariaLabel={t.nav.currentProject}
           disabled={isProjectLoading || projects.length === 0 || isSessionActive || isProjectSwitchLocked}
           value={activeProjectId ?? projects[0]?.id ?? ''}
-          placeholder={isProjectLoading ? 'Loading projects...' : 'No projects'}
+          placeholder={isProjectLoading ? t.nav.loadingProjects : t.nav.noProjects}
           options={projects.map((project) => ({
             value: project.id,
             label: project.name,
@@ -110,14 +126,14 @@ export function AppSidebar({
         />
         {isSessionActive || isProjectSwitchLocked ? (
           <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
-            Finish or discard this session to switch projects.
+            {t.nav.switchProjectLocked}
           </p>
         ) : null}
       </div>
 
       <nav className="flex flex-col gap-1">
         {NAV_ITEMS.map(item => {
-          const Icon = item.icon;
+          const Icon = NAV_ICON_MAP[item.id];
           const isActive = item.id === 'session'
             ? pathname.startsWith('/session')
             : item.id === 'arena'
@@ -148,10 +164,10 @@ export function AppSidebar({
       {/* Tools */}
       <nav className="flex flex-col gap-1">
         <span className="px-3 text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
-          Tools
+          {t.nav.tools}
         </span>
         {TOOL_ITEMS.map(item => {
-          const Icon = item.icon;
+          const Icon = TOOL_ICON_MAP[item.id];
           const isActive = pathname === item.href;
           return (
             <Link
@@ -191,7 +207,7 @@ export function AppSidebar({
             onClick={signOut}
             className="p-1 rounded transition-colors hover:opacity-80"
             style={{ color: 'var(--text-muted)' }}
-            aria-label="Sign out"
+            aria-label={t.nav.signOut}
           >
             <LogOut size={14} />
           </button>
@@ -201,11 +217,11 @@ export function AppSidebar({
       {/* Legal links */}
       <div className="flex items-center gap-3 px-3 mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
         <Link href="/terms" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
-          Terms
+          {t.nav.terms}
         </Link>
         <span>·</span>
         <Link href="/privacy" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
-          Privacy
+          {t.nav.privacy}
         </Link>
       </div>
 
@@ -219,7 +235,7 @@ export function AppSidebar({
             <span className="session-start-btn__icon">
               <Play size={15} fill="currentColor" />
             </span>
-            Start Session
+            {t.nav.startSession}
           </Link>
         </div>
       )}

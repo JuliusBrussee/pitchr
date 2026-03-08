@@ -10,14 +10,7 @@ import {
   Check,
   AudioLines,
 } from 'lucide-react';
-
-const ANALYSIS_STEPS = [
-  { label: 'Processing transcript', icon: FileText, duration: '~2s' },
-  { label: 'Analyzing structure & clarity', icon: Brain, duration: '~5s' },
-  { label: 'Scoring rubric categories', icon: BarChart3, duration: '~4s' },
-  { label: 'Generating fixes & rewrite', icon: Lightbulb, duration: '~3s' },
-  { label: 'Preparing results', icon: Rocket, duration: '~1s' },
-];
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface AnalyzingOverlayProps {
   isVisible: boolean;
@@ -28,6 +21,15 @@ export function AnalyzingOverlay({ isVisible, warning }: AnalyzingOverlayProps) 
   const [step, setStep] = useState(0);
   const [entered, setEntered] = useState(false);
   const [stepProgress, setStepProgress] = useState(0);
+  const { t } = useTranslation();
+
+  const ANALYSIS_STEPS = [
+    { label: t.analysis.steps.processing, icon: FileText, duration: '~2s' },
+    { label: t.analysis.steps.analyzing, icon: Brain, duration: '~5s' },
+    { label: t.analysis.steps.scoring, icon: BarChart3, duration: '~4s' },
+    { label: t.analysis.steps.generating, icon: Lightbulb, duration: '~3s' },
+    { label: t.analysis.steps.preparing, icon: Rocket, duration: '~1s' },
+  ];
 
   // Stagger step transitions with simulated timing
   useEffect(() => {
@@ -158,13 +160,13 @@ export function AnalyzingOverlay({ isVisible, warning }: AnalyzingOverlayProps) 
             className="text-base font-semibold tracking-tight mb-1"
             style={{ color: 'rgba(255, 255, 255, 0.92)' }}
           >
-            Analyzing your pitch
+            {t.analysis.analyzingTitle}
           </h2>
           <p
             className="text-xs"
             style={{ color: 'rgba(255, 255, 255, 0.4)' }}
           >
-            This usually takes 15-25 seconds
+            {t.analysis.analyzingSubtitle}
           </p>
         </div>
         {warning ? (
@@ -281,7 +283,7 @@ export function AnalyzingOverlay({ isVisible, warning }: AnalyzingOverlayProps) 
                         className="text-[10px] font-medium"
                         style={{ color: 'rgba(34, 197, 94, 0.6)' }}
                       >
-                        Done
+                        {t.common.done}
                       </span>
                     )}
                     {isActive && (
@@ -321,7 +323,7 @@ export function AnalyzingOverlay({ isVisible, warning }: AnalyzingOverlayProps) 
               className="text-[10px] font-semibold uppercase tracking-wider"
               style={{ color: 'rgba(255, 255, 255, 0.3)' }}
             >
-              Overall progress
+              {t.analysis.overallProgress}
             </span>
             <span
               className="text-[11px] font-bold tabular-nums"

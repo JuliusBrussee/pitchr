@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/views/components/ThemeProvider';
+import { LocaleProvider } from '@/views/components/LocaleProvider';
 import { AnalyticsScripts } from '@/views/components/AnalyticsScripts';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
@@ -74,7 +75,9 @@ export default function RootLayout({
       <body>
         {GA_MEASUREMENT_ID ? <AnalyticsScripts measurementId={GA_MEASUREMENT_ID} /> : null}
         <ThemeProvider>
-          {children}
+          <LocaleProvider>
+            {children}
+          </LocaleProvider>
         </ThemeProvider>
       </body>
     </html>

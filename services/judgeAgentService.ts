@@ -2,7 +2,7 @@ import { completeWithLlmRouterWithTelemetry } from '@/lib/llm/router';
 import {
   buildJudgeUserPromptWithTelemetry,
   JUDGE_RESPONSE_SCHEMA_TEXT,
-  JUDGE_SYSTEM_PROMPT,
+  getJudgeSystemPrompt,
 } from '@/lib/prompts/judge';
 import { buildLayeredSystemPrompt } from '@/supabase/functions/_shared/rubric-context';
 import type {
@@ -15,6 +15,7 @@ import type {
   SentimentProfile,
 } from '@/types/analysis-v2';
 import type { PitchMode } from '@/types/pitch';
+import type { SupportedLocale } from '@/types/locale';
 
 const SPOKEN_CATEGORIES = new Set([
   'structure',
@@ -49,6 +50,7 @@ export interface JudgeAgentInput {
   deckText?: string;
   context: ScoringContext;
   systemPromptOverride?: string;
+  locale?: SupportedLocale;
 }
 
 export interface JudgeAgentPayload {
@@ -252,11 +254,12 @@ export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentR
     deckText: input.deckText,
     context: input.context,
   });
+  const baseSystemPrompt = getJudgeSystemPrompt(input.locale);
   const systemPromptOverride = input.systemPromptOverride?.trim();
   const systemPrompt =
     systemPromptOverride && systemPromptOverride.length > 0
-      ? buildLayeredSystemPrompt(JUDGE_SYSTEM_PROMPT, systemPromptOverride)
-      : JUDGE_SYSTEM_PROMPT;
+      ? buildLayeredSystemPrompt(baseSystemPrompt, systemPromptOverride)
+      : baseSystemPrompt;
 
   let response: Awaited<ReturnType<typeof completeWithLlmRouterWithTelemetry>>;
   try {

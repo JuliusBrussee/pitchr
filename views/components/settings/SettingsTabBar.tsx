@@ -1,14 +1,9 @@
 'use client';
 
 import { Sliders, CreditCard, Award } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export type SettingsTab = 'general' | 'billing' | 'rewards';
-
-const TABS: { key: SettingsTab; label: string; icon: typeof Sliders }[] = [
-  { key: 'general', label: 'General', icon: Sliders },
-  { key: 'billing', label: 'Billing', icon: CreditCard },
-  { key: 'rewards', label: 'Rewards', icon: Award },
-];
 
 export function SettingsTabBar({
   active,
@@ -17,6 +12,14 @@ export function SettingsTabBar({
   active: SettingsTab;
   onChange: (tab: SettingsTab) => void;
 }) {
+  const { t } = useTranslation();
+
+  const TABS: { key: SettingsTab; label: string; icon: typeof Sliders }[] = [
+    { key: 'general', label: t.settings.tabs.general, icon: Sliders },
+    { key: 'billing', label: t.settings.tabs.billing, icon: CreditCard },
+    { key: 'rewards', label: t.settings.tabs.rewards, icon: Award },
+  ];
+
   return (
     <div
       className="inline-flex items-center rounded-full p-1 gap-0.5 animate-fade-in-up"
