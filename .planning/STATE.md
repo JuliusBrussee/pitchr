@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: Brand Experience Growth Surfaces
 current_phase: 05
 current_phase_name: public-ia-seo-foundation
-current_plan: -
-status: Ready to discuss and plan
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-08T18:39:57.695Z"
+current_plan: "02"
+status: Ready to execute
+stopped_at: Completed 05-public-ia-seo-foundation-01-PLAN.md
+last_updated: "2026-03-08T19:11:15.853Z"
 last_activity: 2026-03-08
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 2
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State
@@ -31,12 +31,12 @@ See: .planning/PROJECT.md (updated 2026-03-08)
 Current Phase: 05
 Current Phase Name: public-ia-seo-foundation
 Total Phases: 4
-Current Plan: -
+Current Plan: 02
 Total Plans in Phase: 2
-Status: Ready to discuss and plan
+Status: Ready to execute
 Last Activity: 2026-03-08
-Last Activity Description: Created roadmap for milestone v1.1 public growth surfaces.
-Progress: [..........] 0%
+Last Activity Description: Completed plan 05-01 public route ownership and landing crawlability handoffs.
+Progress: [#####.....] 50%
 
 ## Accumulated Context
 
@@ -57,6 +57,9 @@ Recent decisions affecting current work:
 - [Milestone v1.1]: Landing page remains the hub, while dedicated deep pages own distinct public intents.
 - [Milestone v1.1]: First release scope is Lean Three - Delivery Rubric, Scoring Logic, and Growth Pricing - with one flagship interactive demo.
 - [Milestone v1.1]: Canonical editorial route remains `/blog`, even if the UI frames it as Journal.
+- [Phase 05-public-ia-seo-foundation]: Kept the Lean Three copy in a typed TypeScript content module instead of adding MDX or CMS overhead in phase 5.
+- [Phase 05-public-ia-seo-foundation]: Used one shared PublicPageShell so breadcrumbs, primer copy, FAQs, and related links stay consistent across all three routes.
+- [Phase 05-public-ia-seo-foundation]: Fixed crawlability by removing ssr:false dependence from landing handoff sections and giving LaunchCountdown a server-stable initial render.
 
 ### Pending Todos
 
@@ -66,8 +69,14 @@ None yet.
 
 None yet.
 
+## Performance Metrics
+
+| Phase | Plan | Duration | Tasks | Files | Completed |
+|-------|------|----------|-------|-------|-----------|
+| 05-public-ia-seo-foundation | 01 | 11 min | 2 | 13 | 2026-03-08 |
+
 ## Session Continuity
 
-Last session: 2026-03-08T18:39:57.693Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-public-ia-seo-foundation/05-CONTEXT.md
+Last session: 2026-03-08T19:11:15.853Z
+Stopped at: Completed 05-public-ia-seo-foundation-01-PLAN.md
+Resume file: .planning/phases/05-public-ia-seo-foundation/05-02-PLAN.md

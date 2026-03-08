@@ -32,7 +32,7 @@ This roadmap shifts Pitchr's next milestone toward public, no-login growth surfa
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Decompose marketing route ownership and move SEO-critical content to server-rendered surfaces
+- [x] 05-01: Decompose marketing route ownership and move SEO-critical content to server-rendered surfaces
 - [ ] 05-02: Implement metadata, schema, sitemap, breadcrumb, and internal-link foundations for new public pages
 
 ### Phase 6: Deep-Dive Pages and Content System
@@ -85,7 +85,7 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 5. Public IA and SEO Foundation | 0/2 | Not started | - |
+| 5. Public IA and SEO Foundation | 1/2 | In progress | 05-01 |
 | 6. Deep-Dive Pages and Content System | 0/2 | Not started | - |
 | 7. Motion, Demos, and Brand System | 0/2 | Not started | - |
 | 8. Conversion and Discoverability Hardening | 0/2 | Not started | - |

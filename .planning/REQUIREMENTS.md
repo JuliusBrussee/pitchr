@@ -7,10 +7,10 @@
 
 ### Public Surfaces
 
-- [ ] **SURF-01**: Public visitor can navigate from the landing page hub to a dedicated Delivery Rubric page.
-- [ ] **SURF-02**: Public visitor can navigate from the landing page hub to a dedicated Scoring Logic page.
-- [ ] **SURF-03**: Public visitor can navigate from the landing page hub to a dedicated Growth Pricing page.
-- [ ] **SURF-04**: Public deep-dive pages share a consistent marketing shell, internal links, and section structure.
+- [x] **SURF-01**: Public visitor can navigate from the landing page hub to a dedicated Delivery Rubric page.
+- [x] **SURF-02**: Public visitor can navigate from the landing page hub to a dedicated Scoring Logic page.
+- [x] **SURF-03**: Public visitor can navigate from the landing page hub to a dedicated Growth Pricing page.
+- [x] **SURF-04**: Public deep-dive pages share a consistent marketing shell, internal links, and section structure.
 
 ### Delivery Rubric
 
@@ -76,10 +76,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SURF-01 | Phase 5 | Pending |
-| SURF-02 | Phase 5 | Pending |
-| SURF-03 | Phase 5 | Pending |
-| SURF-04 | Phase 5 | Pending |
+| SURF-01 | Phase 5 | Complete |
+| SURF-02 | Phase 5 | Complete |
+| SURF-03 | Phase 5 | Complete |
+| SURF-04 | Phase 5 | Complete |
 | DRUB-01 | Phase 6 | Pending |
 | DRUB-02 | Phase 6 | Pending |
 | LOGC-01 | Phase 6 | Pending |
