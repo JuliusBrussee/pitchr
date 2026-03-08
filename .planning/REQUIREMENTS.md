@@ -76,29 +76,29 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SURF-01 | TBD | Pending |
-| SURF-02 | TBD | Pending |
-| SURF-03 | TBD | Pending |
-| SURF-04 | TBD | Pending |
-| DRUB-01 | TBD | Pending |
-| DRUB-02 | TBD | Pending |
-| LOGC-01 | TBD | Pending |
-| LOGC-02 | TBD | Pending |
-| LOGC-03 | TBD | Pending |
-| PRIC-01 | TBD | Pending |
-| PRIC-02 | TBD | Pending |
-| CONV-01 | TBD | Pending |
-| CONV-02 | TBD | Pending |
-| DISC-01 | TBD | Pending |
-| DISC-02 | TBD | Pending |
-| DISC-03 | TBD | Pending |
-| MOTN-01 | TBD | Pending |
-| MOTN-02 | TBD | Pending |
+| SURF-01 | Phase 5 | Pending |
+| SURF-02 | Phase 5 | Pending |
+| SURF-03 | Phase 5 | Pending |
+| SURF-04 | Phase 5 | Pending |
+| DRUB-01 | Phase 6 | Pending |
+| DRUB-02 | Phase 6 | Pending |
+| LOGC-01 | Phase 6 | Pending |
+| LOGC-02 | Phase 6 | Pending |
+| LOGC-03 | Phase 7 | Pending |
+| PRIC-01 | Phase 6 | Pending |
+| PRIC-02 | Phase 6 | Pending |
+| CONV-01 | Phase 8 | Pending |
+| CONV-02 | Phase 8 | Pending |
+| DISC-01 | Phase 5 | Pending |
+| DISC-02 | Phase 6 | Pending |
+| DISC-03 | Phase 6 | Pending |
+| MOTN-01 | Phase 7 | Pending |
+| MOTN-02 | Phase 7 | Pending |
 
 **Coverage:**
 - v1 requirements: 18 total
-- Mapped to phases: 0
-- Unmapped: 18
+- Mapped to phases: 18
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-08*
