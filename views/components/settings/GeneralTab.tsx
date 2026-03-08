@@ -30,7 +30,7 @@ import { SectionCard } from './SectionCard';
 import { SettingRow } from './SettingRow';
 import { SUPPORTED_LOCALES, LOCALE_CONFIGS } from '@/types/locale';
 import type { SupportedLocale } from '@/types/locale';
-import { t as interp } from '@/lib/locale/interpolate';
+import { interpolate } from '@/lib/locale/interpolate';
 
 export function GeneralTab() {
   const router = useRouter();
@@ -168,7 +168,7 @@ export function GeneralTab() {
         </SettingRow>
         {isAutoDetect && (
           <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-            {interp(t.settings.language.detected, { language: LOCALE_CONFIGS[locale].label })}
+            {interpolate(t.settings.language.detected, { language: LOCALE_CONFIGS[locale].label })}
           </p>
         )}
       </SectionCard>

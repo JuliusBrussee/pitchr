@@ -6,6 +6,9 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: SupportedLocale = 'en';
 
+export const LOCALE_STORAGE_KEY = 'pitchr_locale';
+export const LOCALE_AUTO_DETECT_KEY = 'pitchr_locale_auto';
+
 export interface LocaleConfig {
   code: SupportedLocale;
   label: string;

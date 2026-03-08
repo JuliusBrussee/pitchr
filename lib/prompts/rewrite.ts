@@ -2,7 +2,7 @@ import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { Fix } from '@/types/analysis';
 import type { PitchMode } from '@/types/pitch';
 import type { SupportedLocale } from '@/types/locale';
-import { LOCALE_CONFIGS } from '@/types/locale';
+import { withLocaleDirective } from '@/lib/prompts/locale';
 
 interface BuildRewritePromptInput {
   mode: PitchMode;
@@ -23,7 +23,7 @@ export function buildRewritePrompt({
     .map((fix) => `${fix.rank}. [${fix.category}] ${fix.issue} -> ${fix.fix}`)
     .join('\n');
 
-  return `Rewrite this pitch for spoken delivery.
+  const prompt = `Rewrite this pitch for spoken delivery.
 
 Mode: ${modeConfig.label}
 Target duration: ${modeConfig.targetDurationSeconds} seconds at ~140 WPM
@@ -37,9 +37,7 @@ ${transcript}
 Top fixes to incorporate:
 ${fixesText || 'None provided'}
 
-Return only the rewritten pitch text. No markdown, no JSON, no explanation.${
-    locale && locale !== 'en'
-      ? `\n\nIMPORTANT: Write the rewritten pitch in ${LOCALE_CONFIGS[locale].englishLabel}.`
-      : ''
-  }`;
+Return only the rewritten pitch text. No markdown, no JSON, no explanation.`;
+
+  return locale ? withLocaleDirective(prompt, locale) : prompt;
 }

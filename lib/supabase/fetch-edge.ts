@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import { LOCALE_STORAGE_KEY } from '@/types/locale';
 
 /** Cached auth token to avoid repeated getSession/getUser calls on the same page load. */
 let cachedToken: string | null = null;
@@ -104,7 +105,7 @@ export async function getEdgeHeaders(
 function getStoredLocale(): string {
   if (typeof window === 'undefined') return 'en';
   try {
-    return localStorage.getItem('pitchr_locale') ?? 'en';
+    return localStorage.getItem(LOCALE_STORAGE_KEY) ?? 'en';
   } catch {
     return 'en';
   }

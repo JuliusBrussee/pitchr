@@ -2,14 +2,16 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { DEFAULT_LOCALE, SUPPORTED_LOCALES } from '@/types/locale';
+import {
+  DEFAULT_LOCALE,
+  SUPPORTED_LOCALES,
+  LOCALE_STORAGE_KEY,
+  LOCALE_AUTO_DETECT_KEY,
+} from '@/types/locale';
 import type { SupportedLocale } from '@/types/locale';
 import { detectLocale } from '@/lib/locale/detect';
 import { loadTranslations, fallbackStrings } from '@/translations/index';
 import type { TranslationStrings } from '@/translations/index';
-
-const LOCALE_STORAGE_KEY = 'pitchr_locale';
-const AUTO_DETECT_KEY = 'pitchr_locale_auto';
 
 interface LocaleContextValue {
   locale: SupportedLocale;
@@ -34,7 +36,7 @@ export const useLocaleContext = () => useContext(LocaleContext);
 function readStoredLocale(): { locale: SupportedLocale; isAuto: boolean } {
   if (typeof window === 'undefined') return { locale: DEFAULT_LOCALE, isAuto: true };
   try {
-    const autoFlag = localStorage.getItem(AUTO_DETECT_KEY);
+    const autoFlag = localStorage.getItem(LOCALE_AUTO_DETECT_KEY);
     const isAuto = autoFlag !== 'false';
 
     if (isAuto) {
@@ -52,37 +54,42 @@ function readStoredLocale(): { locale: SupportedLocale; isAuto: boolean } {
   }
 }
 
+function applyTranslations(
+  locale: SupportedLocale,
+  setStrings: (s: TranslationStrings) => void,
+  setIsLoading: (l: boolean) => void,
+) {
+  if (locale === 'en') {
+    setStrings(fallbackStrings);
+    return;
+  }
+  setIsLoading(true);
+  loadTranslations(locale)
+    .then(setStrings)
+    .catch(() => setStrings(fallbackStrings))
+    .finally(() => setIsLoading(false));
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<SupportedLocale>(DEFAULT_LOCALE);
   const [strings, setStrings] = useState<TranslationStrings>(fallbackStrings);
   const [isAutoDetect, setIsAutoDetect] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const mountedRef = useRef(false);
+  const initializedRef = useRef(false);
 
-  // Load stored locale on mount
+  // Load stored locale on mount — single effect handles both state + translations
   useEffect(() => {
     const { locale: initial, isAuto } = readStoredLocale();
     setLocaleState(initial);
     setIsAutoDetect(isAuto);
-    mountedRef.current = true;
-
-    if (initial !== 'en') {
-      setIsLoading(true);
-      loadTranslations(initial)
-        .then(setStrings)
-        .catch(() => setStrings(fallbackStrings))
-        .finally(() => setIsLoading(false));
-    }
+    applyTranslations(initial, setStrings, setIsLoading);
+    initializedRef.current = true;
   }, []);
 
-  // Load translations when locale changes (after mount)
+  // Load translations when locale changes after initialization
   useEffect(() => {
-    if (!mountedRef.current) return;
-    setIsLoading(true);
-    loadTranslations(locale)
-      .then(setStrings)
-      .catch(() => setStrings(fallbackStrings))
-      .finally(() => setIsLoading(false));
+    if (!initializedRef.current) return;
+    applyTranslations(locale, setStrings, setIsLoading);
   }, [locale]);
 
   const setLocale = useCallback((next: SupportedLocale) => {
@@ -90,14 +97,14 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setIsAutoDetect(false);
     try {
       localStorage.setItem(LOCALE_STORAGE_KEY, next);
-      localStorage.setItem(AUTO_DETECT_KEY, 'false');
+      localStorage.setItem(LOCALE_AUTO_DETECT_KEY, 'false');
     } catch { /* noop */ }
   }, []);
 
   const setAutoDetect = useCallback((auto: boolean) => {
     setIsAutoDetect(auto);
     try {
-      localStorage.setItem(AUTO_DETECT_KEY, String(auto));
+      localStorage.setItem(LOCALE_AUTO_DETECT_KEY, String(auto));
     } catch { /* noop */ }
     if (auto) {
       const detected = detectLocale();
