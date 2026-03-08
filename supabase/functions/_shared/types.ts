@@ -197,39 +197,6 @@ export interface SlideRecord {
   text: string;
 }
 
-// Miro types
-export type MiroFixStatus = 'todo' | 'doing' | 'done' | 'blocked';
-export type FixImpact = 'high' | 'medium' | 'low';
-
-export interface MiroTopFixInput {
-  rank: number;
-  category: string;
-  impact: FixImpact;
-  issue: string;
-  fix: string;
-}
-
-export interface MiroFixBoardRequest {
-  runId: string;
-  mode: PitchMode;
-  oneLineVerdict: string;
-  rewriteScript: string;
-  topFixes: MiroTopFixInput[];
-  transcript?: string;
-  recreate?: boolean;
-}
-
-export interface MiroFixPatchRequest {
-  runId: string;
-  rank: number;
-  patch: {
-    status?: MiroFixStatus;
-    owner?: string;
-    notes?: string;
-  };
-  clientUpdatedAt: string;
-}
-
 // Deck generation types
 export type TemplateId =
   | 'minimal-dark'

@@ -66,7 +66,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=         # Supabase anon key
 ANTHROPIC_API_KEY=                     # Claude API (required)
 GOOGLE_AI_API_KEY=                     # Gemini fallback (optional)
 ASSEMBLYAI_API_KEY=                     # Speech-to-text (optional)
-MIRO_API_TOKEN=                        # Miro boards (optional)
 STRIPE_SECRET_KEY=                     # Stripe secret key
 STRIPE_WEBHOOK_SECRET=                 # Stripe webhook signing
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=    # Stripe client-side key

@@ -44,8 +44,8 @@ describe('compliance rules', () => {
 
     expect(shouldBlockEndpoint('soft', 'pitch-run')).toBe(false);
     expect(shouldBlockEndpoint('hard_core', 'pitch-run')).toBe(true);
-    expect(shouldBlockEndpoint('hard_core', 'miro-fix-board')).toBe(false);
-    expect(shouldBlockEndpoint('hard_all', 'miro-fix-board')).toBe(true);
+    expect(shouldBlockEndpoint('hard_core', 'deck-list')).toBe(false);
+    expect(shouldBlockEndpoint('hard_all', 'deck-list')).toBe(true);
   });
 
   it('scope check only requires EEA/UK', () => {

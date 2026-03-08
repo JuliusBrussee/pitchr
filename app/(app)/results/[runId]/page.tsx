@@ -28,15 +28,6 @@ import { resolveSectionFeedbackForDisplay } from '@/services/sectionFeedbackServ
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useTutorial } from '@/hooks/useTutorial';
-import type {
-  MiroFixBoardResponse,
-  MiroFixPatchResponse,
-  MiroFixStatus,
-  MiroGetFixBoardResponse,
-  MiroTopFixInput,
-} from '@/services/miro/miroTypes';
-import { useMiroSync } from '@/hooks/useMiroSync';
-import { MiroSyncPanel } from '@/views/components/MiroSyncPanel';
 
 /* ── Helpers ─────────────────────────────────────────────────── */
 
@@ -107,14 +98,6 @@ function synthesizeQaFromFeedback(feedback: FeedbackOutput): OneMinuteQAPack {
   };
 }
 
-function getMiroPollIntervalMs(): number {
-  const value = process.env.NEXT_PUBLIC_MIRO_POLL_INTERVAL_MS;
-  if (!value) return 8_000;
-  const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 8_000;
-  return parsed;
-}
-
 function getRunPollMs(): { initial: number; max: number; step: number } {
   const initialRaw = process.env.NEXT_PUBLIC_RUN_POLL_INITIAL_MS;
   const maxRaw = process.env.NEXT_PUBLIC_RUN_POLL_MAX_MS;
@@ -131,22 +114,6 @@ function getRunPollMs(): { initial: number; max: number; step: number } {
   };
 }
 
-interface MiroCreateFixBoardPayload {
-  runId: string;
-  mode: string;
-  oneLineVerdict: string;
-  topFixes: MiroTopFixInput[];
-  rewriteScript: string;
-  transcript?: string;
-  recreate?: boolean;
-}
-
-interface MiroBoardState {
-  boardId: string;
-  boardUrl: string;
-  createdAt: string;
-  fallback?: boolean;
-}
 /* ── Section wrapper ─────────────────────────────────────────── */
 
 function Section({
@@ -229,15 +196,6 @@ export default function ResultsPage() {
   const [copied, setCopied] = useState(false);
   const [seekToSec, setSeekToSec] = useState<number | null>(null);
   const recordingRef = useRef<RecordingPlayerHandle | null>(null);
-  const [miroBoard, setMiroBoard] = useState<MiroBoardState | null>(null);
-  const [miroLocalSnapshot, setMiroLocalSnapshot] = useState<MiroFixBoardResponse['snapshot'] | null>(
-    null,
-  );
-  const [isCreatingMiroBoard, setIsCreatingMiroBoard] = useState(false);
-  const [isLoadingMiroBoard, setIsLoadingMiroBoard] = useState(false);
-  const [miroCreateError, setMiroCreateError] = useState<string | null>(null);
-  const [miroCreateMessage, setMiroCreateMessage] = useState<string | null>(null);
-  const miroPollIntervalMs = useMemo(() => getMiroPollIntervalMs(), []);
   const [sessionDelta, setSessionDelta] = useState<{ points: number; sessions: number } | null>(null);
   const achievements = useAchievements();
   const achievementCheckDone = useRef(false);
@@ -289,89 +247,6 @@ export default function ResultsPage() {
       })
       .catch(() => {});
   }, [run?.status, achievements.processRuns]);
-
-  const {
-    snapshot: miroSnapshot,
-    isSyncing: isMiroSyncing,
-    error: miroSyncError,
-    syncNow: syncMiroNow,
-  } = useMiroSync({
-    runId: runId ?? '',
-    enabled: Boolean(runId && miroBoard?.boardId),
-    pollIntervalMs: miroPollIntervalMs,
-  });
-
-  useEffect(() => {
-    if (!runId) {
-      setMiroBoard(null);
-      setMiroLocalSnapshot(null);
-      setIsLoadingMiroBoard(false);
-      return;
-    }
-
-    // Wait until run completes before loading fix-board metadata.
-    if (run?.status !== 'complete') {
-      setMiroBoard(null);
-      setMiroLocalSnapshot(null);
-      setIsLoadingMiroBoard(false);
-      return;
-    }
-
-    let cancelled = false;
-    setIsLoadingMiroBoard(true);
-    setMiroCreateError(null);
-    setMiroCreateMessage(null);
-
-    const loadMiroBoard = async () => {
-      try {
-        const response = await fetchEdge('miro-fix-board', {
-          method: 'GET',
-          cache: 'no-store',
-          params: { runId },
-        });
-
-        if (cancelled) return;
-        if (response.status === 404) {
-          setMiroBoard(null);
-          setMiroLocalSnapshot(null);
-          return;
-        }
-
-        const data = (await response.json()) as Partial<MiroGetFixBoardResponse> & {
-          error?: string;
-        };
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load Miro board.');
-        }
-
-        if (!data.boardId || !data.boardUrl || !data.createdAt || !data.snapshot) {
-          throw new Error('Miro board response missing required fields.');
-        }
-
-        setMiroBoard({
-          boardId: data.boardId,
-          boardUrl: data.boardUrl,
-          createdAt: data.createdAt,
-          fallback: data.fallback,
-        });
-        setMiroLocalSnapshot(data.snapshot);
-      } catch (error) {
-        if (cancelled) return;
-        setMiroCreateError(error instanceof Error ? error.message : 'Failed to load Miro board.');
-        setMiroBoard(null);
-        setMiroLocalSnapshot(null);
-      } finally {
-        if (!cancelled) {
-          setIsLoadingMiroBoard(false);
-        }
-      }
-    };
-
-    void loadMiroBoard();
-    return () => {
-      cancelled = true;
-    };
-  }, [runId, run?.status]);
 
   /* ── Data fetching + polling ─────────────────────────────── */
 
@@ -559,123 +434,6 @@ export default function ResultsPage() {
     setSeekToSec(seconds);
     recordingRef.current?.seekTo(seconds);
   };
-
-  async function createFixBoardInMiro(recreate = false) {
-    if (!runId || !run || !feedback) return;
-
-    setIsCreatingMiroBoard(true);
-    setMiroCreateError(null);
-    setMiroCreateMessage(null);
-
-    const payload: MiroCreateFixBoardPayload = {
-      runId,
-      mode: run.mode,
-      oneLineVerdict: feedback.one_line_verdict,
-      topFixes: feedback.top_fixes.map((fix) => ({
-        rank: fix.rank,
-        category: fix.category,
-        impact: fix.impact,
-        issue: fix.issue,
-        fix: fix.fix,
-      })),
-      rewriteScript: feedback.rewrite_script,
-      transcript: run.transcript,
-      recreate,
-    };
-
-    try {
-      const response = await fetchEdge('miro-fix-board', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = (await response.json()) as Partial<MiroFixBoardResponse> & {
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create Miro fix board.');
-      }
-
-      if (!data.boardId || !data.boardUrl || !data.snapshot) {
-        throw new Error('Miro API returned an incomplete board response.');
-      }
-
-      const nextBoard: MiroBoardState = {
-        boardId: data.boardId,
-        boardUrl: data.boardUrl,
-        createdAt: data.createdAt || new Date().toISOString(),
-        fallback: data.fallback,
-      };
-
-      setMiroBoard(nextBoard);
-      setMiroLocalSnapshot(data.snapshot);
-      setMiroCreateMessage(
-        data.message ||
-          (nextBoard.fallback
-            ? 'Miro fallback mode active. Stub board created locally.'
-            : data.reused
-              ? 'Existing Miro board reused for this run.'
-              : 'Fix board created successfully.'),
-      );
-    } catch (error) {
-      setMiroCreateError(
-        error instanceof Error ? error.message : 'Failed to create Miro fix board.',
-      );
-    } finally {
-      setIsCreatingMiroBoard(false);
-    }
-  }
-
-  async function saveFixPatch(input: {
-    rank: number;
-    patch: {
-      status: MiroFixStatus;
-      owner: string;
-      notes: string;
-    };
-  }) {
-    if (!runId) return;
-
-    const response = await fetchEdge('miro-fix-board', {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        runId,
-        rank: input.rank,
-        patch: input.patch,
-        clientUpdatedAt: new Date().toISOString(),
-      }),
-    });
-    const data = (await response.json()) as Partial<MiroFixPatchResponse> & {
-      error?: string;
-    };
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to save Miro fix patch.');
-    }
-    if (data.snapshot) {
-      setMiroLocalSnapshot(data.snapshot);
-    }
-    if (data.queued) {
-      setMiroCreateMessage('Patch queued for retry while Miro API recovers.');
-    }
-  }
-
-  const effectiveMiroSnapshot = (() => {
-    if (!miroSnapshot) return miroLocalSnapshot;
-    if (!miroLocalSnapshot) return miroSnapshot;
-    const hookTs = Date.parse(miroSnapshot.syncedAt || '');
-    const localTs = Date.parse(miroLocalSnapshot.syncedAt || '');
-    return hookTs >= localTs ? miroSnapshot : miroLocalSnapshot;
-  })();
-  const miroFixes = effectiveMiroSnapshot?.fixes ?? [];
-  const miroWarnings = effectiveMiroSnapshot?.warnings ?? [];
-  const combinedMiroError = miroCreateError || miroSyncError;
 
   /* ── Loading state ───────────────────────────────────────── */
 
@@ -902,79 +660,10 @@ export default function ResultsPage() {
       <div className="results-tier-divider my-1" />
 
       <div data-tour="tour-results-fixes">
-      <Section
-        title="Priority Fixes"
-        actions={
-          <button
-            type="button"
-            onClick={() => {
-              void createFixBoardInMiro(Boolean(miroBoard));
-            }}
-            disabled={isCreatingMiroBoard || isLoadingMiroBoard}
-            className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg border"
-            style={{
-              color: 'var(--text-secondary)',
-              borderColor: 'var(--border-color)',
-              opacity: isCreatingMiroBoard || isLoadingMiroBoard ? 0.7 : 1,
-            }}
-          >
-            {isCreatingMiroBoard
-              ? 'Creating...'
-              : isLoadingMiroBoard
-                ? 'Loading...'
-                : miroBoard
-                  ? 'Recreate Fix Board'
-                  : 'Create Fix Board'}
-          </button>
-        }
-      >
+      <Section title="Priority Fixes">
         <TopFixes fixes={feedback.top_fixes.filter((fix) => !fix.category.startsWith('deck_'))} />
-        {miroCreateMessage ? (
-          <div
-            className="text-xs px-2 py-1 rounded-lg mt-3"
-            style={{ color: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.10)' }}
-          >
-            {miroCreateMessage}
-          </div>
-        ) : null}
-        {combinedMiroError ? (
-          <div
-            className="text-xs px-2 py-1 rounded-lg mt-3"
-            style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}
-          >
-            {combinedMiroError}
-          </div>
-        ) : null}
-        {miroWarnings.length > 0 ? (
-          <div
-            className="text-xs px-2 py-1 rounded-lg mt-3"
-            style={{ color: '#ffaa33', backgroundColor: 'rgba(255,170,51,0.10)' }}
-          >
-            {miroWarnings[0]}
-          </div>
-        ) : null}
       </Section>
       </div>
-
-      {miroBoard ? (
-        <section>
-          <MiroSyncPanel
-            fixes={miroFixes}
-            isSyncing={isMiroSyncing}
-            lastSyncedAt={effectiveMiroSnapshot?.syncedAt}
-            error={combinedMiroError}
-            boardUrl={miroBoard.fallback ? undefined : miroBoard.boardUrl}
-            queuedOps={effectiveMiroSnapshot?.queuedOps ?? 0}
-            degraded={effectiveMiroSnapshot?.degraded ?? false}
-            conflicts={effectiveMiroSnapshot?.conflicts ?? 0}
-            version={effectiveMiroSnapshot?.version ?? 1}
-            onSyncNow={() => {
-              void syncMiroNow();
-            }}
-            onSaveFix={saveFixPatch}
-          />
-        </section>
-      ) : null}
 
       {/* ━━━ TIER 3: Deep Dives ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
       <div className="results-tier-divider my-1" />

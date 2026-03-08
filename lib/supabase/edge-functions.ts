@@ -186,32 +186,6 @@ export const edgeFunctions = {
       invokeEdgeFunction<T>('deck-generate', { method: 'POST', body }),
   },
 
-  miroFixBoard: {
-    /** GET /miro-fix-board?runId=... — Fetch fix board */
-    get: <T>(runId: string) =>
-      invokeEdgeFunction<T>('miro-fix-board', { params: { runId } }),
-
-    /** POST /miro-fix-board — Create fix board */
-    create: <T>(body: unknown) =>
-      invokeEdgeFunction<T>('miro-fix-board', { method: 'POST', body }),
-
-    /** PATCH /miro-fix-board — Update fix */
-    patch: <T>(body: unknown) =>
-      invokeEdgeFunction<T>('miro-fix-board', { method: 'PATCH', body }),
-  },
-
-  miroFixBoardMarkdown: {
-    /** POST /miro-fix-board-markdown — Generate markdown */
-    create: <T>(body: unknown) =>
-      invokeEdgeFunction<T>('miro-fix-board-markdown', { method: 'POST', body }),
-  },
-
-  miroFixBoardSync: {
-    /** GET /miro-fix-board-sync?runId=... — Sync board state */
-    get: <T>(runId: string) =>
-      invokeEdgeFunction<T>('miro-fix-board-sync', { params: { runId } }),
-  },
-
   qnaSession: {
     /** POST /qna-session — Create QA session */
     create: <T>(body: unknown) =>

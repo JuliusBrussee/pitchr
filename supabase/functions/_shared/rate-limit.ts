@@ -34,9 +34,6 @@ const ENDPOINT_LIMITS: Record<string, EndpointLimit> = {
   'compliance-accept': MODERATE,
   'compliance-consents': MODERATE,
   'qna-session-complete': MODERATE,
-  'miro-fix-board': MODERATE,
-  'miro-fix-board-markdown': MODERATE,
-  'miro-fix-board-sync': MODERATE,
 };
 
 // ─── Types ───
