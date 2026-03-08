@@ -35,7 +35,7 @@
 
 ### Discoverability
 
-- [ ] **DISC-01**: Every deep-dive page ships with unique title, meta description, canonical URL, OG data, and sitemap inclusion.
+- [x] **DISC-01**: Every deep-dive page ships with unique title, meta description, canonical URL, OG data, and sitemap inclusion.
 - [ ] **DISC-02**: Every deep-dive page keeps its core explanation in semantic HTML text with answer-first structure.
 - [ ] **DISC-03**: Every deep-dive page includes internal links, breadcrumbs, and structured data that match visible page content.
 
@@ -89,7 +89,7 @@
 | PRIC-02 | Phase 6 | Pending |
 | CONV-01 | Phase 8 | Pending |
 | CONV-02 | Phase 8 | Pending |
-| DISC-01 | Phase 5 | Pending |
+| DISC-01 | Phase 5 | Complete |
 | DISC-02 | Phase 6 | Pending |
 | DISC-03 | Phase 6 | Pending |
 | MOTN-01 | Phase 7 | Pending |

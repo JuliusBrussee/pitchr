@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: Brand Experience Growth Surfaces
 current_phase: 05
 current_phase_name: public-ia-seo-foundation
-current_plan: "02"
-status: Ready to execute
-stopped_at: Completed 05-public-ia-seo-foundation-01-PLAN.md
-last_updated: "2026-03-08T19:11:15.853Z"
+current_plan: 02
+status: ready_for_verification
+stopped_at: Completed 05-public-ia-seo-foundation-02-PLAN.md
+last_updated: "2026-03-08T19:28:10.677Z"
 last_activity: 2026-03-08
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-08)
 
 **Core value:** Users get feedback that reflects their actual project-specific rubric and constraints, not generic pitch advice.
-**Current focus:** Phase 5 - Public IA and SEO Foundation
+**Current focus:** Phase 5 complete - ready for verification and Phase 6 planning.
 
 ## Current Position
 
@@ -33,10 +33,10 @@ Current Phase Name: public-ia-seo-foundation
 Total Phases: 4
 Current Plan: 02
 Total Plans in Phase: 2
-Status: Ready to execute
+Status: Ready for verification
 Last Activity: 2026-03-08
-Last Activity Description: Completed plan 05-01 public route ownership and landing crawlability handoffs.
-Progress: [#####.....] 50%
+Last Activity Description: Completed plan 05-02 public metadata, schema, sitemap, and smoke verification foundations.
+Progress: [██████████] 100%
 
 ## Accumulated Context
 
@@ -60,6 +60,9 @@ Recent decisions affecting current work:
 - [Phase 05-public-ia-seo-foundation]: Kept the Lean Three copy in a typed TypeScript content module instead of adding MDX or CMS overhead in phase 5.
 - [Phase 05-public-ia-seo-foundation]: Used one shared PublicPageShell so breadcrumbs, primer copy, FAQs, and related links stay consistent across all three routes.
 - [Phase 05-public-ia-seo-foundation]: Fixed crawlability by removing ssr:false dependence from landing handoff sections and giving LaunchCountdown a server-stable initial render.
+- [Phase 05-public-ia-seo-foundation]: Shared site and metadata helpers now own public canonical URLs, OG/Twitter data, JSON-LD, and sitemap URL generation.
+- [Phase 05-public-ia-seo-foundation]: PublicPageShell renders breadcrumb JSON-LD from the same breadcrumb arrays used by the visible breadcrumb UI.
+- [Phase 05-public-ia-seo-foundation]: Playwright public smoke runs use yarn dev and verify landing handoffs plus Journal routing.
 
 ### Pending Todos
 
@@ -74,9 +77,10 @@ None yet.
 | Phase | Plan | Duration | Tasks | Files | Completed |
 |-------|------|----------|-------|-------|-----------|
 | 05-public-ia-seo-foundation | 01 | 11 min | 2 | 13 | 2026-03-08 |
+| 05-public-ia-seo-foundation | 02 | 5 min | 2 | 12 | 2026-03-08 |
 
 ## Session Continuity
 
-Last session: 2026-03-08T19:11:15.853Z
-Stopped at: Completed 05-public-ia-seo-foundation-01-PLAN.md
-Resume file: .planning/phases/05-public-ia-seo-foundation/05-02-PLAN.md
+Last session: 2026-03-08T19:27:27.357Z
+Stopped at: Completed 05-public-ia-seo-foundation-02-PLAN.md
+Resume file: None

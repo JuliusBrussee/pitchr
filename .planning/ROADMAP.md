@@ -14,7 +14,7 @@ This roadmap shifts Pitchr's next milestone toward public, no-login growth surfa
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 5: Public IA and SEO Foundation** - Landing and public routes become server-first, crawlable, and ready for deep-dive pages.
+- [x] **Phase 5: Public IA and SEO Foundation** - Landing and public routes become server-first, crawlable, and ready for deep-dive pages.
 - [ ] **Phase 6: Deep-Dive Pages and Content System** - Delivery Rubric, Scoring Logic, and Growth Pricing pages ship with shared content and section architecture.
 - [ ] **Phase 7: Motion, Demos, and Brand System** - A shared motion layer and one flagship interactive scoring demo bring the new public pages to life.
 - [ ] **Phase 8: Conversion and Discoverability Hardening** - Page-specific signup routing, attribution, and crawl/discoverability validation turn the new surfaces into a working growth system.
@@ -33,7 +33,7 @@ This roadmap shifts Pitchr's next milestone toward public, no-login growth surfa
 
 Plans:
 - [x] 05-01: Decompose marketing route ownership and move SEO-critical content to server-rendered surfaces
-- [ ] 05-02: Implement metadata, schema, sitemap, breadcrumb, and internal-link foundations for new public pages
+- [x] 05-02: Implement metadata, schema, sitemap, breadcrumb, and internal-link foundations for new public pages
 
 ### Phase 6: Deep-Dive Pages and Content System
 **Goal**: Pitchr ships three dedicated public deep-dive pages backed by reusable content and facts.
@@ -85,7 +85,7 @@ Phases execute in numeric order: 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 5. Public IA and SEO Foundation | 1/2 | In progress | 05-01 |
+| 5. Public IA and SEO Foundation | 2/2 | Complete | 05-01, 05-02 |
 | 6. Deep-Dive Pages and Content System | 0/2 | Not started | - |
 | 7. Motion, Demos, and Brand System | 0/2 | Not started | - |
 | 8. Conversion and Discoverability Hardening | 0/2 | Not started | - |
