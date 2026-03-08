@@ -24,9 +24,10 @@ const PROTECTED_ROUTES = [
   '/projects',
   '/demo',
   '/compliance',
+  '/reset-password',
 ];
 
-const AUTH_ROUTES = ['/login', '/signup', '/auth'];
+const AUTH_ROUTES = ['/login', '/signup', '/auth', '/forgot-password'];
 
 // Signup is gated behind NEXT_PUBLIC_SIGNUP_ENABLED=true.
 // When disabled, /signup redirects to the landing page waitlist.

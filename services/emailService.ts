@@ -1,3 +1,15 @@
+import {
+  emailLayout,
+  emailHeading,
+  emailSubheading,
+  emailParagraph,
+  emailCta,
+  emailHighlightBox,
+  emailIconList,
+  emailSignoff,
+  emailUnsubscribeFooter,
+} from '@/lib/emailTemplate';
+
 const RESEND_API_URL = 'https://api.resend.com/emails';
 
 interface ResendSendResponse {
@@ -88,53 +100,55 @@ export async function sendWaitlistWelcomeEmail(
     ? `${appBaseUrl}/api/newsletter/unsubscribe?token=${params.unsubscribeToken}`
     : null;
 
-  const subject = 'Welcome to Pitchr - you are on the early-access list';
-  const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #111827;">
-      <h2 style="margin: 0 0 12px;">You are in. Thanks for joining Pitchr.</h2>
-      <p style="margin: 0 0 12px;">
-        Pitchr helps you practice high-stakes pitches with clear scoring, ranked fixes, and rewrites. We are opening access in small waves, and waitlist members get invited first.
-      </p>
-      <p style="margin: 0 0 8px;"><strong>What happens next:</strong></p>
-      <ul style="margin: 0 0 12px 20px; padding: 0;">
-        <li style="margin: 0 0 6px;">You will get one short build update each week with what shipped and what is next.</li>
-        <li style="margin: 0 0 6px;">When your cohort opens, we will send your invite link by email first.</li>
-        <li style="margin: 0;">If updates are not useful, you can unsubscribe in one click any time.</li>
-      </ul>
-      <p style="margin: 0 0 12px;">
-        Want to shape the product? Hit reply and tell us your biggest pitch challenge in one sentence. We read every response.
-      </p>
-      <p style="margin: 0;">- Team Pitchr</p>
-      ${
-        unsubscribeUrl
-          ? `<p style="margin: 24px 0 0; font-size: 12px; color: #6b7280;">
-            We only use this email for waitlist updates and early-access invites. <a href="${unsubscribeUrl}" style="color: #6b7280;">Unsubscribe</a>
-          </p>`
-          : ''
-      }
-    </div>
-  `;
+  const subject = "You're in — welcome to Pitchr";
+
+  const body = [
+    emailHeading("You're on the list."),
+    emailSubheading('Early access is opening in small waves — you will be first to know.'),
+    emailParagraph(
+      'Pitchr is an AI pitch coach that scores your pitch out of 100, gives you ranked fixes, and rewrites your script. We built it because practicing pitches alone is a guessing game — and investors notice.',
+    ),
+    emailHighlightBox(
+      emailIconList([
+        { icon: '&#128232;', text: '<strong>Weekly updates</strong> — what shipped, what is next' },
+        { icon: '&#127919;', text: '<strong>Priority invite</strong> — waitlist gets access first' },
+        { icon: '&#9889;', text: '<strong>One-click out</strong> — unsubscribe any time' },
+      ]),
+    ),
+    emailParagraph(
+      'Want to shape the product? Hit <strong>reply</strong> and tell us your biggest pitch challenge in one sentence. We read every response.',
+    ),
+    emailSignoff(),
+    emailUnsubscribeFooter(unsubscribeUrl),
+  ].join('\n');
+
+  const html = emailLayout({
+    preheader: 'Early access is opening soon. Here is what happens next.',
+    body,
+  });
 
   const textParts = [
-    'You are in. Thanks for joining Pitchr.',
-    'Pitchr helps you practice high-stakes pitches with clear scoring, ranked fixes, and rewrites.',
-    'We are opening access in small waves, and waitlist members get invited first.',
+    "You're in — welcome to Pitchr",
+    '',
+    'Early access is opening in small waves — you will be first to know.',
+    '',
+    'Pitchr is an AI pitch coach that scores your pitch out of 100, gives you ranked fixes, and rewrites your script.',
+    '',
     'What happens next:',
-    '- You will get one short build update each week with what shipped and what is next.',
-    '- When your cohort opens, we will send your invite link by email first.',
-    '- If updates are not useful, you can unsubscribe in one click any time.',
+    '- Weekly updates on what shipped and what is next',
+    '- Priority invite — waitlist gets access first',
+    '- One-click out — unsubscribe any time',
+    '',
     'Want to shape the product? Hit reply and tell us your biggest pitch challenge in one sentence. We read every response.',
-    '- Team Pitchr',
+    '',
+    '— Team Pitchr',
   ];
 
   if (unsubscribeUrl) {
-    textParts.push(
-      'We only use this email for waitlist updates and early-access invites.',
-    );
-    textParts.push(`Unsubscribe: ${unsubscribeUrl}`);
+    textParts.push('', `Unsubscribe: ${unsubscribeUrl}`);
   }
 
-  const text = textParts.join('\n\n');
+  const text = textParts.join('\n');
 
   return sendEmail({
     to: params.email,

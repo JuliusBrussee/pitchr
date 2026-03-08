@@ -6,6 +6,7 @@ import { handleCors } from '../_shared/cors.ts';
 import { createAdminClient } from '../_shared/supabase.ts';
 import { jsonResponse, errorResponse } from '../_shared/response.ts';
 import { sendResendEmail } from '../_shared/email.ts';
+import { emailLayout, emailUnsubscribeFooter } from '../_shared/emailTemplate.ts';
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -80,21 +81,20 @@ function buildCampaignHtml(
   campaign: NewsletterCampaignRow,
   unsubscribeUrl: string,
 ): string {
-  const baseHtml = campaign.html_body.includes('{{unsubscribe_url}}')
+  const contentHtml = campaign.html_body.includes('{{unsubscribe_url}}')
     ? campaign.html_body.replaceAll('{{unsubscribe_url}}', unsubscribeUrl)
-    : `${campaign.html_body}
-      <p style="margin-top:24px;font-size:12px;color:#6b7280;">
-        You are receiving this because you joined the Pitchr waitlist.
-        <a href="${unsubscribeUrl}" style="color:#6b7280;">Unsubscribe</a>
-      </p>`;
+    : campaign.html_body;
 
-  const preheader = campaign.preview_text
-    ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-        ${escapeHtml(campaign.preview_text)}
-      </div>`
+  const unsubFooter = !campaign.html_body.includes('{{unsubscribe_url}}')
+    ? emailUnsubscribeFooter(unsubscribeUrl)
     : '';
 
-  return `${preheader}${baseHtml}`;
+  return emailLayout({
+    preheader: campaign.preview_text
+      ? escapeHtml(campaign.preview_text)
+      : undefined,
+    body: contentHtml + unsubFooter,
+  });
 }
 
 function buildCampaignText(

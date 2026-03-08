@@ -14,6 +14,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Auth code exchange failed — redirect to login with error
-  return NextResponse.redirect(new URL('/login', origin));
+  // Auth code exchange failed — redirect to login with error context
+  const loginUrl = new URL('/login', origin);
+  loginUrl.searchParams.set('error', 'auth_callback_failed');
+  return NextResponse.redirect(loginUrl);
 }
