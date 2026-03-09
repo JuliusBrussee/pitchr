@@ -1,6 +1,7 @@
+import Link from 'next/link';
 import type { PublicPageDefinition } from '@/content/publicPages';
 import { buildBreadcrumbSchema } from '@/lib/metadata/publicPageMetadata';
-import { PublicBreadcrumbs } from '@/views/components/public/PublicBreadcrumbs';
+import { PublicPageHeroVisual, PublicPageScrollReveal } from '@/views/components/public/PublicPageClient';
 import { PublicFaq } from '@/views/components/public/PublicFaq';
 import { PublicRelatedLinks } from '@/views/components/public/PublicRelatedLinks';
 
@@ -8,45 +9,105 @@ export function PublicPageShell({ page }: { page: PublicPageDefinition }) {
   const breadcrumbSchema = buildBreadcrumbSchema(page.breadcrumbs);
 
   return (
-    <main className="bg-[var(--bg-primary)] text-[var(--text-primary)]">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-12 px-6 py-16 md:px-10 md:py-20">
-        <script
-          type="application/ld+json"
-          suppressHydrationWarning
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
-        />
-        <PublicBreadcrumbs items={page.breadcrumbs} />
+    <main className="public-page">
+      <script
+        type="application/ld+json"
+        suppressHydrationWarning
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
 
-        <section className="space-y-5">
-          <p className="text-sm font-medium uppercase tracking-[0.24em] text-[var(--accent)]">
-            {page.hero.eyebrow}
-          </p>
-          <div className="max-w-4xl space-y-4">
-            <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
-              {page.hero.question}
-            </h1>
-            <p className="max-w-3xl text-lg leading-8 text-[var(--text-secondary)]">
-              {page.hero.answer}
-            </p>
-          </div>
-        </section>
+      {/* ── Hero ── */}
+      <section className="pp-hero">
+        <div className="pp-hero-bg">
+          <div className="pp-hero-spot pp-hero-spot-1" />
+          <div className="pp-hero-spot pp-hero-spot-2" />
+        </div>
 
-        <section className="grid gap-6 md:grid-cols-2">
-          {page.sections.map((section) => (
-            <article
+        <div className="pp-hero-content">
+          <nav className="pp-hero-breadcrumbs" aria-label="Breadcrumbs">
+            <ol className="pp-breadcrumbs">
+              {page.breadcrumbs.map((item, index) => {
+                const isLast = index === page.breadcrumbs.length - 1;
+                return (
+                  <li key={item.href} className="pp-breadcrumb-item">
+                    {isLast ? (
+                      <span className="pp-breadcrumb-current" aria-current="page">
+                        {item.label}
+                      </span>
+                    ) : (
+                      <>
+                        <Link href={item.href} className="pp-breadcrumb-link">
+                          {item.label}
+                        </Link>
+                        <span className="pp-breadcrumb-sep" aria-hidden="true">
+                          /
+                        </span>
+                      </>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+
+          <p className="pp-eyebrow">{page.hero.eyebrow}</p>
+          <h1 className="pp-hero-question">{page.hero.question}</h1>
+          <p className="pp-hero-answer">{page.hero.answer}</p>
+        </div>
+
+        <PublicPageHeroVisual pageKey={page.key} />
+      </section>
+
+      {/* ── Body ── */}
+      <div className="pp-body">
+        {/* Sections */}
+        <div className="pp-sections">
+          {page.sections.map((section, i) => (
+            <PublicPageScrollReveal
               key={section.title}
-              className="rounded-3xl border border-[var(--border-color)] bg-[var(--bg-surface)] p-8"
+              className="pp-section-card"
+              delay={i * 100}
             >
-              <h2 className="text-2xl font-semibold text-[var(--text-primary)]">{section.title}</h2>
-              <p className="mt-4 text-base leading-7 text-[var(--text-secondary)]">
-                {section.body}
-              </p>
-            </article>
+              <div className="pp-section-number">{i + 1}</div>
+              <h2 className="pp-section-title">{section.title}</h2>
+              <p className="pp-section-body">{section.body}</p>
+            </PublicPageScrollReveal>
           ))}
-        </section>
+        </div>
 
-        <PublicFaq items={page.faqs} />
-        <PublicRelatedLinks items={page.relatedLinks} />
+        {/* FAQ */}
+        <PublicPageScrollReveal className="pp-faq" delay={0}>
+          <PublicFaq items={page.faqs} />
+        </PublicPageScrollReveal>
+
+        {/* Related Links */}
+        <PublicPageScrollReveal className="pp-related" delay={0}>
+          <PublicRelatedLinks items={page.relatedLinks} currentHref={page.href} />
+        </PublicPageScrollReveal>
+
+        {/* CTA Banner */}
+        <PublicPageScrollReveal className="pp-cta-banner" delay={0}>
+          <h2 className="pp-cta-banner-title">Ready to sharpen your pitch?</h2>
+          <p className="pp-cta-banner-desc">
+            Start with a free analysis and see where you stand.
+          </p>
+          <Link href="/#waitlist" className="pp-cta-button">
+            Get Started Free
+            <svg
+              width={14}
+              height={14}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </Link>
+        </PublicPageScrollReveal>
       </div>
     </main>
   );

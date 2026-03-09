@@ -249,6 +249,26 @@
 .landing .story-text h2 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(36px, 4vw, 56px); font-weight: 400; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
 .landing .story-text h2 i { color: var(--accent); font-style: italic; }
 .landing .story-text p { font-size: 16px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+.landing .story-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+  margin-top: 4px;
+  transition: gap 0.2s ease, opacity 0.2s ease;
+}
+.landing .story-link:hover {
+  gap: 10px;
+  opacity: 0.85;
+}
+.landing .story-link svg {
+  transition: transform 0.2s ease;
+}
+.landing .story-link:hover svg {
+  transform: translateX(2px);
+}
 .landing .story-visual { position: relative; width: 100%; min-height: 360px; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, var(--surface-soft), transparent 70%); border-radius: 24px; border: 1px solid var(--surface-border); }
 .landing .story-section-delivery .story-visual {
   background: radial-gradient(circle at 50% 68%, var(--surface-soft), transparent 72%);

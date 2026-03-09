@@ -284,15 +284,6 @@ export function LandingClient({
             Pitchr
           </Link>
           <div className="nav-links">
-            <Link href="/delivery-rubric" className="nav-link">
-              Delivery Rubric
-            </Link>
-            <Link href="/scoring-logic" className="nav-link">
-              Scoring Logic
-            </Link>
-            <Link href="/growth-pricing" className="nav-link">
-              Growth Pricing
-            </Link>
             <a href="#pricing" className="nav-link" onClick={(e) => scrollToSection(e, 'pricing')}>
               Plans
             </a>
@@ -408,11 +399,13 @@ export function LandingClient({
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--accent)' }}>
               {'> Analyzes WPM, Pauses, and Fillers'}
             </p>
-            <div style={{ marginTop: '20px' }}>
-              <Link href="/delivery-rubric" className="nav-link">
-                See the delivery rubric
-              </Link>
-            </div>
+            <Link href="/delivery-rubric" className="story-link">
+              See the delivery rubric
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </Link>
           </div>
           <div className="story-visual reveal" ref={deliveryVisualRef}>
             <svg
@@ -496,11 +489,13 @@ export function LandingClient({
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--green)' }}>
               {'> Score: 100/100 (Perfectly Balanced)'}
             </p>
-            <div style={{ marginTop: '20px' }}>
-              <Link href="/scoring-logic" className="nav-link">
-                Read how the score is built
-              </Link>
-            </div>
+            <Link href="/scoring-logic" className="story-link">
+              See the scoring logic
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
       </section>
@@ -520,11 +515,13 @@ export function LandingClient({
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--blue)' }}>
               {'> Delta: +45 points in 3 sessions'}
             </p>
-            <div style={{ marginTop: '20px' }}>
-              <Link href="/growth-pricing" className="nav-link">
-                Compare the free and growth path
-              </Link>
-            </div>
+            <Link href="/growth-pricing" className="story-link">
+              See growth pricing
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </Link>
           </div>
           <div className="story-visual reveal" id="chartReveal">
             <div className="chart-container">
