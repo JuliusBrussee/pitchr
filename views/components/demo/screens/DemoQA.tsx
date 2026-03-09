@@ -10,8 +10,8 @@ interface DemoQAProps {
 }
 
 function CountdownRing({ time, label, progress }: { time: string; label: string; progress: number }) {
-  const size = 120;
-  const r = size / 2 - 8;
+  const size = 100;
+  const r = size / 2 - 7;
   const circumference = 2 * Math.PI * r;
   const offset = circumference - progress * circumference;
 

@@ -15,6 +15,7 @@ import {
 import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
 import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliveryFunnel';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { LandingDemo } from '@/views/components/landing/LandingDemo';
 import '@/app/(marketing)/landing.css';
 
 const PRIVACY_NOTICE_VERSION = process.env.NEXT_PUBLIC_GDPR_POLICY_VERSION || '2026-03-04';
@@ -370,7 +371,7 @@ export function LandingClient({
                 </svg>
               </span>
             </a>
-            <a href="#delivery" className="btn-secondary" onClick={(e) => scrollToSection(e, 'delivery')}>
+            <a href="#demo" className="btn-secondary" onClick={(e) => scrollToSection(e, 'demo')}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <polygon points="10 8 16 12 10 16 10 8" />
@@ -388,6 +389,9 @@ export function LandingClient({
 
       {/* ═══ LAUNCH COUNTDOWN ═══ */}
       <LaunchCountdown initialNowMs={initialNowMs} onCtaClick={scrollToWaitlist} />
+
+      {/* ═══ PRODUCT DEMO ═══ */}
+      <LandingDemo />
 
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
       <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>

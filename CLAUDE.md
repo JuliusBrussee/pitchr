@@ -9,7 +9,7 @@ AI pitch coach: record/paste a pitch, get investor-grade score (/100), ranked fi
 
 ```bash
 yarn dev          # localhost:3000
-yarn build        # Production build
+yarn build:claude # Production build (uses .next-build dir, won't break dev server)
 yarn test         # Vitest
 yarn test:watch   # Watch mode
 ```

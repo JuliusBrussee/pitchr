@@ -13,7 +13,7 @@ import { DemoResults } from '@/views/components/demo/screens/DemoResults';
 import { DemoQA } from '@/views/components/demo/screens/DemoQA';
 import './demo.css';
 
-export function DemoClient() {
+export function DemoClient({ paused = false }: { paused?: boolean }) {
   const [step, setStep] = useState(0);
   const [labelVisible, setLabelVisible] = useState(true);
   const [cursorClicking, setCursorClicking] = useState(false);
@@ -52,9 +52,10 @@ export function DemoClient() {
   }, [totalSteps]);
 
   useEffect(() => {
+    if (paused) return;
     timerRef.current = setTimeout(advance, currentStep.duration);
     return () => clearTimeout(timerRef.current);
-  }, [step, advance, currentStep.duration]);
+  }, [step, advance, currentStep.duration, paused]);
 
   // Cursor click trigger
   useEffect(() => {

@@ -3631,3 +3631,207 @@
     gap: 16px;
   }
 }
+
+/* ═══ LANDING DEMO ═══ */
+
+.landing-demo {
+  position: relative;
+  z-index: 2;
+  padding: 100px 0 120px;
+  overflow: hidden;
+}
+
+/* Subtle accent glow — theme-aware */
+.landing-demo-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 55%, rgba(255, 89, 65, 0.06), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 50% 45%, rgba(255, 170, 51, 0.04), transparent 60%);
+}
+
+.dark .landing-demo-bg {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 55%, rgba(255, 89, 65, 0.08), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 50% 45%, rgba(255, 170, 51, 0.05), transparent 60%);
+}
+
+.landing-demo .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Header */
+.landing-demo-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.landing-demo-title {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 12px 0 0;
+}
+
+.landing-demo-title i {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.landing-demo-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary);
+  margin: 16px auto 0;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+/* Stage — the demo wrapper */
+.landing-demo-stage {
+  max-width: 1240px;
+  margin: 0 auto;
+  opacity: 0;
+  transform: translateY(24px) scale(0.98);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.landing-demo-stage--loaded {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Override demo-container for embedded context (no min-height, tighter padding) */
+.landing-demo .demo-container {
+  min-height: unset;
+  padding: 0;
+  gap: 24px;
+}
+
+/* Browser frame glow — theme-aware */
+.landing-demo .demo-browser {
+  box-shadow:
+    0 0 0 1px var(--surface-border),
+    0 25px 60px -12px var(--shadow-deep),
+    0 0 100px -30px rgba(255, 89, 65, 0.1);
+}
+
+/* ── Skeleton placeholder ── */
+.landing-demo-skeleton {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-soft);
+}
+
+.landing-demo-skeleton-bar {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+  border-bottom: 1px solid var(--surface-border);
+  background: var(--bg-card);
+}
+
+.landing-demo-skeleton-dots {
+  display: flex;
+  gap: 7px;
+  margin-right: 8px;
+}
+
+.landing-demo-skeleton-dots span {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.landing-demo-skeleton-url {
+  width: 200px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--surface-soft);
+  margin: 0 auto;
+}
+
+.landing-demo-skeleton-body {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.landing-demo-skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--surface-soft) 40%,
+    var(--border) 50%,
+    var(--surface-soft) 60%,
+    transparent 100%
+  );
+  animation: landing-demo-shimmer 2s ease-in-out infinite;
+}
+
+@keyframes landing-demo-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .landing-demo {
+    padding: 80px 0 100px;
+  }
+
+  .landing-demo-header {
+    margin-bottom: 36px;
+  }
+
+  .landing-demo-subtitle {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 600px) {
+  .landing-demo {
+    padding: 60px 0 80px;
+  }
+
+  .landing-demo-header {
+    margin-bottom: 28px;
+  }
+
+  .landing-demo-title {
+    font-size: 28px;
+  }
+
+  .landing-demo-subtitle {
+    font-size: 14px;
+    margin-top: 12px;
+  }
+}
+
+/* Reduced motion — show static state */
+@media (prefers-reduced-motion: reduce) {
+  .landing-demo-stage {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .landing-demo-skeleton-shimmer {
+    animation: none;
+  }
+}
