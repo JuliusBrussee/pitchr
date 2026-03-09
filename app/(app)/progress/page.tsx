@@ -4,9 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useTutorial } from '@/hooks/useTutorial';
 import { useSmartTooltip } from '@/hooks/useSmartTooltip';
+import { createPortal } from 'react-dom';
 import {
   TrendingUp,
   Radio,
+  ChevronDown,
+  Check,
 } from 'lucide-react';
 import {
   GlassCard,
@@ -27,6 +30,7 @@ import {
 } from '@/views/components/progress';
 import { AchievementSummary } from '@/views/components/achievements';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useProject } from '@/views/components/ProjectProvider';
 import { computeProgress } from '@/lib/progress';
 import type { ProgressRunRecord, ProgressSummary } from '@/lib/progress';
 
@@ -37,6 +41,8 @@ interface RawRunRecord {
   mode: string;
   overallScore: number;
   createdAt: string;
+  projectId?: string;
+  projectName?: string;
   analysis: {
     one_line_verdict: string;
     rubric_breakdown: { category: string; score: number; max_score: number }[];
@@ -63,6 +69,8 @@ function normalizeRunToProgress(raw: RawRunRecord): ProgressRunRecord {
     createdAt: raw.createdAt,
     overallScore: raw.overallScore,
     mode: raw.mode,
+    projectId: raw.projectId,
+    projectName: raw.projectName,
     analysis: {
       one_line_verdict: raw.analysis.one_line_verdict,
       rubric_breakdown: raw.analysis.rubric_breakdown ?? [],
@@ -76,14 +84,133 @@ function normalizeRunToProgress(raw: RawRunRecord): ProgressRunRecord {
   };
 }
 
+/* ——— Project Filter Dropdown (portal-based to escape overflow clipping) ——— */
+
+function ProjectFilterDropdown({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [panelStyle, setPanelStyle] = useState<React.CSSProperties>({});
+
+  const selectedLabel = options.find((o) => o.value === value)?.label ?? 'All Projects';
+
+  // Position the panel below the trigger using fixed coordinates
+  useEffect(() => {
+    if (!isOpen || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPanelStyle({
+      position: 'fixed',
+      top: rect.bottom + 6,
+      right: window.innerWidth - rect.right,
+      zIndex: 9999,
+      minWidth: Math.max(rect.width, 180),
+    });
+  }, [isOpen]);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e: PointerEvent) => {
+      if (
+        triggerRef.current?.contains(e.target as Node) ||
+        panelRef.current?.contains(e.target as Node)
+      ) return;
+      setIsOpen(false);
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [isOpen]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold border transition-all duration-200"
+        style={{
+          borderColor: isOpen ? 'rgba(255, 89, 65, 0.45)' : 'var(--border-color)',
+          backgroundColor: 'var(--bg-surface)',
+          color: 'var(--text-secondary)',
+        }}
+      >
+        <span className="truncate max-w-[120px]">{selectedLabel}</span>
+        <ChevronDown
+          size={13}
+          className="flex-shrink-0 transition-transform duration-200"
+          style={{
+            color: isOpen ? '#ff5941' : 'var(--text-muted)',
+            transform: isOpen ? 'rotate(180deg)' : 'none',
+          }}
+        />
+      </button>
+      {isOpen &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className="rounded-xl border py-1.5 animate-fade-in-up"
+            style={{
+              ...panelStyle,
+              backgroundColor: 'var(--bg-surface)',
+              borderColor: 'var(--border-color)',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 89, 65, 0.08)',
+              maxHeight: '16rem',
+              overflowY: 'auto',
+              animationDuration: '0.2s',
+            }}
+          >
+            {options.map((opt) => {
+              const isSelected = opt.value === value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs transition-colors duration-150 text-left"
+                  style={{
+                    color: isSelected ? '#ff5941' : 'var(--text-secondary)',
+                    backgroundColor: isSelected ? 'rgba(255, 89, 65, 0.08)' : 'transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = isSelected ? 'rgba(255, 89, 65, 0.08)' : 'transparent';
+                  }}
+                >
+                  <span className="font-semibold truncate">{opt.label}</span>
+                  {isSelected && <Check size={13} className="flex-shrink-0" style={{ color: '#ff5941' }} />}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
 /* ——— Page Component ——— */
 
 export default function ProgressPage() {
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [filterProjectId, setFilterProjectId] = useState('all');
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('progress');
+  const { projects } = useProject();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const showTooltipRef = useRef(showTooltip);
   showTooltipRef.current = showTooltip;
@@ -115,9 +242,24 @@ export default function ProgressPage() {
     registerPage('progress');
   }, [registerPage]);
 
+  const filterOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = [{ value: 'all', label: 'All Projects' }];
+    for (const p of projects) {
+      if (!p.isArchived) {
+        opts.push({ value: p.id, label: p.name });
+      }
+    }
+    return opts;
+  }, [projects]);
+
+  const filteredRuns = useMemo(
+    () => filterProjectId === 'all' ? runs : runs.filter((r) => r.projectId === filterProjectId),
+    [runs, filterProjectId],
+  );
+
   const progress: ProgressSummary = useMemo(
-    () => computeProgress(runs),
-    [runs],
+    () => computeProgress(filteredRuns),
+    [filteredRuns],
   );
 
   const achievements = useAchievements();
@@ -171,27 +313,42 @@ export default function ProgressPage() {
           </div>
         </div>
 
-        {progress.totalSessions > 0 && (
-          <a
-            href="/session"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
-            style={{
-              backgroundColor: '#ff5941',
-              color: '#ffffff',
-              boxShadow: '0 0 12px rgba(255,89,65,0.3)',
-            }}
-          >
-            <Radio size={13} />
-            Practice
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {runs.length > 0 && filterOptions.length > 1 && (
+            <ProjectFilterDropdown
+              value={filterProjectId}
+              options={filterOptions}
+              onChange={setFilterProjectId}
+            />
+          )}
+          {progress.totalSessions > 0 && (
+            <a
+              href="/session"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+              style={{
+                backgroundColor: '#ff5941',
+                color: '#ffffff',
+                boxShadow: '0 0 12px rgba(255,89,65,0.3)',
+              }}
+            >
+              <Radio size={13} />
+              Practice
+            </a>
+          )}
+        </div>
       </div>
 
       {progress.totalSessions === 0 ? (
         <GlassCard animationDelay="60ms">
           <EmptyState
             icon={<TrendingUp size={32} style={{ color: 'var(--text-muted)' }} />}
-            message={fetchError ? 'Failed to load progress data.' : 'No pitch sessions yet. Complete your first pitch to start tracking progress.'}
+            message={
+              fetchError
+                ? 'Failed to load progress data.'
+                : filteredRuns.length === 0 && runs.length > 0
+                  ? 'No sessions for this project yet.'
+                  : 'No pitch sessions yet. Complete your first pitch to start tracking progress.'
+            }
           />
           {fetchError && (
             <div className="flex justify-center mt-3">
