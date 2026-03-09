@@ -1,0 +1,102 @@
+{
+  "plan_name": "Pitchr LinkedIn Launch Week (Mon-Fri, 2026-03-09 to 2026-03-13)",
+  "timezone": "Europe/Amsterdam",
+  "launch_date": "2026-03-13",
+  "platform": "linkedin",
+  "visibility": "PUBLIC",
+  "waitlist_url": "https://pitchr.live/waitlist",
+  "posted_already": [
+    {
+      "date": "2026-03-03",
+      "type": "intro",
+      "highlights": [
+        "product introduction with score dimensions",
+        "waitlist framing and founder question"
+      ]
+    },
+    {
+      "date": "2026-03-06",
+      "type": "opening-framework",
+      "highlights": [
+        "3-line opening framework",
+        "rewriting feedback offer"
+      ]
+    }
+  ],
+  "skills_pipeline": [
+    "perplexity-2",
+    "create-content",
+    "social-gen",
+    "de-ai-ify",
+    "content-writing-thought-leadership"
+  ],
+  "research_prompts": {
+    "2026-03-09": "founders' top feedback gaps that weaken pitching confidence",
+    "2026-03-10": "measurable proof lines that improve pitch decision quality",
+    "2026-03-11": "common weak claims that hurt investor credibility",
+    "2026-03-12": "founder-product update patterns that increase pre-launch trust",
+    "2026-03-13": "launch messaging on Friday the 13th without fear framing"
+  },
+  "posts": [
+    {
+      "day": "Monday",
+      "date": "2026-03-09",
+      "theme": "decision signal gap",
+      "post_id": "skill_refined_1",
+      "text": "Great openings get attention.\nThe real stall happens after attention.\n\nI keep seeing the same pattern:\n\n- Pain is clear, but no measurable cost.\n- Vision is clear, but no evidence that urgency is real.\n- Ask is clear, but not yet decision-oriented.\n\nThat is where many founders get stuck.\nPitchr scores your draft across structure, clarity, evidence, market, and delivery.\nEach run shows the exact decision signal missing next.\n\nIf you want this signal map on your next pitch, join the waitlist:\nhttps://pitchr.live/waitlist\n\nWhat line in your pitch has the biggest evidence gap right now?",
+      "cta_variant": "Variant A",
+      "posting_time": "2026-03-09T09:00:00+01:00"
+    },
+    {
+      "day": "Tuesday",
+      "date": "2026-03-10",
+      "theme": "make claims testable",
+      "post_id": "skill_refined_2",
+      "text": "If your line sounds confident but cannot be tested, it still feels random.\n\nExample:\n\n\"Our platform helps teams communicate better with investors.\"\n\nTry this:\n\n\"Teams using [X workflow] reduced prep churn from Y hours/week to Z hours/week\nand improved response clarity in follow-up meetings by W%.\"\n\nYou need one number, one unit, one time frame.\nNo number, no decision point.\n\nIn score terms, this is how you turn a line from opinion to evidence.\n\nJoin the waitlist for score-based rewrites:\nhttps://pitchr.live/waitlist\n\nDrop your first two lines and one specific metric you can defend.",
+      "cta_variant": "Variant B",
+      "posting_time": "2026-03-10T09:00:00+01:00"
+    },
+    {
+      "day": "Wednesday",
+      "date": "2026-03-11",
+      "theme": "teardown and correction",
+      "post_id": "skill_refined_3",
+      "text": "Teardown sample (anonymous):\n\n\"Our AI assistant helps teams improve their pitch performance.\"\n\nWhy this fails:\n\n- It says what the tool does, not why a founder should care now.\n- It has no benchmark.\n- It gives no next action.\n\nCleaner line:\n\n\"Founders are not missing confidence.\nThey are missing a ranked list of what to fix before the next meeting.\"\n\nPitchr is designed for that: less noise, higher-priority action, faster improvement.\n\nJoin the waitlist:\nhttps://pitchr.live/waitlist\n\nReply with one sentence and I'll rewrite it in the comments.",
+      "cta_variant": "Variant C",
+      "posting_time": "2026-03-11T09:00:00+01:00"
+    },
+    {
+      "day": "Thursday",
+      "date": "2026-03-12",
+      "theme": "founder update before launch",
+      "post_id": "skill_refined_4",
+      "text": "One day to launch.\nNo hype. Here is what changed:\n\n- Better prioritization of fixes so editing starts with impact.\n- Cleaner rewrites with less generic phrasing.\n- More consistent run-to-run scoring.\n- New tracking visibility to show improvement trend.\n\nIf your pitch day is near, ask yourself:\n\"Do I know the top 1-3 fixes, or am I still guessing?\"\n\nOne-day-to-launch access list is open:\nhttps://pitchr.live/waitlist\n\nComment with your next deadline (VC, demo day, or hackathon), and I'll point to your highest-impact edit lens.",
+      "cta_variant": "Variant D",
+      "posting_time": "2026-03-12T09:00:00+01:00"
+    },
+    {
+      "day": "Friday",
+      "date": "2026-03-13",
+      "theme": "launch conversion",
+      "post_id": "skill_refined_5",
+      "text": "Unlucky 13 is a superstition.\nPrepared 13 is launch execution.\n\nToday we launch Pitchr.\n\nIf you are pitching this quarter, one run gives you:\n\n- score in five decision buckets\n- top 3 fixes ranked by impact\n- a rewrite you can test immediately\n- run-by-run progress tracking\n\nIf your pitch feels random, this is the moment to switch from guessing to a measurable improvement loop.\n\nFriday the 13th. Launch live now.\nJoin the founder waitlist:\nhttps://pitchr.live/waitlist\n\nWhat will you improve first: structure, evidence, or the ask?",
+      "cta_variant": "Variant E",
+      "posting_time": "2026-03-13T09:00:00+01:00"
+    }
+  ],
+  "upload_post_payload_template": {
+    "method": "POST",
+    "url": "https://api.upload-post.com/api/upload_text",
+    "headers": {
+      "Authorization": "Apikey YOUR_UPLOAD_POST_KEY",
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "user": "your_upload_post_profile",
+      "platform": ["linkedin"],
+      "visibility": "PUBLIC",
+      "target_linkedin_page_id": "urn:li:organization:YOUR_PAGE_ID"
+    },
+    "example_invocation": "Upload any post: replace body.title with selected post text, keep user/platform/visibility/page_id"
+  }
+}
