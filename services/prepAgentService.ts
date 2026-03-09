@@ -57,7 +57,7 @@ export interface PrepAgentInput {
 }
 
 const PATTERNS_FILE = path.join(process.cwd(), 'knowledge', 'patterns.v1.json');
-const DEFAULT_STAGE: PitchStage = 'seed';
+const DEFAULT_STAGE: PitchStage = 'seed'; // Used as fallback; prefer defaultStageForMode()
 const PROMPT_VERSION = 'judge-v2.1.0';
 const RUBRIC_VERSION = 'rubric-v2.0.0';
 const KNOWLEDGE_DIGEST_TARGET_CHARS = 1200;
@@ -124,12 +124,69 @@ const DEFAULT_ANTI_PATTERN_PLAYBOOK: Record<string, string> = {
   slide_overload: 'Tell the spoken narrative first; slides only support key proof.',
 };
 
+const HACKATHON_DO_RULES = [
+  'Show a working demo within the first 45 seconds.',
+  'Focus on one core innovation, not multiple features.',
+  'End with a specific ask: try it, vote for it, or partner.',
+  'Explain why your solution is novel and what you learned building it.',
+  'Connect your hack to the event theme or challenge prompt.',
+];
+
+const HACKATHON_DONT_RULES = [
+  'Do not present slides only without a working demo.',
+  'Do not list multiple features without depth on any one.',
+  'Do not skip explaining the theme or challenge alignment.',
+  'Do not end without a clear call-to-action.',
+  'Do not use investor jargon like TAM, runway, or cap table.',
+];
+
+const HACKATHON_CATEGORY_GUIDANCE: Record<KnowledgeDigestCategory, string[]> = {
+  structure: [
+    'Use hook -> problem -> demo -> innovation -> impact -> ask flow.',
+    'Lead with a compelling hook that shows the problem.',
+    'Transition to live demo within the first minute.',
+  ],
+  clarity: [
+    'Explain what you built in one plain sentence.',
+    'Avoid overly technical jargon unless the audience is technical.',
+    'Show, don\'t tell — let the demo speak for the product.',
+  ],
+  evidence: [
+    'Show a working demo, not just slides or mockups.',
+    'Demonstrate technical depth through implementation details.',
+    'Show real data or user interactions if available.',
+  ],
+  market: [
+    'Explain how your hack aligns with the event theme.',
+    'Show real-world impact and who benefits.',
+    'Differentiate from other hacks with similar approaches.',
+  ],
+  delivery: [
+    'Maintain high energy and enthusiasm throughout.',
+    'Stay within the 3-minute time limit.',
+    'Pause before key demo moments for emphasis.',
+  ],
+};
+
+const HACKATHON_ANTI_PATTERN_PLAYBOOK: Record<string, string> = {
+  no_demo: 'Show a working product — even a minimal prototype beats slides.',
+  no_theme_alignment: 'Explicitly connect your solution to the hackathon theme or challenge.',
+  slides_only: 'Replace slide walkthrough with a live demo or screen recording.',
+  too_many_features: 'Pick your single best feature and demo it deeply.',
+  no_cta: 'End with a clear ask: try the app, vote, follow the repo, or partner.',
+};
+
 const ANTI_PATTERN_CATEGORY_HINTS: Record<string, KnowledgeDigestCategory[]> = {
   no_proof: ['evidence', 'market'],
   no_ask: ['structure', 'market'],
   tam_only: ['market', 'evidence'],
   jargon_overload: ['clarity'],
   slide_overload: ['structure', 'delivery'],
+  no_demo: ['evidence', 'structure'],
+  no_theme_alignment: ['market'],
+  slides_only: ['evidence', 'structure'],
+  too_many_features: ['clarity', 'structure'],
+  no_cta: ['structure'],
 };
 
 let cachedPatterns: PatternsFile | null = null;
@@ -292,6 +349,12 @@ function detectAntiPatterns(
     (lower.match(/\b(revolutionary|synergy|disruptive|next[- ]?gen|best[- ]?in[- ]?class)\b/gu)
       ?.length ?? 0);
 
+  const hasDemo = /\b(demo|prototype|live|screen[- ]?share|show you|let me show|built|working)\b/u.test(lower);
+  const hasTheme = /\b(theme|challenge|track|prompt|hackathon|sponsor)\b/u.test(lower);
+  const hasCta = /\b(try it|vote|star|follow|check out|github|link|download|sign up)\b/u.test(lower) || hasAsk;
+  const featureCount = (lower.match(/\b(feature|also|another|additionally|plus|and we also)\b/gu)?.length ?? 0);
+  const slidesOnly = (lower.match(/\b(slide|next slide|as you can see on this slide)\b/gu)?.length ?? 0) >= 3 && !hasDemo;
+
   const baseHits: Record<string, { hit: boolean; evidence: string }> = {
     jargon_overload: {
       hit: jargonCount >= 2,
@@ -324,6 +387,36 @@ function detectAntiPatterns(
         (lower.match(/\bslide\b/gu)?.length ?? 0) >= 4
           ? 'Frequent slide references detected.'
           : 'Slide references are limited.',
+    },
+    no_demo: {
+      hit: !hasDemo,
+      evidence: hasDemo
+        ? 'Demo or working product language detected.'
+        : 'No demo, prototype, or live product language detected.',
+    },
+    no_theme_alignment: {
+      hit: !hasTheme,
+      evidence: hasTheme
+        ? 'Theme or challenge alignment language detected.'
+        : 'No hackathon theme or challenge alignment detected.',
+    },
+    slides_only: {
+      hit: slidesOnly,
+      evidence: slidesOnly
+        ? 'Presentation appears slides-only without live demo.'
+        : 'No slides-only pattern detected.',
+    },
+    too_many_features: {
+      hit: featureCount >= 4,
+      evidence: featureCount >= 4
+        ? `Detected ${featureCount} feature-listing markers. Focus on one core innovation.`
+        : 'Feature listing is not excessive.',
+    },
+    no_cta: {
+      hit: !hasCta,
+      evidence: hasCta
+        ? 'Call-to-action language detected.'
+        : 'No clear call-to-action detected.',
     },
   };
 
@@ -436,14 +529,19 @@ function stageHints(stage: PitchStage, stageExpectations: StageExpectation[]): s
 
 function mergeCategoryGuidance(
   fromPatterns: PatternsFile['judge_guidance'],
+  mode?: PitchMode,
 ): Record<KnowledgeDigestCategory, string[]> {
   const merged = emptyCategoryGuidance();
+  const defaults = mode === 'hackathon' ? HACKATHON_CATEGORY_GUIDANCE : DEFAULT_CATEGORY_GUIDANCE;
   for (const category of CATEGORY_ORDER) {
     const patternRules = fromPatterns?.category_guidance?.[category] ?? [];
-    const defaults = DEFAULT_CATEGORY_GUIDANCE[category];
-    merged[category] = dedupe([...patternRules, ...defaults]).slice(0, 5);
+    merged[category] = dedupe([...patternRules, ...defaults[category]]).slice(0, 5);
   }
   return merged;
+}
+
+export function defaultStageForMode(mode: PitchMode): PitchStage {
+  return mode === 'hackathon' ? 'university_hack' : 'seed';
 }
 
 export function buildKnowledgeDigest(params: {
@@ -458,16 +556,23 @@ export function buildKnowledgeDigest(params: {
   const doRules: string[] = [];
   const dontRules: string[] = [];
 
+  const basePlaybook = mode === 'hackathon'
+    ? { ...HACKATHON_ANTI_PATTERN_PLAYBOOK, ...DEFAULT_ANTI_PATTERN_PLAYBOOK }
+    : DEFAULT_ANTI_PATTERN_PLAYBOOK;
   const antiPatternPlaybook = {
-    ...DEFAULT_ANTI_PATTERN_PLAYBOOK,
+    ...basePlaybook,
     ...(guidance?.anti_pattern_playbook ?? {}),
   };
 
-  const categoryGuidance = mergeCategoryGuidance(guidance);
+  const categoryGuidance = mergeCategoryGuidance(guidance, mode);
   const likelyWeakCategories = inferLikelyWeakCategories(antiPatterns);
   const antiPatternHits = antiPatterns.filter((hit) => hit.hit);
 
-  if (mode === 'elevator') {
+  if (mode === 'hackathon') {
+    appendUnique(doRules, 'Show a working demo within the first 45 seconds.');
+    appendUnique(doRules, 'Focus on one core innovation, not multiple features.');
+    appendUnique(doRules, 'End with a specific ask: try it, vote for it, or partner.');
+  } else if (mode === 'elevator') {
     appendUnique(doRules, 'Keep one customer, one proof point, and one ask in under 45 seconds.');
   } else {
     appendUnique(doRules, 'Cover problem, mechanism, proof, market, and ask within two minutes.');
@@ -501,10 +606,12 @@ export function buildKnowledgeDigest(params: {
   }
 
   // Priority 4: general do/dont rules.
-  for (const rule of dedupe([...(guidance?.do_rules ?? []), ...DEFAULT_DO_RULES])) {
+  const baseDoRules = mode === 'hackathon' ? HACKATHON_DO_RULES : DEFAULT_DO_RULES;
+  const baseDontRules = mode === 'hackathon' ? HACKATHON_DONT_RULES : DEFAULT_DONT_RULES;
+  for (const rule of dedupe([...(guidance?.do_rules ?? []), ...baseDoRules])) {
     appendUnique(doRules, rule);
   }
-  for (const rule of dedupe([...(guidance?.dont_rules ?? []), ...DEFAULT_DONT_RULES])) {
+  for (const rule of dedupe([...(guidance?.dont_rules ?? []), ...baseDontRules])) {
     appendUnique(dontRules, rule);
   }
 
@@ -563,7 +670,7 @@ export function buildKnowledgeDigest(params: {
 
 export async function buildScoringContext(input: PrepAgentInput): Promise<ScoringContext> {
   const patterns = await readPatterns();
-  const stage = input.stage ?? DEFAULT_STAGE;
+  const stage = input.stage ?? defaultStageForMode(input.mode);
   const normalizedTranscript = dropInterviewerHeavySegments(normalizeText(input.transcript));
   const normalizedDeckText = normalizeText(input.deckText ?? '');
   const coverage = normalizedDeckText.length > 0 ? 'spoken+deck' : 'spoken_only';

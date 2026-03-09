@@ -31,7 +31,9 @@
     "start": "cross-env NODE_PATH=./node_modules next start",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "remotion:dev": "remotion studio lib/video/Root.tsx",
+    "remotion:render": "remotion render lib/video/Root.tsx PitchrLaunch out/pitchr-launch.mp4"
   },
   "dependencies": {
     "@floating-ui/react": "^0.27.18",
@@ -39,6 +41,10 @@
     "@react-pdf/renderer": "^4.3.2",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@remotion/cli": "^4.0.434",
+    "@remotion/google-fonts": "4.0.434",
+    "@remotion/player": "^4.0.434",
+    "@remotion/renderer": "^4.0.434",
     "@sentry/nextjs": "^10.40.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.97.0",
@@ -59,6 +65,7 @@
     "rehype-autolink-headings": "^7.1.0",
     "rehype-pretty-code": "^0.14.1",
     "rehype-slug": "^6.0.0",
+    "remotion": "^4.0.434",
     "shiki": "^3.0.0",
     "stripe": "^17.5.0",
     "three": "^0.169.0",

@@ -1,10 +1,10 @@
 // Shared types for Supabase Edge Functions
 // These mirror the types from the main app's types/ directory.
 
-export type PitchMode = 'elevator' | 'vc_pitch';
+export type PitchMode = 'elevator' | 'vc_pitch' | 'hackathon';
 export type InputType = 'audio' | 'text' | 'upload';
 export type RunStatus = 'queued' | 'running' | 'complete' | 'failed';
-export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b';
+export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b' | 'university_hack' | 'corporate_hack' | 'web3_hack' | 'science_hack';
 export type Coverage = 'spoken_only' | 'spoken+deck';
 export interface ProjectPromptOverrideMetadata {
   updated_at?: string;

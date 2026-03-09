@@ -11,6 +11,9 @@ const BEAT_CATEGORY_PRIORITY: Record<SectionBeat, ScoreCategory[]> = {
   traction: ['evidence', 'market'],
   team: ['structure', 'delivery'],
   ask: ['structure', 'market'],
+  demo: ['evidence', 'clarity'],
+  innovation: ['evidence', 'market'],
+  impact: ['market', 'clarity'],
 };
 
 function clip(text: string, max = 180): string {

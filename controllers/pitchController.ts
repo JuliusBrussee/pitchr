@@ -14,7 +14,7 @@ import type { AnalysisOutputs, PitchStage, TranscriptSegment } from '@/types/ana
 export class PitchValidationError extends Error {}
 
 function isPitchMode(value: unknown): value is PitchMode {
-  return value === 'elevator' || value === 'vc_pitch';
+  return value === 'elevator' || value === 'vc_pitch' || value === 'hackathon';
 }
 
 function isInputType(value: unknown): value is InputType {
@@ -26,7 +26,11 @@ function isStage(value: unknown): value is PitchStage {
     value === 'pre_seed' ||
     value === 'seed' ||
     value === 'series_a' ||
-    value === 'series_b'
+    value === 'series_b' ||
+    value === 'university_hack' ||
+    value === 'corporate_hack' ||
+    value === 'web3_hack' ||
+    value === 'science_hack'
   );
 }
 
@@ -111,7 +115,7 @@ function validateRequest(body: unknown): CreatePitchRunRequest & { mode: PitchMo
   const inputType = payload.inputType;
 
   if (!isPitchMode(mode)) {
-    throw new PitchValidationError('Invalid mode. Expected elevator or vc_pitch.');
+    throw new PitchValidationError('Invalid mode. Expected elevator, vc_pitch, or hackathon.');
   }
   if (!isInputType(inputType)) {
     throw new PitchValidationError('Invalid inputType. Expected audio or text.');
@@ -132,7 +136,7 @@ function validateRequest(body: unknown): CreatePitchRunRequest & { mode: PitchMo
   }
   if (payload.stage !== undefined && !isStage(payload.stage)) {
     throw new PitchValidationError(
-      'stage must be one of pre_seed, seed, series_a, or series_b.',
+      'stage must be one of pre_seed, seed, series_a, series_b, university_hack, corporate_hack, web3_hack, or science_hack.',
     );
   }
   if (

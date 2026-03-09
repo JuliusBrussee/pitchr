@@ -75,6 +75,26 @@ Criteria: Penalize unclear customer, no competitive framing, or no distinct edge
 Description: Tight, controlled, and on-time delivery for a 30-second window.
 Criteria: Penalize overrun, rushed phrasing, filler, and repeated lines.`;
 
+const HACKATHON_RUBRIC_TEXT = `1. STRUCTURE (0-20)
+Description: Hook -> Problem -> Demo -> Innovation -> Impact -> Ask. Complete arc in 3 minutes.
+Criteria: Penalize missing demo or no CTA. Reward clear flow from problem to working solution to impact.
+
+2. CLARITY & CONCISION (0-20)
+Description: Judge understands what you built in one sentence. Accessible language.
+Criteria: Penalize jargon, unclear product description. Reward plain-English explanation of technical innovation.
+
+3. EVIDENCE (0-20)
+Description: Working demo shown, technical credibility, implementation completeness.
+Criteria: Penalize slides-only presentations. Reward live demos, screen recordings, or concrete implementation evidence.
+
+4. MARKET (0-20)
+Description: Theme alignment, real-world impact, scalability, differentiation from other hacks.
+Criteria: Penalize no theme alignment or unclear impact. Reward creative problem framing and originality.
+
+5. DELIVERY (0-20)
+Description: Appropriate pace, low filler usage, energy, and time compliance (target 180s).
+Criteria: Use local metrics for pace/fillers/repetition/time-limit adherence.`;
+
 const PROFILES: Record<PitchMode, AnalysisPromptProfile> = {
   vc_pitch: {
     workflowMode: 'vc_pitch',
@@ -94,6 +114,33 @@ const PROFILES: Record<PitchMode, AnalysisPromptProfile> = {
     transcriptRules: [
       'Score the founder pitch content, not audience chatter.',
       'If transcript includes unrelated discussion, extract the founder pitch signal and score that signal only.',
+    ],
+  },
+  hackathon: {
+    workflowMode: 'hackathon',
+    systemPrompt: `${COMMON_SYSTEM_PROMPT}
+
+You are judging a 3-minute hackathon demo pitch where judges expect a working product demo, clear innovation, and theme alignment.
+Missing demo is the single most damaging flaw. Slides-only presentations should score poorly on evidence.
+Judges care about: Does it work? Is it creative? Does it solve a real problem?
+Do not apply investor/VC standards. Grade against hackathon winner quality.`,
+    rubricText: HACKATHON_RUBRIC_TEXT,
+    modeConfig: {
+      label: 'Hackathon Pitch',
+      targetDurationSeconds: 180,
+      targetWpm: 150,
+      structureBeats: ['Hook', 'Problem', 'Demo', 'Innovation', 'Impact', 'Ask'],
+    },
+    scoringGuidance: [
+      'Grade against hackathon winner quality, not YC/investor standards.',
+      '80+ requires working demo + clear innovation + theme alignment.',
+      'Penalize slides-only presentations heavily on evidence.',
+      'Reward creativity, technical implementation depth, and real-world impact.',
+    ],
+    transcriptRules: [
+      'Score the founder demo pitch content only; ignore judge commentary.',
+      'Do not penalize informal or enthusiastic tone — hackathon energy is expected.',
+      'Treat screen-sharing references and live demo narration as technical credibility signals.',
     ],
   },
   elevator: {

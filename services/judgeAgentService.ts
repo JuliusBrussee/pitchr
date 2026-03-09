@@ -2,7 +2,7 @@ import { completeWithLlmRouterWithTelemetry } from '@/lib/llm/router';
 import {
   buildJudgeUserPromptWithTelemetry,
   JUDGE_RESPONSE_SCHEMA_TEXT,
-  JUDGE_SYSTEM_PROMPT,
+  getJudgeSystemPrompt,
 } from '@/lib/prompts/judge';
 import { buildLayeredSystemPrompt } from '@/supabase/functions/_shared/rubric-context';
 import type {
@@ -253,10 +253,11 @@ export async function runJudgeAgent(input: JudgeAgentInput): Promise<JudgeAgentR
     context: input.context,
   });
   const systemPromptOverride = input.systemPromptOverride?.trim();
+  const baseSystemPrompt = getJudgeSystemPrompt(input.mode);
   const systemPrompt =
     systemPromptOverride && systemPromptOverride.length > 0
-      ? buildLayeredSystemPrompt(JUDGE_SYSTEM_PROMPT, systemPromptOverride)
-      : JUDGE_SYSTEM_PROMPT;
+      ? buildLayeredSystemPrompt(baseSystemPrompt, systemPromptOverride)
+      : baseSystemPrompt;
 
   let response: Awaited<ReturnType<typeof completeWithLlmRouterWithTelemetry>>;
   try {
