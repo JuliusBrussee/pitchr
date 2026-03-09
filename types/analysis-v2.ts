@@ -15,7 +15,7 @@ export type DeckRubricCategory =
 export type ScoreCategory = RubricCategory | DeckRubricCategory;
 
 export type FixImpact = 'high' | 'medium' | 'low';
-export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b';
+export type PitchStage = 'pre_seed' | 'seed' | 'series_a' | 'series_b' | 'university_hack' | 'corporate_hack' | 'web3_hack' | 'science_hack';
 export type Coverage = 'spoken_only' | 'spoken+deck';
 
 export interface RubricScore {
@@ -100,7 +100,10 @@ export type SectionBeat =
   | 'model'
   | 'traction'
   | 'team'
-  | 'ask';
+  | 'ask'
+  | 'demo'
+  | 'innovation'
+  | 'impact';
 
 export interface DeckSlideLink {
   slide_num: number;
@@ -171,7 +174,7 @@ export interface HistoricalScoreDelta {
 export interface HistoricalLink {
   run_id: string;
   created_at: string;
-  mode: 'elevator' | 'vc_pitch';
+  mode: 'elevator' | 'vc_pitch' | 'hackathon';
   overall_delta: number;
   score_deltas: HistoricalScoreDelta[];
   summary: string;
@@ -411,7 +414,7 @@ export interface PatternSnippet {
 }
 
 export interface ScoringContext {
-  mode: 'elevator' | 'vc_pitch';
+  mode: 'elevator' | 'vc_pitch' | 'hackathon';
   stage: PitchStage;
   coverage: Coverage;
   deck_id?: string;

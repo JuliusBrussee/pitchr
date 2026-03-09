@@ -18,6 +18,7 @@ interface TimedSentence {
 const MODE_BEATS: Record<PitchMode, SectionBeat[]> = {
   elevator: ['intro', 'problem', 'solution', 'ask'],
   vc_pitch: ['intro', 'problem', 'solution', 'market', 'model', 'traction', 'team', 'ask'],
+  hackathon: ['intro', 'problem', 'demo', 'innovation', 'impact', 'ask'],
 };
 
 const BEAT_PATTERNS: Record<SectionBeat, RegExp[]> = {
@@ -29,6 +30,9 @@ const BEAT_PATTERNS: Record<SectionBeat, RegExp[]> = {
   traction: [/\b(revenue|arr|mrr|growth|customers|retention|pipeline|pilot)\b/iu, /\d+%/u],
   team: [/\b(founder|team|operator|background|experience)\b/iu],
   ask: [/\b(raising|ask|use of funds|round|milestone)\b/iu],
+  demo: [/\b(demo|prototype|let me show|screen[- ]?share|built|working|live)\b/iu],
+  innovation: [/\b(novel|innovative|creative|unique|first|new approach|breakthrough)\b/iu],
+  impact: [/\b(impact|benefit|help|solve|improve|change|transform|save)\b/iu],
 };
 
 function round(value: number, precision = 3): number {

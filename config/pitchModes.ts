@@ -4,7 +4,7 @@ export interface PitchModeOption {
   key: PitchMode;
   label: string;
   description: string;
-  icon: 'zap' | 'bar-chart';
+  icon: 'zap' | 'bar-chart' | 'trophy';
   color: string;
   targetDurationLabel: string;
 }
@@ -25,5 +25,13 @@ export const PITCH_MODE_OPTIONS: PitchModeOption[] = [
     icon: 'bar-chart',
     color: '#ff5941',
     targetDurationLabel: '~2 min',
+  },
+  {
+    key: 'hackathon',
+    label: 'Hackathon Pitch',
+    description: 'Demo your hack. Win the judges.',
+    icon: 'trophy',
+    color: '#8b5cf6',
+    targetDurationLabel: '~3 min',
   },
 ];

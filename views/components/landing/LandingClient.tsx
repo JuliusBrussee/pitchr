@@ -15,6 +15,7 @@ import {
 import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
 import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliveryFunnel';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { LandingDemo } from '@/views/components/landing/LandingDemo';
 import '@/app/(marketing)/landing.css';
 
 const PRIVACY_NOTICE_VERSION = process.env.NEXT_PUBLIC_GDPR_POLICY_VERSION || '2026-03-04';
@@ -283,15 +284,6 @@ export function LandingClient({
             Pitchr
           </Link>
           <div className="nav-links">
-            <Link href="/delivery-rubric" className="nav-link">
-              Delivery Rubric
-            </Link>
-            <Link href="/scoring-logic" className="nav-link">
-              Scoring Logic
-            </Link>
-            <Link href="/growth-pricing" className="nav-link">
-              Growth Pricing
-            </Link>
             <a href="#pricing" className="nav-link" onClick={(e) => scrollToSection(e, 'pricing')}>
               Plans
             </a>
@@ -370,7 +362,7 @@ export function LandingClient({
                 </svg>
               </span>
             </a>
-            <a href="#delivery" className="btn-secondary" onClick={(e) => scrollToSection(e, 'delivery')}>
+            <a href="#demo" className="btn-secondary" onClick={(e) => scrollToSection(e, 'demo')}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <polygon points="10 8 16 12 10 16 10 8" />
@@ -389,6 +381,9 @@ export function LandingClient({
       {/* ═══ LAUNCH COUNTDOWN ═══ */}
       <LaunchCountdown initialNowMs={initialNowMs} onCtaClick={scrollToWaitlist} />
 
+      {/* ═══ PRODUCT DEMO ═══ */}
+      <LandingDemo />
+
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
       <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>
         <div className="container story-grid">
@@ -404,11 +399,13 @@ export function LandingClient({
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--accent)' }}>
               {'> Analyzes WPM, Pauses, and Fillers'}
             </p>
-            <div style={{ marginTop: '20px' }}>
-              <Link href="/delivery-rubric" className="nav-link">
-                See the delivery rubric
-              </Link>
-            </div>
+            <Link href="/delivery-rubric" className="story-link">
+              See the delivery rubric
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </Link>
           </div>
           <div className="story-visual reveal" ref={deliveryVisualRef}>
             <svg
@@ -492,11 +489,13 @@ export function LandingClient({
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--green)' }}>
               {'> Score: 100/100 (Perfectly Balanced)'}
             </p>
-            <div style={{ marginTop: '20px' }}>
-              <Link href="/scoring-logic" className="nav-link">
-                Read how the score is built
-              </Link>
-            </div>
+            <Link href="/scoring-logic" className="story-link">
+              See the scoring logic
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </Link>
           </div>
         </div>
       </section>
@@ -516,11 +515,13 @@ export function LandingClient({
             <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--blue)' }}>
               {'> Delta: +45 points in 3 sessions'}
             </p>
-            <div style={{ marginTop: '20px' }}>
-              <Link href="/growth-pricing" className="nav-link">
-                Compare the free and growth path
-              </Link>
-            </div>
+            <Link href="/growth-pricing" className="story-link">
+              See growth pricing
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14" />
+                <path d="m12 5 7 7-7 7" />
+              </svg>
+            </Link>
           </div>
           <div className="story-visual reveal" id="chartReveal">
             <div className="chart-container">

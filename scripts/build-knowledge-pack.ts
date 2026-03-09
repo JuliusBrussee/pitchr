@@ -57,6 +57,15 @@ interface BuildOutput {
     anti_pattern_playbook: Record<string, string>;
     digest_version: string;
   };
+  hackathon: {
+    beat_patterns: string[];
+    anti_patterns: string[];
+    category_guidance: Record<JudgeGuidanceCategory, string[]>;
+    benchmark_profiles: {
+      hackathon_winner: string[];
+      common_failures: string[];
+    };
+  };
   source_weights: Record<string, number>;
   source_citations: SnapshotCitation[];
 }
@@ -90,6 +99,14 @@ const BEAT_PATTERNS: Record<string, RegExp[]> = {
   differentiation: [/\b(unlike|advantage|moat|defensible|why we win)\b/iu],
   wedge: [/\b(icp|beachhead|segment|wedge|niche)\b/iu],
   ask: [/\b(raising|ask|use of funds|round|capital)\b/iu],
+};
+
+const HACKATHON_BEAT_PATTERNS: Record<string, RegExp[]> = {
+  demo: [/\b(demo|prototype|live|screen[- ]?share|show you|let me show|built|working)\b/iu],
+  innovation: [/\b(novel|innovative|creative|unique|first|new approach|breakthrough)\b/iu],
+  impact: [/\b(impact|benefit|help|solve|improve|change|transform)\b/iu],
+  theme_alignment: [/\b(theme|challenge|track|prompt|hackathon|sponsor)\b/iu],
+  technical_stack: [/\b(api|sdk|framework|stack|built with|using|powered by|smart contract)\b/iu],
 };
 
 const JARGON_TERMS = [
@@ -133,6 +150,39 @@ const DEFAULT_CATEGORY_GUIDANCE: Record<JudgeGuidanceCategory, string[]> = {
     'Remove filler words from opening and close first.',
     'Avoid repeating the same phrase across adjacent sentences.',
     'Use short transitions between beats to reduce verbal drift.',
+  ],
+};
+
+const HACKATHON_CATEGORY_GUIDANCE: Record<JudgeGuidanceCategory, string[]> = {
+  structure: [
+    'Use hook -> problem -> demo -> innovation -> impact -> ask flow.',
+    'Lead with a compelling hook that shows the problem.',
+    'Transition to live demo within the first minute.',
+    'End with a clear call-to-action for judges.',
+  ],
+  clarity: [
+    'Explain what you built in one plain sentence.',
+    'Avoid overly technical jargon for general audiences.',
+    'Let the demo speak for the product.',
+    'Keep explanations visual and concrete.',
+  ],
+  evidence: [
+    'Show a working demo, not just slides or mockups.',
+    'Demonstrate technical depth through implementation details.',
+    'Show real data or user interactions if available.',
+    'Reference specific APIs, protocols, or tools used.',
+  ],
+  market: [
+    'Explain how your hack aligns with the event theme.',
+    'Show real-world impact and who benefits.',
+    'Differentiate from other hacks with similar approaches.',
+    'Show potential for continued development.',
+  ],
+  delivery: [
+    'Maintain high energy and enthusiasm throughout.',
+    'Stay within the 3-minute time limit.',
+    'Pause before key demo moments for emphasis.',
+    'Use natural, conversational tone.',
   ],
 };
 
@@ -856,6 +906,28 @@ async function main(): Promise<void> {
       common_failures: dedupeRules([...judgeGuidance.dont_rules, ...curatedDontRules.map((r) => r.text)]).slice(0, 8),
     },
     judge_guidance: judgeGuidance,
+    hackathon: {
+      beat_patterns: Object.keys(HACKATHON_BEAT_PATTERNS),
+      anti_patterns: ['no_demo', 'no_theme_alignment', 'slides_only', 'too_many_features', 'no_cta'],
+      category_guidance: HACKATHON_CATEGORY_GUIDANCE,
+      benchmark_profiles: {
+        hackathon_winner: [
+          'Working demo shown within first 60 seconds.',
+          'Single core innovation explained clearly.',
+          'Theme alignment explicitly stated.',
+          'Technical implementation depth demonstrated.',
+          'Clear call-to-action at the end.',
+          'High energy, natural delivery within 3 minutes.',
+        ],
+        common_failures: [
+          'Slides-only presentation without working demo.',
+          'Too many features listed without depth on any.',
+          'No connection to hackathon theme or challenge.',
+          'No clear ask or call-to-action at the end.',
+          'Overly technical explanation without showing impact.',
+        ],
+      },
+    },
     source_weights: sourceWeights,
     source_citations: sourceCitations,
   };

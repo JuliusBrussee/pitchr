@@ -84,7 +84,7 @@ const DATE_GROUP_LABELS: Record<string, string> = {
 const DATE_GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'earlier'];
 
 type ViewMode = 'list' | 'grid';
-type ModeFilter = 'all' | 'elevator' | 'vc_pitch';
+type ModeFilter = 'all' | 'elevator' | 'vc_pitch' | 'hackathon';
 
 /* ——— Helpers ——— */
 

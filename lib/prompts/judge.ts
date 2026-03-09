@@ -41,6 +41,28 @@ export const JUDGE_SYSTEM_PROMPT = [
   'Delivery metrics will be overwritten by deterministic local scoring.',
 ].join('\n');
 
+export const HACKATHON_JUDGE_SYSTEM_PROMPT = [
+  'You are Pitchr Judge Agent.',
+  'You evaluate hackathon demo pitches against hackathon winner quality standards.',
+  'Return valid JSON only.',
+  'Do not include markdown fences.',
+  'Do not include explanations before or after JSON.',
+  'Follow this internal two-stage process in one call:',
+  'Stage 1 (internal only): produce provisional scoring from transcript and demo evidence only.',
+  'Stage 2 (internal only): calibrate those scores with hackathon judging criteria.',
+  'Return only the final calibrated JSON output.',
+  'Score against hackathon winner quality: 80+ requires working demo + clear innovation + theme alignment.',
+  'Missing demo is the single most damaging flaw. Slides-only should cap evidence score.',
+  'Judges care about: Does it work? Is it creative? Does it solve a real problem?',
+  'Do not apply investor/VC standards. Do not ask about revenue, TAM, or fundraising.',
+  'Non-delivery categories are your responsibility.',
+  'Delivery metrics will be overwritten by deterministic local scoring.',
+].join('\n');
+
+export function getJudgeSystemPrompt(mode: PitchMode): string {
+  return mode === 'hackathon' ? HACKATHON_JUDGE_SYSTEM_PROMPT : JUDGE_SYSTEM_PROMPT;
+}
+
 export const JUDGE_RESPONSE_SCHEMA_TEXT = `{
   "feedback": {
     "one_line_verdict": "string",
@@ -233,9 +255,18 @@ function buildPrompt(params: {
     '- Do not reference source names, source URLs, YC, or citation provenance in user-facing text.',
     '',
     'Benchmark policy:',
-    '- Grade against YC top-decile fundraising quality.',
-    '- 80+ is rare and requires strong proof + clear differentiation + explicit ask.',
-    '- Penalize generic language and unsupported claims.',
+    ...(params.mode === 'hackathon'
+      ? [
+          '- Grade against hackathon winner quality, not investor standards.',
+          '- 80+ requires working demo + clear innovation + theme alignment.',
+          '- Penalize slides-only presentations. Reward live demos and technical depth.',
+          '- investor_questions should contain hackathon judge questions about technical implementation, feasibility, and theme alignment. Do not ask about revenue model or TAM.',
+        ]
+      : [
+          '- Grade against YC top-decile fundraising quality.',
+          '- 80+ is rare and requires strong proof + clear differentiation + explicit ask.',
+          '- Penalize generic language and unsupported claims.',
+        ]),
     '',
     'Compact scoring context (deterministic local features):',
     JSON.stringify(compactContext, null, 2),
@@ -444,7 +475,7 @@ export const SECTION_ANALYSIS_SYSTEM_PROMPT = [
 export const SECTION_RESPONSE_SCHEMA_TEXT = `{
   "sections": [
     {
-      "beat": "intro|problem|solution|market|model|traction|team|ask",
+      "beat": "intro|problem|solution|market|model|traction|team|ask|demo|innovation|impact",
       "quotes": ["exact quote from transcript"],
       "score": 0-5,
       "score_reason": "string (why this score, under 20 words)",

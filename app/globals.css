@@ -968,7 +968,12 @@ html.dark body {
   margin-top: 1px;
 }
 
+.project-select--compact {
+  width: auto;
+}
+
 .project-select--compact .project-select-trigger {
+  width: auto;
   padding: 7px 9px;
 }
 
@@ -976,15 +981,18 @@ html.dark body {
   font-size: 12px;
 }
 
-.project-select--compact .project-select-panel {
+.project-select--compact .project-select-panel,
+.project-select--compact-panel {
   max-height: 14rem;
 }
 
-.project-select--compact .project-select-option {
+.project-select--compact .project-select-option,
+.project-select--compact-panel .project-select-option {
   padding: 7px 8px;
 }
 
-.project-select--compact .project-select-option__label {
+.project-select--compact .project-select-option__label,
+.project-select--compact-panel .project-select-option__label {
   font-size: 12px;
 }
 
