@@ -3,7 +3,7 @@
 /* Light mode (default) */
 .landing {
   position: relative;
-  --bg: #f9f9fb;
+  --bg: #f5f1ea;
   --bg-card: rgba(0, 0, 0, 0.02);
   --border: rgba(0, 0, 0, 0.08);
   --text: #111827;
@@ -17,8 +17,8 @@
   --blue: #3b82f6;
 
   /* Theme-sensitive composition vars */
-  --bg-rgb: 249, 249, 251;
-  --nav-bg: rgba(249, 249, 251, 0.85);
+  --bg-rgb: 245, 241, 234;
+  --nav-bg: rgba(245, 241, 234, 0.85);
   --surface-soft: rgba(0, 0, 0, 0.025);
   --surface-border: rgba(0, 0, 0, 0.05);
   --stroke-soft: rgba(0, 0, 0, 0.06);
@@ -30,6 +30,12 @@
   --stats-stripe: rgba(0, 0, 0, 0.01);
   --hero-spotlight: rgba(255, 122, 92, 0.26);
   --hero-spotlight-edge: rgba(255, 122, 92, 0);
+  --hero-right-shade: rgba(112, 74, 36, 0.2);
+  --hero-wash-mid: 0.26;
+  --hero-wash-right: 0.06;
+  --hero-wash-edge: 0.02;
+  --hero-presenter-opacity: 0.98;
+  --hero-presenter-filter: contrast(1.14) saturate(1.12);
   --scene-blend: 0;
 
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -65,6 +71,12 @@
   --stats-stripe: rgba(255, 255, 255, 0.01);
   --hero-spotlight: rgba(255, 106, 42, 0.34);
   --hero-spotlight-edge: rgba(255, 106, 42, 0);
+  --hero-right-shade: rgba(0, 0, 0, 0);
+  --hero-wash-mid: 0.4;
+  --hero-wash-right: 0.15;
+  --hero-wash-edge: 0.1;
+  --hero-presenter-opacity: 0.92;
+  --hero-presenter-filter: contrast(1) saturate(1);
 }
 
 .landing a { color: inherit; text-decoration: none; }
@@ -160,7 +172,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(to right, var(--bg) 0%, var(--bg) 12%, rgba(var(--bg-rgb), 0.88) 35%, rgba(var(--bg-rgb), 0.4) 58%, rgba(var(--bg-rgb), 0.15) 80%, rgba(var(--bg-rgb), 0.1) 100%),
+    radial-gradient(80% 84% at 84% 42%, var(--hero-right-shade) 0%, transparent 70%),
+    linear-gradient(to right, var(--bg) 0%, var(--bg) 12%, rgba(var(--bg-rgb), 0.86) 35%, rgba(var(--bg-rgb), var(--hero-wash-mid)) 58%, rgba(var(--bg-rgb), var(--hero-wash-right)) 80%, rgba(var(--bg-rgb), var(--hero-wash-edge)) 100%),
     linear-gradient(to top, var(--bg) 0%, rgba(var(--bg-rgb), 0.6) 15%, transparent 35%),
     linear-gradient(to bottom, var(--bg) 0%, transparent 12%);
 }
@@ -171,7 +184,8 @@
   pointer-events: none;
   overflow: visible;
   display: block;
-  opacity: 0.92;
+  opacity: var(--hero-presenter-opacity);
+  filter: var(--hero-presenter-filter);
   -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.48) 67%, #000 82%, #000 100%);
   mask-image: linear-gradient(to right, transparent 0%, transparent 50%, rgba(0, 0, 0, 0.48) 67%, #000 82%, #000 100%);
 }
@@ -1336,7 +1350,7 @@
       linear-gradient(to top, var(--bg) 0%, transparent 25%);
   }
   .landing .hero-presenter-layer {
-    opacity: 0.66;
+    opacity: calc(var(--hero-presenter-opacity) - 0.26);
     -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 56%, rgba(0, 0, 0, 0.35) 70%, #000 84%, #000 100%);
     mask-image: linear-gradient(to right, transparent 0%, transparent 56%, rgba(0, 0, 0, 0.35) 70%, #000 84%, #000 100%);
   }
@@ -1367,7 +1381,7 @@
   }
   .landing .hero { padding: 100px 0 60px; }
   .landing .hero-presenter-layer {
-    opacity: 0.58;
+    opacity: calc(var(--hero-presenter-opacity) - 0.34);
     -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 58%, rgba(0, 0, 0, 0.35) 72%, #000 86%, #000 100%);
     mask-image: linear-gradient(to right, transparent 0%, transparent 58%, rgba(0, 0, 0, 0.35) 72%, #000 86%, #000 100%);
   }
