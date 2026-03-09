@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Archive, Loader2, MoreHorizontal, Zap } from 'lucide-react';
+import { ArrowLeft, Archive, Check, AlertCircle, Loader2, MoreHorizontal, Pencil, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useProject } from '@/views/components/ProjectProvider';
 import { ProjectDeckManager } from '@/views/components/ProjectDeckManager';
@@ -16,7 +16,12 @@ export default function ProjectDetailPage() {
   const { projects, activeProjectId, isLoading, updateProject, setActiveProject } = useProject();
   const [isArchiving, setIsArchiving] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [isSavingName, setIsSavingName] = useState(false);
+  const [nameSaveStatus, setNameSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const menuRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const project: Project | null = projects.find((p) => p.id === projectId) ?? null;
   const isActive = activeProjectId === projectId;
@@ -37,6 +42,35 @@ export default function ProjectDetailPage() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [isMenuOpen]);
+
+  const handleNameSave = useCallback(async () => {
+    if (!project) return;
+    const trimmed = editName.trim();
+    if (!trimmed || trimmed === project.name) {
+      setIsEditingName(false);
+      return;
+    }
+    setIsSavingName(true);
+    setNameSaveStatus('saving');
+    try {
+      await updateProject({ projectId: project.id, name: trimmed });
+      setNameSaveStatus('saved');
+      setIsEditingName(false);
+      setTimeout(() => setNameSaveStatus('idle'), 1500);
+    } catch {
+      setNameSaveStatus('error');
+      setTimeout(() => setNameSaveStatus('idle'), 2000);
+    } finally {
+      setIsSavingName(false);
+    }
+  }, [project, editName, updateProject]);
+
+  useEffect(() => {
+    if (isEditingName && nameInputRef.current) {
+      nameInputRef.current.focus();
+      nameInputRef.current.select();
+    }
+  }, [isEditingName]);
 
   if (isLoading) {
     return (
@@ -77,9 +111,58 @@ export default function ProjectDetailPage() {
             </Link>
             <div className="min-w-0">
               <div className="flex items-center gap-2.5">
-                <h1 className="text-lg font-bold tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
-                  {project.name}
-                </h1>
+                {isEditingName ? (
+                  <input
+                    ref={nameInputRef}
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleNameSave();
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setIsEditingName(false);
+                      }
+                    }}
+                    onBlur={handleNameSave}
+                    disabled={isSavingName}
+                    className="text-lg font-bold tracking-tight bg-transparent outline-none min-w-0 max-w-full"
+                    style={{
+                      color: 'var(--text-primary)',
+                      borderBottom: '2px solid #ff5941',
+                      borderRadius: 0,
+                      padding: '0 0 2px 0',
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="group flex items-center gap-2 text-lg font-bold tracking-tight truncate bg-transparent border-none cursor-pointer p-0 text-left"
+                    style={{ color: 'var(--text-primary)' }}
+                    onClick={() => {
+                      setEditName(project.name);
+                      setIsEditingName(true);
+                    }}
+                  >
+                    <span className="truncate">{project.name}</span>
+                    <Pencil
+                      size={14}
+                      className="flex-shrink-0 opacity-0 group-hover:opacity-50 transition-opacity duration-150"
+                      style={{ color: 'var(--text-muted)' }}
+                    />
+                  </button>
+                )}
+                {nameSaveStatus === 'saving' && (
+                  <Loader2 size={14} className="animate-spin flex-shrink-0" style={{ color: 'var(--text-muted)' }} />
+                )}
+                {nameSaveStatus === 'saved' && (
+                  <Check size={14} className="flex-shrink-0" style={{ color: '#22c55e' }} />
+                )}
+                {nameSaveStatus === 'error' && (
+                  <AlertCircle size={14} className="flex-shrink-0" style={{ color: '#ef4444' }} />
+                )}
                 {isActive && (
                   <span
                     className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md flex-shrink-0"

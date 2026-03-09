@@ -16,7 +16,7 @@ export interface ScoreBand {
 }
 
 export interface StageExpectationConfig {
-  stage: 'pre_seed' | 'seed' | 'series_a' | 'series_b';
+  stage: 'pre_seed' | 'seed' | 'series_a' | 'series_b' | 'university_hack' | 'corporate_hack' | 'web3_hack' | 'science_hack';
   expectations: string[];
 }
 
@@ -147,6 +147,38 @@ export const STAGE_EXPECTATIONS: StageExpectationConfig[] = [
       'Scalable operating model with durable unit economics.',
       'Multi-year category strategy and moat articulation.',
       'Clear expansion plan with accountable KPI ownership.',
+    ],
+  },
+  {
+    stage: 'university_hack',
+    expectations: [
+      'Creativity and originality in problem framing.',
+      'Learning signal: what the team built and learned.',
+      'Team collaboration and role clarity.',
+    ],
+  },
+  {
+    stage: 'corporate_hack',
+    expectations: [
+      'Sponsor challenge alignment and enterprise feasibility.',
+      'Polish and production readiness of the demo.',
+      'Clear business value proposition.',
+    ],
+  },
+  {
+    stage: 'web3_hack',
+    expectations: [
+      'On-chain demo or protocol integration shown.',
+      'Practicality and UX quality of the dApp.',
+      'Novel use of blockchain technology.',
+    ],
+  },
+  {
+    stage: 'science_hack',
+    expectations: [
+      'Scientific rigor and methodology clarity.',
+      'Impact measurement and real-world applicability.',
+      'Completeness of implementation and data pipeline.',
     ],
   },
 ];

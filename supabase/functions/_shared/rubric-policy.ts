@@ -16,10 +16,10 @@ const SCORE_CATEGORIES = [
 type ScoreCategory = (typeof SCORE_CATEGORIES)[number];
 
 const CATEGORY_ALIASES: Array<{ category: ScoreCategory; aliases: string[] }> = [
-  { category: 'structure', aliases: ['structure'] },
-  { category: 'clarity', aliases: ['clarity'] },
-  { category: 'evidence', aliases: ['evidence', 'traction', 'proof'] },
-  { category: 'market', aliases: ['market'] },
+  { category: 'structure', aliases: ['structure', 'presentation quality', 'storytelling'] },
+  { category: 'clarity', aliases: ['clarity', 'usability', 'ux', 'dx'] },
+  { category: 'evidence', aliases: ['evidence', 'traction', 'proof', 'practicality', 'wow factor', 'technical implementation'] },
+  { category: 'market', aliases: ['market', 'impact', 'originality', 'creativity'] },
   { category: 'delivery', aliases: ['delivery', 'pace'] },
   { category: 'deck_narrative', aliases: ['deck_narrative', 'deck narrative'] },
   { category: 'deck_clarity', aliases: ['deck_clarity', 'deck clarity'] },

@@ -1,6 +1,6 @@
 'use client';
 
-import { Zap, Presentation } from 'lucide-react';
+import { Zap, Presentation, Trophy } from 'lucide-react';
 import type { PitchMode } from '@/types/pitch';
 
 interface UseCaseStepProps {
@@ -21,6 +21,13 @@ const MODES = [
     description: 'Full fundraising pitch walkthrough',
     icon: Presentation,
     timer: '5 min',
+  },
+  {
+    mode: 'hackathon' as PitchMode,
+    label: 'Hackathon Pitch',
+    description: 'Demo your hack and win the judges',
+    icon: Trophy,
+    timer: '3 min',
   },
 ];
 

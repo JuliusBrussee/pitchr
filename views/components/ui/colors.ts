@@ -1,5 +1,5 @@
 export type ScoreBand = 'needs-work' | 'getting-there' | 'solid' | 'investor-ready';
-export type PitchMode = 'elevator' | 'vc_pitch';
+export type PitchMode = 'elevator' | 'vc_pitch' | 'hackathon';
 
 export function getScoreBand(score: number): ScoreBand {
   if (score >= 80) return 'investor-ready';

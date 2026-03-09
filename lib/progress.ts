@@ -7,6 +7,8 @@ export interface ProgressRunRecord {
   createdAt: string;
   overallScore: number;
   mode: string;
+  projectId?: string;
+  projectName?: string;
   analysis: {
     one_line_verdict: string;
     rubric_breakdown: { category: string; score: number; max_score: number }[];

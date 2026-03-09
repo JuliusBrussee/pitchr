@@ -52,6 +52,23 @@ export const PITCH_MODE_CONFIG: Record<PitchMode, PitchModeConfig> = {
       'Ask',
     ],
   },
+  hackathon: {
+    id: 'hackathon',
+    label: 'Hackathon Pitch',
+    minDurationSeconds: 150,
+    maxDurationSeconds: 210,
+    targetDurationSeconds: 180,
+    defaultDurationSeconds: 180,
+    targetWpm: 150,
+    structureBeats: [
+      'Hook',
+      'Problem',
+      'Demo',
+      'Innovation',
+      'Impact',
+      'Ask',
+    ],
+  },
 };
 
 export const STAGE_LABELS: Record<PitchStage, string> = {
@@ -59,4 +76,8 @@ export const STAGE_LABELS: Record<PitchStage, string> = {
   seed: 'Seed',
   series_a: 'Series A',
   series_b: 'Series B',
+  university_hack: 'University Hackathon',
+  corporate_hack: 'Corporate Hackathon',
+  web3_hack: 'Web3 Hackathon',
+  science_hack: 'Science Hackathon',
 };

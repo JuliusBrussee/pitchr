@@ -38,7 +38,7 @@ interface AnalyzePitchInput {
   deckId?: string;
   deckText?: string;
   systemPromptOverride?: string;
-  stage?: 'pre_seed' | 'seed' | 'series_a' | 'series_b';
+  stage?: import('@/types/analysis-v2').PitchStage;
   transcriptSegments?: TranscriptSegment[];
   regenerate?: 'feedback' | 'qa_1min';
 }

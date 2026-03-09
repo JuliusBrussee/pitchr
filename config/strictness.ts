@@ -41,3 +41,30 @@ export const HARD_GATE_CAPS: HardGateCap[] = [
     rationale: 'Market score capped because TAM framing lacks execution proof.',
   },
 ];
+
+export const HACKATHON_HARD_GATE_CAPS: HardGateCap[] = [
+  {
+    antiPatternLabel: 'no_demo',
+    category: 'evidence',
+    capScore: 6,
+    rationale: 'Evidence score capped because no working demo was shown.',
+  },
+  {
+    antiPatternLabel: 'no_demo',
+    category: 'structure',
+    capScore: 10,
+    rationale: 'Structure score capped because demo beat is missing.',
+  },
+  {
+    antiPatternLabel: 'no_theme_alignment',
+    category: 'market',
+    capScore: 10,
+    rationale: 'Market score capped because hackathon theme alignment is missing.',
+  },
+  {
+    antiPatternLabel: 'no_cta',
+    category: 'structure',
+    capScore: 12,
+    rationale: 'Structure score capped because no call-to-action or ask was made.',
+  },
+];

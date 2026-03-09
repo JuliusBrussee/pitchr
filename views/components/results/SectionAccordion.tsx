@@ -23,11 +23,15 @@ const BEAT_LABELS: Record<string, string> = {
   traction: 'Traction',
   team: 'Team',
   ask: 'The Ask',
+  demo: 'Demo',
+  innovation: 'Innovation',
+  impact: 'Impact',
 };
 
 const MODE_BEATS: Record<PitchMode, SectionBeat[]> = {
   elevator: ['intro', 'problem', 'solution', 'ask'],
   vc_pitch: ['intro', 'problem', 'solution', 'market', 'model', 'traction', 'team', 'ask'],
+  hackathon: ['intro', 'problem', 'demo', 'innovation', 'impact', 'ask'],
 };
 
 function formatTime(value: number): string {

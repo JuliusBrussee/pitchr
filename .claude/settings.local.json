@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(wc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(yarn add:*)",
+      "Bash(bc:*)",
+      "Bash(node:*)",
+      "Bash(npx remotion:*)",
+      "Bash(timeout 15 yarn remotion:dev:*)",
+      "Bash(curl:*)",
+      "Bash(where python)",
+      "Bash(where py)",
+      "Bash(ls /c/Python*/python.exe)",
+      "Read(//c/Users/20243455/AppData/Local/Programs/**)",
+      "WebFetch(domain:devpost.com)",
+      "WebFetch(domain:www.spaceappschallenge.org)",
+      "WebFetch(domain:treehacks-2025.devpost.com)",
+      "Bash(yarn build:*)",
+      "WebFetch(domain:www.youtube.com)",
+      "Bash(xargs:*)",
+      "Bash(npx playwright:*)",
+      "Bash(npm list:*)",
+      "Bash(tasklist:*)",
+      "Bash(yarn test:*)"
+    ]
+  }
+}

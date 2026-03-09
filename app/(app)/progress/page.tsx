@@ -27,6 +27,8 @@ import {
 } from '@/views/components/progress';
 import { AchievementSummary } from '@/views/components/achievements';
 import { useAchievements } from '@/hooks/useAchievements';
+import { useProject } from '@/views/components/ProjectProvider';
+import { ProjectSelect } from '@/views/components/ProjectSelect';
 import { computeProgress } from '@/lib/progress';
 import type { ProgressRunRecord, ProgressSummary } from '@/lib/progress';
 
@@ -37,6 +39,8 @@ interface RawRunRecord {
   mode: string;
   overallScore: number;
   createdAt: string;
+  projectId?: string;
+  projectName?: string;
   analysis: {
     one_line_verdict: string;
     rubric_breakdown: { category: string; score: number; max_score: number }[];
@@ -63,6 +67,8 @@ function normalizeRunToProgress(raw: RawRunRecord): ProgressRunRecord {
     createdAt: raw.createdAt,
     overallScore: raw.overallScore,
     mode: raw.mode,
+    projectId: raw.projectId,
+    projectName: raw.projectName,
     analysis: {
       one_line_verdict: raw.analysis.one_line_verdict,
       rubric_breakdown: raw.analysis.rubric_breakdown ?? [],
@@ -82,8 +88,10 @@ export default function ProgressPage() {
   const [runs, setRuns] = useState<ProgressRunRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [filterProjectId, setFilterProjectId] = useState('all');
   const { showTooltip } = useSmartTooltip();
   const { registerPage } = useTutorial('progress');
+  const { projects } = useProject();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const showTooltipRef = useRef(showTooltip);
   showTooltipRef.current = showTooltip;
@@ -115,9 +123,24 @@ export default function ProgressPage() {
     registerPage('progress');
   }, [registerPage]);
 
+  const filterOptions = useMemo(() => {
+    const opts: { value: string; label: string }[] = [{ value: 'all', label: 'All Projects' }];
+    for (const p of projects) {
+      if (!p.isArchived) {
+        opts.push({ value: p.id, label: p.name });
+      }
+    }
+    return opts;
+  }, [projects]);
+
+  const filteredRuns = useMemo(
+    () => filterProjectId === 'all' ? runs : runs.filter((r) => r.projectId === filterProjectId),
+    [runs, filterProjectId],
+  );
+
   const progress: ProgressSummary = useMemo(
-    () => computeProgress(runs),
-    [runs],
+    () => computeProgress(filteredRuns),
+    [filteredRuns],
   );
 
   const achievements = useAchievements();
@@ -171,27 +194,45 @@ export default function ProgressPage() {
           </div>
         </div>
 
-        {progress.totalSessions > 0 && (
-          <a
-            href="/session"
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
-            style={{
-              backgroundColor: '#ff5941',
-              color: '#ffffff',
-              boxShadow: '0 0 12px rgba(255,89,65,0.3)',
-            }}
-          >
-            <Radio size={13} />
-            Practice
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {runs.length > 0 && filterOptions.length > 1 && (
+            <ProjectSelect
+              value={filterProjectId}
+              options={filterOptions}
+              onChange={setFilterProjectId}
+              ariaLabel="Filter by project"
+              compact
+              portal
+            />
+          )}
+          {progress.totalSessions > 0 && (
+            <a
+              href="/session"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200"
+              style={{
+                backgroundColor: '#ff5941',
+                color: '#ffffff',
+                boxShadow: '0 0 12px rgba(255,89,65,0.3)',
+              }}
+            >
+              <Radio size={13} />
+              Practice
+            </a>
+          )}
+        </div>
       </div>
 
       {progress.totalSessions === 0 ? (
         <GlassCard animationDelay="60ms">
           <EmptyState
             icon={<TrendingUp size={32} style={{ color: 'var(--text-muted)' }} />}
-            message={fetchError ? 'Failed to load progress data.' : 'No pitch sessions yet. Complete your first pitch to start tracking progress.'}
+            message={
+              fetchError
+                ? 'Failed to load progress data.'
+                : filteredRuns.length === 0 && runs.length > 0
+                  ? 'No sessions for this project yet.'
+                  : 'No pitch sessions yet. Complete your first pitch to start tracking progress.'
+            }
           />
           {fetchError && (
             <div className="flex justify-center mt-3">

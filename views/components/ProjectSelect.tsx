@@ -1,5 +1,6 @@
 'use client';
 
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
@@ -18,6 +19,7 @@ interface ProjectSelectProps {
   ariaLabel: string;
   id?: string;
   compact?: boolean;
+  portal?: boolean;
 }
 
 export function ProjectSelect({
@@ -29,10 +31,14 @@ export function ProjectSelect({
   ariaLabel,
   id,
   compact = false,
+  portal = false,
 }: ProjectSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [portalStyle, setPortalStyle] = useState<React.CSSProperties>({});
   const listboxId = useId();
 
   const selectedIndex = useMemo(
@@ -45,14 +51,28 @@ export function ProjectSelect({
   useEffect(() => {
     if (!isOpen) return;
     const pointerHandler = (event: PointerEvent) => {
-      if (!containerRef.current) return;
-      if (event.target instanceof Node && !containerRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (portal && panelRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
     document.addEventListener('pointerdown', pointerHandler);
     return () => document.removeEventListener('pointerdown', pointerHandler);
-  }, [isOpen]);
+  }, [isOpen, portal]);
+
+  // Position the portal panel below the trigger
+  useEffect(() => {
+    if (!portal || !isOpen || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPortalStyle({
+      position: 'fixed',
+      top: rect.bottom + 6,
+      left: 'auto',
+      right: window.innerWidth - rect.right,
+      zIndex: 9999,
+      width: Math.max(rect.width, 200),
+    });
+  }, [portal, isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -120,6 +140,7 @@ export function ProjectSelect({
       data-state={isOpen ? 'open' : 'closed'}
     >
       <button
+        ref={triggerRef}
         id={id}
         type="button"
         role="combobox"
@@ -141,43 +162,48 @@ export function ProjectSelect({
         <ChevronDown size={14} className="project-select-trigger__chevron" />
       </button>
 
-      {isOpen ? (
-        <div
-          id={listboxId}
-          role="listbox"
-          className="project-select-panel project-select-panel-enter"
-          aria-label={ariaLabel}
-        >
-          {options.map((option, index) => {
-            const isSelected = option.value === value;
-            const isActive = index === activeIndex;
-            return (
-              <button
-                id={`${listboxId}-option-${index}`}
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={isSelected}
-                className={`project-select-option ${isSelected ? 'is-selected' : ''} ${isActive ? 'is-active' : ''}`}
-                onMouseEnter={() => setActiveIndex(index)}
-                onClick={() => selectIndex(index)}
-              >
-                <span className="project-select-option__copy">
-                  <span className="project-select-option__label">{option.label}</span>
-                  {option.description ? (
-                    <span className="project-select-option__description">{option.description}</span>
-                  ) : null}
-                </span>
-                {isSelected ? (
-                  <span className="project-select-option__icon" aria-hidden="true">
-                    <Check size={13} />
+      {isOpen ? (() => {
+        const panel = (
+          <div
+            ref={portal ? panelRef : undefined}
+            id={listboxId}
+            role="listbox"
+            className={`project-select-panel project-select-panel-enter ${compact ? 'project-select--compact-panel' : ''}`}
+            aria-label={ariaLabel}
+            style={portal ? portalStyle : undefined}
+          >
+            {options.map((option, index) => {
+              const isSelected = option.value === value;
+              const isActive = index === activeIndex;
+              return (
+                <button
+                  id={`${listboxId}-option-${index}`}
+                  key={option.value}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  className={`project-select-option ${isSelected ? 'is-selected' : ''} ${isActive ? 'is-active' : ''}`}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => selectIndex(index)}
+                >
+                  <span className="project-select-option__copy">
+                    <span className="project-select-option__label">{option.label}</span>
+                    {option.description ? (
+                      <span className="project-select-option__description">{option.description}</span>
+                    ) : null}
                   </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+                  {isSelected ? (
+                    <span className="project-select-option__icon" aria-hidden="true">
+                      <Check size={13} />
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
+        );
+        return portal ? createPortal(panel, document.body) : panel;
+      })() : null}
     </div>
   );
 }
