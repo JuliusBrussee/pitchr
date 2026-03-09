@@ -25,9 +25,9 @@ function Slider({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs text-neutral-400 flex justify-between">
+      <span className="text-xs flex justify-between" style={{ color: 'var(--text-muted)' }}>
         <span>{label}</span>
-        <span className="font-mono text-neutral-500">{value.toFixed(2)}</span>
+        <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>{value.toFixed(2)}</span>
       </span>
       <input
         type="range"
@@ -54,7 +54,7 @@ export default function OrbPreviewPage() {
   const bg = BACKGROUNDS[bgIndex];
 
   return (
-    <div className="min-h-screen flex" style={{ background: bg }}>
+    <div className="min-h-screen flex" style={{ background: bg, color: 'var(--text-primary)' }}>
       {/* Orb canvas */}
       <div className="flex-1 flex items-center justify-center">
         <div style={{ width: orbSize, height: orbSize }}>
@@ -82,24 +82,40 @@ export default function OrbPreviewPage() {
       </div>
 
       {/* Controls panel */}
-      <div className="w-72 bg-neutral-900/90 backdrop-blur border-l border-neutral-800 p-4 flex flex-col gap-4 overflow-y-auto">
-        <h2 className="text-sm font-semibold text-neutral-200 uppercase tracking-wider">
+      <div
+        className="w-72 backdrop-blur border-l p-4 flex flex-col gap-4 overflow-y-auto"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          borderColor: 'var(--border-color)',
+          color: 'var(--text-primary)',
+        }}
+      >
+        <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
           Orb Preview
         </h2>
 
         {/* State selector */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-400">State</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>State</span>
           <div className="flex flex-wrap gap-1">
             {STATES.map((s) => (
               <button
                 key={s}
                 onClick={() => setState(s)}
-                className={`px-2 py-1 text-xs rounded ${
+                className="px-2 py-1 text-xs rounded border transition-colors"
+                style={
                   state === s
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-neutral-800 text-neutral-400 hover:bg-neutral-700'
-                }`}
+                    ? {
+                        backgroundColor: '#ff5941',
+                        borderColor: '#ff5941',
+                        color: '#ffffff',
+                      }
+                    : {
+                        backgroundColor: 'var(--bg-surface-hover)',
+                        borderColor: 'var(--border-color)',
+                        color: 'var(--text-secondary)',
+                      }
+                }
               >
                 {s}
               </button>
@@ -109,22 +125,23 @@ export default function OrbPreviewPage() {
 
         {/* Background selector */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-neutral-400">Background</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Background</span>
           <div className="flex gap-2">
             {BACKGROUNDS.map((c, i) => (
               <button
                 key={c}
                 onClick={() => setBgIndex(i)}
-                className={`w-7 h-7 rounded-full border-2 ${
-                  bgIndex === i ? 'border-orange-500' : 'border-neutral-700'
-                }`}
-                style={{ background: c }}
+                className="w-7 h-7 rounded-full border-2"
+                style={{
+                  background: c,
+                  borderColor: bgIndex === i ? '#ff5941' : 'var(--border-color)',
+                }}
               />
             ))}
           </div>
         </div>
 
-        <hr className="border-neutral-800" />
+        <hr style={{ borderColor: 'var(--border-color)' }} />
 
         {/* Shader params */}
         <Slider label="Intensity" value={intensity} onChange={setIntensity} />
@@ -146,7 +163,7 @@ export default function OrbPreviewPage() {
           step={0.05}
         />
 
-        <hr className="border-neutral-800" />
+        <hr style={{ borderColor: 'var(--border-color)' }} />
 
         <Slider
           label="Orb Size (px)"
@@ -159,11 +176,18 @@ export default function OrbPreviewPage() {
 
         {/* Current values dump */}
         <div className="mt-auto">
-          <details className="text-xs text-neutral-500">
-            <summary className="cursor-pointer hover:text-neutral-300">
+          <details className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <summary className="cursor-pointer" style={{ color: 'var(--text-secondary)' }}>
               Copy values
             </summary>
-            <pre className="mt-2 p-2 bg-neutral-950 rounded text-[10px] overflow-x-auto">
+            <pre
+              className="mt-2 p-2 rounded text-[10px] overflow-x-auto"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+              }}
+            >
               {JSON.stringify(
                 { state, intensity, opacity, fresnelPower, filmThickness },
                 null,
