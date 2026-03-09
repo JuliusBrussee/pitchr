@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Zap, FileText, BarChart3, ArrowLeft } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Zap, FileText, BarChart3, ArrowLeft, Radio } from 'lucide-react';
 import { DemoSidebar } from '@/views/components/demo/DemoSidebar';
 import {
   DEMO_SCORE,
@@ -20,7 +20,6 @@ import {
 
 interface DemoResultsProps {
   isActive: boolean;
-  showScoreAnimation: boolean;
 }
 
 function MiniRing({ score, maxScore, color, size = 36 }: { score: number; maxScore: number; color: string; size?: number }) {
@@ -54,15 +53,14 @@ const IMPACT_COLORS: Record<string, string> = {
   low: '#6b7280',
 };
 
-export function DemoResults({ isActive, showScoreAnimation }: DemoResultsProps) {
+export function DemoResults({ isActive }: DemoResultsProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
+  const hasAnimated = useRef(false);
 
-  // Score count-up animation
+  // Score count-up animation — fires once when results become active
   useEffect(() => {
-    if (!isActive || !showScoreAnimation) {
-      setAnimatedScore(0);
-      return;
-    }
+    if (!isActive || hasAnimated.current) return;
+    hasAnimated.current = true;
 
     let frame: number;
     const start = performance.now();
@@ -84,9 +82,9 @@ export function DemoResults({ isActive, showScoreAnimation }: DemoResultsProps) 
       clearTimeout(timeout);
       cancelAnimationFrame(frame);
     };
-  }, [isActive, showScoreAnimation]);
+  }, [isActive]);
 
-  const displayScore = showScoreAnimation ? animatedScore : DEMO_SCORE;
+  const displayScore = animatedScore;
   const color = getScoreColor(displayScore);
   const bgColor = getScoreBgColor(displayScore);
   const bandLabel = getScoreBandLabel(displayScore);
@@ -106,6 +104,11 @@ export function DemoResults({ isActive, showScoreAnimation }: DemoResultsProps) 
             <h1 className="demo-results__title">Pitch Analysis</h1>
             <span className="demo-results__meta">Mar 7, 2026 · VC Pitch · Series A Pitch</span>
           </div>
+          <div style={{ flex: 1 }} />
+          <button className="demo-results__qa-btn">
+            <Radio size={14} />
+            Start Live Q&A
+          </button>
         </div>
 
         {/* Score Hero */}
@@ -161,26 +164,6 @@ export function DemoResults({ isActive, showScoreAnimation }: DemoResultsProps) 
 
         {/* Verdict */}
         <div className="demo-score-hero__verdict">{DEMO_VERDICT}</div>
-
-        {/* Metrics strip */}
-        <div className="demo-metrics-strip">
-          <div className="demo-metrics-strip__item">
-            <span className="demo-metrics-strip__value">{DEMO_DELIVERY.wpm}</span>
-            <span className="demo-metrics-strip__label">WPM</span>
-          </div>
-          <div className="demo-metrics-strip__item">
-            <span className="demo-metrics-strip__value">{DEMO_DELIVERY.duration_seconds}s</span>
-            <span className="demo-metrics-strip__label">Duration</span>
-          </div>
-          <div className="demo-metrics-strip__item">
-            <span className="demo-metrics-strip__value">{DEMO_DELIVERY.filler_count}</span>
-            <span className="demo-metrics-strip__label">Fillers</span>
-          </div>
-          <div className="demo-metrics-strip__item">
-            <span className="demo-metrics-strip__value">{DEMO_DELIVERY.word_count}</span>
-            <span className="demo-metrics-strip__label">Words</span>
-          </div>
-        </div>
 
         {/* Top Fixes */}
         <div className="demo-fixes">

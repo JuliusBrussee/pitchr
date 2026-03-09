@@ -67,8 +67,8 @@ export function DemoSession({ isActive, showTypewriter, showChecklist }: DemoSes
   }, [isActive]);
 
   const displayedText = DEMO_TRANSCRIPT.slice(0, charIndex);
-  const wordsTyped = displayedText.split(/\s+/).filter(Boolean).length;
-  const wpm = elapsedSeconds > 5 ? Math.round((wordsTyped / elapsedSeconds) * 60) : 0;
+  // Simulate realistic WPM (ramp up to ~148 like real speech)
+  const wpm = elapsedSeconds < 3 ? 0 : Math.min(148, Math.round(80 + (elapsedSeconds / 60) * 68));
 
   return (
     <div className="demo-app-layout">

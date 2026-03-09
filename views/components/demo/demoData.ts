@@ -93,38 +93,194 @@ export const DEMO_CHECKLIST = [
 ];
 
 export const DEMO_RECENT_RUNS = [
-  { id: '1', mode: 'vc_pitch' as const, date: 'Mar 7, 2026', score: 72, title: 'Series A Pitch v3' },
-  { id: '2', mode: 'elevator' as const, date: 'Mar 5, 2026', score: 65, title: 'Elevator — Investor Day' },
-  { id: '3', mode: 'vc_pitch' as const, date: 'Mar 2, 2026', score: 58, title: 'Series A Pitch v2' },
+  { id: '1', mode: 'vc_pitch' as const, date: 'Mar 7, 2026', score: 72, title: 'Series A Pitch v3', duration: '1:03', verdict: 'Solid' },
+  { id: '2', mode: 'elevator' as const, date: 'Mar 5, 2026', score: 65, title: 'Elevator — Investor Day', duration: '0:47', verdict: 'Solid' },
+  { id: '3', mode: 'vc_pitch' as const, date: 'Mar 2, 2026', score: 58, title: 'Series A Pitch v2', duration: '1:12', verdict: 'Getting There' },
 ];
 
 export const DEMO_SPARKLINE = [42, 48, 52, 58, 61, 65, 68, 72];
 
 export type ChecklistState = 'complete' | 'partial' | 'uncovered';
 
-/* Step definitions for the camera walkthrough */
+/* ——— Dashboard enrichment data ——— */
+
+export const DEMO_COACH_SUMMARY = {
+  headline: 'Your pitch structure is strong — sharpen your evidence next.',
+  detail: 'Your last session scored 72/100 with solid structure and delivery. The biggest opportunity is adding concrete growth metrics and naming competitors.',
+  recommendation: 'Try a 60-second elevator pitch focused on your traction numbers.',
+};
+
+export const DEMO_RUBRIC_CATEGORIES = [
+  { category: 'Structure', color: '#ff5941', score: 16, maxScore: 20 },
+  { category: 'Clarity', color: '#ffaa33', score: 15, maxScore: 20 },
+  { category: 'Evidence', color: '#22c55e', score: 13, maxScore: 20 },
+  { category: 'Market', color: '#f97316', score: 12, maxScore: 20 },
+  { category: 'Delivery', color: '#ef4444', score: 16, maxScore: 20 },
+];
+
+export const DEMO_INSIGHTS = [
+  { type: 'strength' as const, text: 'Clear problem-solution narrative with smooth transitions' },
+  { type: 'weakness' as const, text: 'Market size and competitive landscape not addressed' },
+];
+
+export const DEMO_RECOMMENDATIONS = [
+  { text: 'Add MoM growth rate to your traction slide', category: 'Evidence' },
+  { text: 'Name your top competitor and differentiation', category: 'Market' },
+];
+
+/* ——— Q&A mock data ——— */
+
+export const DEMO_QA_TURNS = [
+  { speaker: 'investor' as const, text: 'What is your current monthly burn rate and how long does your runway extend?' },
+  { speaker: 'founder' as const, text: 'We are burning about $45K per month with 14 months of runway remaining from our pre-seed.' },
+  { speaker: 'investor' as const, text: 'You mentioned 92% auto-match accuracy — what happens with the remaining 8%?' },
+  { speaker: 'founder' as const, text: 'The remaining 8% gets flagged for manual review with suggested matches, cutting review time by 80%.' },
+  { speaker: 'investor' as const, text: 'Your 38 customers in 6 months is impressive. What does retention look like?' },
+  { speaker: 'founder' as const, text: 'Net retention is 95% with zero voluntary churn — the 5% is from two customers that were acquired.' },
+];
+
+/* ——— Step definitions for the camera walkthrough ——— */
 
 export interface DemoStep {
-  screen: 'dashboard' | 'session' | 'results' | 'analyzing' | 'cta';
+  screen: 'dashboard' | 'session' | 'results' | 'analyzing' | 'cta' | 'qa';
   transform: string;
   duration: number; // ms
   urlText: string;
   label: string;
   subtitle?: string;
+  cursor?: {
+    x: number;       // target px within 1440x900 stage
+    y: number;
+    clickAt?: number; // ms delay before click animation
+  };
+  qaPhase?: 'gate' | 'connecting' | 'active' | 'complete';
+  qaVisibleTurns?: number;
+  scrollTo?: string; // CSS selector to scroll into view within .demo-main
 }
 
+/*
+ * Transform coordinate reference (1440×900 stage, transform-origin: top left):
+ *   scale(S) translate(tx%, ty%) → visible region:
+ *     x: [-tx%*1440/100, -tx%*1440/100 + 1440/S]
+ *     y: [-ty%*900/100, -ty%*900/100 + 900/S]
+ *
+ * Layout landmarks:
+ *   Sidebar: x=12..232 | Main panel: x=244..1428
+ *   Dashboard header: y≈40..85 | Coach card: y≈115..195 | Stats: y≈215..430
+ *   Session right panel (transcript/checklist): x≈1088..1412
+ *   Results header: y≈12..45 | Score hero: y≈70..210 | Fixes: y≈375..655
+ */
 export const DEMO_STEPS: DemoStep[] = [
-  { screen: 'dashboard', transform: 'scale(0.68) translate(0, 0)', duration: 3000, urlText: 'app.pitchr.com/dashboard', label: 'Dashboard Overview', subtitle: 'Your pitch coaching command center' },
-  { screen: 'dashboard', transform: 'scale(1.8) translate(-5%, -2%)', duration: 2000, urlText: 'app.pitchr.com/dashboard', label: 'Start a Session', subtitle: 'One click to begin recording' },
-  { screen: 'session', transform: 'scale(0.68) translate(0, 0)', duration: 2000, urlText: 'app.pitchr.com/session', label: 'Live Session', subtitle: 'Record or paste your pitch' },
-  { screen: 'session', transform: 'scale(1.6) translate(-55%, -15%)', duration: 3000, urlText: 'app.pitchr.com/session', label: 'Real-Time Transcript', subtitle: 'Every word captured and analyzed' },
-  { screen: 'session', transform: 'scale(1.6) translate(-55%, -40%)', duration: 2000, urlText: 'app.pitchr.com/session', label: 'Live Checklist', subtitle: 'Track what you have covered' },
-  { screen: 'analyzing', transform: 'scale(1.0) translate(0, 0)', duration: 2000, urlText: 'app.pitchr.com/session', label: 'AI Analysis', subtitle: 'Five rubric dimensions scored' },
-  { screen: 'results', transform: 'scale(0.68) translate(0, 0)', duration: 2000, urlText: 'app.pitchr.com/results', label: 'Results', subtitle: 'Your complete pitch report' },
-  { screen: 'results', transform: 'scale(1.5) translate(-12%, -5%)', duration: 3000, urlText: 'app.pitchr.com/results', label: 'Score Breakdown', subtitle: 'Rubric-based scoring out of 100' },
-  { screen: 'results', transform: 'scale(1.4) translate(-12%, -45%)', duration: 3000, urlText: 'app.pitchr.com/results', label: 'Top Fixes', subtitle: 'Ranked by investor impact' },
-  { screen: 'results', transform: 'scale(1.4) translate(-12%, -65%)', duration: 3000, urlText: 'app.pitchr.com/results', label: 'Rewrite Diff', subtitle: 'Before and after comparison' },
-  { screen: 'results', transform: 'scale(1.4) translate(-50%, -65%)', duration: 2500, urlText: 'app.pitchr.com/results', label: 'Delivery Metrics', subtitle: 'Pacing, fillers, and timing' },
-  { screen: 'results', transform: 'scale(0.68) translate(0, 0)', duration: 2000, urlText: 'app.pitchr.com/results', label: 'Full Report', subtitle: 'Everything in one view' },
-  { screen: 'cta', transform: 'scale(1.0) translate(0, 0)', duration: 3000, urlText: 'app.pitchr.com', label: 'Ready to Pitch?', subtitle: 'Start coaching your pitch today' },
+  // ── Dashboard ──
+  {
+    screen: 'dashboard', transform: 'translate(0, 0)', duration: 4500,
+    urlText: 'app.pitchr.com/dashboard', label: 'Dashboard Overview',
+    subtitle: 'Your pitch coaching command center',
+  },
+  {
+    // Zoom OUT so the full dashboard is visible with room to breathe — cursor clicks Start Session
+    screen: 'dashboard', transform: 'scale(0.9) translate(5.5%, 5.5%)', duration: 2400,
+    urlText: 'app.pitchr.com/dashboard', label: 'Start a Session',
+    subtitle: 'One click to begin recording',
+    cursor: { x: 1300, y: 55, clickAt: 1400 },
+  },
+
+  // ── Session ──
+  {
+    screen: 'session', transform: 'translate(0, 0)', duration: 3000,
+    urlText: 'app.pitchr.com/session', label: 'Live Session',
+    subtitle: 'Record or paste your pitch',
+  },
+  {
+    // Zoom right panel — shows x=[504,1464] y=[18,618]
+    screen: 'session', transform: 'scale(1.5) translate(-35%, -2%)', duration: 4000,
+    urlText: 'app.pitchr.com/session', label: 'Real-Time Transcript',
+    subtitle: 'Every word captured and analyzed',
+  },
+  {
+    // Pan down right panel — shows x=[504,1464] y=[198,798]
+    screen: 'session', transform: 'scale(1.5) translate(-35%, -22%)', duration: 3000,
+    urlText: 'app.pitchr.com/session', label: 'Live Checklist',
+    subtitle: 'Track what you have covered',
+  },
+  {
+    // Pull back to full session view before analysis — dramatic zoom-out
+    screen: 'session', transform: 'scale(0.88) translate(7%, 7%)', duration: 1800,
+    urlText: 'app.pitchr.com/session', label: 'Session Complete',
+    subtitle: 'Submitting for analysis',
+  },
+
+  // ── Analyzing ──
+  {
+    screen: 'analyzing', transform: 'translate(0, 0)', duration: 3000,
+    urlText: 'app.pitchr.com/session', label: 'AI Analysis',
+    subtitle: 'Five rubric dimensions scored',
+  },
+
+  // ── Results ──
+  {
+    screen: 'results', transform: 'translate(0, 0)', duration: 3000,
+    urlText: 'app.pitchr.com/results', label: 'Results',
+    subtitle: 'Your complete pitch report',
+  },
+  {
+    // Score hero area — shows x=[216,1245] y=[9,652]
+    screen: 'results', transform: 'scale(1.4) translate(-15%, -1%)', duration: 4000,
+    urlText: 'app.pitchr.com/results', label: 'Score Breakdown',
+    subtitle: 'Rubric-based scoring out of 100',
+  },
+  {
+    // Pan down to fixes — shows x=[216,1245] y=[234,877]
+    screen: 'results', transform: 'scale(1.4) translate(-15%, -26%)', duration: 4000,
+    urlText: 'app.pitchr.com/results', label: 'Top Fixes',
+    subtitle: 'Ranked by investor impact',
+    scrollTo: '.demo-fixes',
+  },
+  {
+    // Bottom of visible results — shows x=[187,1295] y=[315,900]
+    screen: 'results', transform: 'scale(1.3) translate(-13%, -35%)', duration: 4500,
+    urlText: 'app.pitchr.com/results', label: 'Rewrite Comparison',
+    subtitle: 'Before and after, side by side',
+    scrollTo: '.demo-rewrite',
+  },
+  {
+    // Zoom OUT so the full results page is visible — cursor clicks Start Live Q&A
+    screen: 'results', transform: 'scale(0.9) translate(5.5%, 5.5%)', duration: 2600,
+    urlText: 'app.pitchr.com/results', label: 'Start Live Q&A',
+    subtitle: 'Practice investor questions',
+    cursor: { x: 1350, y: 25, clickAt: 1600 },
+  },
+
+  // ── Q&A ──
+  {
+    screen: 'qa', transform: 'translate(0, 0)', duration: 3500,
+    urlText: 'app.pitchr.com/qa', label: 'Investor Q&A',
+    subtitle: 'Simulate tough investor questions',
+    qaPhase: 'gate', cursor: { x: 720, y: 550, clickAt: 2500 },
+  },
+  {
+    screen: 'qa', transform: 'translate(0, 0)', duration: 2500,
+    urlText: 'app.pitchr.com/qa', label: 'Connecting...',
+    subtitle: 'Preparing your investor session',
+    qaPhase: 'connecting',
+  },
+  {
+    screen: 'qa', transform: 'translate(0, 0)', duration: 18000,
+    urlText: 'app.pitchr.com/qa', label: 'Live Q&A Session',
+    subtitle: 'Real-time investor dialogue',
+    qaPhase: 'active', qaVisibleTurns: 6,
+  },
+  {
+    screen: 'qa', transform: 'translate(0, 0)', duration: 3500,
+    urlText: 'app.pitchr.com/qa', label: 'Session Complete',
+    subtitle: 'Review your Q&A performance',
+    qaPhase: 'complete',
+  },
+
+  // ── CTA ──
+  {
+    screen: 'cta', transform: 'translate(0, 0)', duration: 4000,
+    urlText: 'app.pitchr.com', label: 'Ready to Pitch?',
+    subtitle: 'Start coaching your pitch today',
+  },
 ];

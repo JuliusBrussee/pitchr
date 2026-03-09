@@ -32,7 +32,7 @@ const TOOL_ITEMS = [
 ];
 
 interface DemoSidebarProps {
-  activeNav: 'dashboard' | 'session' | 'results';
+  activeNav: 'dashboard' | 'session' | 'results' | 'qa';
 }
 
 export function DemoSidebar({ activeNav }: DemoSidebarProps) {

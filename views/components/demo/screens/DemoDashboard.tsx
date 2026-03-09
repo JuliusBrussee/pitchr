@@ -1,11 +1,15 @@
 'use client';
 
-import { Play, TrendingUp, Clock } from 'lucide-react';
+import { Play, TrendingUp, Clock, Sparkles, Target, ChevronRight } from 'lucide-react';
 import { DemoSidebar } from '@/views/components/demo/DemoSidebar';
 import {
   DEMO_SCORE,
   DEMO_SPARKLINE,
   DEMO_RECENT_RUNS,
+  DEMO_COACH_SUMMARY,
+  DEMO_RUBRIC_CATEGORIES,
+  DEMO_INSIGHTS,
+  DEMO_RECOMMENDATIONS,
 } from '@/views/components/demo/demoData';
 import {
   getScoreColor,
@@ -14,8 +18,8 @@ import {
   getModeColor,
 } from '@/views/components/ui/colors';
 
-function ScoreRingSvg({ score, size = 160 }: { score: number; size?: number }) {
-  const r = size / 2 - 12;
+function ScoreRingSvg({ score, size = 192 }: { score: number; size?: number }) {
+  const r = size / 2 - 14;
   const circumference = 2 * Math.PI * r;
   const offset = circumference - (score / 100) * circumference;
   const color = getScoreColor(score);
@@ -28,7 +32,7 @@ function ScoreRingSvg({ score, size = 160 }: { score: number; size?: number }) {
         r={r}
         fill="none"
         stroke="var(--border-color)"
-        strokeWidth={8}
+        strokeWidth={9}
       />
       <circle
         cx={size / 2}
@@ -36,7 +40,7 @@ function ScoreRingSvg({ score, size = 160 }: { score: number; size?: number }) {
         r={r}
         fill="none"
         stroke={color}
-        strokeWidth={8}
+        strokeWidth={9}
         strokeLinecap="round"
         strokeDasharray={circumference}
         strokeDashoffset={offset}
@@ -115,6 +119,11 @@ export function DemoDashboard() {
   const best = Math.max(...DEMO_SPARKLINE);
   const avg = Math.round(DEMO_SPARKLINE.reduce((a, b) => a + b, 0) / DEMO_SPARKLINE.length);
 
+  // Find weakest category for "Focus" badge
+  const weakest = DEMO_RUBRIC_CATEGORIES.reduce((min, cat) =>
+    (cat.score / cat.maxScore) < (min.score / min.maxScore) ? cat : min
+  );
+
   return (
     <div className="demo-app-layout">
       <DemoSidebar activeNav="dashboard" />
@@ -131,16 +140,31 @@ export function DemoDashboard() {
           </button>
         </div>
 
-        {/* Score + Sparkline + Mini Stats */}
+        {/* Coach Summary Card */}
+        <div className="demo-dash__coach">
+          <div className="demo-dash__coach-icon">
+            <Sparkles size={18} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="demo-dash__coach-headline">{DEMO_COACH_SUMMARY.headline}</div>
+            <div className="demo-dash__coach-detail">{DEMO_COACH_SUMMARY.detail}</div>
+            <div className="demo-dash__coach-recommendation">
+              <Target size={11} />
+              {DEMO_COACH_SUMMARY.recommendation}
+            </div>
+          </div>
+        </div>
+
+        {/* Score + Sparkline + Radar */}
         <div className="demo-dash__stats">
-          <div className="demo-dash__score-ring-wrap">
+          <div className="demo-dash__score-ring-wrap" style={{ width: 192, height: 192 }}>
             <div
               className="demo-dash__score-ring-glow"
               style={{ background: `radial-gradient(circle, ${color}30 0%, transparent 70%)` }}
             />
-            <ScoreRingSvg score={DEMO_SCORE} />
+            <ScoreRingSvg score={DEMO_SCORE} size={192} />
             <div className="demo-dash__score-ring-center">
-              <span className="demo-dash__score-value">{DEMO_SCORE}</span>
+              <span className="demo-dash__score-value" style={{ fontSize: 46 }}>{DEMO_SCORE}</span>
               <span
                 className="demo-dash__score-band"
                 style={{ color, backgroundColor: bgColor }}
@@ -172,7 +196,7 @@ export function DemoDashboard() {
             </div>
           </div>
 
-          {/* Radar placeholder */}
+          {/* Radar chart */}
           <svg width={140} height={140} viewBox="0 0 140 140">
             {[1, 0.75, 0.5, 0.25].map((scale) => (
               <polygon
@@ -192,8 +216,69 @@ export function DemoDashboard() {
           </svg>
         </div>
 
-        {/* Recent Runs */}
+        {/* Streak badge */}
+        <div className="demo-dash__streak-row">
+          <span className="demo-dash__streak-pill">3-day streak</span>
+        </div>
+
+        {/* Category Breakdown */}
         <h3 className="demo-dash__section-title">
+          <Target size={12} />
+          Category Breakdown
+        </h3>
+        <div className="demo-dash__category-rows">
+          {DEMO_RUBRIC_CATEGORIES.map((cat) => {
+            const pct = Math.round((cat.score / cat.maxScore) * 100);
+            const isWeakest = cat === weakest;
+            return (
+              <div key={cat.category} className="demo-dash__category-row">
+                <span className="demo-dash__category-dot" style={{ backgroundColor: cat.color }} />
+                <span className="demo-dash__category-label">{cat.category}</span>
+                <div className="demo-dash__category-bar">
+                  <div
+                    className="demo-dash__category-bar-fill"
+                    style={{ width: `${pct}%`, backgroundColor: cat.color }}
+                  />
+                </div>
+                <span className="demo-dash__category-pct">{pct}%</span>
+                {isWeakest && <span className="demo-dash__category-focus">Focus</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Insights & Recommendations */}
+        <div className="demo-dash__insights-grid">
+          <div>
+            <h3 className="demo-dash__section-title" style={{ marginTop: 20 }}>
+              <Sparkles size={12} />
+              Insights
+            </h3>
+            {DEMO_INSIGHTS.map((insight, i) => (
+              <div
+                key={i}
+                className={`demo-dash__insight-card demo-dash__insight-card--${insight.type}`}
+              >
+                {insight.text}
+              </div>
+            ))}
+          </div>
+          <div>
+            <h3 className="demo-dash__section-title" style={{ marginTop: 20 }}>
+              <Target size={12} />
+              Recommendations
+            </h3>
+            {DEMO_RECOMMENDATIONS.map((rec, i) => (
+              <div key={i} className="demo-dash__recommendation-card">
+                <span className="demo-dash__recommendation-tag">{rec.category}</span>
+                {rec.text}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Recent Runs */}
+        <h3 className="demo-dash__section-title" style={{ marginTop: 20 }}>
           <Clock size={12} />
           Recent Sessions
         </h3>
@@ -204,6 +289,7 @@ export function DemoDashboard() {
             return (
               <div key={run.id} className="demo-dash__run-row">
                 <span className="demo-dash__run-title">{run.title}</span>
+                <span className="demo-dash__run-duration">{run.duration}</span>
                 <span className="demo-dash__run-date">{run.date}</span>
                 <span
                   className="demo-dash__run-mode"
@@ -211,12 +297,14 @@ export function DemoDashboard() {
                 >
                   {run.mode === 'elevator' ? 'Elevator' : 'VC Pitch'}
                 </span>
+                <span className="demo-dash__run-verdict">{run.verdict}</span>
                 <span
                   className="demo-dash__run-score"
                   style={{ color: sColor, backgroundColor: `${sColor}1a` }}
                 >
                   {run.score}
                 </span>
+                <ChevronRight size={14} className="demo-dash__run-arrow" />
               </div>
             );
           })}
