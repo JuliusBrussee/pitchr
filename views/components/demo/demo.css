@@ -996,45 +996,84 @@
 .demo-rewrite__hunks {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .demo-rewrite__hunk {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  border-radius: 10px;
-  overflow: hidden;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.demo-rewrite__hunk-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background-color: var(--bg-surface-hover);
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+  margin-top: 10px;
+}
+
+.demo-rewrite__hunk-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface-hover);
 }
 
 .demo-rewrite__side {
-  padding: 12px;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.6;
 }
 
 .demo-rewrite__side--before {
-  background-color: rgba(239, 68, 68, 0.06);
-  border: 1px solid rgba(239, 68, 68, 0.12);
+  background-color: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.1);
   color: var(--text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: rgba(239, 68, 68, 0.3);
 }
 
 .demo-rewrite__side--after {
-  background-color: rgba(34, 197, 94, 0.06);
-  border: 1px solid rgba(34, 197, 94, 0.12);
+  background-color: rgba(34, 197, 94, 0.05);
+  border: 1px solid rgba(34, 197, 94, 0.1);
   color: var(--text-primary);
+}
+
+.demo-rewrite__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  opacity: 0.4;
 }
 
 .demo-rewrite__tag {
   display: inline-block;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 1px 6px;
   border-radius: 3px;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .demo-rewrite__tag--before {

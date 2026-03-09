@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { Zap, FileText, BarChart3, ArrowLeft, Radio } from 'lucide-react';
+import { Zap, FileText, BarChart3, ArrowLeft, Radio, ArrowRight } from 'lucide-react';
 import { DemoSidebar } from '@/views/components/demo/DemoSidebar';
 import {
   DEMO_SCORE,
@@ -20,6 +20,7 @@ import {
 
 interface DemoResultsProps {
   isActive: boolean;
+  scrollTo?: string;
 }
 
 function MiniRing({ score, maxScore, color, size = 36 }: { score: number; maxScore: number; color: string; size?: number }) {
@@ -53,9 +54,10 @@ const IMPACT_COLORS: Record<string, string> = {
   low: '#6b7280',
 };
 
-export function DemoResults({ isActive }: DemoResultsProps) {
+export function DemoResults({ isActive, scrollTo }: DemoResultsProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
   const hasAnimated = useRef(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   // Score count-up animation — fires once when results become active
   useEffect(() => {
@@ -84,6 +86,23 @@ export function DemoResults({ isActive }: DemoResultsProps) {
     };
   }, [isActive]);
 
+  // Scroll to target section within .demo-main when scrollTo changes
+  useEffect(() => {
+    if (!mainRef.current) return;
+    if (!scrollTo) {
+      mainRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const target = mainRef.current.querySelector(scrollTo) as HTMLElement | null;
+    if (target) {
+      // Get position relative to scroll container using bounding rects
+      const containerRect = mainRef.current.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const scrollOffset = targetRect.top - containerRect.top + mainRef.current.scrollTop - 12;
+      mainRef.current.scrollTo({ top: scrollOffset, behavior: 'smooth' });
+    }
+  }, [scrollTo]);
+
   const displayScore = animatedScore;
   const color = getScoreColor(displayScore);
   const bgColor = getScoreBgColor(displayScore);
@@ -96,7 +115,7 @@ export function DemoResults({ isActive }: DemoResultsProps) {
   return (
     <div className="demo-app-layout">
       <DemoSidebar activeNav="results" />
-      <main className="demo-main demo-results">
+      <main ref={mainRef} className="demo-main demo-results">
         {/* Header */}
         <div className="demo-results__header">
           <ArrowLeft size={18} style={{ color: 'var(--text-secondary)' }} />
@@ -208,13 +227,19 @@ export function DemoResults({ isActive }: DemoResultsProps) {
           <div className="demo-rewrite__hunks">
             {DEMO_REWRITE_HUNKS.map((hunk, i) => (
               <div key={i} className="demo-rewrite__hunk">
-                <div className="demo-rewrite__side demo-rewrite__side--before">
-                  <span className="demo-rewrite__tag demo-rewrite__tag--before">Original</span>
-                  <div>{hunk.before}</div>
-                </div>
-                <div className="demo-rewrite__side demo-rewrite__side--after">
-                  <span className="demo-rewrite__tag demo-rewrite__tag--after">Rewrite</span>
-                  <div>{hunk.after}</div>
+                <div className="demo-rewrite__hunk-number">{i + 1}</div>
+                <div className="demo-rewrite__hunk-content">
+                  <div className="demo-rewrite__side demo-rewrite__side--before">
+                    <span className="demo-rewrite__tag demo-rewrite__tag--before">Original</span>
+                    <div>{hunk.before}</div>
+                  </div>
+                  <div className="demo-rewrite__arrow">
+                    <ArrowRight size={14} />
+                  </div>
+                  <div className="demo-rewrite__side demo-rewrite__side--after">
+                    <span className="demo-rewrite__tag demo-rewrite__tag--after">Improved</span>
+                    <div>{hunk.after}</div>
+                  </div>
                 </div>
               </div>
             ))}
