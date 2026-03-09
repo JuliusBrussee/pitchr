@@ -5,6 +5,7 @@ package-lock.json
 
 # next.js
 /.next
+/.next-build
 /out
 
 # build
@@ -39,3 +40,10 @@ Thumbs.db
 /transcript
 /supabase/.temp
 *.swp
+/.ralph/logs
+.ralph/status.json
+.ralph/.ralph_session
+/.ralph
+ralph-claude-code/
+.ralphrc
+/.ralph-v1
