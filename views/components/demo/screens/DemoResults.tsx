@@ -98,7 +98,7 @@ export function DemoResults({ isActive, scrollTo }: DemoResultsProps) {
       // Get position relative to scroll container using bounding rects
       const containerRect = mainRef.current.getBoundingClientRect();
       const targetRect = target.getBoundingClientRect();
-      const scrollOffset = targetRect.top - containerRect.top + mainRef.current.scrollTop - 12;
+      const scrollOffset = targetRect.top - containerRect.top + mainRef.current.scrollTop - 140;
       mainRef.current.scrollTo({ top: scrollOffset, behavior: 'smooth' });
     }
   }, [scrollTo]);

@@ -14,10 +14,6 @@ import {
 } from '@/views/components/landing/heroDeliveryFunnel.config';
 import { HERO_PRESENTER_TILE_TUPLES } from '@/views/components/landing/heroPresenterTiles.data';
 import { useHeroDeliveryFunnel } from '@/views/components/landing/useHeroDeliveryFunnel';
-import { PainPointSection } from '@/views/components/landing/PainPointSection';
-import { TransformSection } from '@/views/components/landing/TransformSection';
-import { ToolkitSection } from '@/views/components/landing/ToolkitSection';
-import { GrowthSection } from '@/views/components/landing/GrowthSection';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
 import '@/app/(marketing)/landing.css';
 
@@ -393,12 +389,6 @@ export function LandingClient({
       {/* ═══ LAUNCH COUNTDOWN ═══ */}
       <LaunchCountdown initialNowMs={initialNowMs} onCtaClick={scrollToWaitlist} />
 
-      {/* ═══ PAIN POINT SECTION ═══ */}
-      <PainPointSection />
-
-      {/* ═══ TRANSFORM SECTION ═══ */}
-      <TransformSection />
-
       {/* ═══ SECTION 1: DELIVERY WAVEFORM ═══ */}
       <section className="story-section story-section-delivery" id="delivery" ref={deliverySectionRef}>
         <div className="container story-grid">
@@ -511,11 +501,53 @@ export function LandingClient({
         </div>
       </section>
 
-      {/* ═══ TOOLKIT SECTION ═══ */}
-      <ToolkitSection />
-
-      {/* ═══ GROWTH SECTION ═══ */}
-      <GrowthSection />
+      {/* ═══ SECTION 3: GROWTH TRAJECTORY ═══ */}
+      <section className="story-section" id="growth">
+        <div className="container story-grid">
+          <div className="story-text reveal">
+            <h2>
+              Your score, <i>climbing</i>.
+            </h2>
+            <p>
+              Your first take won&apos;t be perfect. Pitchr gives you a prioritized list of ranked
+              fixes. Apply the AI rewrites, practice your delivery, and watch your score hit the
+              Investor-Ready threshold.
+            </p>
+            <p style={{ fontSize: '14px', fontFamily: "'JetBrains Mono', monospace", color: 'var(--blue)' }}>
+              {'> Delta: +45 points in 3 sessions'}
+            </p>
+            <div style={{ marginTop: '20px' }}>
+              <Link href="/growth-pricing" className="nav-link">
+                Compare the free and growth path
+              </Link>
+            </div>
+          </div>
+          <div className="story-visual reveal" id="chartReveal">
+            <div className="chart-container">
+              <div className="chart-zones">
+                <div className="zone-label zone-green">Investor Ready (80+)</div>
+                <div className="zone-label zone-red">Needs Work (&lt;60)</div>
+              </div>
+              <svg className="chart-svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
+                <defs>
+                  <linearGradient id="gradientPath" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#ff3d00" />
+                    <stop offset="50%" stopColor="#ff9100" />
+                    <stop offset="100%" stopColor="#00c853" />
+                  </linearGradient>
+                </defs>
+                <g className="chart-grid">
+                  <line x1="0" y1="40" x2="500" y2="40" />
+                  <line x1="0" y1="100" x2="500" y2="100" />
+                  <line x1="0" y1="160" x2="500" y2="160" />
+                </g>
+                <path className="chart-path" d="M 0,160 Q 150,160 250,100 T 500,40" />
+                <circle className="chart-dot" cx="500" cy="40" r="6" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ═══ STATS BAR ═══ */}
       <section className="stats-bar">
