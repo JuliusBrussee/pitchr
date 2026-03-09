@@ -2388,6 +2388,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@remotion/google-fonts@npm:4.0.434":
+  version: 4.0.434
+  resolution: "@remotion/google-fonts@npm:4.0.434"
+  dependencies:
+    remotion: "npm:4.0.434"
+  checksum: 10c0/05bf956ae38ec28de847c809db7c855b635a326c749ab534c50b2b0b83eb1302020f5a83380df034a1132c028049bc22b510088c23977ce973cf11e3c239f14a
+  languageName: node
+  linkType: hard
+
 "@remotion/licensing@npm:4.0.434":
   version: 4.0.434
   resolution: "@remotion/licensing@npm:4.0.434"
@@ -6394,6 +6403,7 @@ __metadata:
     "@react-three/drei": "npm:^10.7.7"
     "@react-three/fiber": "npm:^9.5.0"
     "@remotion/cli": "npm:^4.0.434"
+    "@remotion/google-fonts": "npm:4.0.434"
     "@remotion/player": "npm:^4.0.434"
     "@remotion/renderer": "npm:^4.0.434"
     "@sentry/nextjs": "npm:^10.40.0"

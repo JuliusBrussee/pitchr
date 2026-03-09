@@ -10,7 +10,7 @@ interface ModeSegmentedControlProps {
   disabled?: boolean;
 }
 
-const MODES: PitchMode[] = ['elevator', 'vc_pitch'];
+const MODES: PitchMode[] = ['elevator', 'vc_pitch', 'hackathon'];
 
 export function ModeSegmentedControl({ value, onChange, disabled }: ModeSegmentedControlProps) {
   const containerRef = useRef<HTMLDivElement>(null);
