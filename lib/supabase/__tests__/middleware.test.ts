@@ -1,7 +1,13 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerClient } from '@supabase/ssr';
-import { updateSession } from '@/lib/supabase/middleware';
+import {
+  AUTH_ROUTES,
+  BLOCKED_ROUTES,
+  PROTECTED_ROUTES,
+  updateSession,
+} from '@/lib/supabase/middleware';
+import { config as middlewareConfig } from '@/middleware';
 
 vi.mock('@supabase/ssr', () => ({
   createServerClient: vi.fn(),
@@ -34,6 +40,10 @@ function mockUser(
     },
     from,
   } as unknown as ReturnType<typeof createServerClient>);
+}
+
+function normalizeMatcherRoute(route: string): string {
+  return route.replace(/\/:path\*$/, '');
 }
 
 describe('middleware protected routes', () => {
@@ -115,5 +125,12 @@ describe('middleware protected routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('keeps middleware matcher in parity with route policy arrays', () => {
+    const matcherRoutes = (middlewareConfig.matcher as string[]).map(normalizeMatcherRoute);
+    const policyRoutes = [...AUTH_ROUTES, ...PROTECTED_ROUTES, ...BLOCKED_ROUTES];
+
+    expect(new Set(matcherRoutes)).toEqual(new Set(policyRoutes));
   });
 });
