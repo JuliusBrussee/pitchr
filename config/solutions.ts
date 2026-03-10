@@ -26,12 +26,6 @@ export interface SolutionStat {
   label: string;
 }
 
-export interface SolutionTestimonial {
-  quote: string;
-  author: string;
-  role: string;
-}
-
 export interface SolutionConfig {
   slug: string;
   label: string;
@@ -44,8 +38,9 @@ export interface SolutionConfig {
   beats: SolutionBeat[];
   transformation: SolutionTransformation;
   stats: SolutionStat[];
-  testimonial: SolutionTestimonial;
   relatedFeatures: string[];
+  demos?: [string, string];
+  demoLabels?: [string, string];
   ctaHeadline: string;
   ctaDescription: string;
 }
@@ -57,7 +52,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     headline: 'Nail your 30-second pitch.',
     tagline: 'Turn chance encounters into real opportunities. Master the art of the concise, compelling elevator pitch.',
     duration: '30 seconds',
-    color: '#f97316',
+    color: '#ff5941',
     pitchMode: 'elevator',
     scenario: {
       text: "You're at a startup mixer. Someone asks 'What are you building?' You have 30 seconds before they glance at the next person.",
@@ -81,12 +76,9 @@ export const SOLUTIONS: SolutionConfig[] = [
       { value: '120-140', label: 'Optimal WPM' },
       { value: '0', label: 'Ideal Fillers' },
     ],
-    testimonial: {
-      quote: 'I used to ramble for two minutes when someone asked what I do. Now I nail it in 30 seconds and actually get follow-up meetings.',
-      author: 'Alex Rivera',
-      role: 'Founder, SeedStage',
-    },
     relatedFeatures: ['score-rubric', 'ai-rewrite', 'delivery-metrics'],
+    demos: ['score-rubric', 'delivery-metrics'],
+    demoLabels: ['Your score breakdown', 'Delivery analysis'],
     ctaHeadline: 'Make every second count.',
     ctaDescription: 'Turn your 30-second window into a lasting impression.',
   },
@@ -122,12 +114,9 @@ export const SOLUTIONS: SolutionConfig[] = [
       { value: '130-150', label: 'Optimal WPM' },
       { value: '87%', label: 'VC Panel Accuracy' },
     ],
-    testimonial: {
-      quote: 'Pitchr showed me my market section was the weakest part of my pitch. After two iterations, I closed my seed round in 3 weeks.',
-      author: 'Priya Sharma',
-      role: 'CEO, FinLedger (YC W24)',
-    },
     relatedFeatures: ['score-rubric', 'top-fixes', 'qa-pack', 'deck-analysis'],
+    demos: ['score-rubric', 'qa-pack'],
+    demoLabels: ['Investor scoring', 'Q&A preparation'],
     ctaHeadline: 'Pitch like a funded founder.',
     ctaDescription: 'The structure and evidence that top VCs expect.',
   },
@@ -137,7 +126,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     headline: 'Win demo day.',
     tagline: 'Stand out after 36 hours of coding. Structure your demo pitch to impress judges who\'ve seen 15 pitches today.',
     duration: '3 minutes',
-    color: '#8b5cf6',
+    color: '#ff5941',
     pitchMode: 'hackathon',
     scenario: {
       text: "It's demo day. Your team has been coding for 36 hours straight. You've got 3 minutes on stage and judges who've seen 15 pitches today.",
@@ -162,12 +151,9 @@ export const SOLUTIONS: SolutionConfig[] = [
       { value: '140-160', label: 'Optimal WPM' },
       { value: '36hrs', label: 'Avg Hack Time' },
     ],
-    testimonial: {
-      quote: 'We went from "another hackathon project" to first place by restructuring our demo flow. The timeline view showed us exactly where we were losing judges.',
-      author: 'Team Flux',
-      role: '1st Place, ETHGlobal NYC',
-    },
     relatedFeatures: ['delivery-metrics', 'ai-rewrite', 'progress'],
+    demos: ['delivery-metrics', 'ai-rewrite'],
+    demoLabels: ['Pacing analysis', 'Script rewrite'],
     ctaHeadline: 'From hack to win.',
     ctaDescription: 'Structure your demo pitch to stand out from the crowd.',
   },
@@ -177,7 +163,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     headline: 'Ace your capstone pitch.',
     tagline: 'Present research and projects with clarity and confidence. Turn academic rigor into compelling narratives.',
     duration: '3 minutes',
-    color: '#3b82f6',
+    color: '#ff5941',
     pitchMode: null,
     scenario: {
       text: "Your capstone project is due. The professor has invited industry judges. Half your grade depends on this 3-minute presentation.",
@@ -202,12 +188,9 @@ export const SOLUTIONS: SolutionConfig[] = [
       { value: '130-145', label: 'Optimal WPM' },
       { value: '40%', label: 'Typical Grade Weight' },
     ],
-    testimonial: {
-      quote: 'My professor said it was the clearest capstone presentation she\'d seen in 5 years. Pitchr helped me stop burying my results behind methodology.',
-      author: 'Emily Zhang',
-      role: 'CS Student, Stanford',
-    },
     relatedFeatures: ['score-rubric', 'top-fixes', 'delivery-metrics', 'progress'],
+    demos: ['score-rubric', 'top-fixes'],
+    demoLabels: ['Rubric scoring', 'Ranked improvements'],
     ctaHeadline: 'Present with confidence.',
     ctaDescription: 'Turn academic rigor into a compelling narrative.',
   },
@@ -217,7 +200,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     headline: 'Own the stage.',
     tagline: 'Five minutes to convince a panel of investors and thousands of viewers. Make every second count on the biggest stage.',
     duration: '5 minutes',
-    color: '#10b981',
+    color: '#ff5941',
     pitchMode: null,
     scenario: {
       text: "You're backstage at TechCrunch Disrupt. Your startup's name is next on the screen. 5 minutes to convince a panel of investors and 10,000 live viewers.",
@@ -243,12 +226,9 @@ export const SOLUTIONS: SolutionConfig[] = [
       { value: '135-150', label: 'Optimal WPM' },
       { value: '$50K+', label: 'Typical Prize' },
     ],
-    testimonial: {
-      quote: 'We placed top 3 at Disrupt after using Pitchr to restructure our demo timing. The transformation view showed us we were spending 60% of time on features that scored lowest.',
-      author: 'David Kim',
-      role: 'Founder, LaunchPad AI',
-    },
     relatedFeatures: ['score-rubric', 'qa-pack', 'deck-analysis', 'analytics'],
+    demos: ['deck-analysis', 'analytics'],
+    demoLabels: ['Slide-by-slide review', 'Performance analytics'],
     ctaHeadline: 'Compete to win.',
     ctaDescription: 'Preparation is the difference between top 3 and forgotten.',
   },

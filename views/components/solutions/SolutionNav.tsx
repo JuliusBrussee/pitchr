@@ -6,12 +6,15 @@ import type { SolutionConfig } from '@/config/solutions';
 
 export function SolutionNav({ solution, allSolutions }: { solution: SolutionConfig; allSolutions: SolutionConfig[] }) {
   const ref = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setVisible(true);
+      return;
+    }
     const obs = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -25,30 +28,12 @@ export function SolutionNav({ solution, allSolutions }: { solution: SolutionConf
     return () => obs.disconnect();
   }, []);
 
-  // CTA glow tracking
-  useEffect(() => {
-    const cta = ctaRef.current;
-    if (!cta) return;
-    const glow = cta.querySelector<HTMLDivElement>('.sp-cta-glow');
-    if (!glow) return;
-
-    const handleMove = (e: MouseEvent) => {
-      const rect = cta.getBoundingClientRect();
-      glow.style.left = `${e.clientX - rect.left}px`;
-      glow.style.top = `${e.clientY - rect.top}px`;
-    };
-
-    cta.addEventListener('mousemove', handleMove);
-    return () => cta.removeEventListener('mousemove', handleMove);
-  }, []);
-
   const otherSolutions = allSolutions.filter((s) => s.slug !== solution.slug);
 
   return (
     <div ref={ref}>
       {/* CTA Section */}
-      <section className="sp-cta" ref={ctaRef}>
-        <div className="sp-cta-glow" style={{ background: `radial-gradient(circle, ${solution.color}30 0%, transparent 70%)` }} />
+      <section className="sp-cta">
         <div
           className="sp-cta-content"
           style={{
@@ -70,7 +55,6 @@ export function SolutionNav({ solution, allSolutions }: { solution: SolutionConf
               <path d="m12 5 7 7-7 7" />
             </svg>
           </Link>
-          <Link href="/" className="sp-back-link">&larr; Back to home</Link>
         </div>
       </section>
 

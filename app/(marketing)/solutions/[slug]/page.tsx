@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { SOLUTIONS, getSolutionBySlug } from '@/config/solutions';
-import { FEATURES } from '@/config/features';
 import { SolutionPageClient } from '@/views/components/solutions/SolutionPageClient';
 
 interface SolutionPageProps {
@@ -27,5 +26,5 @@ export default async function SolutionPage({ params }: SolutionPageProps) {
   const solution = getSolutionBySlug(slug);
   if (!solution) notFound();
 
-  return <SolutionPageClient solution={solution} allSolutions={SOLUTIONS} allFeatures={FEATURES} />;
+  return <SolutionPageClient solution={solution} allSolutions={SOLUTIONS} />;
 }

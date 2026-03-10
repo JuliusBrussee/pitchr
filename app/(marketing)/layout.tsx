@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import '@/app/(marketing)/solutions.css';
+import '@/app/(marketing)/features/chapters.css';
+import { MarketingNav } from '@/views/components/landing/MarketingNav';
 
 export const metadata: Metadata = {
   description:
@@ -11,5 +13,10 @@ export default function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      <MarketingNav />
+      {children}
+    </>
+  );
 }
