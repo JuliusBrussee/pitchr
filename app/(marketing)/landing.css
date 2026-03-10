@@ -1847,7 +1847,7 @@
 .landing .footer { position: relative; z-index: 2; padding: 32px 0; border-top: 1px solid var(--border); }
 .landing .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
 .landing .footer-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
-.landing .footer-links { display: flex; gap: 24px; }
+.landing .footer-links { display: flex; flex-wrap: wrap; column-gap: 20px; row-gap: 8px; }
 .landing .footer-link { font-size: 13px; color: var(--text-muted); transition: color 0.2s ease; font-weight: 500; }
 .landing .footer-link:hover { color: var(--text); }
 
@@ -1914,6 +1914,32 @@
     margin-top: -74px;
     padding-top: 156px;
   }
+  .landing .story-section-delivery .story-visual {
+    flex-direction: column;
+    padding-bottom: 24px;
+  }
+  .landing .live-transcript {
+    position: static;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    width: 100%;
+    max-width: 380px;
+    margin: 16px auto 0;
+  }
+  .landing .hero h1 { font-size: 36px; }
+  .landing .story-text h2 { font-size: 30px; }
+  .landing .testimonial-quote { font-size: 22px; }
+  .landing .section-title { font-size: 28px; }
+  .landing .hero-ctas { flex-direction: column; align-items: stretch; }
+  .landing .hero-ctas .btn-primary,
+  .landing .hero-ctas .btn-secondary { width: 100%; justify-content: center; }
+  .landing .nav-cta { padding: 10px 18px; }
+  .landing .theme-toggle { width: 36px; height: 36px; }
+  .landing .waitlist-toggle { width: 44px; height: 26px; }
+  .landing .waitlist-toggle-knob { width: 20px; height: 20px; }
+  .landing .footer-inner { flex-direction: column; align-items: flex-start; }
+  .landing .footer-links { justify-content: flex-start; column-gap: 16px; row-gap: 6px; }
   .landing .hero { padding: 100px 0 60px; }
   .landing .hero-presenter-layer {
     opacity: calc(var(--hero-presenter-opacity) - 0.34);
@@ -1922,12 +1948,12 @@
   }
   .landing .hero-spotlight {
     width: clamp(220px, 72vw, 300px);
-    right: -18%;
+    right: -22%;
     top: 42%;
   }
   .landing .hero-mic-pulse {
-    right: 16%;
-    top: 52%;
+    right: 14%;
+    top: 54%;
     width: 16px;
     height: 16px;
   }

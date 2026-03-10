@@ -195,6 +195,12 @@
   line-height: 1.65;
 }
 
+@media (max-width: 600px) {
+  .dl-section-title { font-size: 24px; }
+  .dl-hero h1 { font-size: 30px; }
+  .dl-hero-sub { font-size: 16px; }
+}
+
 /* ─── Browser Frame ─── */
 .dl-browser {
   background: var(--dl-bg-elevated);

@@ -648,6 +648,12 @@
   margin: 0;
 }
 
+@media (max-width: 600px) {
+  .pp-hero-question { font-size: 30px; }
+  .pp-section-title { font-size: 18px; }
+  .pp-faq-title { font-size: 22px; }
+}
+
 .pp-faq-list {
   display: flex;
   flex-direction: column;
