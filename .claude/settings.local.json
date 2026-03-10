@@ -25,7 +25,9 @@
       "Bash(npx playwright:*)",
       "Bash(npm list:*)",
       "Bash(tasklist:*)",
-      "Bash(yarn test:*)"
+      "Bash(yarn test:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)"
     ]
   }
 }
