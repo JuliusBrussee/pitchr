@@ -59,7 +59,7 @@ export function AppSidebar({
     <aside
       className="flex flex-col h-full w-60 rounded-2xl p-4 border flex-shrink-0"
       style={{
-        backgroundColor: 'var(--bg-surface)',
+        background: 'linear-gradient(180deg, rgba(255,89,65,0.04) 0%, transparent 40%), var(--bg-surface)',
         backdropFilter: `blur(var(--blur-strength))`,
         WebkitBackdropFilter: `blur(var(--blur-strength))`,
         borderColor: 'var(--border-color)',
@@ -67,8 +67,13 @@ export function AppSidebar({
     >
       {/* Logo + Theme Toggle */}
       <div className="flex items-center justify-between mb-6 px-2">
-        <div className="flex items-center gap-1.5">
-          <PitchrLogo size={14} />
+        <div className="flex items-center gap-2">
+          <div
+            className="rounded-lg overflow-hidden"
+            style={{ boxShadow: '0 0 20px rgba(255,89,65,0.3)' }}
+          >
+            <PitchrLogo size={14} />
+          </div>
           <span className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
             Pitchr
           </span>
