@@ -1,8 +1,5 @@
 import { type NextRequest } from 'next/server';
 import {
-  AUTH_ROUTES,
-  BLOCKED_ROUTES,
-  PROTECTED_ROUTES,
   updateSession,
 } from '@/lib/supabase/middleware';
 
@@ -11,10 +8,30 @@ export async function middleware(request: NextRequest) {
 }
 
 // Keep in sync with PROTECTED_ROUTES, AUTH_ROUTES, and BLOCKED_ROUTES in lib/supabase/middleware.ts.
-const MIDDLEWARE_ROUTES = Array.from(
-  new Set([...AUTH_ROUTES, ...PROTECTED_ROUTES, ...BLOCKED_ROUTES]),
-);
-
+// Next.js only accepts inline-literal matcher values here.
 export const config = {
-  matcher: MIDDLEWARE_ROUTES.map((route) => `${route}/:path*`),
+  matcher: [
+    '/login/:path*',
+    '/signup/:path*',
+    '/auth/:path*',
+    '/forgot-password/:path*',
+    '/arena/:path*',
+    '/orb-preview/:path*',
+    '/progress/:path*',
+    '/setup/:path*',
+    '/upload/:path*',
+    '/dashboard/:path*',
+    '/session/:path*',
+    '/history/:path*',
+    '/analytics/:path*',
+    '/results/:path*',
+    '/review/:path*',
+    '/deck/:path*',
+    '/qa/:path*',
+    '/settings/:path*',
+    '/projects/:path*',
+    '/demo/:path*',
+    '/compliance/:path*',
+    '/reset-password/:path*',
+  ],
 };
