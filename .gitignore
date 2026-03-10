@@ -49,3 +49,6 @@ ralph-claude-code/
 .ralphrc
 /.ralph-v1
 /.next-build
+
+# Temporary Instagram screenshots
+pitchr-instagram-*.png
