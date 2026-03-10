@@ -8,7 +8,7 @@ import type {
   CreatePitchRunRequest,
   CreatePitchRunResponse,
 } from '@/types/pitch';
-import { getEdgeErrorCode, getEdgeRedirectTo, parseRetryAfter } from '@/lib/supabase/edge-error';
+import { parseRetryAfter } from '@/lib/supabase/edge-error';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 
 export interface RunPitchAnalysisResult {
@@ -63,23 +63,6 @@ export function usePitchRun(): UsePitchRunReturn {
             const retryAfter = parseRetryAfter(response, body);
             triggerCooldown(retryAfter);
             throw new Error('Too many requests. Please try again shortly.');
-          }
-
-          const edgePayload = payload as unknown as Record<string, unknown>;
-          const code = getEdgeErrorCode(edgePayload);
-          const redirectTo = getEdgeRedirectTo(edgePayload);
-          if (code === 'GDPR_COMPLIANCE_REQUIRED' && redirectTo) {
-            const safeRedirect = redirectTo.startsWith('/') && !redirectTo.startsWith('//')
-              ? redirectTo
-              : '/compliance/check';
-            const nextPath = typeof window !== 'undefined'
-              ? `${window.location.pathname}${window.location.search}`
-              : '/dashboard';
-            const target = `${safeRedirect}?next=${encodeURIComponent(nextPath)}`;
-            if (typeof window !== 'undefined') {
-              window.location.assign(target);
-            }
-            throw new Error('GDPR compliance check required');
           }
 
           const errorMsg =
