@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useBilling } from '@/hooks/useBilling';
@@ -92,6 +93,17 @@ function SettingsContent() {
         {activeTab === 'general' && <GeneralTab />}
         {activeTab === 'billing' && <BillingTab />}
         {activeTab === 'rewards' && <RewardsTab />}
+
+        {/* Legal links */}
+        <div className="flex items-center gap-3 mt-8 pt-4 text-xs" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-color)' }}>
+          <Link href="/terms" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
+            Terms
+          </Link>
+          <span>·</span>
+          <Link href="/privacy" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
+            Privacy
+          </Link>
+        </div>
 
         <div className="h-8" />
       </div>

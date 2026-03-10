@@ -1,18 +1,39 @@
-import { notFound } from 'next/navigation';
-import Link from 'next/link';
+import { redirect, notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { FEATURES, getFeatureBySlug } from '@/config/features';
+import { CHAPTERS, getChapterBySlug, getRedirectChapter } from '@/config/chapters';
+import { FeaturePageClient } from '@/views/components/features/FeaturePageClient';
+import { AnalyzeChapter } from '@/views/components/features/chapters/AnalyzeChapter';
+import { ImproveChapter } from '@/views/components/features/chapters/ImproveChapter';
+import { PrepareChapter } from '@/views/components/features/chapters/PrepareChapter';
+import { TrackChapter } from '@/views/components/features/chapters/TrackChapter';
+import { CompeteChapter } from '@/views/components/features/chapters/CompeteChapter';
+import '@/app/(marketing)/features/chapters.css';
 
 interface FeaturePageProps {
   params: Promise<{ slug: string }>;
 }
 
+const CHAPTER_SLUGS = CHAPTERS.map((c) => c.slug);
+const ALL_SLUGS = [...CHAPTER_SLUGS, ...FEATURES.map((f) => f.slug)];
+
 export async function generateStaticParams() {
-  return FEATURES.map((f) => ({ slug: f.slug }));
+  return ALL_SLUGS.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: FeaturePageProps): Promise<Metadata> {
   const { slug } = await params;
+
+  /* Chapter page */
+  const chapter = getChapterBySlug(slug);
+  if (chapter) {
+    return {
+      title: `${chapter.title}: ${chapter.verb} — Pitchr`,
+      description: chapter.tagline,
+    };
+  }
+
+  /* Legacy feature page (will redirect, but metadata still needed for SEO) */
   const feature = getFeatureBySlug(slug);
   if (!feature) return {};
   return {
@@ -21,66 +42,35 @@ export async function generateMetadata({ params }: FeaturePageProps): Promise<Me
   };
 }
 
+const CHAPTER_COMPONENTS: Record<string, React.ComponentType<{ chapter: import('@/config/chapters').ChapterConfig }>> = {
+  analyze: AnalyzeChapter,
+  improve: ImproveChapter,
+  prepare: PrepareChapter,
+  track: TrackChapter,
+  compete: CompeteChapter,
+};
+
 export default async function FeaturePage({ params }: FeaturePageProps) {
   const { slug } = await params;
+
+  /* 1. Chapter page — render unique layout */
+  const chapter = getChapterBySlug(slug);
+  if (chapter) {
+    const Component = CHAPTER_COMPONENTS[chapter.slug];
+    return <Component chapter={chapter} />;
+  }
+
+  /* 2. Old feature slug — redirect to parent chapter */
+  const redirectSlug = getRedirectChapter(slug);
+  if (redirectSlug) {
+    redirect(`/features/${redirectSlug}`);
+  }
+
+  /* 3. Unknown slug — legacy feature page or 404 */
   const feature = getFeatureBySlug(slug);
-  if (!feature) notFound();
+  if (feature) {
+    return <FeaturePageClient feature={feature} allFeatures={FEATURES} />;
+  }
 
-  return (
-    <div className="feature-page" style={{ '--feature-color': feature.color } as React.CSSProperties}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '0 24px' }}>
-        {/* Hero */}
-        <section className="feature-hero">
-          <span className="feature-label-pill" style={{ backgroundColor: feature.color }}>
-            {feature.label}
-          </span>
-          <h1 className="feature-headline">{feature.headline}</h1>
-          <p className="feature-tagline">{feature.tagline}</p>
-        </section>
-
-        {/* Benefits */}
-        <section className="feature-benefits">
-          <div className="feature-benefits-grid">
-            {feature.benefits.map((b) => (
-              <div key={b.title} className="feature-benefit">
-                <div className="feature-benefit-icon">{b.icon}</div>
-                <div className="feature-benefit-title">{b.title}</div>
-                <div className="feature-benefit-desc">{b.description}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="feature-cta-section">
-          <h2 className="feature-cta-title">Ready to level up your pitch?</h2>
-          <Link
-            href="/#waitlist"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '12px 28px',
-              borderRadius: 10,
-              fontSize: 14,
-              fontWeight: 600,
-              color: '#fff',
-              background: feature.color,
-              textDecoration: 'none',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-            }}
-          >
-            Join the Waitlist
-            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
-          </Link>
-          <div>
-            <Link href="/" className="feature-back">&larr; Back to home</Link>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
+  notFound();
 }
