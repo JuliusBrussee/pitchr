@@ -312,29 +312,29 @@ export function ProgressHero({ progress, latestScore, animationDelay, streak, se
 
         {/* Streak & Sessions (shown when props provided) */}
         {(streak != null || sessionCount != null) && (
-          <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className="flex flex-col gap-1.5 flex-shrink-0">
             {streak != null && (
               <div
-                className="rounded-xl px-3 py-2.5 text-center"
+                className="rounded-lg px-2.5 py-1.5 text-center"
                 style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
               >
-                <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Streak
                 </div>
-                <div className="text-lg font-bold tabular-nums mt-0.5" style={{ color: '#ffaa33' }}>
+                <div className="text-base font-bold tabular-nums" style={{ color: '#ffaa33' }}>
                   {streak}
                 </div>
               </div>
             )}
             {sessionCount != null && (
               <div
-                className="rounded-xl px-3 py-2.5 text-center"
+                className="rounded-lg px-2.5 py-1.5 text-center"
                 style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
               >
-                <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <div className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Sessions
                 </div>
-                <div className="text-lg font-bold tabular-nums mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-base font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                   {sessionCount}
                 </div>
               </div>
