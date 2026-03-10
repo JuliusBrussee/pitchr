@@ -82,6 +82,19 @@
   - Do not publish launch announcement copy.
   - Replace with transparency post: what is complete, what is delayed, new estimated window.
 
+#### Friday go-live check list (copy-ready)
+- [ ] Readiness evidence packet posted in launch thread.
+- [ ] P0/P1 triage board current.
+- [ ] Support owner + response owner confirmed.
+- [ ] Final business post and one fallback post approved.
+- [ ] Access link (or alternate onboarding path) verified.
+
+#### Hard-fail fallback for business post
+- If any gate item is unresolved:
+  - Remove “launch now” claims.
+  - Publish “quality update + transparency + revised timeline” copy.
+  - Keep the tone constructive and move all hype CTA to waitlist readiness CTA.
+
 ### Daily schedule and flow
 
 | Date | Business-post window (CEST) | Publish owner | Approver | Backup | Precondition |
@@ -310,4 +323,3 @@ Hashtags: `#Pitchr #LaunchDay #FounderTools #PitchFeedback #PitchDeck #StartupMo
   - response SLA compliance
   - fallback usage
   - first 30-minute launch sentiment trend
-
