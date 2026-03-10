@@ -130,3 +130,18 @@ This file is the canonical running log for merge-conflict tracking and conflict-
 - Resolution policy for mediation:
   - Keep merged commits and audit/integrate; do not rewrite history.
   - Continue remaining work from current head with explicit branch/commit/merge logging.
+- Timestamp: `2026-03-10 15:04:14 +01:00`
+- Scope: MED-1 unexpected-changes mediator follow-up audit (workspace drift + merge-safety check for ongoing runs).
+- Evidence commands:
+  - `git status --porcelain=v2 --branch` -> clean worktree/index on `arav_multi_impl_features`; ahead `+22`, behind `0` vs `origin/arav_multi_impl_features`.
+  - `git diff --name-status origin/arav_multi_impl_features..HEAD` -> 22-commit delta across app, middleware, tests, and docs.
+  - `git merge-tree $(git merge-base HEAD main) main HEAD` -> merge-forecast hotspots: `.gitignore`, `app/layout.tsx` (`changed in both`).
+  - `Get-ChildItem -Recurse -File | Select-String -Pattern '^(<<<<<<<|=======|>>>>>>>)'` (excluding `node_modules`) -> no live conflict markers found.
+  - `git stash list` -> historical stash entries present on unrelated branches (no active stash apply in progress).
+- Unexpected-change assessment:
+  - No non-orchestrated file edits currently active in the working tree.
+  - Integration risk is concentrated in branch drift and overlap with `main` on shared bootstrap files.
+- Mediation policy update:
+  - Keep this branch non-destructive; do not reset/rewrite.
+  - Before new merges, preflight with `git merge-tree` and resolve `.gitignore` + `app/layout.tsx` first.
+  - Continue append-only logging here for every mediation run.
