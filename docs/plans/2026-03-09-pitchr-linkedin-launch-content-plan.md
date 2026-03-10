@@ -1,185 +1,346 @@
-# 5-Day LinkedIn Launch Plan (Mon-Fri, Launch Friday 2026-03-13)
+# Pitchr Launch Social Workflow (Tue–Fri, Launch Friday 2026-03-13)
 
-## Status
-- Applied the 5 requested skills in a second pass:
-  - perplexity-2
-  - create-content
-  - social-gen
-  - de-ai-ify
-  - content-writing-thought-leadership
-- Existing posts are treated as context:
-  - 2026-03-03 (intro + score dimensions + waitlist mindset)
-  - 2026-03-06 (3-line opening formula + rewrite offer)
-- This version does not repeat those core ideas.
+## Scope
+- Date window: **2026-03-10 (Tuesday) to 2026-03-13 (Friday)**, Europe/Amsterdam.
+- Launch day: **Friday, 2026-03-13**.
+- This file is the single operational source of truth for daily social workflow from today to Friday.
 
-## Skills workflow used
-1. `perplexity-2`: research point per day to keep posts evidence-first.
-2. `create-content`: draft each post in simple founder-style voice.
-3. `social-gen`: format for LinkedIn line rhythm and comment-first close.
-4. `de-ai-ify`: remove AI-sounding phrasing and make each post feel handwritten.
-5. `content-writing-thought-leadership`: lock in narrative progression from Monday to Friday.
+## 1) Current social media workflow summary (as of today)
+- The current plan is already strong in cadence and theme structure:
+  - Tue: decision-signal gap
+  - Wed: testable claims
+  - Thu: launch-readiness proof
+  - Fri: launch execution
+- It already contains three channels: business LinkedIn, founder LinkedIn, business Instagram.
+- Existing good parts:
+  - Clear daily cadence windows
+  - Initial SLA for reply windows
+  - End-of-day note-taking
+- Main gaps:
+  - Owner/approver ambiguity across some posts
+  - Missing hard go-live lock for Friday launch posts
+  - No universal fallback flow per founder/day
+  - Unbalanced content depth (some posts are fully specified while others are placeholder-like)
 
-## Daily research prompts for `perplexity-2`
-- Monday: founders' top feedback gaps that weaken pitching confidence.
-- Tuesday: measurable proof lines that improve pitch decision quality.
-- Wednesday: common weak claims that hurt credibility.
-- Thursday: trustworthy founder-product update patterns before launch.
-- Friday: framing launch communication on Friday the 13th without fear language.
+## 2) Audit summary: keep, add, change, remove
 
-## 2026-03-09 (Monday) - Decision signal gap
+### Keep
+- Tue–Fri 4-day cadence to Friday launch.
+- Channel split (business LinkedIn + founders + Instagram).
+- Comment-first engagement posture (close each post with a practical question).
+- End-of-day objections/response summary loop.
 
-### Posted version
-Great openings get attention.
-The real stall happens after attention.
+### Add
+- Explicit role matrix on every post:
+  - Draft Owner
+  - Approver
+  - Backup
+  - Emergency Owner
+- Hard Friday go-live gate based on release blockers.
+- Dedicated fallback posts for any missing founder draft.
+- Anti-overload rule: max one founder reply stream per question type and one response owner.
+- Duplicate-prevention checklist (no over-repeating the same claim across channels).
 
-I keep seeing the same pattern:
+### Change
+- Move from implicit assumptions to explicit time windows and hard deadlines.
+- Normalize naming (`business page`, `founder accounts`, `Instagram business`) everywhere.
+- Tighten claim policy: use only internal/product-verified, testable claims.
+- Standardize escalation and response routing.
 
-- Pain is clear, but no measurable cost.
-- Vision is clear, but no evidence that urgency is real.
-- Ask is clear, but not yet decision-oriented.
+### Remove
+- Generic owner placeholders (“someone” or “pending”) and copy without assigned owner.
+- “Launch now” language without evidence/verification.
+- Any unverifiable claim language in templates.
 
-That is where many founders get stuck.
-Pitchr scores your draft across structure, clarity, evidence, market, and delivery.
-Each run shows the exact decision signal missing next.
+## 3) Core operating model (all channels)
 
-If you want this signal map on your next pitch, join the waitlist:
-https://pitchr.live/waitlist
+- Timezone for execution: **CEST**.
+- Hard content deadline: **08:30 previous day for Monday-style blocking posts** (for Tue–Fri window use previous evening 18:30 prep), publish hard stop:
+  - **10:00 CEST (Fri exception: all launch content preflight by 07:45)**
+- Publish rhythm:
+  - Business LinkedIn first (primary message)
+  - Founders in staggered windows (to avoid overlap)
+  - Instagram feed/stories republished within ~45 minutes
+- Response priority:
+  - 0–20 min: first 5 meaningful comments
+  - 20–60 min: all direct questions
+  - up to 120 min: high-intent DMs
+- Go/no-go rule:
+  - If launch-readiness is not confirmed on Friday, publish “quality update + revised timing” fallback for all launch-day claims.
 
-What line in your pitch has the biggest evidence gap right now?
+## 4) Business LinkedIn workflow (Tue–Fri)
 
-### Why this is improved
-- No repeat of your intro post.
-- No repeat of your 3-line opening formula.
-- Moves from "what is Pitchr" to "what is still missing."
+### Launch-go-live gate
+- Baseline Friday gate (hard):
+  - `yarn typecheck` green
+  - `yarn test` green
+  - e2e smoke check green
+  - No unresolved **P0/P1** blockers
+  - On-call owner + triage owner assigned
+  - Waitlist/rewrite flow link verified
+- If gate fails:
+  - Do not publish launch announcement copy.
+  - Replace with transparency post: what is complete, what is delayed, new estimated window.
 
----
+#### Friday go-live check list (copy-ready)
+- [ ] Readiness evidence packet posted in launch thread.
+- [ ] P0/P1 triage board current.
+- [ ] Support owner + response owner confirmed.
+- [ ] Final business post and one fallback post approved.
+- [ ] Access link (or alternate onboarding path) verified.
 
-## 2026-03-10 (Tuesday) - Make claims testable
+#### Hard-fail fallback for business post
+- If any gate item is unresolved:
+  - Remove “launch now” claims.
+  - Publish “quality update + transparency + revised timeline” copy.
+  - Keep the tone constructive and move all hype CTA to waitlist readiness CTA.
 
-### Posted version
-If your line sounds confident but cannot be tested, it still feels random.
+### Daily schedule and flow
 
-Example:
+| Date | Business-post window (CEST) | Publish owner | Approver | Backup | Precondition |
+|---|---|---|---|---|---|
+| 2026-03-10 (Tue) | 08:45–09:15 | Social lead | Product/ops lead | Founder support | Draft + one real scoring example + CTA mapped |
+| 2026-03-11 (Wed) | 09:00–09:20 | Social lead | Content lead | Operations | Rewrite example ready |
+| 2026-03-12 (Thu) | 08:30–09:00 | Social lead | Founder lead | Backup founder | Launch-readiness list validated |
+| 2026-03-13 (Fri) | 07:45 pre-flight / 08:00 post / optional 11:00 pin | Founder lead | CEO / ops lead | Backup founder + social lead | Gate fully green + launch evidence packet posted |
 
-"Our platform helps teams communicate better with investors."
+### Tue 2026-03-10 — Decision-signal gap
+- Hook: “Most founders get attention. Most don’t make a clear decision decision.”
+- Focus: identify missing decision signal in opening line.
+- Structure:
+  1) Problem/decision framing
+  2) 3 common missing signals
+  3) Product tie-in (score + top fixes + rewrite route)
+  4) Ask readers for one sentence
+- CTA: “Drop the sentence that feels undecidable. I’ll give one precision rewrite.”
+- Response playbook: reply to top 5 comments in first 20 minutes.
 
-Try this:
+### Wed 2026-03-11 — Testable claims
+- Hook: “A confident claim without a number is often just a wish.”
+- Focus: one number, one unit, one timeframe.
+- Structure:
+  1) Weak claim example
+  2) Rewrite formula
+  3) Invite live rewrite challenge
+- CTA: “Post one line. I’ll rewrite it in comments.”
+- Response: one model rewrite in first comment within 30 minutes.
 
-"Teams using [X workflow] reduced prep churn from Y hours/week to Z hours/week
-and improved response clarity in follow-up meetings by W%."
+### Thu 2026-03-12 — One day to launch
+- Hook: “One day to launch: less hype, more proof.”
+- Focus: transparency updates (reliability improvements, readiness status).
+- Structure:
+  1) What changed in the last 24h
+  2) What still has risk
+  3) Invite top 3 fix list from audience
+- CTA: “Comment your top 1 fix to get a quick prioritization."
+- Response: creator-topic routing only (no generic comment spam).
 
-You need one number, one unit, one time frame.
-No number, no decision point.
+### Fri 2026-03-13 — Launch day
+- Hook: “Prepared 13 is launch-ready.”
+- Focus: proof-first launch post + clear invite.
+- Structure:
+  1) Gate status line
+  2) 5 bucket score snapshot
+  3) Top 3 fixes, rewrite option
+  4) clear first action
+- CTA: “Comment your first optimization priority (structure, clarity, evidence, market, delivery).”
+- Response: live response window 08:00–10:00, pin 11:00 follow-up.
 
-In score terms, this is how you turn a line from opinion to evidence.
+## 5) Founder LinkedIn workflow (Julius, Lucas, Martino, Arav)
 
-Join the waitlist for score-based rewrites:
-https://pitchr.live/waitlist
+### Daily posting schedule (all days CEST)
 
-Drop your first two lines and one specific metric you can defend.
+| Date | Julius | Lucas | Martino | Arav |
+|---|---|---|---|---|
+| 2026-03-10 (Tue) | 09:20 | 09:40 | 10:00 | 10:20 |
+| 2026-03-11 (Wed) | 09:20 | 09:40 | 10:00 | 10:20 |
+| 2026-03-12 (Thu) | 09:20 | 09:40 | 10:00 | 10:20 |
+| 2026-03-13 (Fri) | 09:20 | 09:40 | 10:00 | 10:20 |
 
-### Why this is improved
-- Builds directly from your published opening structure.
-- Adds measurable framing your first two posts did not.
-- Gives a practical rewrite pattern followers can copy.
+- Hard fallback rule: if draft not published by 10:00, use approved bridge post within 15 minutes.
+- Backup assignment:
+  - Julius → Lucas
+  - Lucas → Martino
+  - Martino → Arav
+  - Arav → Julius
+- Keep approved bridge post kits:
+  - 1 bridge post per founder (one-line challenge + one CTA)
+  - 1 founder-quote pack (3 reusable community responses)
+  - 1 “what to do today” checklist post for launch-day delays
 
----
+### Role-to-tone guidance
+- Julius (Builder): metrics-first, technical clarity, concise and precise.
+- Lucas (Pitch Coach): structured framework style, methodical and coaching tone.
+- Martino (Narrative): personal founder lessons and reflective language.
+- Arav (Community): question-led, high engagement, sentiment reading.
 
-## 2026-03-11 (Wednesday) - Teardown and correction
+### Comment ownership matrix
+- Product/technical reliability questions → Julius
+- Rubric/structure questions → Lucas
+- Story + emotional tone questions → Martino
+- Community sentiment + GTM questions → Arav
+- Sensitive/factual/legal questions → Ops + founder approver
+- SLA: 30–45 minutes for first reply by owner.
 
-### Posted version
-Teardown sample (anonymous):
+#### Response script pattern (for first reply)
+- “Great question. The fastest useful fix is: ...”
+- “Here is one stronger line you can use right now…”
+- “If you want, share your full opening and I’ll apply the same structure in 60 seconds.”
 
-"Our AI assistant helps teams improve their pitch performance."
+### Founder post opening prompts (ready-to-start lines)
+- Tue: “Most pitches have a great idea and a weak decision line.”
+- Wed: “A strong claim is one you can prove in one sentence.”
+- Thu: “One day to launch means fewer changes, sharper tradeoffs.”
+- Fri: “Prepared launch is about execution, not hype.”
 
-Why this fails:
+## 6) Business Instagram workflow (feed + stories)
 
-- It says what the tool does, not why a founder should care now.
-- It has no benchmark.
-- It gives no next action.
+- Strategy: every LinkedIn post becomes one Instagram asset within 45 minutes.
+- Caption formula (all days):
+  1) hook
+  2) problem signal
+  3) simple rule
+  4) one rewritten example
+  5) one question CTA
 
-Cleaner line:
+### Tue 2026-03-10 — Claim proofing
+- Feed: 4-slide carousel (weak claim vs rewritten claim).
+- Stories: 3-card proof check.
+- Feed time 08:45, stories 09:30.
+- CTA: “Drop first two lines and one metric you can defend.”
 
-"Founders are not missing confidence.
-They are missing a ranked list of what to fix before the next meeting."
+### Wed 2026-03-11 — Teardown challenge
+- Feed: quote card + 3-slide correction carousel.
+- Stories: 4-card anonymous teardown.
+- Feed time 12:00, stories 12:30 and 20:00.
+- CTA: “Drop one sentence and I’ll rewrite it.”
 
-Pitchr is designed for that: less noise, higher-priority action, faster improvement.
+### Thu 2026-03-12 — Readiness proof
+- Feed: 5-slide checklist and reliability updates.
+- Stories: readiness ladder + blocker collector.
+- Feed time 09:00, stories 09:20 and 18:00.
+- CTA: “Comment your top 1 deadline blocker.”
 
-Join the waitlist:
-https://pitchr.live/waitlist
+### Fri 2026-03-13 — Launch day
+- Feed: 4-slide value stack (score + fixes + rewrite + next step).
+- Optional reel: 15–25s quick launch loop.
+- Stories: launch loop, proof stack, priority poll.
+- Feed time 08:00, stories 08:15 and 17:30.
+- CTA: “Comment your first 3 edits and get a rewrite path.”
 
-Reply with one sentence and I'll rewrite it in the comments.
+#### Creative direction and posting rhythm
+- Use the brand palette: `#ff5941`, `#ffaa33`, `#e63b26`.
+- Prefer short, high-contrast carousels for claims, one rewrite per slide.
+- Map each LinkedIn paragraph into 2–3 story cards (copy reduction by 50%+).
+- Default reply rhythm:
+  - 0–30 min: top 5 comments
+  - 30–90 min: direct replies
+  - 90–120 min: move high-intent to DM
 
-### Why this is improved
-- Introduces applied teardown style, which you have not posted yet.
-- Increases engagement potential with practical correction.
-- Reinforces your scoring logic in one clean example.
+## 7) Pre-produced posts by day and channel
 
----
+Tone guideline: founder-authentic, practical, concise, and non-hype.  
+Compliance caveat: no competitor attacks, no unverifiable outcomes, no funding/revenue guarantees.
 
-## 2026-03-12 (Thursday) - Founder update before launch
+All posts below are final ready-to-paste copy options for Tue–Fri.  
+Each founder post variant is written so it can be posted from the founder profile without legal or competitor claims.
 
-### Posted version
-One day to launch.
-No hype. Here is what changed:
+### Tue 2026-03-10
 
-- Better prioritization of fixes so editing starts with impact.
-- Cleaner rewrites with less generic phrasing.
-- More consistent run-to-run scoring.
-- New tracking visibility to show improvement trend.
+#### Business LinkedIn
+`A strong opener gets attention. A clear decision signal gets replies.`  
+Most pitch feedback stalls after attention because the ask is unclear.  
+Pitchr scores in five areas and gives ranked fixes so founders can revise fast.  
+Reply with your opening line + one metric you can defend. I’ll help you tighten one line.
 
-If your pitch day is near, ask yourself:
-"Do I know the top 1-3 fixes, or am I still guessing?"
+Hashtags: `#Pitchr #FounderAdvice #PitchDeck #InvestorReadiness #PitchCoaching #Startup`
 
-One-day-to-launch access list is open:
-https://pitchr.live/waitlist
+#### Founder LinkedIn
+- **Julius:** “Most founders lose momentum in the first 30 seconds. The gap is usually the decision signal.”
+- **Lucas:** “If a founder says ‘we’re better,’ the first question should be: better by what measurable signal?”
+- **Martino:** “I used to think we needed pitch polish first. The bigger gap is usually proof + ask clarity.”
+- **Arav:** “Most pitches don’t fail because they’re vague. They fail because the ask isn’t easy to act on.”
 
-Comment with your next deadline (VC, demo day, or hackathon), and I'll point to your highest-impact edit lens.
+All four founder posts end with: “Comment one opening line and I’ll give one practical rewrite.”
 
-### Why this is improved
-- Adds pre-launch credibility with specific reliability updates.
-- Keeps momentum and urgency for final day push.
-- Keeps tone practical, not promotional.
+#### Business Instagram
+- Feed caption: “Your pitch doesn’t need perfection. It needs one clear decision line.”  
+CTA: “Drop your first line + one number in comments.”
+- Story set: weak/strong line poll, rewrite prompt, rewrite card, CTA sticker.
+Hashtags: `#Pitchr #StartupFounder #PitchDeck #FounderTips #BuildInPublic`
 
----
+### Wed 2026-03-11
 
-## 2026-03-13 (Friday) - Launch day
+#### Business LinkedIn
+“Confident claim is easy. Testable claim is what builds trust.”  
+Use this rule on your next sentence: one number + one unit + one timeframe.  
+Comment one sentence from your current pitch and I’ll rewrite it in the comments.
 
-### Posted version
-Unlucky 13 is a superstition.
-Prepared 13 is launch execution.
+Hashtags: `#Pitchr #PitchDeck #TestableClaims #FounderGrowth #Pitching`
 
-Today we launch Pitchr.
+#### Founder LinkedIn
+- **Julius:** “Treat your pitch like a draft: one claim, one measurable signal, one rewrite.”
+- **Lucas:** “Good feedback is specific. If a claim can’t be disproved, it isn’t useful yet.”
+- **Martino:** “Storytelling is strong when each sentence earns a decision.”
+- **Arav:** “What helps communities is clarity with an action line, not hype.”
 
-If you are pitching this quarter, one run gives you:
+All founder posts end with one line challenge + offer rewrite.
 
-- score in five decision buckets
-- top 3 fixes ranked by impact
-- a rewrite you can test immediately
-- run-by-run progress tracking
+#### Business Instagram
+- Feed caption: “A claim without proof is just a wish.” + one-number rule.
+- Story set: “Paste a line,” “what hurts,” “fix pattern,” “comment one line.”
+Hashtags: `#Pitchr #PitchCoach #Pitching #TestableClaims #StartupCommunication`
 
-If your pitch feels random, this is the moment to switch from guessing to a measurable improvement loop.
+### Thu 2026-03-12
 
-Friday the 13th. Launch live now.
-Join the founder waitlist:
-https://pitchr.live/waitlist
+#### Business LinkedIn
+“One day to launch. Less perfection, more proof.”  
+Here’s what changed since Tue: clearer evidence checks, better rewrite priority, and cleaner opening structure.  
+Comment your top 1 fix you still need before your own launch.
 
-What will you improve first: structure, evidence, or the ask?
+Hashtags: `#Pitchr #ProductLaunch #FounderExecution #PitchReadiness #StartupGrowth`
 
-### Why this is improved
-- Launch post is decisive, not repetitive.
-- Keeps Friday-the-13 angle while avoiding fear framing.
-- Clear ask anchored to waitlist signup.
+#### Founder LinkedIn
+- **Julius:** “Tomorrow is launch. Today is reducing uncertainty.”
+- **Lucas:** “Launch should be about clear execution, not hype.”
+- **Martino:** “If your pitch is strong on vision but weak on proof, trim the claims and keep the structure.”
+- **Arav:** “What part of your pitch is still a bottleneck right now?”
 
-## CTA variants for the week
-- Variant A: "Get first access updates: https://pitchr.live/waitlist"
-- Variant B: "Drop your first two lines and one metric."
-- Variant C: "Share one sentence for a teardown rewrite in comments."
-- Variant D: "Comment your pitch deadline for a targeted edit recommendation."
-- Variant E: "Get founder-seat access on launch day."
+All founder posts include: “Comment your top 3 fixes and get prioritized help.”
 
-## Anti-redundancy checklist
-- New angle each day: signal gap, measurable claims, teardown, reliability, launch.
-- Each post ends with one commentable question.
-- No major idea repeats from 3/3 or 3/6.
-- Keep post time at 09:00 Europe/Amsterdam and respond fast.
+#### Business Instagram
+- Feed caption: “Launch week wins come from trustworthy updates, not over-polished slides.”
+- Story set: readiness ladder, red/amber/green blocker tracker, top blocker comment request.
+Hashtags: `#Pitchr #LaunchWeek #StartupLaunch #PitchPrep #Founders`
+
+### Fri 2026-03-13 (Launch Day)
+
+#### Business LinkedIn
+“Prepared 13 is launch-ready.”  
+Today’s launch post is simple: score snapshot (5 buckets), top 3 fixes, immediate rewrite route.  
+Comment your current focus area and we’ll share a practical first-step rewrite sequence.
+
+Hashtags: `#Pitchr #LaunchDay #PitchDeck #FounderTools #InvestorReadiness #Pitching`
+
+#### Founder LinkedIn
+- **Julius:** “Launch is live with a focus on actionable improvements. No fluff—just repeatable loops.”
+- **Lucas:** “If you want practical progress, start with one run, one fix, one rewrite.”
+- **Martino:** “A launch is execution, not a marketing event. Comment your highest-pressure ask.”
+- **Arav:** “If your pitch matters this quarter, we can help you improve the next sentence today.”
+
+#### Business Instagram
+- Feed caption: “Launch day: we move from announcement to execution. Run, score, rewrite, improve.”
+- Story set: launch proof, 1-minute rewrite challenge, poll (structure / evidence / ask), top comment roundup.
+Hashtags: `#Pitchr #LaunchDay #FounderTools #PitchFeedback #PitchDeck #StartupMomentum`
+
+## 8) End-of-day wrap and quality checks
+- Capture:
+  - top 3 objections
+  - top 3 founder replies
+  - 2–3 content variants to repurpose
+  - any blocked posts and reason
+- Success checks:
+  - comments-to-responses ratio
+  - response SLA compliance
+  - fallback usage
+  - first 30-minute launch sentiment trend

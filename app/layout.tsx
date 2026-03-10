@@ -6,6 +6,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const ENABLE_VERCEL_INSIGHTS = process.env.NEXT_PUBLIC_ENABLE_VERCEL_INSIGHTS !== 'false';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://pitchr.live';
 
@@ -90,8 +91,8 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
         </ThemeProvider>
-        <SpeedInsights />
-        <Analytics />
+        {ENABLE_VERCEL_INSIGHTS ? <SpeedInsights /> : null}
+        {ENABLE_VERCEL_INSIGHTS ? <Analytics /> : null}
       </body>
     </html>
   );
