@@ -12,8 +12,10 @@ import { LandingBlog } from '@/views/components/landing/LandingBlog';
 import { LandingPricing } from '@/views/components/landing/LandingPricing';
 import { DELIVERY_WAVE_BARS } from '@/views/components/landing/heroDeliveryFunnel.config';
 import { JourneyBarLanding } from '@/views/components/features/JourneyBar';
+import { SolutionsDropdown } from '@/views/components/landing/SolutionsDropdown';
 import type { CSSProperties } from 'react';
 import '@/app/(marketing)/landing.css';
+import '@/app/(marketing)/solutions.css';
 import '@/app/(marketing)/features/chapters.css';
 
 export const revalidate = 3600;
@@ -39,9 +41,7 @@ export default function LandingPage() {
               Pitchr
             </Link>
             <div className="nav-links">
-              <Link href="/features/analyze" className="nav-link">
-                Features
-              </Link>
+              <SolutionsDropdown />
               <a href="#pricing" className="nav-link">
                 Plans
               </a>
@@ -340,6 +340,9 @@ export default function LandingPage() {
               Pitchr — AI Pitch Coach
             </div>
             <div className="footer-links">
+              <Link href="/solutions/elevator-pitch" className="footer-link">
+                Solutions
+              </Link>
               <Link href="/about" className="footer-link">
                 About
               </Link>
