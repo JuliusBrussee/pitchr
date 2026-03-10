@@ -520,7 +520,7 @@ For v1, HTML/CSS slides are the right choice because:
 - Easier to make responsive
 - Can still export to PDF/PPTX via separate renderers
 
-Canvas-based freeform editing (a la Chronicle) would be a v2/v3 feature if user demand warrants it.
+Canvas-based freeform editing (a la Chronicle) would be a v2/v3 feature if user demand warrants it. See [canvas-editing-technologies.md](canvas-editing-technologies.md) for comprehensive research on Konva, Fabric.js, tldraw, Excalidraw, PixiJS, and HTML/CSS approaches — **Konva.js + react-konva** is the recommended canvas library when that time comes.
 
 ### PDF Export (Enhanced)
 
