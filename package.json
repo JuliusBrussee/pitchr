@@ -31,7 +31,7 @@
     "build:claude": "yarn prepare:next-cache && cross-env NODE_PATH=./node_modules NEXT_DIST_DIR=.next-build next build",
     "start": "cross-env NODE_PATH=./node_modules next start",
     "pretypecheck": "yarn check:vercel-integrations",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "remotion:dev": "remotion studio lib/video/Root.tsx",
