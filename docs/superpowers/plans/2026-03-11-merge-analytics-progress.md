@@ -12,7 +12,7 @@
 
 ---
 
-## Chunk 1: Extract chart components and clean up dead code
+## Chunk 1: Extract chart components and update ProgressHero
 
 ### Task 1: Extract analytics helper functions into shared module
 
@@ -40,10 +40,56 @@ export const CATEGORY_LABELS: Record<string, string> = {
 
 All types should use `export interface` / `export type`. All functions should use `export function`.
 
+Additionally, **extend `computeStatDeltas`** to also compute WPM and filler deltas. Add to the return type:
+
+```typescript
+// Add these fields to the return object of computeStatDeltas:
+// WPM delta
+const newerWpm = newerHalf.filter(r => Number.isFinite(r.analysis.delivery_metrics?.wpm));
+const olderWpm = olderHalf.filter(r => Number.isFinite(r.analysis.delivery_metrics?.wpm));
+let wpmDelta: string | undefined;
+let wpmDir: 'up' | 'down' | undefined;
+let wpmIsGood: boolean | undefined;
+if (newerWpm.length > 0 && olderWpm.length > 0) {
+  const avgNewerWpm = newerWpm.reduce((s, r) => s + r.analysis.delivery_metrics.wpm, 0) / newerWpm.length;
+  const avgOlderWpm = olderWpm.reduce((s, r) => s + r.analysis.delivery_metrics.wpm, 0) / olderWpm.length;
+  const wpmDiff = Math.round(avgNewerWpm - avgOlderWpm);
+  if (wpmDiff !== 0) {
+    wpmDelta = `${Math.abs(wpmDiff)} WPM`;
+    wpmDir = wpmDiff > 0 ? 'up' : 'down';
+    // WPM closer to 130-160 is better; simplify: treat increase as neutral
+    wpmIsGood = undefined;
+  }
+}
+
+// Filler delta (total count across sessions)
+const newerFillers = newerHalf.map(r =>
+  (r.analysis.delivery_metrics?.filler_words ?? []).reduce((s, f) => s + (f.count ?? 0), 0)
+);
+const olderFillers = olderHalf.map(r =>
+  (r.analysis.delivery_metrics?.filler_words ?? []).reduce((s, f) => s + (f.count ?? 0), 0)
+);
+let fillerDelta: string | undefined;
+let fillerDir: 'up' | 'down' | undefined;
+let fillerIsGood: boolean | undefined;
+if (newerFillers.length > 0 && olderFillers.length > 0) {
+  const avgNewerFiller = newerFillers.reduce((s, v) => s + v, 0) / newerFillers.length;
+  const avgOlderFiller = olderFillers.reduce((s, v) => s + v, 0) / olderFillers.length;
+  const fillerDiff = Math.round(avgNewerFiller - avgOlderFiller);
+  if (fillerDiff !== 0) {
+    fillerDelta = `${Math.abs(fillerDiff)}`;
+    fillerDir = fillerDiff > 0 ? 'up' : 'down';
+    fillerIsGood = fillerDiff < 0; // fewer fillers = better
+  }
+}
+
+// Add to return: wpmDelta, wpmDir, wpmIsGood, fillerDelta, fillerDir, fillerIsGood
+```
+
 - [ ] **Step 2: Verify the file compiles**
 
-Run: `cd /Users/julb/Desktop/GitHub/pitchr && npx tsc --noEmit lib/analytics.ts 2>&1 | head -20`
-Expected: No errors (or only errors about missing imports that will resolve with full build)
+Run: `cd /Users/julb/Desktop/GitHub/pitchr && npx tsc --noEmit 2>&1 | head -20`
+Expected: No type errors related to `lib/analytics.ts`
 
 - [ ] **Step 3: Commit**
 
@@ -67,7 +113,7 @@ git commit -m "refactor: extract analytics helpers into shared lib/analytics mod
 
 - [ ] **Step 1: Create `ScoreTrendChart.tsx`**
 
-Extract the `ScoreTrendChart` function component from `analytics/page.tsx` lines 642-748 into its own file. Add necessary imports:
+Extract the `ScoreTrendChart` function component from `analytics/page.tsx` lines 642-748 (include closing brace) into its own file:
 
 ```typescript
 // views/components/insights/ScoreTrendChart.tsx
@@ -83,7 +129,7 @@ export function ScoreTrendChart({ data }: { data: TrendPoint[] }) {
 
 - [ ] **Step 2: Create `RubricTrendChart.tsx`**
 
-Extract from `analytics/page.tsx` lines 758-891. Imports needed: `CATEGORY_LABELS` from `@/lib/analytics`, `RUBRIC_COLORS` and `getRubricColor` from `@/views/components/ui`, and the `RubricTrendPoint` type from `@/lib/analytics`.
+Extract from `analytics/page.tsx` lines 758-892 (include closing brace). Imports needed: `CATEGORY_LABELS` from `@/lib/analytics`, `RUBRIC_COLORS` and `getRubricColor` from `@/views/components/ui`, and the `RubricTrendPoint` type from `@/lib/analytics`.
 
 ```typescript
 // views/components/insights/RubricTrendChart.tsx
@@ -94,46 +140,46 @@ import { CATEGORY_LABELS } from '@/lib/analytics';
 import { RUBRIC_COLORS, getRubricColor } from '@/views/components/ui';
 
 export function RubricTrendChart({ data }: { data: RubricTrendPoint[] }) {
-  // ... exact same implementation from analytics/page.tsx lines 758-891
+  // ... exact same implementation from analytics/page.tsx lines 758-892
 }
 ```
 
 - [ ] **Step 3: Create `WpmTrendChart.tsx`**
 
-Extract from `analytics/page.tsx` lines 894-1013.
+Extract from `analytics/page.tsx` lines 894-1014 (include closing brace).
 
 ```typescript
 // views/components/insights/WpmTrendChart.tsx
 'use client';
 
 export function WpmTrendChart({ data }: { data: { label: string; wpm: number }[] }) {
-  // ... exact same implementation from analytics/page.tsx lines 894-1013
+  // ... exact same implementation from analytics/page.tsx lines 894-1014
 }
 ```
 
 - [ ] **Step 4: Create `FillerTrendChart.tsx`**
 
-Extract from `analytics/page.tsx` lines 1016-1112.
+Extract from `analytics/page.tsx` lines 1016-1113 (include closing brace).
 
 ```typescript
 // views/components/insights/FillerTrendChart.tsx
 'use client';
 
 export function FillerTrendChart({ data }: { data: { label: string; total: number }[] }) {
-  // ... exact same implementation from analytics/page.tsx lines 1016-1112
+  // ... exact same implementation from analytics/page.tsx lines 1016-1113
 }
 ```
 
 - [ ] **Step 5: Create `FillerAggregateTable.tsx`**
 
-Extract from `analytics/page.tsx` lines 1115-1160.
+Extract from `analytics/page.tsx` lines 1115-1161 (include closing brace).
 
 ```typescript
 // views/components/insights/FillerAggregateTable.tsx
 'use client';
 
 export function FillerAggregateTable({ data }: { data: { word: string; total: number }[] }) {
-  // ... exact same implementation from analytics/page.tsx lines 1115-1160
+  // ... exact same implementation from analytics/page.tsx lines 1115-1161
 }
 ```
 
@@ -183,13 +229,13 @@ interface ProgressHeroProps {
 
 - [ ] **Step 2: Render streak and session count boxes inside the hero**
 
-In the `ProgressHero` component, destructure the new props and add stat boxes after the Score Ring div (after line 253, before the Level Info div). These render only when the props are provided:
+Destructure the new props in the component signature:
 
 ```tsx
 export function ProgressHero({ progress, latestScore, animationDelay, streak, sessionCount }: ProgressHeroProps) {
 ```
 
-Add after the `{/* Score Ring */}` div (line 253) and before `{/* Level Info */}` div (line 257), insert a new flex column to the right of the ring but before the level info — or more naturally, add it as a flex-shrink-0 column at the end of the hero's flex row (after the Level Info div, before the closing `</div>` of the relative flex row at line 310):
+Add the stat boxes **at the end of the hero's flex row** — after the Level Info `</div>` (line 309), before the closing `</div>` of the `relative flex items-center gap-8` container (line 310). This places them on the right side of the hero card:
 
 ```tsx
         {/* Streak & Sessions (shown when props provided) */}
@@ -239,53 +285,9 @@ git commit -m "feat: add optional streak and sessionCount props to ProgressHero"
 
 ---
 
-### Task 4: Clean up dead code in progress components
+## Chunk 2: Create Insights page, update routing, clean up
 
-**Files:**
-- Modify: `views/components/progress/index.ts`
-- Delete: `views/components/progress/ProgressKanban.tsx`
-- Delete: `views/components/progress/StreakBadge.tsx`
-- Delete: `views/components/progress/MomentumPanel.tsx`
-- Delete: `views/components/progress/ScoreTimeline.tsx`
-- Delete: `views/components/progress/CategoryProgressCard.tsx`
-
-- [ ] **Step 1: Update barrel export**
-
-Replace `views/components/progress/index.ts` with:
-
-```typescript
-export { ProgressHero } from './ProgressHero';
-export { SkillLadder } from './SkillLadder';
-export { FixTracker } from './FixTracker';
-```
-
-- [ ] **Step 2: Delete unused component files**
-
-```bash
-rm views/components/progress/ProgressKanban.tsx
-rm views/components/progress/StreakBadge.tsx
-rm views/components/progress/MomentumPanel.tsx
-rm views/components/progress/ScoreTimeline.tsx
-rm views/components/progress/CategoryProgressCard.tsx
-```
-
-- [ ] **Step 3: Verify build**
-
-Run: `cd /Users/julb/Desktop/GitHub/pitchr && yarn build:claude 2>&1 | tail -20`
-Expected: Build may fail because `progress/page.tsx` still imports the deleted components. This is expected — we'll fix it in Chunk 2 when we replace the page. If it fails, that's OK, just confirm the errors are only from `progress/page.tsx` imports.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add -u views/components/progress/
-git commit -m "refactor: remove unused progress components (MomentumPanel, ScoreTimeline, CategoryProgressCard, ProgressKanban, StreakBadge)"
-```
-
----
-
-## Chunk 2: Create Insights page and update routing
-
-### Task 5: Create the Insights page
+### Task 4: Create the Insights page
 
 **Files:**
 - Create: `app/(app)/insights/page.tsx`
@@ -334,7 +336,6 @@ import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useSmartTooltip } from '@/hooks/useSmartTooltip';
 import { useProject } from '@/views/components/ProjectProvider';
 import { ProjectSelect } from '@/views/components/ProjectSelect';
-import { normalizeRuns as normalizeSharedRuns } from '@/lib/runNormalization';
 import { computeProgress } from '@/lib/progress';
 import type { ProgressRunRecord, ProgressSummary } from '@/lib/progress';
 import {
@@ -348,15 +349,83 @@ import {
 import type { RunRecord } from '@/lib/analytics';
 ```
 
-**Data fetching:** Use the Progress page's approach — fetch with `{ allProjects: 'true', summary: 'true' }`. Store raw runs. Apply project filter and time range filter client-side. Run both `computeProgress()` (for hero, skill ladder, fixes) and analytics compute functions (for charts) on the same filtered data.
+**Note:** `useTutorial` is intentionally omitted — tutorial tour attributes are dropped per spec. They can be re-added later with `/insights`-specific IDs if needed.
 
-**Normalization:** The page needs to produce both `RunRecord` (for analytics charts) and `ProgressRunRecord` (for `computeProgress`). The raw data from the API contains fields for both. Create a local `normalizeRunForAnalytics` function that maps the raw run to `RunRecord` type (needs `id`, `projectId`, `overallScore`, `createdAt`, `analysis.rubric_breakdown`, `analysis.delivery_metrics` with `wpm`, `duration_seconds`, `filler_words`). Create a `normalizeRunForProgress` function (same as existing in progress page — needs `mode`, `projectName`, `analysis.one_line_verdict`, `analysis.top_fixes`).
+**Raw run type:** Define a local `RawRun` interface that covers all fields needed by both normalizers. The API returns data with all these fields:
+
+```typescript
+interface RawRun {
+  id: string;
+  mode: string;
+  overallScore: number;
+  createdAt: string;
+  projectId?: string;
+  projectName?: string;
+  analysis: {
+    one_line_verdict: string;
+    rubric_breakdown: { category: string; score: number; max_score: number }[];
+    delivery_metrics: {
+      duration_seconds: number;
+      wpm: number;
+      filler_rate: number;
+      filler_words?: { word: string; count: number }[];
+    };
+    top_fixes?: { rank: number; category: string; issue: string; fix: string; impact: string }[];
+  };
+}
+```
+
+**Normalization functions:** Two local functions to map `RawRun` to each consumer's expected type:
+
+```typescript
+function normalizeForProgress(raw: RawRun): ProgressRunRecord {
+  return {
+    id: raw.id,
+    createdAt: raw.createdAt,
+    overallScore: raw.overallScore,
+    mode: raw.mode,
+    projectId: raw.projectId,
+    projectName: raw.projectName,
+    analysis: {
+      one_line_verdict: raw.analysis.one_line_verdict,
+      rubric_breakdown: raw.analysis.rubric_breakdown ?? [],
+      delivery_metrics: {
+        duration_seconds: raw.analysis.delivery_metrics?.duration_seconds ?? 0,
+        wpm: raw.analysis.delivery_metrics?.wpm ?? 0,
+        filler_rate: raw.analysis.delivery_metrics?.filler_rate ?? 0,
+      },
+      top_fixes: raw.analysis.top_fixes ?? [],
+    },
+  };
+}
+
+function normalizeForAnalytics(raw: RawRun): RunRecord {
+  return {
+    id: raw.id,
+    projectId: raw.projectId,
+    overallScore: raw.overallScore,
+    createdAt: raw.createdAt,
+    analysis: {
+      rubric_breakdown: raw.analysis.rubric_breakdown ?? [],
+      delivery_metrics: {
+        wpm: raw.analysis.delivery_metrics?.wpm ?? 0,
+        duration_seconds: raw.analysis.delivery_metrics?.duration_seconds ?? 0,
+        filler_words: raw.analysis.delivery_metrics?.filler_words ?? [],
+        repeated_phrases: [],
+        within_time_limit: true,
+      },
+    },
+  };
+}
+```
+
+**Data fetching:** Use the Progress page's approach — fetch with `{ allProjects: 'true', summary: 'true' }`. Store raw runs. Use `useSmartTooltip` with ref pattern (same as existing pages). Use `useDelayedLoading` for skeleton.
 
 **State:**
 ```typescript
-const [range, setRange] = useState<TimeRange>('30D');
+const [range, setRange] = useState<TimeRange>('30D'); // 30D default (broader view for combined page)
 const [filterProjectId, setFilterProjectId] = useState('all');
-const [allRuns, setAllRuns] = useState<RawRun[]>([]); // raw from API
+const [allRuns, setAllRuns] = useState<RawRun[]>([]);
 const [loading, setLoading] = useState(true);
 const [fetchError, setFetchError] = useState(false);
 ```
@@ -364,40 +433,76 @@ const [fetchError, setFetchError] = useState(false);
 **Computed values (all useMemo):**
 ```typescript
 // Filter by project
-const projectFilteredRuns = filterProjectId === 'all' ? allRuns : allRuns.filter(r => r.projectId === filterProjectId);
+const projectFilteredRuns = useMemo(
+  () => filterProjectId === 'all' ? allRuns : allRuns.filter(r => r.projectId === filterProjectId),
+  [allRuns, filterProjectId]
+);
 
 // For progress (no time range filter — progress is cumulative)
-const progressRuns: ProgressRunRecord[] = projectFilteredRuns.map(normalizeRunForProgress);
-const progress: ProgressSummary = computeProgress(progressRuns);
+const progressRuns = useMemo(() => projectFilteredRuns.map(normalizeForProgress), [projectFilteredRuns]);
+const progress: ProgressSummary = useMemo(() => computeProgress(progressRuns), [progressRuns]);
 
 // For analytics (apply time range filter)
-const analyticsRuns: RunRecord[] = projectFilteredRuns.map(normalizeRunForAnalytics);
-const timeFilteredRuns = filterByRange(analyticsRuns, range);
-const trendData = computeTrend(timeFilteredRuns, range);
-const rubricTrend = computeRubricTrend(timeFilteredRuns, range);
-const wpmTrend = computeWpmTrend(timeFilteredRuns);
-const fillerData = computeFillerData(timeFilteredRuns);
-const deltas = computeStatDeltas(timeFilteredRuns);
+const analyticsRuns = useMemo(() => projectFilteredRuns.map(normalizeForAnalytics), [projectFilteredRuns]);
+const timeFilteredRuns = useMemo(() => filterByRange(analyticsRuns, range), [analyticsRuns, range]);
+const trendData = useMemo(() => computeTrend(timeFilteredRuns, range), [timeFilteredRuns, range]);
+const rubricTrend = useMemo(() => computeRubricTrend(timeFilteredRuns, range), [timeFilteredRuns, range]);
+const wpmTrend = useMemo(() => computeWpmTrend(timeFilteredRuns), [timeFilteredRuns]);
+const fillerData = useMemo(() => computeFillerData(timeFilteredRuns), [timeFilteredRuns]);
+const deltas = useMemo(() => computeStatDeltas(timeFilteredRuns), [timeFilteredRuns]);
+
+// Summary strip values (from time-filtered analytics runs)
+const avgWpm = useMemo(() => {
+  const wpmRuns = timeFilteredRuns.filter(r => Number.isFinite(r.analysis.delivery_metrics?.wpm) && r.analysis.delivery_metrics.wpm > 0);
+  return wpmRuns.length > 0 ? Math.round(wpmRuns.reduce((s, r) => s + r.analysis.delivery_metrics.wpm, 0) / wpmRuns.length) : 0;
+}, [timeFilteredRuns]);
+
+const avgDuration = useMemo(() => {
+  const durRuns = timeFilteredRuns.filter(r => r.analysis.delivery_metrics?.duration_seconds != null);
+  if (durRuns.length === 0) return '0:00';
+  const avg = Math.round(durRuns.reduce((s, r) => s + r.analysis.delivery_metrics.duration_seconds, 0) / durRuns.length);
+  return `${Math.floor(avg / 60)}:${(avg % 60).toString().padStart(2, '0')}`;
+}, [timeFilteredRuns]);
+
+const totalFillers = useMemo(() => {
+  return timeFilteredRuns.reduce((total, r) =>
+    total + (r.analysis.delivery_metrics?.filler_words ?? []).reduce((s, f) => s + (f.count ?? 0), 0),
+  0);
+}, [timeFilteredRuns]);
+
+const latestScore = progress.overallTrend.length > 0
+  ? progress.overallTrend[progress.overallTrend.length - 1].score
+  : 0;
 ```
 
+**Achievements:** Same pattern as progress page:
+```typescript
+const achievements = useAchievements();
+useEffect(() => {
+  if (progressRuns.length > 0) achievements.processRuns(progressRuns);
+}, [progressRuns, achievements.processRuns]);
+```
+
+**Project filter options:** Same pattern as progress page — build from `projects` array.
+
 **Render order (matching spec):**
-1. Header row: icon + "Insights" title + ProjectSelect dropdown + TimeRangeSelector
-2. ProgressHero with `streak={progress.currentStreak}` and `sessionCount={progress.totalSessions}`
-3. Summary strip: 3 StatCards (Avg WPM, Avg Duration, Filler Words — computed from `timeFilteredRuns`)
-4. Score Trend chart in GlassCard
-5. Category Trends chart in GlassCard
-6. Skill Ladder section with SectionHeader
-7. Delivery Metrics: two GlassCards side by side — WPM chart + Filler Words (FillerTrendChart + FillerAggregateTable)
-8. Fix Tracker in GlassCard
-9. Achievements in GlassCard
+1. Header row: `TrendingUp` icon + "Insights" title + subtitle + ProjectSelect dropdown + TimeRangeSelector
+2. Empty state check: if `progress.totalSessions === 0`, show empty state with retry button (same as progress page)
+3. `ProgressHero` with `streak={progress.currentStreak}` and `sessionCount={progress.totalSessions}`
+4. Summary strip: 3 `StatCard`s in a `grid grid-cols-3 gap-4`:
+   - "Avg WPM" with value `String(avgWpm)`, icon `<Activity size={16} />`, delta from `deltas.wpmDelta`, direction `deltas.wpmDir`, isGood `deltas.wpmIsGood`
+   - "Avg Duration" with value `avgDuration`, icon `<Clock size={16} />`, delta from `deltas.durationDelta`, direction `deltas.durationDir`, isGood `deltas.durationIsGood`
+   - "Filler Words" with value `String(totalFillers)`, icon `<MessageSquare size={16} />`, delta from `deltas.fillerDelta`, direction `deltas.fillerDir`, isGood `deltas.fillerIsGood`
+5. Score Trend: `GlassCard` > `SectionHeader("Score Trend")` + time range label + `ScoreTrendChart`
+6. Category Trends: `GlassCard` > `SectionHeader("Rubric Category Trend")` + `RubricTrendChart`
+7. Skill Ladder: `SectionHeader("Skill Progression")` + `SkillLadder` with `progress.categories`
+8. Delivery Metrics: `grid grid-cols-1 md:grid-cols-2 gap-4` with:
+   - `GlassCard` > WPM section header + `WpmTrendChart`
+   - `GlassCard` > Filler Words section header + `grid grid-cols-2 gap-6` > `FillerTrendChart` + `FillerAggregateTable`
+9. Fix Tracker: `GlassCard` > `FixTracker` with `progress.fixes`
+10. Achievements: `GlassCard` > `AchievementSummary` with `achievements.state` and `achievements.progress`
 
-**Empty state:** When `progress.totalSessions === 0`, show the same empty state as the current progress page (with fetchError handling and retry button).
-
-**Loading state:** Same skeleton pattern as current progress page.
-
-**Achievements:** Same `useAchievements` + `processRuns` pattern as current progress page.
-
-**latestScore:** Same computation as current progress page: `progress.overallTrend[progress.overallTrend.length - 1]?.score ?? 0`
+**Loading state:** Same skeleton pattern as current progress page (check `showSkeleton`).
 
 - [ ] **Step 2: Verify the page builds**
 
@@ -413,7 +518,7 @@ git commit -m "feat: create merged Insights page combining Analytics and Progres
 
 ---
 
-### Task 6: Update sidebar navigation
+### Task 5: Update sidebar navigation
 
 **Files:**
 - Modify: `views/components/AppSidebar.tsx:35-42`
@@ -452,11 +557,19 @@ git commit -m "feat: update sidebar nav — replace Analytics+Progress with Insi
 
 ---
 
-### Task 7: Replace progress page with redirect, delete analytics page
+### Task 6: Replace progress page with redirect, delete analytics page, clean up dead components
+
+This task combines the routing changes with the dead code cleanup so the build never breaks between commits.
 
 **Files:**
 - Replace: `app/(app)/progress/page.tsx`
-- Delete: `app/(app)/analytics/page.tsx`
+- Delete: `app/(app)/analytics/page.tsx` (and directory if empty)
+- Modify: `views/components/progress/index.ts`
+- Delete: `views/components/progress/ProgressKanban.tsx`
+- Delete: `views/components/progress/StreakBadge.tsx`
+- Delete: `views/components/progress/MomentumPanel.tsx`
+- Delete: `views/components/progress/ScoreTimeline.tsx`
+- Delete: `views/components/progress/CategoryProgressCard.tsx`
 
 - [ ] **Step 1: Replace progress page with redirect**
 
@@ -470,52 +583,64 @@ export default function ProgressRedirect() {
 }
 ```
 
-- [ ] **Step 2: Delete analytics page**
+(Note: `export default` is required by Next.js App Router for page components, overriding the project's "named exports only" convention.)
+
+- [ ] **Step 2: Delete analytics page and directory**
 
 ```bash
 rm app/\(app\)/analytics/page.tsx
-```
-
-Also check if the analytics directory has any other files (layout.tsx, etc.):
-
-```bash
-ls app/\(app\)/analytics/
-```
-
-If only `page.tsx` existed, remove the directory:
-
-```bash
 rmdir app/\(app\)/analytics/
 ```
 
-- [ ] **Step 3: Verify full build**
+- [ ] **Step 3: Update progress barrel export and delete unused components**
 
-Run: `cd /Users/julb/Desktop/GitHub/pitchr && yarn build:claude 2>&1 | tail -30`
-Expected: Build succeeds. `/insights` works, `/progress` redirects, `/analytics` is gone.
+Replace `views/components/progress/index.ts` with:
 
-- [ ] **Step 4: Commit**
+```typescript
+export { ProgressHero } from './ProgressHero';
+export { SkillLadder } from './SkillLadder';
+export { FixTracker } from './FixTracker';
+```
+
+Delete the unused files:
 
 ```bash
-git add -A app/\(app\)/progress/ app/\(app\)/analytics/ app/\(app\)/insights/
-git commit -m "feat: redirect /progress to /insights, delete /analytics page"
+rm views/components/progress/ProgressKanban.tsx
+rm views/components/progress/StreakBadge.tsx
+rm views/components/progress/MomentumPanel.tsx
+rm views/components/progress/ScoreTimeline.tsx
+rm views/components/progress/CategoryProgressCard.tsx
+```
+
+- [ ] **Step 4: Verify full build**
+
+Run: `cd /Users/julb/Desktop/GitHub/pitchr && yarn build:claude 2>&1 | tail -30`
+Expected: Build succeeds. `/insights` works, `/progress` redirects, `/analytics` is gone, no broken imports.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add -A app/\(app\)/progress/ app/\(app\)/analytics/ views/components/progress/
+git commit -m "refactor: redirect /progress to /insights, delete /analytics, remove unused progress components"
 ```
 
 ---
 
-### Task 8: Manual verification
+### Task 7: Manual verification
 
 - [ ] **Step 1: Start dev server and verify**
 
 Run: `cd /Users/julb/Desktop/GitHub/pitchr && yarn dev`
 
 Check in browser:
-1. `/insights` loads the merged page with Hero, charts, skill ladder, delivery metrics, fix tracker, achievements
+1. `/insights` loads the merged page with Hero (including streak/sessions boxes), summary strip, charts, skill ladder, delivery metrics, fix tracker, achievements
 2. `/progress` redirects to `/insights`
 3. `/analytics` returns 404
-4. Sidebar shows "Insights" instead of "Analytics" and "Progress"
-5. Project filter dropdown works
-6. Time range selector works (7D / 30D / 90D / All)
+4. Sidebar shows "Insights" instead of "Analytics" and "Progress" — one less nav item
+5. Project filter dropdown works (switches between All Projects and individual projects)
+6. Time range selector works (7D / 30D / 90D / All) — charts update, progress Hero stays stable
 7. History page is unchanged
+8. Summary strip shows WPM, Duration, and Filler Word count with deltas
 
 - [ ] **Step 2: Verify production build**
 
