@@ -66,6 +66,8 @@ export default function UploadPage() {
   const [decks, setDecks] = useState<DeckRecord[]>([]);
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
   const [isLoadingDecks, setIsLoadingDecks] = useState(false);
+  const [deckLoadError, setDeckLoadError] = useState<string | null>(null);
+  const [deckReloadKey, setDeckReloadKey] = useState(0);
   const deckTextCacheRef = useRef<Record<string, string>>({});
 
   const isProcessing = stage !== 'idle';
@@ -77,22 +79,29 @@ export default function UploadPage() {
       setDecks([]);
       setSelectedDeckId(null);
       setIsLoadingDecks(false);
+      setDeckLoadError(null);
       return;
     }
     setIsLoadingDecks(true);
+    setDeckLoadError(null);
     (async () => {
       try {
         const res = await fetchEdge('deck-list', { params: { projectId } });
         if (!res.ok) throw new Error('Failed to load decks');
         const data = await res.json();
         setDecks(data);
+        setDeckLoadError(null);
       } catch {
-        // Silently fail — deck picker just won't show decks
+        setDeckLoadError('Could not load decks. Please retry.');
       } finally {
         setIsLoadingDecks(false);
       }
     })();
-  }, [projectId]);
+  }, [projectId, deckReloadKey]);
+
+  const handleRetryDeckLoad = useCallback(() => {
+    setDeckReloadKey((value) => value + 1);
+  }, []);
 
   const selectedDeck = useMemo(
     () => decks.find((d) => d.id === selectedDeckId) ?? null,
@@ -102,7 +111,9 @@ export default function UploadPage() {
   const loadDeckText = useCallback(async (deckId: string): Promise<string | undefined> => {
     if (deckTextCacheRef.current[deckId]) return deckTextCacheRef.current[deckId];
     const response = await fetchEdge('deck-detail', { params: { deckId } });
-    if (!response.ok) return undefined;
+    if (!response.ok) {
+      throw new Error('Failed to load selected deck text.');
+    }
     const payload = (await response.json()) as { slides?: SlideRecord[] };
     const deckText = (payload.slides ?? [])
       .map((slide) => slide.text?.trim() ?? '')
@@ -164,7 +175,9 @@ export default function UploadPage() {
         try {
           deckText = await loadDeckText(selectedDeckId);
         } catch {
-          deckText = undefined;
+          setStage('idle');
+          setError('Could not load selected deck context. Please retry.');
+          return;
         }
       }
 
@@ -281,6 +294,30 @@ export default function UploadPage() {
                   ]}
                   onChange={(nextId) => setSelectedDeckId(nextId || null)}
                 />
+              </div>
+            )}
+            {deckLoadError && (
+              <div
+                role="alert"
+                className="rounded-lg border px-3 py-2 text-xs flex items-center justify-between gap-3"
+                style={{
+                  color: '#ef4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  borderColor: 'rgba(239, 68, 68, 0.2)',
+                }}
+              >
+                <span>{deckLoadError}</span>
+                <button
+                  type="button"
+                  onClick={handleRetryDeckLoad}
+                  className="px-2 py-1 rounded-md font-semibold text-[11px]"
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    color: '#ef4444',
+                  }}
+                >
+                  Retry
+                </button>
               </div>
             )}
           </GlassCard>
@@ -497,3 +534,4 @@ export default function UploadPage() {
     </main>
   );
 }
+
