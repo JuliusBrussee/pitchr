@@ -15,7 +15,9 @@ import {
   Sun,
   Moon,
   Swords,
+  Diamond,
 } from 'lucide-react';
+import { useBilling } from '@/hooks/useBilling';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useAuth } from '@/views/components/AuthProvider';
 import { useProject } from '@/views/components/ProjectProvider';
@@ -54,6 +56,15 @@ export function AppSidebar({
   const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
   const pathname = usePathname();
   const { closeSidebar } = useSidebar();
+  const { subscription, credits } = useBilling();
+
+  const planLabel = subscription?.planId === 'pro'
+    ? 'Pro Plan'
+    : subscription?.planId === 'day_pass'
+      ? 'Day Pass'
+      : 'Free Plan';
+
+  const userInitial = user?.email ? user.email.charAt(0).toUpperCase() : '?';
 
   const NavLink = ({ item, isActive }: { item: { id: string; label: string; icon: React.ComponentType<{ size: number }>; href: string }; isActive: boolean }) => {
     const Icon = item.icon;
@@ -184,38 +195,61 @@ export function AppSidebar({
 
       {/* User section */}
       {user && (
-        <div
-          className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg"
-          style={{ backgroundColor: 'var(--bg-surface-hover)' }}
-        >
-          <span
-            className="flex-1 text-xs truncate"
-            style={{ color: 'var(--text-secondary)' }}
-            title={user.email}
+        <div className="mb-2">
+          <div
+            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl"
+            style={{ backgroundColor: 'var(--bg-surface-hover)' }}
           >
-            {user.email}
-          </span>
-          <button
-            onClick={signOut}
-            className="p-1 rounded transition-colors hover:opacity-80"
-            style={{ color: 'var(--text-muted)' }}
-            aria-label="Sign out"
-          >
-            <LogOut size={14} />
-          </button>
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{
+                background: 'linear-gradient(135deg, #ff5941, #ffaa33)',
+                color: 'white',
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
+            >
+              {userInitial}
+            </div>
+            <div className="flex-1 min-w-0">
+              <span
+                className="block text-[11px] truncate font-medium"
+                style={{ color: 'var(--text-primary)' }}
+                title={user.email}
+              >
+                {user.email}
+              </span>
+              <span className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                {planLabel}
+              </span>
+            </div>
+            <button
+              onClick={signOut}
+              className="p-1 rounded transition-colors hover:opacity-80"
+              style={{ color: 'var(--text-muted)' }}
+              aria-label="Sign out"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+
+          {/* Credits bar — hidden for free users with 0 credits */}
+          {credits && credits.totalAvailable > 0 && (
+            <div
+              className="flex items-center gap-1.5 mt-2 px-2 py-1.5 rounded-lg"
+              style={{
+                backgroundColor: 'rgba(255,170,51,0.06)',
+                border: isDark ? '1px solid rgba(255,170,51,0.1)' : '1px solid rgba(255,170,51,0.12)',
+              }}
+            >
+              <Diamond size={12} style={{ color: '#ffaa33', opacity: 0.7 }} />
+              <span style={{ color: '#ffaa33', opacity: 0.8, fontSize: '10px', fontWeight: 500 }}>
+                {credits.totalAvailable} remaining
+              </span>
+            </div>
+          )}
         </div>
       )}
-
-      {/* Legal links */}
-      <div className="flex items-center gap-3 px-3 mb-3 text-xs" style={{ color: 'var(--text-muted)' }}>
-        <Link href="/terms" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
-          Terms
-        </Link>
-        <span>·</span>
-        <Link href="/privacy" className="no-underline hover:underline" style={{ color: 'var(--text-muted)' }}>
-          Privacy
-        </Link>
-      </div>
 
       {/* Start Session CTA */}
       {onStartSession ? (
