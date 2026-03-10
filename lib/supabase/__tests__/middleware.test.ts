@@ -1,7 +1,13 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createServerClient } from '@supabase/ssr';
-import { updateSession } from '@/lib/supabase/middleware';
+import {
+  AUTH_ROUTES,
+  BLOCKED_ROUTES,
+  PROTECTED_ROUTES,
+  updateSession,
+} from '@/lib/supabase/middleware';
+import { config as middlewareConfig } from '@/middleware';
 
 vi.mock('@supabase/ssr', () => ({
   createServerClient: vi.fn(),
@@ -36,6 +42,10 @@ function mockUser(
   } as unknown as ReturnType<typeof createServerClient>);
 }
 
+function normalizeMatcherRoute(route: string): string {
+  return route.replace(/\/:path\*$/, '');
+}
+
 describe('middleware protected routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -55,6 +65,21 @@ describe('middleware protected routes', () => {
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toContain('/login?redirectTo=%2Fprojects');
   });
+
+  it.each(['/upload', '/arena', '/progress', '/setup', '/orb-preview'])(
+    'redirects unauthenticated users away from %s',
+    async (route) => {
+      mockUser(null);
+      const request = new NextRequest(`http://localhost${route}`);
+
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain(
+        `/login?redirectTo=${encodeURIComponent(route)}`,
+      );
+    },
+  );
 
   it('allows authenticated users in non-EEA routes to access /projects', async () => {
     mockUser({ id: 'user-123' }, null);
@@ -115,5 +140,12 @@ describe('middleware protected routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get('location')).toBeNull();
+  });
+
+  it('keeps middleware matcher in parity with route policy arrays', () => {
+    const matcherRoutes = (middlewareConfig.matcher as string[]).map(normalizeMatcherRoute);
+    const policyRoutes = [...AUTH_ROUTES, ...PROTECTED_ROUTES, ...BLOCKED_ROUTES];
+
+    expect(new Set(matcherRoutes)).toEqual(new Set(policyRoutes));
   });
 });

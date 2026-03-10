@@ -3,7 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   retries: 0,
   reporter: [["list"]],
   use: {
@@ -17,10 +18,10 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: "yarn dev",
+    command: "yarn dev:next",
     url: "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 120_000,
+    reuseExistingServer: false,
+    timeout: 180_000,
   },
   projects: [
     {

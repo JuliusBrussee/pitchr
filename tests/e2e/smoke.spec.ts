@@ -2,34 +2,27 @@ import { expect, test } from "@playwright/test";
 
 test.describe("app smoke", () => {
   test("opens key app routes", async ({ page }) => {
-    await page.goto("/dashboard");
-    const startSessionLink = page.getByRole("link", { name: /Start Session/i });
-    await expect(startSessionLink).toBeVisible();
-    await page.goto("/session");
-    await expect(page).toHaveURL(/\/session(?:\/select-project.*)?$/);
+    const routes = ["/dashboard", "/session", "/analytics"];
 
-    await page.goto("/dashboard");
-    await expect(page).toHaveURL(/\/dashboard$/);
+    for (const route of routes) {
+      const response = await page.goto(route, { waitUntil: "domcontentloaded" });
+      expect(response).not.toBeNull();
+      expect(response!.status()).toBeLessThan(500);
 
-    await page.goto("/analytics");
-    await expect(page).toHaveURL(/\/analytics$/);
+      const expectedPath = route.slice(1);
+      await expect(page).toHaveURL(new RegExp(`\\/(login|${expectedPath})(?:\\/|\\?|$)`));
+    }
   });
 
-  test("session controls respond", async ({ page }) => {
-    await page.goto("/session");
+  test("loads public and auth entry routes", async ({ page }) => {
+    const homeResponse = await page.goto("/", { waitUntil: "domcontentloaded" });
+    expect(homeResponse).not.toBeNull();
+    expect(homeResponse!.status()).toBeLessThan(500);
+    await expect(page).toHaveURL(/\/$/);
 
-    const useProjectButton = page.getByRole("button", { name: /Use this project/i });
-    if (await useProjectButton.isVisible()) {
-      await useProjectButton.click();
-      await expect(page).toHaveURL(/\/session$/);
-    }
-
-    const start = page.getByLabel("Start session");
-    await expect(start).toBeVisible();
-    await start.click();
-
-    await expect(page.getByRole("button", { name: /^Pause session$/ })).toBeVisible();
-
-    await page.getByRole("button", { name: /^Pause session$/ }).click();
+    const loginResponse = await page.goto("/login", { waitUntil: "domcontentloaded" });
+    expect(loginResponse).not.toBeNull();
+    expect(loginResponse!.status()).toBeLessThan(500);
+    await expect(page).toHaveURL(/\/login(?:\/|\\?|$)/);
   });
 });

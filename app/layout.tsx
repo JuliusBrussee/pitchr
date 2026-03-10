@@ -6,6 +6,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const ENABLE_VERCEL_INSIGHTS = process.env.NEXT_PUBLIC_ENABLE_VERCEL_INSIGHTS !== 'false';
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://pitchr.live';
 
@@ -69,18 +70,29 @@ export default function RootLayout({
         <link rel="help" type="text/plain" href="/llms.txt" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap"
-          rel="stylesheet"
+        {/* Non-render-blocking font loading: insert stylesheet asynchronously
+            so it doesn't delay FCP. Uses a static string with no user input. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap';document.head.appendChild(l)})()`,
+          }}
         />
+        <noscript>
+          {/* Fallback for no-JS: load fonts synchronously */}
+          {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+          <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap"
+            rel="stylesheet"
+          />
+        </noscript>
       </head>
       <body>
         {GA_MEASUREMENT_ID ? <AnalyticsScripts measurementId={GA_MEASUREMENT_ID} /> : null}
         <ThemeProvider>
           {children}
         </ThemeProvider>
-        <SpeedInsights />
-        <Analytics />
+        {ENABLE_VERCEL_INSIGHTS ? <SpeedInsights /> : null}
+        {ENABLE_VERCEL_INSIGHTS ? <Analytics /> : null}
       </body>
     </html>
   );

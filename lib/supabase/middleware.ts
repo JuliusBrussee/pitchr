@@ -11,7 +11,12 @@ import {
 } from '@/lib/compliance/rules';
 
 // Keep in sync with the matcher in middleware.ts.
-const PROTECTED_ROUTES = [
+export const PROTECTED_ROUTES = [
+  '/arena',
+  '/orb-preview',
+  '/progress',
+  '/setup',
+  '/upload',
   '/dashboard',
   '/session',
   '/history',
@@ -27,12 +32,12 @@ const PROTECTED_ROUTES = [
   '/reset-password',
 ];
 
-const AUTH_ROUTES = ['/login', '/signup', '/auth', '/forgot-password'];
+export const AUTH_ROUTES = ['/login', '/signup', '/auth', '/forgot-password'];
 
 // Signup is gated behind NEXT_PUBLIC_SIGNUP_ENABLED=true.
 // When disabled, /signup redirects to the landing page waitlist.
 const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === 'true';
-const BLOCKED_ROUTES: string[] = SIGNUP_ENABLED ? [] : ['/signup'];
+export const BLOCKED_ROUTES: string[] = SIGNUP_ENABLED ? [] : ['/signup'];
 const COMPLIANCE_EXEMPT_ROUTES = ['/compliance/check', '/privacy', '/terms'];
 
 const COMPLIANCE_SCOPE = parseComplianceScope(process.env.GDPR_SCOPE);

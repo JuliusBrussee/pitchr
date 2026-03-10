@@ -131,6 +131,6 @@ describe('public SEO foundations', () => {
         'https://preview.pitchr.test/growth-pricing',
       ]),
     );
-    expect(webServer?.command).toBe('yarn dev');
+    expect(webServer?.command).toBe('yarn dev:next');
   });
 });
