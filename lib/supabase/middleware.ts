@@ -12,6 +12,11 @@ import {
 
 // Keep in sync with the matcher in middleware.ts.
 export const PROTECTED_ROUTES = [
+  '/arena',
+  '/orb-preview',
+  '/progress',
+  '/setup',
+  '/upload',
   '/dashboard',
   '/session',
   '/history',

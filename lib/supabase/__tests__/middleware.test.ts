@@ -66,6 +66,21 @@ describe('middleware protected routes', () => {
     expect(response.headers.get('location')).toContain('/login?redirectTo=%2Fprojects');
   });
 
+  it.each(['/upload', '/arena', '/progress', '/setup', '/orb-preview'])(
+    'redirects unauthenticated users away from %s',
+    async (route) => {
+      mockUser(null);
+      const request = new NextRequest(`http://localhost${route}`);
+
+      const response = await updateSession(request);
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain(
+        `/login?redirectTo=${encodeURIComponent(route)}`,
+      );
+    },
+  );
+
   it('allows authenticated users in non-EEA routes to access /projects', async () => {
     mockUser({ id: 'user-123' }, null);
     const request = new NextRequest('http://localhost/projects', {
