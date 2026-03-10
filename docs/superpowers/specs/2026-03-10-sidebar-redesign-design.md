@@ -64,7 +64,9 @@ Replace current email + logout row with a two-part block:
 - Separate row below user info: `padding: 6px 8px`, `border-radius: 8px`
 - Background: `rgba(255,170,51,0.06)`, border: `1px solid rgba(255,170,51,0.1)`
 - Diamond SVG icon (12×12px, `#ffaa33`, 70% opacity) + "12 remaining" text (10px, `#ffaa33`, 80% opacity)
-- Credits count sourced from existing billing/subscription data
+- Credits count sourced from `useBilling()` hook (new dependency for AppSidebar)
+- Plan label mapping: "Pro Plan" / "Day Pass" / "Free Plan" based on `BillingPlanId`
+- For free users with 0 credits, hide the credits bar entirely
 
 Light mode equivalents:
 - Credits bar bg: `rgba(255,170,51,0.06)`
@@ -72,7 +74,7 @@ Light mode equivalents:
 
 ### 6. Legal Links — Moved to Settings
 
-Remove Terms and Privacy links from sidebar. Add them to the Settings page (e.g., at bottom of settings content area).
+Remove Terms and Privacy links from sidebar. Add them to the bottom of the Settings page below all tabs (always visible regardless of active tab).
 
 ### 7. Start Session CTA — Enhanced Glow
 
