@@ -38,7 +38,7 @@
   --hero-presenter-filter: contrast(1.14) saturate(1.12);
   --scene-blend: 0;
 
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-inter), 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden;
@@ -230,7 +230,7 @@
 .landing .hero-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px 5px 10px; border-radius: 100px; border: 1px solid rgba(255,87,51,0.15); background: rgba(255,87,51,0.05); font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 28px; letter-spacing: -0.01em; animation: landingFadeUp 0.5s ease 0.1s both; }
 .landing .hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: landingPulse 2.5s ease-in-out infinite; }
 @keyframes landingPulse { 0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent); } 50% { opacity: 0.4; box-shadow: 0 0 0px transparent; } }
-.landing .hero h1 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(44px, 7vw, 80px); font-weight: 400; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 24px; animation: landingFadeUp 0.5s ease 0.2s both; }
+.landing .hero h1 { font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif; font-size: clamp(44px, 7vw, 80px); font-weight: 400; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 24px; animation: landingFadeUp 0.5s ease 0.2s both; }
 .landing .hero h1 .accent { font-style: italic; }
 .landing .hero-sub { font-size: clamp(16px, 1.8vw, 18px); color: var(--text-secondary); max-width: 460px; line-height: 1.6; letter-spacing: -0.01em; margin-bottom: 36px; animation: landingFadeUp 0.5s ease 0.35s both; }
 .landing .hero-ctas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: landingFadeUp 0.5s ease 0.45s both; }
@@ -260,9 +260,10 @@
   --voice-speed: 1;
 }
 .landing .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
-.landing .story-text h2 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(36px, 4vw, 56px); font-weight: 400; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
+.landing .story-text h2 { font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif; font-size: clamp(36px, 4vw, 56px); font-weight: 400; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
 .landing .story-text h2 i { color: var(--accent); font-style: italic; }
 .landing .story-text p { font-size: 16px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+.landing .story-mono-hint { font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace; }
 .landing .story-link {
   display: inline-flex;
   align-items: center;
@@ -313,7 +314,7 @@
   }
 }
 
-.landing .live-transcript { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); width: 84%; max-width: 380px; background: var(--transcript-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; color: var(--text-secondary); box-shadow: 0 20px 40px var(--transcript-shadow); }
+.landing .live-transcript { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); width: 84%; max-width: 380px; background: var(--transcript-bg); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; color: var(--text-secondary); box-shadow: 0 20px 40px var(--transcript-shadow); }
 .landing .strike { text-decoration: line-through; color: var(--red); opacity: 0.6; position: relative; }
 .landing .correction { color: var(--green); font-weight: 700; opacity: 0; transform: translateY(-10px); transition: all 0.5s ease; position: absolute; top: -20px; left: 0; white-space: nowrap; }
 .landing .visible .correction { opacity: 1; transform: translateY(0); }
@@ -337,7 +338,7 @@
 .landing .visible .chart-dot { opacity: 1; }
 
 .landing .chart-zones { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 12px 16px; pointer-events: none; }
-.landing .zone-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0; transform: translateX(-20px); transition: all 0.8s; }
+.landing .zone-label { font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0; transform: translateX(-20px); transition: all 0.8s; }
 .landing .zone-green { color: var(--green); }
 .landing .zone-red { color: var(--red); }
 .landing .visible .zone-label { opacity: 0.6; transform: translateX(0); }
@@ -354,7 +355,7 @@
 .landing .testimonial-section { position: relative; z-index: 2; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: radial-gradient(ellipse at center, var(--surface-soft) 0%, transparent 70%); }
 .landing .testimonial-card { max-width: 700px; margin: 0 auto; text-align: center; padding: 48px 40px; background: var(--surface-soft); border: 1px solid var(--surface-border); border-radius: 24px; backdrop-filter: blur(10px); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease; }
 .landing .testimonial-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px var(--shadow-deep); border-color: var(--border); }
-.landing .testimonial-quote { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(24px, 3vw, 36px); font-weight: 400; font-style: italic; line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 32px; color: var(--text); }
+.landing .testimonial-quote { font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif; font-size: clamp(24px, 3vw, 36px); font-weight: 400; font-style: italic; line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 32px; color: var(--text); }
 .landing .testimonial-quote::before { content: '\201C'; color: var(--accent); margin-right: 4px; }
 .landing .testimonial-quote::after { content: '\201D'; color: var(--accent); margin-left: 4px; }
 .landing .testimonial-author { display: flex; align-items: center; justify-content: center; gap: 12px; }
@@ -368,7 +369,7 @@
 .landing .cta-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 400px; background: radial-gradient(ellipse, rgba(255,87,51,0.08), transparent 60%); pointer-events: none; }
 .landing .cta-content { position: relative; z-index: 1; }
 .landing .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); margin-bottom: 12px; }
-.landing .section-title { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(32px, 4.5vw, 56px); font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 16px; }
+.landing .section-title { font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif; font-size: clamp(32px, 4.5vw, 56px); font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 16px; }
 .landing .section-title .accent { font-style: italic; }
 .landing .section-desc { font-size: 16px; color: var(--text-secondary); max-width: 480px; line-height: 1.6; letter-spacing: -0.01em; }
 
@@ -611,7 +612,7 @@
 
 /* Card header */
 .landing .lp-plan-name {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: 28px;
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -1073,7 +1074,7 @@
   opacity: 0.35;
 }
 .landing .cd-tag {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -1196,7 +1197,7 @@
 
 /* Individual digit character */
 .landing .cd-d {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   font-size: clamp(44px, 7.5vw, 84px);
   font-weight: 700;
   line-height: 1;
@@ -1210,7 +1211,7 @@
 
 /* Colon separator — blinks every second */
 .landing .cd-colon {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   font-size: clamp(28px, 5vw, 56px);
   font-weight: 300;
   color: var(--accent);
@@ -1236,7 +1237,7 @@
 
 /* Date text */
 .landing .cd-date {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   font-size: 12px;
   color: var(--text-muted);
   letter-spacing: 0.06em;
@@ -1341,7 +1342,7 @@
 }
 
 .landing .fs-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(36px, 4vw, 56px);
   font-weight: 400;
   line-height: 1.1;
@@ -1449,7 +1450,7 @@
 
 /* Card typography */
 .landing .fs-card-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(22px, 2.5vw, 28px);
   font-weight: 400;
   line-height: 1.2;
@@ -1535,7 +1536,7 @@
 .landing .fs-cat-bar-score {
   font-size: 12px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
 }
 
 .landing .fs-cat-bar-track {
@@ -1585,7 +1586,7 @@
 .landing .fs-fix-priority {
   font-size: 11px;
   font-weight: 800;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   padding: 3px 8px;
   border-radius: 6px;
   flex-shrink: 0;
@@ -1616,7 +1617,7 @@
   font-size: 11px;
   font-weight: 700;
   color: #22c55e;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
 }
 
 .landing .fs-fix-arrow {
@@ -1644,7 +1645,7 @@
   gap: 10px;
   padding: 12px 14px;
   border-radius: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   font-size: 12px;
   line-height: 1.5;
   opacity: 0;
@@ -2054,7 +2055,7 @@
 }
 
 .anim-card-tagline {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: 18px;
   font-weight: 400;
   line-height: 1.25;
@@ -2111,7 +2112,7 @@
 }
 
 .landing .demo-headline {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(28px, 3.5vw, 40px);
   font-weight: 400;
   line-height: 1.1;
@@ -2158,7 +2159,7 @@
 }
 
 .landing .grid-section-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(32px, 4vw, 48px);
   font-weight: 400;
   line-height: 1.1;
@@ -2276,7 +2277,7 @@
 .mini-rubric-score {
   font-size: 9px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   width: 28px;
   text-align: right;
   flex-shrink: 0;
@@ -2339,7 +2340,7 @@
   border-radius: 6px;
   font-size: 9px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
 }
 
 .mini-metric-dot {
@@ -2460,7 +2461,7 @@
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 9px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   line-height: 1.5;
   opacity: 0;
   transition: opacity 0.5s ease;
@@ -2530,7 +2531,7 @@
 
 .mini-lb-score {
   font-weight: 800;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
 }
 
 /* Mini project card */
@@ -2775,7 +2776,7 @@
 }
 
 .feature-headline {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(32px, 4vw, 52px);
   font-weight: 400;
   line-height: 1.1;
@@ -2840,7 +2841,7 @@
 }
 
 .feature-cta-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(24px, 3vw, 36px);
   font-weight: 400;
   margin-bottom: 20px;
@@ -3081,7 +3082,7 @@
 }
 
 .landing .demo-section-headline {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(32px, 5vw, 48px);
   font-weight: 400;
   line-height: 1.1;
@@ -3219,7 +3220,7 @@
 
 .demo-results-rubric-score {
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
 }
 
 .demo-results-metrics {
@@ -3231,7 +3232,7 @@
 .demo-results-metric-pill {
   font-size: 8px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   padding: 2px 8px;
   border-radius: 4px;
   background: var(--surface-soft);
@@ -3485,7 +3486,7 @@
   padding: 3px 8px;
   border-radius: 4px;
   font-size: 8px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-jetbrains-mono), 'JetBrains Mono', monospace;
   line-height: 1.5;
   opacity: 0;
   transform: translateY(6px);
@@ -3704,7 +3705,7 @@
 }
 
 .landing-demo-title {
-  font-family: 'Instrument Serif', Georgia, serif;
+  font-family: var(--font-instrument-serif), 'Instrument Serif', Georgia, serif;
   font-size: clamp(32px, 5vw, 52px);
   font-weight: 400;
   color: var(--text);

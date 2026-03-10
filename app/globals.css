@@ -10,6 +10,12 @@ html.dark body {
   background-color: #0a0a0a;
 }
 
+/* Server-safe dark/light element visibility (no JS needed) */
+.dark-hidden { display: inline; }
+.light-hidden { display: none; }
+html.dark .dark-hidden { display: none; }
+html.dark .light-hidden { display: inline; }
+
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #f8f9fa;
