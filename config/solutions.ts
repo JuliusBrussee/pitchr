@@ -88,7 +88,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     pitchMode: 'vc_pitch',
     scenario: {
       text: "You've got a 2-minute slot with a partner at a top-tier VC. This is the meeting you've been preparing for months.",
-      persona: { name: 'Marcus Johnson', role: 'Series A founder, pre-fundraise', avatar: 'M' },
+      context: 'VC meeting',
     },
     beats: [
       { time: '0-20s', label: 'Problem', description: 'Paint the problem so vividly that investors feel the pain.', tip: 'Start with a specific person experiencing the problem, not abstract market data.' },
@@ -126,7 +126,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     pitchMode: 'hackathon',
     scenario: {
       text: "It's demo day. Your team has been coding for 36 hours straight. You've got 3 minutes on stage and judges who've seen 15 pitches today.",
-      persona: { name: 'Jordan & Team Flux', role: 'Hack team at ETHGlobal', avatar: 'J' },
+      context: 'Demo day',
     },
     beats: [
       { time: '0-30s', label: 'Problem Hook', description: 'Start with the problem in a way that makes judges sit up.', tip: 'A live demo of the broken experience beats describing it.' },
@@ -163,7 +163,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     pitchMode: null,
     scenario: {
       text: "Your capstone project is due. The professor has invited industry judges. Half your grade depends on this 3-minute presentation.",
-      persona: { name: 'Emily Zhang', role: 'CS senior, capstone presentation', avatar: 'E' },
+      context: 'Capstone presentation',
     },
     beats: [
       { time: '0-30s', label: 'Context + Motivation', description: 'Set the scene: why does this problem matter?', tip: 'Start with a real-world example, not the assignment prompt.' },
@@ -199,11 +199,11 @@ export const SOLUTIONS: SolutionConfig[] = [
     color: '#ff5941',
     pitchMode: null,
     scenario: {
-      text: "You're backstage at TechCrunch Disrupt. Your startup's name is next on the screen. 5 minutes to convince a panel of investors and 10,000 live viewers.",
-      persona: { name: 'David Kim', role: 'Founder pitching at TechCrunch Disrupt', avatar: 'D' },
+      text: "You're backstage. Your startup's name is next on the screen. 5 minutes to convince a panel of investors and thousands of live viewers.",
+      context: 'Competition stage',
     },
     beats: [
-      { time: '0-30s', label: 'Opening Hook', description: 'Command the room from word one.', tip: 'Bold statement or live demo beats "Hi, I\'m David from..."' },
+      { time: '0-30s', label: 'Opening Hook', description: 'Command the room from word one.', tip: 'Bold statement or live demo beats "Hi, I\'m [name] from..."' },
       { time: '30-90s', label: 'Problem + Market', description: 'Size the pain and the opportunity.', tip: 'Make the audience feel the problem before showing them the numbers.' },
       { time: '90-180s', label: 'Solution + Demo', description: 'Your product in action — the wow moment.', tip: 'Rehearse your demo 20+ times. Live demos fail when they surprise YOU.' },
       { time: '180-240s', label: 'Business Model', description: 'How you make money and scale.', tip: 'Unit economics > revenue projections. Show you understand your engine.' },

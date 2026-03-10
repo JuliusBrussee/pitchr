@@ -38,20 +38,12 @@ export function SolutionScenario({
 
   return (
     <section className="sp-section sp-scenario" ref={ref}>
-      <blockquote className="sp-scenario-quote sp-stagger">
-        <p className="sp-scenario-text">
-          &ldquo;{scenario.text}&rdquo;
-        </p>
-        <cite className="sp-scenario-cite">
-          <span className="sp-scenario-avatar" style={{ backgroundColor: `${color}20`, color }}>
-            {scenario.persona.avatar}
-          </span>
-          <span>
-            <span className="sp-scenario-name">{scenario.persona.name}</span>
-            <span className="sp-scenario-role">{scenario.persona.role}</span>
-          </span>
-        </cite>
-      </blockquote>
+      <div className="sp-scenario-context sp-stagger" style={{ color }}>
+        {scenario.context}
+      </div>
+      <p className="sp-scenario-text sp-stagger">
+        {scenario.text}
+      </p>
       <p className="sp-scenario-familiar sp-stagger" style={{ color }}>
         Sound familiar?
       </p>

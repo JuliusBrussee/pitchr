@@ -310,58 +310,26 @@
   margin: 0 auto;
 }
 
-.sp-scenario-quote {
-  margin: 0;
-  padding: 0;
-  border: none;
+.sp-scenario-context {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 16px;
 }
 
 .sp-scenario-text {
   font-family: 'Instrument Serif', Georgia, serif;
-  font-size: clamp(20px, 2.5vw, 28px);
-  line-height: 1.5;
+  font-size: clamp(22px, 2.8vw, 32px);
+  line-height: 1.45;
   color: var(--text-primary, #111827);
-  font-style: italic;
-  margin-bottom: 24px;
-}
-
-.sp-scenario-cite {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-style: normal;
-}
-
-.sp-scenario-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.sp-scenario-name {
-  display: block;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary, #111827);
-}
-
-.sp-scenario-role {
-  display: block;
-  font-size: 12px;
-  color: var(--text-secondary, #6b7280);
-  line-height: 1.4;
+  margin-bottom: 0;
 }
 
 .sp-scenario-familiar {
   font-size: 18px;
   font-weight: 600;
-  margin-top: 32px;
+  margin-top: 24px;
 }
 
 /* ═══ TIMELINE / BEATS ═══ */
