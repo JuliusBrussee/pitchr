@@ -165,7 +165,6 @@ export function RadarChart({ categories }: RadarChartProps) {
           offset={12}
           content={
             <span className="tabular-nums">
-              {categories[hoveredCategory.index].label}:{' '}
               {categories[hoveredCategory.index].score}/
               {categories[hoveredCategory.index].maxScore}
             </span>

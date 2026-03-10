@@ -24,7 +24,7 @@ export function LaunchCountdown({
   onCtaClick,
 }: {
   initialNowMs: number;
-  onCtaClick: (e: React.MouseEvent) => void;
+  onCtaClick?: (e: React.MouseEvent) => void;
 }) {
   const [t, setT] = useState(() => remaining(initialNowMs));
 

@@ -263,6 +263,7 @@
 .landing .story-text h2 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(36px, 4vw, 56px); font-weight: 400; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
 .landing .story-text h2 i { color: var(--accent); font-style: italic; }
 .landing .story-text p { font-size: 16px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+.landing .story-mono-hint { font-family: 'JetBrains Mono', monospace; }
 .landing .story-link {
   display: inline-flex;
   align-items: center;
