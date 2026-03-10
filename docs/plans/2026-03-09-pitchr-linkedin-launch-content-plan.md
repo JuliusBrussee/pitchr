@@ -163,6 +163,10 @@
   - Lucas → Martino
   - Martino → Arav
   - Arav → Julius
+- Keep approved bridge post kits:
+  - 1 bridge post per founder (one-line challenge + one CTA)
+  - 1 founder-quote pack (3 reusable community responses)
+  - 1 “what to do today” checklist post for launch-day delays
 
 ### Role-to-tone guidance
 - Julius (Builder): metrics-first, technical clarity, concise and precise.
@@ -177,6 +181,11 @@
 - Community sentiment + GTM questions → Arav
 - Sensitive/factual/legal questions → Ops + founder approver
 - SLA: 30–45 minutes for first reply by owner.
+
+#### Response script pattern (for first reply)
+- “Great question. The fastest useful fix is: ...”
+- “Here is one stronger line you can use right now…”
+- “If you want, share your full opening and I’ll apply the same structure in 60 seconds.”
 
 ### Founder post opening prompts (ready-to-start lines)
 - Tue: “Most pitches have a great idea and a weak decision line.”
