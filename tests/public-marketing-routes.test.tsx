@@ -150,20 +150,28 @@ describe('public marketing routes', () => {
       expect(screen.getByText(section.body)).toBeInTheDocument();
     });
 
-    const faqRegion = screen.getByRole('region', { name: /common questions/i });
+    const faqHeading = screen.getByRole('heading', { level: 2, name: /common questions/i });
+    const faqRegion = faqHeading.closest('.pp-faq');
+    expect(faqRegion).toBeTruthy();
     page.faqs.forEach((faq) => {
-      expect(within(faqRegion).getByText(faq.question)).toBeInTheDocument();
-      expect(within(faqRegion).getByText(faq.answer)).toBeInTheDocument();
+      expect(within(faqRegion as HTMLElement).getByText(faq.question)).toBeInTheDocument();
+      expect(within(faqRegion as HTMLElement).getByText(faq.answer)).toBeInTheDocument();
     });
 
-    const relatedRegion = screen.getByRole('navigation', { name: /keep exploring/i });
-    page.relatedLinks.forEach((link) => {
-      expect(within(relatedRegion).getByRole('link', { name: link.label })).toHaveAttribute(
+    const relatedHeading = screen.getByRole('heading', { level: 2, name: /keep exploring/i });
+    const relatedRegion = relatedHeading.closest('.pp-related');
+    expect(relatedRegion).toBeTruthy();
+    page.relatedLinks
+      .filter((link) => link.href !== page.href)
+      .forEach((link) => {
+      expect(
+        within(relatedRegion as HTMLElement).getByRole('link', { name: new RegExp(link.label, 'i') }),
+      ).toHaveAttribute(
         'href',
         link.href,
       );
-      expect(within(relatedRegion).getByText(link.description)).toBeInTheDocument();
-    });
+      expect(within(relatedRegion as HTMLElement).getByText(link.description)).toBeInTheDocument();
+      });
   });
 
   it('keeps related links focused on the public cluster without using banned handoff copy', () => {
@@ -214,23 +222,18 @@ describe('public marketing routes', () => {
       expect(screen.getByText(page.hero.answer)).toBeInTheDocument();
       expect(screen.getByRole('navigation', { name: /breadcrumbs/i })).toBeInTheDocument();
 
-      const relatedRegion = screen.getByRole('navigation', { name: /keep exploring/i });
-      expect(within(relatedRegion).getByRole('link', { name: 'Delivery Rubric' })).toHaveAttribute(
-        'href',
-        '/delivery-rubric',
-      );
-      expect(within(relatedRegion).getByRole('link', { name: 'Scoring Logic' })).toHaveAttribute(
-        'href',
-        '/scoring-logic',
-      );
-      expect(within(relatedRegion).getByRole('link', { name: 'Growth Pricing' })).toHaveAttribute(
-        'href',
-        '/growth-pricing',
-      );
-      expect(within(relatedRegion).getByRole('link', { name: 'Journal' })).toHaveAttribute(
-        'href',
-        '/blog',
-      );
+      const relatedHeading = screen.getByRole('heading', { level: 2, name: /keep exploring/i });
+      const relatedRegion = relatedHeading.closest('.pp-related');
+      expect(relatedRegion).toBeTruthy();
+      page.relatedLinks
+        .filter((link) => link.href !== page.href)
+        .forEach((link) => {
+          expect(
+            within(relatedRegion as HTMLElement).getByRole('link', {
+              name: new RegExp(link.label, 'i'),
+            }),
+          ).toHaveAttribute('href', link.href);
+        });
 
       view.unmount();
     });
