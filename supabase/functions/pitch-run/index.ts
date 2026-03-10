@@ -88,7 +88,7 @@ function buildProjectScoringContext(
 }
 
 function isPitchMode(value: unknown): value is PitchMode {
-  return value === 'elevator' || value === 'vc_pitch';
+  return value === 'elevator' || value === 'vc_pitch' || value === 'hackathon';
 }
 
 function isInputType(value: unknown): value is InputType {
@@ -117,7 +117,7 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
 
   const payload = body as Record<string, unknown>;
   if (!isPitchMode(payload.mode)) {
-    throw new PitchValidationError('mode is required. Expected elevator or vc_pitch.');
+    throw new PitchValidationError('mode is required. Expected elevator, vc_pitch, or hackathon.');
   }
   if (!isInputType(payload.inputType)) {
     throw new PitchValidationError('Invalid inputType. Expected audio or text.');

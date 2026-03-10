@@ -5,6 +5,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || '.next',
   outputFileTracingRoot: path.join(process.cwd()),
+  transpilePackages: ['gsap'],
   serverExternalPackages: ['pdf-parse', '@react-pdf/renderer', 'yoga-layout'],
   turbopack: {
     rules: {

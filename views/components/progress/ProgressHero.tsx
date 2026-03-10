@@ -214,9 +214,11 @@ interface ProgressHeroProps {
   progress: ProgressSummary;
   latestScore: number;
   animationDelay?: string;
+  streak?: number;
+  sessionCount?: number;
 }
 
-export function ProgressHero({ progress, latestScore, animationDelay }: ProgressHeroProps) {
+export function ProgressHero({ progress, latestScore, animationDelay, streak, sessionCount }: ProgressHeroProps) {
   const level = useMemo(() => getLevel(latestScore), [latestScore]);
   const nextLevel = useMemo(() => getNextLevel(latestScore), [latestScore]);
   const color = getLevelColor(level.tier);
@@ -307,6 +309,38 @@ export function ProgressHero({ progress, latestScore, animationDelay }: Progress
             </span>
           </div>
         </div>
+
+        {/* Streak & Sessions (shown when props provided) */}
+        {(streak != null || sessionCount != null) && (
+          <div className="flex flex-col gap-2 flex-shrink-0">
+            {streak != null && (
+              <div
+                className="rounded-xl px-3 py-2.5 text-center"
+                style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
+              >
+                <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  Streak
+                </div>
+                <div className="text-lg font-bold tabular-nums mt-0.5" style={{ color: '#ffaa33' }}>
+                  {streak}
+                </div>
+              </div>
+            )}
+            {sessionCount != null && (
+              <div
+                className="rounded-xl px-3 py-2.5 text-center"
+                style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
+              >
+                <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  Sessions
+                </div>
+                <div className="text-lg font-bold tabular-nums mt-0.5" style={{ color: 'var(--text-primary)' }}>
+                  {sessionCount}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

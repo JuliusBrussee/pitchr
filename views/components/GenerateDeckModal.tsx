@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Loader2, Check, Wand2, FileText, Palette } from 'lucide-react';
 import { TEMPLATE_LIST } from '@/config/deckTemplates';
 import { CREDIT_COSTS } from '@/config/billing';
-import { fetchEdge } from '@/lib/supabase/fetch-edge';
-import { parseRetryAfter } from '@/lib/supabase/edge-error';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
 import type { TemplateId } from '@/types/deckGeneration';
 
@@ -343,7 +341,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
     setError(null);
 
     try {
-      const res = await fetchEdge('deck-generate', {
+      const res = await fetch('/api/deck/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -357,8 +355,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
       if (!res.ok) {
         const data = await res.json();
         if (res.status === 429) {
-          const retryAfter = parseRetryAfter(res, data as Record<string, unknown>);
-          triggerCooldown(retryAfter);
+          triggerCooldown(60);
           throw new Error('Too many requests. Please try again shortly.');
         }
         throw new Error(data.error || 'Generation failed');
