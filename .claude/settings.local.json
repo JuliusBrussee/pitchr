@@ -27,7 +27,9 @@
       "Bash(tasklist:*)",
       "Bash(yarn test:*)",
       "Bash(head:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(cat \"/Users/julb/Desktop/GitHub/pitchr/app/\\(marketing\\)/layout.tsx\")",
+      "Bash(cat \"/Users/julb/Desktop/GitHub/pitchr/app/\\(marketing\\)/solutions.css\")"
     ]
   }
 }

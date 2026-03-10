@@ -7,11 +7,7 @@ export interface SolutionBeat {
 
 export interface SolutionScenario {
   text: string;
-  persona: {
-    name: string;
-    role: string;
-    avatar: string;
-  };
+  context: string;
 }
 
 export interface SolutionTransformation {
@@ -56,7 +52,7 @@ export const SOLUTIONS: SolutionConfig[] = [
     pitchMode: 'elevator',
     scenario: {
       text: "You're at a startup mixer. Someone asks 'What are you building?' You have 30 seconds before they glance at the next person.",
-      persona: { name: 'Sarah Chen', role: 'First-time founder at a networking event', avatar: 'S' },
+      context: 'Networking event',
     },
     beats: [
       { time: '0-8s', label: 'Hook', description: 'Grab attention with a surprising fact, question, or bold statement.', tip: 'Great hooks create an information gap the listener wants to close.' },

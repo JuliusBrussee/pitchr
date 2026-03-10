@@ -71,23 +71,19 @@ export function SolutionsDropdown() {
       </button>
 
       <div className={`solutions-dropdown-panel ${open ? 'open' : ''}`} role="menu">
-        {SOLUTIONS.map((s, i) => (
+        {SOLUTIONS.map((s) => (
           <Link
             key={s.slug}
             href={`/solutions/${s.slug}`}
             className="solutions-dropdown-item"
             role="menuitem"
             onClick={() => setOpen(false)}
-            style={{
-              animationDelay: open ? `${i * 50}ms` : undefined,
-            }}
           >
-            <div className="solutions-dropdown-item-border" style={{ backgroundColor: s.color }} />
             <div className="solutions-dropdown-item-content">
-              <div className="solutions-dropdown-item-label">{s.label}</div>
-              <div className="solutions-dropdown-item-desc">{DESCRIPTIONS[s.slug] || s.tagline.slice(0, 40)}</div>
+              <span className="solutions-dropdown-item-label">{s.label}</span>
+              <span className="solutions-dropdown-item-desc">{DESCRIPTIONS[s.slug] || s.tagline.slice(0, 40)}</span>
             </div>
-            <span className="solutions-dropdown-item-arrow">&rarr;</span>
+            <span className="solutions-dropdown-item-duration">{s.duration}</span>
           </Link>
         ))}
       </div>
