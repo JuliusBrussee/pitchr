@@ -290,7 +290,7 @@ function buildUserPrompt(
 
 const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
-const CLAUDE_TIMEOUT_MS = 60_000;
+const CLAUDE_TIMEOUT_MS = 45_000;
 const MAX_ATTEMPTS = 2;
 
 interface ClaudeResponse {
@@ -365,7 +365,7 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
 }
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-const GEMINI_TIMEOUT_MS = 60_000;
+const GEMINI_TIMEOUT_MS = 45_000;
 
 interface GeminiResponse {
   candidates?: Array<{

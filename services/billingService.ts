@@ -390,7 +390,7 @@ export async function recordUsage(
 ): Promise<void> {
   // Check if user has an active day pass — if so, use day pass tracking
   const dayPass = await getActiveDayPass(supabase, userId);
-  if (dayPass && resource !== 'deck_generation') {
+  if (dayPass) {
     const dayPassResource = resource === 'run' ? 'run' : 'deck';
     await recordDayPassUsage(supabase, dayPass.id, dayPassResource);
   } else {
@@ -465,10 +465,13 @@ export async function checkUsageLimit(
     return { allowed: true, resource, used: 0, limit: null, remaining: null, planId: 'pro' };
   }
 
-  // Check active day pass first — it takes priority over subscription limits
-  if (resource !== 'deck_generation') {
-    const dayPassResult = await checkDayPassUsage(supabase, userId, resource);
-    if (dayPassResult) return dayPassResult;
+  // Check active day pass first — deck generation uses the day-pass deck quota.
+  const dayPassResource = resource === 'deck_generation' ? 'decks' : resource;
+  const dayPassResult = await checkDayPassUsage(supabase, userId, dayPassResource);
+  if (dayPassResult) {
+    return resource === 'deck_generation'
+      ? { ...dayPassResult, resource: 'deck_generation' }
+      : dayPassResult;
   }
 
   // Fetch subscription once for both credit-based and legacy checks

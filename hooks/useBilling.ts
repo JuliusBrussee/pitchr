@@ -146,7 +146,7 @@ export function useBilling() {
   }, []);
 
   const checkUsage = useCallback(
-    async (resource: 'runs' | 'decks' | 'qa_seconds') => {
+    async (resource: 'runs' | 'decks' | 'qa_seconds' | 'deck_generation') => {
       const res = await fetch(`/api/billing/usage?resource=${resource}`);
       if (!res.ok) throw new Error('Usage check failed');
       return res.json();

@@ -64,6 +64,21 @@ const SUB_ROW = {
   updated_at: '2026-03-01T00:00:00Z',
 };
 
+const DAY_PASS_ROW = {
+  id: 'pass-1',
+  user_id: 'user-1',
+  purchased_at: '2026-03-10T00:00:00Z',
+  expires_at: '2099-03-11T00:00:00Z',
+  runs_used: 0,
+  runs_limit: 15,
+  decks_used: 1,
+  decks_limit: 5,
+  qa_seconds_used: 0,
+  qa_seconds_limit: 600,
+  stripe_payment_intent_id: 'pi_123',
+  status: 'active',
+};
+
 function createMockSupabase() {
   const mock: Record<string, unknown> = {};
   mock.from = vi.fn().mockImplementation((table: string) => {
@@ -107,6 +122,20 @@ describe('billingService credit integration', () => {
       const result = await checkUsageLimit(supabase, 'user-1', 'runs');
       expect(result.allowed).toBe(true);
       expect(result.planId).toBe('free');
+    });
+
+    it('uses day-pass deck quota for deck generation', async () => {
+      supabase.from.mockImplementation((table: string) => {
+        if (table === 'subscriptions') return createChainable(SUB_ROW);
+        if (table === 'day_passes') return createChainable(DAY_PASS_ROW);
+        if (table === 'usage_events') return createChainable(null);
+        return createChainable(null);
+      });
+
+      const result = await checkUsageLimit(supabase, 'user-1', 'deck_generation');
+      expect(result.allowed).toBe(true);
+      expect(result.planId).toBe('day_pass');
+      expect(result.remaining).toBe(4);
     });
 
     it('returns not allowed when insufficient credits and no usage remaining', async () => {

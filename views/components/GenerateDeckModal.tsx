@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Loader2, Check, Wand2, FileText, Palette } from 'lucide-react';
 import { TEMPLATE_LIST } from '@/config/deckTemplates';
+import { CREDIT_COSTS } from '@/config/billing';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { parseRetryAfter } from '@/lib/supabase/edge-error';
 import { useRateLimitCooldown } from '@/hooks/useRateLimitCooldown';
@@ -21,6 +22,32 @@ const GENERATION_STEPS = [
   { label: 'Applying theme', icon: Palette },
   { label: 'Rendering PDF', icon: Sparkles },
 ];
+
+interface DeckGenerationAccess {
+  allowed: boolean;
+  planId: 'free' | 'day_pass' | 'pro';
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+}
+
+function getAccessMessage(access: DeckGenerationAccess | null): string {
+  if (!access) {
+    return `Deck generation costs ${CREDIT_COSTS.deckGeneration} credits.`;
+  }
+
+  if (access.planId === 'day_pass') {
+    const remaining = access.remaining ?? 0;
+    return access.allowed
+      ? `Day Pass active. ${remaining} deck ${remaining === 1 ? 'generation' : 'generations'} remaining.`
+      : 'Your Day Pass deck quota is used up.';
+  }
+
+  const remaining = access.remaining ?? 0;
+  return access.allowed
+    ? `Deck generation costs ${CREDIT_COSTS.deckGeneration} credits. ${remaining} available now.`
+    : `Deck generation needs ${CREDIT_COSTS.deckGeneration} credits. ${remaining} available now.`;
+}
 
 function TemplatePreviewCard({
   template,
@@ -234,6 +261,8 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
   const [description, setDescription] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deckAccess, setDeckAccess] = useState<DeckGenerationAccess | null>(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
   const [genStep, setGenStep] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -262,14 +291,54 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
     return () => timers.forEach(clearTimeout);
   }, [isGenerating]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let cancelled = false;
+    setIsCheckingAccess(true);
+
+    void fetch('/api/billing/usage?resource=deck_generation')
+      .then(async (res) => {
+        if (!res.ok) {
+          throw new Error('Failed to check deck generation access');
+        }
+        return res.json() as Promise<DeckGenerationAccess>;
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setDeckAccess(data);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDeckAccess(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsCheckingAccess(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const isValid = companyName.trim().length > 0 && description.trim().length >= 10;
   const charCount = description.length;
   const charPercent = Math.min((charCount / 5000) * 100, 100);
+  const accessMessage = getAccessMessage(deckAccess);
+  const isAccessBlocked = deckAccess !== null && !deckAccess.allowed;
 
   const handleGenerate = async () => {
-    if (!isValid || isGenerating) return;
+    if (!isValid || isGenerating || isCheckingAccess) return;
+    if (isAccessBlocked) {
+      setError(accessMessage);
+      return;
+    }
     setIsGenerating(true);
     setError(null);
 
@@ -478,6 +547,31 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
             </div>
           </div>
 
+          <div
+            className="mb-5 px-4 py-3 rounded-xl text-sm flex items-start gap-2"
+            style={{
+              backgroundColor: isAccessBlocked ? 'rgba(239, 68, 68, 0.08)' : 'var(--bg-surface)',
+              color: isAccessBlocked ? '#ef4444' : 'var(--text-secondary)',
+              border: isAccessBlocked
+                ? '1px solid rgba(239, 68, 68, 0.15)'
+                : '1px solid var(--border-color)',
+            }}
+          >
+            <div
+              className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
+              style={{
+                backgroundColor: isAccessBlocked
+                  ? 'rgba(239, 68, 68, 0.12)'
+                  : 'rgba(255, 89, 65, 0.08)',
+              }}
+            >
+              {isCheckingAccess ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+            </div>
+            <span className="flex-1">
+              {isCheckingAccess ? 'Checking deck generation access...' : accessMessage}
+            </span>
+          </div>
+
           {/* Error */}
           {(rateLimitMessage ?? error) && (
             <div
@@ -498,7 +592,7 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
-            disabled={!isValid || isGenerating || isRateLimited}
+            disabled={!isValid || isGenerating || isRateLimited || isCheckingAccess || isAccessBlocked}
             className="relative w-full flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed generate-btn-hover"
             style={{
               background: 'linear-gradient(135deg, #ff5941, #e63b26)',

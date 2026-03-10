@@ -12,12 +12,15 @@ import {
 } from 'lucide-react';
 
 const ANALYSIS_STEPS = [
-  { label: 'Processing transcript', icon: FileText, duration: '~2s' },
-  { label: 'Analyzing structure & clarity', icon: Brain, duration: '~5s' },
-  { label: 'Scoring rubric categories', icon: BarChart3, duration: '~4s' },
-  { label: 'Generating fixes & rewrite', icon: Lightbulb, duration: '~3s' },
-  { label: 'Preparing results', icon: Rocket, duration: '~1s' },
+  { label: 'Processing transcript', icon: FileText, duration: '~3s' },
+  { label: 'Analyzing structure & clarity', icon: Brain, duration: '~6s' },
+  { label: 'Scoring rubric categories', icon: BarChart3, duration: '~5s' },
+  { label: 'Generating fixes & rewrite', icon: Lightbulb, duration: '~5s' },
+  { label: 'Preparing results', icon: Rocket, duration: '~2s' },
 ];
+
+/** Seconds after mount before showing "still working" hint on last step */
+const EXTRA_WAIT_HINT_MS = 25_000;
 
 interface AnalyzingOverlayProps {
   isVisible: boolean;
@@ -28,23 +31,26 @@ export function AnalyzingOverlay({ isVisible, warning }: AnalyzingOverlayProps) 
   const [step, setStep] = useState(0);
   const [entered, setEntered] = useState(false);
   const [stepProgress, setStepProgress] = useState(0);
+  const [showExtraWaitHint, setShowExtraWaitHint] = useState(false);
 
-  // Stagger step transitions with simulated timing
+  // Stagger step transitions with simulated timing (~20s total)
   useEffect(() => {
     if (!isVisible) {
       setStep(0);
       setEntered(false);
       setStepProgress(0);
+      setShowExtraWaitHint(false);
       return;
     }
     // Fade in
     requestAnimationFrame(() => setEntered(true));
 
     const timers = [
-      setTimeout(() => setStep(1), 2500),
-      setTimeout(() => setStep(2), 7000),
-      setTimeout(() => setStep(3), 11000),
-      setTimeout(() => setStep(4), 14000),
+      setTimeout(() => setStep(1), 3500),
+      setTimeout(() => setStep(2), 9000),
+      setTimeout(() => setStep(3), 14000),
+      setTimeout(() => setStep(4), 19000),
+      setTimeout(() => setShowExtraWaitHint(true), EXTRA_WAIT_HINT_MS),
     ];
     return () => timers.forEach(clearTimeout);
   }, [isVisible]);
@@ -166,6 +172,17 @@ export function AnalyzingOverlay({ isVisible, warning }: AnalyzingOverlayProps) 
           >
             This usually takes 15-25 seconds
           </p>
+          {showExtraWaitHint && (
+            <p
+              className="text-xs mt-1.5"
+              style={{
+                color: 'rgba(255, 170, 51, 0.7)',
+                animation: 'fadeIn 0.5s ease',
+              }}
+            >
+              Still working — almost there
+            </p>
+          )}
         </div>
         {warning ? (
           <div

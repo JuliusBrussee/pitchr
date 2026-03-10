@@ -13,9 +13,14 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const resource = url.searchParams.get('resource');
 
-    if (resource !== 'runs' && resource !== 'decks' && resource !== 'qa_seconds') {
+    if (
+      resource !== 'runs' &&
+      resource !== 'decks' &&
+      resource !== 'qa_seconds' &&
+      resource !== 'deck_generation'
+    ) {
       return NextResponse.json(
-        { error: 'Invalid resource. Must be "runs", "decks", or "qa_seconds".' },
+        { error: 'Invalid resource. Must be "runs", "decks", "qa_seconds", or "deck_generation".' },
         { status: 400 },
       );
     }

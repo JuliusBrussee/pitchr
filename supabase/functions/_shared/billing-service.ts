@@ -155,24 +155,23 @@ export async function checkUsageLimit(
     return { allowed: true, planId: 'pro', used: 0, limit: null, remaining: null };
   }
 
-  // 1. Check active day pass first — it takes priority (not for deck_generation)
-  if (resource !== 'deck_generation') {
-    const dayPass = await getActiveDayPass(supabase, userId);
-    if (dayPass) {
-      const resourceMap = {
-        run: { used: dayPass.runs_used, limit: dayPass.runs_limit },
-        deck: { used: dayPass.decks_used, limit: dayPass.decks_limit },
-        qa_seconds: { used: dayPass.qa_seconds_used, limit: dayPass.qa_seconds_limit },
-      };
-      const { used, limit } = resourceMap[resource];
-      return {
-        allowed: used < limit,
-        planId: 'day_pass' as BillingPlanId,
-        used,
-        limit,
-        remaining: Math.max(0, limit - used),
-      };
-    }
+  // 1. Check active day pass first — deck generation uses the day-pass deck quota.
+  const dayPass = await getActiveDayPass(supabase, userId);
+  if (dayPass) {
+    const resourceMap = {
+      run: { used: dayPass.runs_used, limit: dayPass.runs_limit },
+      deck: { used: dayPass.decks_used, limit: dayPass.decks_limit },
+      qa_seconds: { used: dayPass.qa_seconds_used, limit: dayPass.qa_seconds_limit },
+      deck_generation: { used: dayPass.decks_used, limit: dayPass.decks_limit },
+    };
+    const { used, limit } = resourceMap[resource];
+    return {
+      allowed: used < limit,
+      planId: 'day_pass' as BillingPlanId,
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+    };
   }
 
   // 2. Credit-based check
@@ -381,31 +380,29 @@ export async function recordUsageEvent(
   options?: { skipEventInsert?: boolean },
 ): Promise<void> {
   // Check if user has an active day pass — if so, use day pass tracking
-  if (resource !== 'deck_generation') {
-    const dayPass = await getActiveDayPass(supabase, userId);
-    if (dayPass) {
-      const column = resource === 'run' ? 'runs_used' : 'decks_used';
-      await supabase.rpc('increment_day_pass_usage', {
-        pass_id: dayPass.id,
-        usage_column: column,
-      });
-    } else {
-      // Consume credits for non-day-pass users
-      const creditCost = CREDIT_COSTS[resource] ?? 1;
-      const { data: consumeResult, error: consumeErr } = await supabase.rpc('consume_credits', {
-        p_user_id: userId,
-        p_amount: creditCost,
-        p_source: resource,
-        p_reference_id: referenceId ?? null,
-      });
-      if (consumeErr) {
-        console.error('[billing] credit consumption failed for resource:', resource, consumeErr.message);
-      } else if ((consumeResult as number) < 0) {
-        console.warn('[billing] insufficient credits for resource:', resource);
-      }
+  const dayPass = await getActiveDayPass(supabase, userId);
+  if (dayPass) {
+    const column = resource === 'run' ? 'runs_used' : 'decks_used';
+    await supabase.rpc('increment_day_pass_usage', {
+      pass_id: dayPass.id,
+      usage_column: column,
+    });
+  } else if (resource !== 'deck_generation') {
+    // Consume credits for non-day-pass users
+    const creditCost = CREDIT_COSTS[resource] ?? 1;
+    const { data: consumeResult, error: consumeErr } = await supabase.rpc('consume_credits', {
+      p_user_id: userId,
+      p_amount: creditCost,
+      p_source: resource,
+      p_reference_id: referenceId ?? null,
+    });
+    if (consumeErr) {
+      console.error('[billing] credit consumption failed for resource:', resource, consumeErr.message);
+    } else if ((consumeResult as number) < 0) {
+      console.warn('[billing] insufficient credits for resource:', resource);
     }
   } else {
-    // deck_generation always uses credits (no day pass equivalent)
+    // deck_generation falls back to credits when no day pass is active.
     const creditCost = CREDIT_COSTS[resource] ?? 2;
     const { data: consumeResult, error: consumeErr } = await supabase.rpc('consume_credits', {
       p_user_id: userId,

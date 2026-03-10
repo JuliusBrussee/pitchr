@@ -262,6 +262,9 @@ export default function ResultsPage() {
     const polling = getRunPollMs();
     let nextDelayMs = polling.initial;
     let isFetching = false;
+    const pollStartedAt = Date.now();
+    /** Stop polling after 90 seconds to avoid infinite wait on silent failures */
+    const POLL_TIMEOUT_MS = 90_000;
 
     const pollRun = async () => {
       if (isFetching) return;
@@ -290,6 +293,13 @@ export default function ResultsPage() {
         setRun(nextRun);
 
         if (nextRun.status === 'queued' || nextRun.status === 'running') {
+          // Give up if we've been polling too long — the background job likely died
+          if (Date.now() - pollStartedAt > POLL_TIMEOUT_MS) {
+            setRunError('Analysis is taking longer than expected. Please try again.');
+            setLoading(false);
+            return;
+          }
+
           setLoading(true);
           const delay = document.visibilityState === 'hidden'
             ? Math.min(nextDelayMs * 2, polling.max)
@@ -458,9 +468,9 @@ export default function ResultsPage() {
     );
   }
 
-  /* ── Failed state ────────────────────────────────────────── */
+  /* ── Failed / timed-out state ────────────────────────────── */
 
-  if (run?.status === 'failed') {
+  if (run?.status === 'failed' || runError) {
     return (
       <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
         <div
@@ -476,9 +486,9 @@ export default function ResultsPage() {
             Analysis Failed
           </h1>
           <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-            {run.error ??
-              run.meta?.error_details?.message ??
-              runError ??
+            {runError ??
+              run?.error ??
+              run?.meta?.error_details?.message ??
               'The analysis job failed before completion.'}
           </p>
           <Link

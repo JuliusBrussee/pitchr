@@ -314,6 +314,59 @@ function extractJson(raw: string): string {
   return cleaned.trim();
 }
 
+function parseSlidesPayload(raw: string): SlideContent[] {
+  const normalized = extractJson(raw);
+  const parseCandidates = [normalized];
+
+  const arrayStart = normalized.indexOf('[');
+  const arrayEnd = normalized.lastIndexOf(']');
+  if (arrayStart !== -1 && arrayEnd > arrayStart) {
+    parseCandidates.push(normalized.slice(arrayStart, arrayEnd + 1));
+  }
+
+  const objectStart = normalized.indexOf('{');
+  const objectEnd = normalized.lastIndexOf('}');
+  if (objectStart !== -1 && objectEnd > objectStart) {
+    parseCandidates.push(normalized.slice(objectStart, objectEnd + 1));
+  }
+
+  let parsed: unknown = null;
+  let lastError: Error | null = null;
+
+  for (const candidate of parseCandidates) {
+    try {
+      parsed = JSON.parse(candidate);
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Invalid JSON');
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  const slideList = Array.isArray(parsed)
+    ? parsed
+    : parsed && typeof parsed === 'object'
+      ? Array.isArray((parsed as { slides?: unknown }).slides)
+        ? (parsed as { slides: unknown[] }).slides
+        : Object.values(parsed as Record<string, unknown>).find(Array.isArray)
+      : null;
+
+  if (!Array.isArray(slideList)) {
+    throw new Error('Invalid response: missing slides array');
+  }
+
+  return slideList.slice(0, 8).map(
+    (slide: { title?: string; bullets?: string[] }, i: number) => ({
+      title: slide.title || SLIDE_NAMES[i] || `Slide ${i + 1}`,
+      bullets: Array.isArray(slide.bullets) ? slide.bullets.map(String) : [],
+    }),
+  );
+}
+
 async function generateSlideContent(
   companyName: string,
   description: string,
@@ -362,20 +415,7 @@ async function generateSlideContent(
       throw new Error('Claude returned an empty response');
     }
 
-    const jsonText = extractJson(text);
-    const parsed = JSON.parse(jsonText);
-
-    if (!parsed.slides || !Array.isArray(parsed.slides)) {
-      throw new Error('Invalid response: missing slides array');
-    }
-
-    // Normalize to exactly 8 slides
-    const slides: SlideContent[] = parsed.slides.slice(0, 8).map(
-      (slide: { title?: string; bullets?: string[] }, i: number) => ({
-        title: slide.title || SLIDE_NAMES[i] || `Slide ${i + 1}`,
-        bullets: Array.isArray(slide.bullets) ? slide.bullets.map(String) : [],
-      }),
-    );
+    const slides = parseSlidesPayload(text);
 
     // Pad to 8 if LLM returned fewer
     while (slides.length < 8) {
@@ -425,9 +465,12 @@ Deno.serve(async (req: Request) => {
     const adminClient = createAdminClient();
     const usageCheck = await checkUsageLimit(adminClient, user.id, 'deck_generation', { checkOnly: true });
     if (!usageCheck.allowed) {
+      const message = usageCheck.planId === 'day_pass'
+        ? `Day Pass deck limit reached (${usageCheck.used}/${usageCheck.limit}).`
+        : `Deck generation requires 2 credits. You have ${usageCheck.remaining ?? 0} available.`;
       return errorResponse(
-        `Deck generation limit reached (${usageCheck.used}/${usageCheck.limit}). Upgrade your plan for more decks.`,
-        429,
+        message,
+        402,
       );
     }
 
