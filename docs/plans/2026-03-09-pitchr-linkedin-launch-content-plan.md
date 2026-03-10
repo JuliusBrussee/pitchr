@@ -228,6 +228,15 @@
 - Feed time 08:00, stories 08:15 and 17:30.
 - CTA: “Comment your first 3 edits and get a rewrite path.”
 
+#### Creative direction and posting rhythm
+- Use the brand palette: `#ff5941`, `#ffaa33`, `#e63b26`.
+- Prefer short, high-contrast carousels for claims, one rewrite per slide.
+- Map each LinkedIn paragraph into 2–3 story cards (copy reduction by 50%+).
+- Default reply rhythm:
+  - 0–30 min: top 5 comments
+  - 30–90 min: direct replies
+  - 90–120 min: move high-intent to DM
+
 ## 7) Pre-produced posts by day and channel
 
 Tone guideline: founder-authentic, practical, concise, and non-hype.  
