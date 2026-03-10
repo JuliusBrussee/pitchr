@@ -55,6 +55,40 @@ export function AppSidebar({
   const pathname = usePathname();
   const { closeSidebar } = useSidebar();
 
+  const NavLink = ({ item, isActive }: { item: { id: string; label: string; icon: React.ComponentType<{ size: number }>; href: string }; isActive: boolean }) => {
+    const Icon = item.icon;
+    return (
+      <Link
+        key={item.id}
+        href={item.href}
+        onClick={closeSidebar}
+        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
+        style={{
+          backgroundColor: isActive
+            ? isDark ? 'rgba(255,89,65,0.1)' : 'rgba(255,89,65,0.06)'
+            : 'transparent',
+          border: isActive
+            ? isDark ? '1px solid rgba(255,89,65,0.12)' : '1px solid rgba(255,89,65,0.1)'
+            : '1px solid transparent',
+          color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+        }}
+      >
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors duration-200"
+          style={{
+            backgroundColor: isActive
+              ? isDark ? 'rgba(255,89,65,0.15)' : 'rgba(255,89,65,0.1)'
+              : isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+            color: isActive ? '#ff5941' : undefined,
+          }}
+        >
+          <Icon size={16} />
+        </div>
+        <span className="flex-1">{item.label}</span>
+      </Link>
+    );
+  };
+
   return (
     <aside
       className="flex flex-col h-full w-60 rounded-2xl p-4 border flex-shrink-0"
@@ -120,30 +154,14 @@ export function AppSidebar({
         ) : null}
       </div>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-[3px]">
         {NAV_ITEMS.map(item => {
-          const Icon = item.icon;
           const isActive = item.id === 'session'
             ? pathname.startsWith('/session')
             : item.id === 'arena'
               ? pathname.startsWith('/arena')
               : pathname === item.href;
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              onClick={closeSidebar}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
-              style={{
-                backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
-                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                backdropFilter: isActive ? `blur(var(--blur-strength))` : undefined,
-              }}
-            >
-              <Icon size={18} />
-              <span className="flex-1">{item.label}</span>
-            </Link>
-          );
+          return <NavLink key={item.id} item={item} isActive={isActive} />;
         })}
       </nav>
 
@@ -151,28 +169,13 @@ export function AppSidebar({
       <div className="my-4 h-px" style={{ backgroundColor: 'var(--border-color)' }} />
 
       {/* Tools */}
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-[3px]">
         <span className="px-3 text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
           Tools
         </span>
         {TOOL_ITEMS.map(item => {
-          const Icon = item.icon;
           const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              onClick={closeSidebar}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 no-underline"
-              style={{
-                backgroundColor: isActive ? 'var(--bg-surface-hover)' : 'transparent',
-                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-              }}
-            >
-              <Icon size={18} />
-              <span className="flex-1">{item.label}</span>
-            </Link>
-          );
+          return <NavLink key={item.id} item={item} isActive={isActive} />;
         })}
       </nav>
 
