@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
       unsubscribe_token: generatedUnsubscribeToken,
     };
 
-    const rateLimit = checkPublicWriteRateLimit(
+    const rateLimit = await checkPublicWriteRateLimit(
       email
         ? `waitlist:email:${email}`
         : `waitlist:ip:${ip ?? "unknown"}`,

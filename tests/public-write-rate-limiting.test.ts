@@ -7,6 +7,13 @@ import {
   POST as unsubscribePOST,
 } from '@/app/api/newsletter/unsubscribe/route';
 
+const ORIGINAL_ENV = {
+  PUBLIC_WRITE_RATE_LIMIT_MAX_REQUESTS: process.env.PUBLIC_WRITE_RATE_LIMIT_MAX_REQUESTS,
+  PUBLIC_WRITE_RATE_LIMIT_WINDOW_MS: process.env.PUBLIC_WRITE_RATE_LIMIT_WINDOW_MS,
+  PUBLIC_WRITE_RATE_LIMIT_BACKEND: process.env.PUBLIC_WRITE_RATE_LIMIT_BACKEND,
+  TRUST_PROXY_HEADERS: process.env.TRUST_PROXY_HEADERS,
+};
+
 const mockSupabaseFrom = vi.fn();
 const mockCreateAdminClient = vi.fn(() => ({
   from: mockSupabaseFrom,
@@ -56,20 +63,26 @@ beforeEach(() => {
   resetRateLimitStateForTests();
   process.env.PUBLIC_WRITE_RATE_LIMIT_MAX_REQUESTS = '1';
   process.env.PUBLIC_WRITE_RATE_LIMIT_WINDOW_MS = '60000';
+  process.env.PUBLIC_WRITE_RATE_LIMIT_BACKEND = 'memory';
+  process.env.TRUST_PROXY_HEADERS = 'true';
 });
 
 afterEach(() => {
   vi.clearAllMocks();
+  process.env.PUBLIC_WRITE_RATE_LIMIT_MAX_REQUESTS = ORIGINAL_ENV.PUBLIC_WRITE_RATE_LIMIT_MAX_REQUESTS;
+  process.env.PUBLIC_WRITE_RATE_LIMIT_WINDOW_MS = ORIGINAL_ENV.PUBLIC_WRITE_RATE_LIMIT_WINDOW_MS;
+  process.env.PUBLIC_WRITE_RATE_LIMIT_BACKEND = ORIGINAL_ENV.PUBLIC_WRITE_RATE_LIMIT_BACKEND;
+  process.env.TRUST_PROXY_HEADERS = ORIGINAL_ENV.TRUST_PROXY_HEADERS;
 });
 
 describe('checkPublicWriteRateLimit', () => {
-  it('allows a burst then blocks next request in window', () => {
-    const first = checkPublicWriteRateLimit('public-write:test', {
+  it('allows a burst then blocks next request in window', async () => {
+    const first = await checkPublicWriteRateLimit('public-write:test', {
       maxRequests: 1,
       windowMs: 1000,
       now: 0,
     });
-    const second = checkPublicWriteRateLimit('public-write:test', {
+    const second = await checkPublicWriteRateLimit('public-write:test', {
       maxRequests: 1,
       windowMs: 1000,
       now: 100,
