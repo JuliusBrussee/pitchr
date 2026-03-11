@@ -12,7 +12,10 @@ import type { Project } from '@/types/project';
 export default function ProjectDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const projectId = params.projectId as string;
+  const projectIdParam = params?.projectId;
+  const projectId = Array.isArray(projectIdParam)
+    ? (projectIdParam[0] ?? '')
+    : (projectIdParam ?? '');
   const { projects, activeProjectId, isLoading, updateProject, setActiveProject } = useProject();
   const [isArchiving, setIsArchiving] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -27,10 +30,14 @@ export default function ProjectDetailPage() {
   const isActive = activeProjectId === projectId;
 
   useEffect(() => {
+    if (!projectId) {
+      router.replace('/projects');
+      return;
+    }
     if (!isLoading && !project) {
       router.replace('/projects');
     }
-  }, [isLoading, project, router]);
+  }, [isLoading, project, projectId, router]);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -83,7 +90,7 @@ export default function ProjectDetailPage() {
     );
   }
 
-  if (!project) return null;
+  if (!projectId || !project) return null;
 
   return (
     <main

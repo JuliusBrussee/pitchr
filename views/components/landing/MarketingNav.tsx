@@ -8,7 +8,7 @@ import { PitchrLogo } from '@/views/components/PitchrLogo';
 import { SolutionsDropdown } from '@/views/components/landing/SolutionsDropdown';
 
 export function MarketingNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const { isDark, setTheme } = useTheme();
   const navRef = useRef<HTMLElement>(null);
   const [scrolled, setScrolled] = useState(false);

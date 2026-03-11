@@ -31,7 +31,7 @@ function SettingsContent() {
 
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
-  const activeTab = resolveTab(searchParams.get('tab'));
+  const activeTab = resolveTab(searchParams?.get('tab') ?? null);
   const isFreePlan = billing.subscription?.planId === 'free';
 
   // Low credit nudge toast (fires once per session)

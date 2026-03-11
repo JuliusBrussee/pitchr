@@ -52,7 +52,7 @@ export function AppSidebar({
   const { isDark, setTheme } = useTheme();
   const { user, signOut } = useAuth();
   const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const { closeSidebar } = useSidebar();
   const { subscription, credits } = useBilling();
 
