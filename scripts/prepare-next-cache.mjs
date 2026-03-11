@@ -43,6 +43,11 @@ async function ensureJunction(linkPath, targetPath) {
   await fs.promises.symlink(targetPath, linkPath, 'junction');
 }
 
+async function resetDirectoryContents(targetPath) {
+  await fs.promises.rm(targetPath, { recursive: true, force: true });
+  await fs.promises.mkdir(targetPath, { recursive: true });
+}
+
 async function main() {
   if (process.platform !== 'win32') {
     return;
@@ -60,6 +65,9 @@ async function main() {
   const sharedNodeModulesLink = path.join(cacheRoot, 'node_modules');
 
   await fs.promises.mkdir(targetPath, { recursive: true });
+  if (process.env.NEXT_CACHE_RESET === 'true') {
+    await resetDirectoryContents(targetPath);
+  }
   if (await pathExists(projectNodeModules)) {
     await ensureJunction(sharedNodeModulesLink, projectNodeModules);
   }
