@@ -17,7 +17,7 @@ export function ComplianceSession() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => {
-    const rawNext = searchParams.get('next');
+    const rawNext = searchParams?.get('next');
     if (!rawNext || !rawNext.startsWith('/') || rawNext.startsWith('//')) {
       return '/dashboard';
     }

@@ -593,7 +593,8 @@ class QaErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> 
 /* ——— Main Page (with error boundary) ——— */
 export default function LiveQaPage() {
   const params = useParams<{ runId: string | string[] }>();
-  const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
+  const runIdParam = params?.runId;
+  const runId = Array.isArray(runIdParam) ? (runIdParam[0] ?? '') : (runIdParam ?? '');
 
   return (
     <QaErrorBoundary runId={runId}>

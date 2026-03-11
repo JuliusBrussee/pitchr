@@ -189,7 +189,8 @@ function ValueProof({ economics }: { economics: RunEconomics }) {
 
 export default function ResultsPage() {
   const params = useParams<{ runId: string | string[] }>();
-  const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
+  const runIdParam = params?.runId;
+  const runId = Array.isArray(runIdParam) ? (runIdParam[0] ?? '') : (runIdParam ?? '');
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);
   const [runError, setRunError] = useState<string | null>(null);

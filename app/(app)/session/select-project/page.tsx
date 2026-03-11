@@ -29,7 +29,7 @@ function SessionProjectSelectPageContent() {
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
   const returnTo = useMemo(() => {
-    const raw = searchParams.get('returnTo');
+    const raw = searchParams?.get('returnTo');
     if (raw && raw.startsWith('/')) return raw;
     return '/session';
   }, [searchParams]);
