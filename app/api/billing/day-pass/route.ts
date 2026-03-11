@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getActiveDayPass, getOrCreateStripeCustomer } from '@/services/billingService';
 import { createPaymentCheckoutSession } from '@/services/stripeService';
+import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
 import { BILLING_PLANS } from '@/config/billing';
 
 /**
@@ -42,13 +43,19 @@ export async function POST(request: NextRequest) {
       user.user_metadata?.full_name,
     );
 
-    const origin = request.headers.get('origin') ?? '';
+    const origin = request.headers.get('origin');
 
     const session = await createPaymentCheckoutSession({
       customerId,
       priceId,
-      successUrl: `${origin}/settings?tab=billing&billing=day-pass-success`,
-      cancelUrl: `${origin}/settings?tab=billing&billing=canceled`,
+      successUrl: buildBillingRedirectUrl(
+        { origin },
+        '/settings?tab=billing&billing=day-pass-success',
+      ),
+      cancelUrl: buildBillingRedirectUrl(
+        { origin },
+        '/settings?tab=billing&billing=canceled',
+      ),
       metadata: {
         user_id: user.id,
         product_type: 'day_pass',
