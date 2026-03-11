@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import {
+  checkPublicWriteRateLimit,
+  getClientIpFallback,
+  getRateLimitResetHeaders,
+} from '@/lib/rateLimit';
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
@@ -59,8 +64,32 @@ async function unsubscribeByToken(token: string): Promise<UnsubscribeResult> {
   return existingRow.unsubscribed_at ? 'already_unsubscribed' : 'not_found';
 }
 
+function checkUnsubscribeRateLimit(request: NextRequest): NextResponse | null {
+  const ip = getClientIpFallback(request);
+  const rateLimit = checkPublicWriteRateLimit(
+    `newsletter-unsubscribe:ip:${ip ?? "unknown"}`,
+  );
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again shortly.' },
+      {
+        status: 429,
+        headers: getRateLimitResetHeaders(rateLimit),
+      },
+    );
+  }
+
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitResponse = checkUnsubscribeRateLimit(request);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const body = await request.json();
     const token = getToken(body?.token);
 
@@ -89,6 +118,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitResponse = checkUnsubscribeRateLimit(request);
+  if (rateLimitResponse) {
+    return rateLimitResponse;
+  }
+
   const token = getToken(request.nextUrl.searchParams.get('token'));
   if (!token) {
     return NextResponse.json({ error: 'Invalid unsubscribe token' }, { status: 400 });
