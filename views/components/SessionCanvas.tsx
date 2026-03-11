@@ -305,6 +305,7 @@ function ControlButton({
   primary,
   danger,
   dangerGhost,
+  disabled,
   size = 18,
 }: {
   icon: React.ComponentType<{ size?: number; fill?: string }>;
