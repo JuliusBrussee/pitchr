@@ -27,6 +27,7 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "playwright-anon-key",
       SUPABASE_SERVICE_ROLE_KEY: "playwright-service-role-key",
       PLAYWRIGHT_DISABLE_SUPABASE_AUTH: "true",
+      ASSEMBLYAI_API_KEY: "playwright-test-key",
     },
   },
   projects: [

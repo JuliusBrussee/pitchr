@@ -70,12 +70,6 @@ export async function updateSession(request: NextRequest) {
   // Local E2E can opt out of remote auth lookups to keep route smoke tests stable
   // when Supabase credentials are intentionally not configured.
   if (PLAYWRIGHT_AUTH_BYPASS) {
-    if (isProtectedRoute(pathname)) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/login';
-      url.searchParams.set('redirectTo', pathname);
-      return NextResponse.redirect(url);
-    }
     return NextResponse.next({ request });
   }
 
