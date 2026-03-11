@@ -78,10 +78,9 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.name === 'AuthenticationError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[billing/day-pass] error:', message, error);
+    console.error('[billing/day-pass] error:', error);
     return NextResponse.json(
-      { error: `Failed to create day pass checkout: ${message}` },
+      { error: 'Failed to create day pass checkout.' },
       { status: 500 },
     );
   }
