@@ -1,3 +1,5 @@
+import { isIP } from 'node:net';
+
 export interface RateLimitResult {
   allowed: boolean;
   limit: number;
@@ -13,6 +15,12 @@ type RateLimitState = {
 const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_RATE_LIMIT_MAX_REQUESTS = 5;
 const DEFAULT_RETRY_HEADER_WINDOW_SECONDS = 60;
+const DEFAULT_TRUSTED_CLIENT_IP_HEADERS = [
+  'cf-connecting-ip',
+  'x-real-ip',
+  'x-forwarded-for',
+  'x-vercel-forwarded-for',
+];
 
 const state = new Map<string, RateLimitState>();
 
@@ -31,13 +39,64 @@ export function resolvePublicWriteRateLimitDefaults() {
   };
 }
 
+function normalizeIpCandidate(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  // Support RFC7239-like and socket-style values: "ip:port", "[ipv6]:port".
+  const noPort = trimmed.startsWith('[')
+    ? trimmed.slice(1).split(']')[0]
+    : trimmed.includes(':') && trimmed.includes('.') && trimmed.split(':').length === 2
+      ? trimmed.split(':')[0]
+      : trimmed;
+
+  return isIP(noPort) ? noPort : null;
+}
+
+function resolveTrustedClientIpHeaders(): string[] {
+  const configured = process.env.TRUSTED_CLIENT_IP_HEADERS;
+  if (!configured) {
+    return DEFAULT_TRUSTED_CLIENT_IP_HEADERS;
+  }
+
+  const parsed = configured
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+
+  return parsed.length > 0 ? parsed : DEFAULT_TRUSTED_CLIENT_IP_HEADERS;
+}
+
+function shouldTrustProxyHeaders(): boolean {
+  return process.env.TRUST_PROXY_HEADERS === 'true';
+}
+
+function resolveHeaderCandidate(headerName: string, headerValue: string): string | null {
+  if (headerName === 'x-forwarded-for' || headerName === 'x-vercel-forwarded-for') {
+    const first = headerValue.split(',')[0];
+    return normalizeIpCandidate(first);
+  }
+  return normalizeIpCandidate(headerValue);
+}
+
 export function getClientIpFallback(request: Request): string | null {
+  if (!shouldTrustProxyHeaders()) {
+    return null;
+  }
+
   const headers = request.headers;
-  return (
-    headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    headers.get('x-real-ip') ??
-    null
-  );
+  const headerPriority = resolveTrustedClientIpHeaders();
+  for (const headerName of headerPriority) {
+    const headerValue = headers.get(headerName);
+    if (!headerValue) continue;
+    const candidate = resolveHeaderCandidate(headerName, headerValue);
+    if (candidate) {
+      return candidate;
+    }
+  }
+
+  return null;
 }
 
 export function getRateLimitResetHeaders(result: RateLimitResult) {
