@@ -364,7 +364,7 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
   throw new Error('Claude request failed after retries');
 }
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent';
 const GEMINI_TIMEOUT_MS = 45_000;
 
 interface GeminiResponse {
