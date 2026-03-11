@@ -8,6 +8,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Clock,
+  Coins,
+  Info,
   Mic,
   Radio,
   RefreshCw,
@@ -357,6 +359,14 @@ function PreSessionGate({
           </div>
         </div>
 
+        {/* Credit cost tip */}
+        {!isExhausted && (
+          <div className="qa-gate-credit-tip">
+            <Coins size={12} />
+            <span>1 credit per session, regardless of length</span>
+          </div>
+        )}
+
         {/* Duration selector */}
         {!isExhausted && (
           <DurationSelector
@@ -373,6 +383,14 @@ function PreSessionGate({
           <div className="qa-gate-cost">
             <Timer size={12} />
             <span>Will use up to {formatBudget(selectedDuration)} of your budget</span>
+          </div>
+        )}
+
+        {/* Grace period tip */}
+        {!isExhausted && (
+          <div className="qa-gate-grace-tip">
+            <Info size={11} />
+            <span>Sessions under {budget.gracePeriodSeconds}s are free — no credit charged</span>
           </div>
         )}
 
@@ -482,6 +500,16 @@ function PostSessionSummary({
           <span>Time used</span>
           <span className="qa-summary-billing-value">
             {isGrace ? 'Free (grace period)' : formatBudget(billable)}
+          </span>
+        </div>
+        <div className="qa-summary-billing-row">
+          <span>Credit cost</span>
+          <span className="qa-summary-billing-value">
+            {isGrace ? (
+              <span style={{ color: 'var(--color-success, #22c55e)' }}>No credit charged</span>
+            ) : (
+              '1 credit'
+            )}
           </span>
         </div>
         {budgetAfter !== null && (

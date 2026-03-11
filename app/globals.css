@@ -2764,6 +2764,25 @@ html.dark .light-hidden { display: inline; }
   cursor: not-allowed;
 }
 
+/* ——— Gate Credit Tip ——— */
+
+.qa-gate-credit-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(255, 89, 65, 0.06);
+  border: 1px solid rgba(255, 89, 65, 0.12);
+}
+
+.qa-gate-credit-tip svg {
+  color: #ff5941;
+  flex-shrink: 0;
+}
+
 /* ——— Gate Cost Preview ——— */
 
 .qa-gate-cost {
@@ -2775,6 +2794,21 @@ html.dark .light-hidden { display: inline; }
   padding: 8px 12px;
   border-radius: 8px;
   background: var(--bg-surface-hover);
+}
+
+.qa-gate-grace-tip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  padding: 0 2px;
+}
+
+.qa-gate-grace-tip svg {
+  flex-shrink: 0;
+  opacity: 0.6;
 }
 
 /* ——— Gate Start Button ——— */
