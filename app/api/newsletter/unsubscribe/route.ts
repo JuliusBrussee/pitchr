@@ -10,6 +10,7 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 
 type UnsubscribeResult = 'unsubscribed' | 'already_unsubscribed' | 'not_found';
+type UnsubscribeTokenStatus = 'active' | 'already_unsubscribed' | 'not_found';
 
 interface WaitlistUnsubscribeRow {
   id: string;
@@ -62,6 +63,26 @@ async function unsubscribeByToken(token: string): Promise<UnsubscribeResult> {
 
   const existingRow = existing as WaitlistUnsubscribeRow;
   return existingRow.unsubscribed_at ? 'already_unsubscribed' : 'not_found';
+}
+
+async function getUnsubscribeTokenStatus(token: string): Promise<UnsubscribeTokenStatus> {
+  const supabase = createAdminClient();
+  const { data: existing, error } = await supabase
+    .from('waitlist')
+    .select('id, unsubscribed_at')
+    .eq('unsubscribe_token', token)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!existing) {
+    return 'not_found';
+  }
+
+  const existingRow = existing as WaitlistUnsubscribeRow;
+  return existingRow.unsubscribed_at ? 'already_unsubscribed' : 'active';
 }
 
 async function checkUnsubscribeRateLimit(request: NextRequest): Promise<NextResponse | null> {
@@ -129,17 +150,29 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await unsubscribeByToken(token);
+    const status = await getUnsubscribeTokenStatus(token);
 
-    if (result === 'not_found') {
+    if (status === 'not_found') {
       return NextResponse.json({ error: 'Invalid unsubscribe token' }, { status: 404 });
     }
 
-    if (result === 'already_unsubscribed') {
-      return NextResponse.json({ message: 'You are already unsubscribed.' }, { status: 200 });
+    if (status === 'already_unsubscribed') {
+      return NextResponse.json(
+        {
+          message: 'You are already unsubscribed.',
+          canUnsubscribe: false,
+        },
+        { status: 200 },
+      );
     }
 
-    return NextResponse.json({ message: 'You have been unsubscribed.' }, { status: 200 });
+    return NextResponse.json(
+      {
+        message: 'Please confirm unsubscribe to stop future waitlist emails.',
+        canUnsubscribe: true,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error('[newsletter/unsubscribe] error:', error);
     return NextResponse.json(
