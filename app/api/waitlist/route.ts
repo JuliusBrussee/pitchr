@@ -274,17 +274,20 @@ export async function POST(request: NextRequest) {
       unsubscribe_token: generatedUnsubscribeToken,
     };
 
-    const rateLimit = await checkPublicWriteRateLimit(
-      email
-        ? `waitlist:email:${email}`
-        : `waitlist:ip:${ip ?? "unknown"}`,
-    );
-    if (!rateLimit.allowed) {
+    const [emailRateLimit, ipRateLimit] = await Promise.all([
+      checkPublicWriteRateLimit(`waitlist:email:${email}`),
+      checkPublicWriteRateLimit(`waitlist:ip:${ip ?? "unknown"}`),
+    ]);
+
+    if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+      const blockedRateLimit = !emailRateLimit.allowed
+        ? emailRateLimit
+        : ipRateLimit;
       return NextResponse.json(
         { error: "Too many requests. Please try again shortly." },
         {
           status: 429,
-          headers: getRateLimitResetHeaders(rateLimit),
+          headers: getRateLimitResetHeaders(blockedRateLimit),
         },
       );
     }
