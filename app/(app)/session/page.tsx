@@ -26,6 +26,9 @@ import type { DeckRecord, SlideRecord } from '@/services/deckService';
 import type { PitchMode } from '@/types/pitch';
 import { useTutorial } from '@/hooks/useTutorial';
 
+const STT_SETUP_GUIDANCE =
+  'Speech recording is unavailable. Set ASSEMBLYAI_API_KEY in .env.local and restart yarn dev.';
+
 export default function SessionPage() {
   return (
     <Suspense
@@ -46,6 +49,8 @@ function SessionPageContent() {
   const session = useSessionState();
   const stt = useSTT();
   const recorder = useRecorder();
+  const isSttUnavailable = stt.isSttAvailable === false;
+  const sttGuardrailMessage = stt.sttAvailabilityMessage ?? STT_SETUP_GUIDANCE;
   const { runPitchAnalysis, error: runError, isRateLimited: isPitchRateLimited, secondsRemaining: pitchCooldownSeconds } = usePitchRun();
   const {
     activeProject,
@@ -271,6 +276,10 @@ function SessionPageContent() {
   }, [pitchMode, session.isSessionActive, resetSessionChecklist]);
 
   const handleStartSession = useCallback(() => {
+    if (isSttUnavailable) {
+      setAnalysisError(sttGuardrailMessage);
+      return;
+    }
     if (!sessionProjectId) {
       setAnalysisError('Select a project before starting a session.');
       return;
@@ -296,7 +305,7 @@ function SessionPageContent() {
 
     session.resumeSession();
     stt.start({ mode: pitchMode, resume: true });
-  }, [media.stream, pitchMode, recorder, session, sessionProjectId, stt]);
+  }, [isSttUnavailable, media.stream, pitchMode, recorder, session, sessionProjectId, stt, sttGuardrailMessage]);
 
   const handlePauseSession = useCallback(() => {
     if (!session.isSessionActive) {
@@ -490,7 +499,21 @@ function SessionPageContent() {
           elapsedSeconds={session.metrics.durationSecs}
           targetSeconds={selectedDuration}
           overtimeLimit={OVERTIME_LIMIT_SECONDS}
+          canStartSession={!isSttUnavailable}
         />
+        {isSttUnavailable && (
+          <div
+            role="alert"
+            className="rounded-lg border px-3 py-2 text-xs"
+            style={{
+              color: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.08)',
+              borderColor: 'rgba(245, 158, 11, 0.2)',
+            }}
+          >
+            {sttGuardrailMessage}
+          </div>
+        )}
         {deckLoadError && (
           <div
             role="alert"
@@ -534,6 +557,7 @@ function SessionPageContent() {
             (isPitchRateLimited ? `Too many requests. Try again in ${pitchCooldownSeconds}s.` : null)
             ?? analysisError
             ?? runError
+            ?? (isSttUnavailable ? sttGuardrailMessage : null)
             ?? stt.error
             ?? (!isProjectLoading && !sessionProjectId ? 'Select a project before starting a session.' : null)
           }
