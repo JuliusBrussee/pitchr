@@ -118,6 +118,18 @@ app.get("/", (_req, res) => {
 </body></html>`);
 });
 
+app.get("/api/stt-capabilities", (_req, res) => {
+  if (!getAssemblyAIApiKey()) {
+    res.json({
+      enabled: false,
+      message: "Server configuration error: missing ASSEMBLYAI_API_KEY.",
+    });
+    return;
+  }
+
+  res.json({ enabled: true });
+});
+
 app.post("/api/coach-answer", express.json(), async (req, res) => {
   try {
     const question = typeof req.body?.question === "string" ? req.body.question.trim() : "";

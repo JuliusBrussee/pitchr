@@ -12,6 +12,8 @@ import type { PitchMode } from '@/types/pitch';
 
 const TARGET_SAMPLE_RATE = 16000;
 const CHUNK_SAMPLES = 2048;
+const STT_MISSING_KEY_GUIDANCE =
+  'Speech recording is unavailable. Set ASSEMBLYAI_API_KEY in .env.local and restart yarn dev.';
 
 function getWsUrl(): string {
   if (typeof window === 'undefined') return '';
@@ -89,6 +91,11 @@ interface RealtimeSttMessage {
   feedbackAnswer?: string;
   feedbackError?: string;
   base64?: string;
+}
+
+interface RealtimeSttCapabilitiesResponse {
+  enabled?: boolean;
+  message?: string;
 }
 
 function buildSyntheticWords(
@@ -175,6 +182,8 @@ function isChecklistErrorMessage(value: unknown): value is RealtimeChecklistErro
 
 export interface UseSTTReturn {
   isRecording: boolean;
+  isSttAvailable: boolean;
+  sttAvailabilityMessage: string | null;
   start: (options?: StartOptions) => Promise<void>;
   pause: () => void;
   stop: () => void;
@@ -222,6 +231,8 @@ export function useSTT(): UseSTTReturn {
   );
   const [checklistNextHint, setChecklistNextHint] = useState<string | null>(null);
   const [checklistError, setChecklistError] = useState<string | null>(null);
+  const [isSttAvailable, setIsSttAvailable] = useState(true);
+  const [sttAvailabilityMessage, setSttAvailabilityMessage] = useState<string | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const isRecordingRef = useRef(false);
@@ -235,6 +246,71 @@ export function useSTT(): UseSTTReturn {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const modeRef = useRef<PitchMode>('elevator');
+  const sttCapabilityCheckedRef = useRef(false);
+  const sttCapabilityProbeRef = useRef<Promise<boolean> | null>(null);
+
+  const markSttUnavailable = useCallback((message?: string) => {
+    const reason = message?.trim();
+    const guidance = reason
+      ? `${reason} Set ASSEMBLYAI_API_KEY in .env.local and restart yarn dev.`
+      : STT_MISSING_KEY_GUIDANCE;
+    sttCapabilityCheckedRef.current = true;
+    setIsSttAvailable(false);
+    setSttAvailabilityMessage(guidance);
+    setError(guidance);
+  }, []);
+
+  const ensureSttAvailability = useCallback(async (): Promise<boolean> => {
+    if (!isSttAvailable) return false;
+    if (sttCapabilityCheckedRef.current) return true;
+    if (sttCapabilityProbeRef.current) {
+      return sttCapabilityProbeRef.current;
+    }
+
+    const probePromise = (async () => {
+      const apiBase = getApiBaseUrl();
+      if (!apiBase) {
+        sttCapabilityCheckedRef.current = true;
+        return true;
+      }
+
+      try {
+        const response = await fetch(`${apiBase}/api/stt-capabilities`, {
+          method: 'GET',
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          sttCapabilityCheckedRef.current = true;
+          return true;
+        }
+
+        const payload = (await response.json()) as RealtimeSttCapabilitiesResponse;
+        if (payload.enabled === false) {
+          markSttUnavailable(payload.message);
+          return false;
+        }
+
+        if (payload.enabled === true) {
+          setIsSttAvailable(true);
+          setSttAvailabilityMessage(null);
+        }
+      } catch {
+        // Ignore probe failures; websocket flow still handles runtime errors.
+      }
+
+      sttCapabilityCheckedRef.current = true;
+      return true;
+    })();
+
+    sttCapabilityProbeRef.current = probePromise;
+    const available = await probePromise;
+    sttCapabilityProbeRef.current = null;
+    return available;
+  }, [isSttAvailable, markSttUnavailable]);
+
+  useEffect(() => {
+    void ensureSttAvailability();
+  }, [ensureSttAvailability]);
 
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -384,6 +460,11 @@ export function useSTT(): UseSTTReturn {
   }, [stop]);
 
   const startAnswerRecording = useCallback(() => {
+    if (!isSttAvailable) {
+      markSttUnavailable(sttAvailabilityMessage ?? undefined);
+      return;
+    }
+
     const wsUrl = getWsUrl();
     if (!wsUrl) {
       setError('WebSocket URL not configured');
@@ -449,7 +530,7 @@ export function useSTT(): UseSTTReturn {
         setIsAnswerRecording(false);
       }
     };
-  }, [startMicCapture]);
+  }, [isSttAvailable, markSttUnavailable, startMicCapture, sttAvailabilityMessage]);
 
   const stopAnswerRecording = useCallback(() => {
     const ws = answerWsRef.current;
@@ -474,6 +555,9 @@ export function useSTT(): UseSTTReturn {
     const resume = options?.resume === true;
     const mode = options?.mode ?? modeRef.current;
     modeRef.current = mode;
+    const sttReady = await ensureSttAvailability();
+    if (!sttReady) return;
+
     setError(null);
     setSaved(false);
     setFeedbackQuestion(null);
@@ -602,6 +686,10 @@ export function useSTT(): UseSTTReturn {
         return;
       }
       if (msg.type === 'error') {
+        if (typeof msg.error === 'string' && msg.error.includes('ASSEMBLYAI_API_KEY')) {
+          markSttUnavailable(msg.error);
+          return;
+        }
         setError(msg.error ?? 'Error');
         return;
       }
@@ -638,7 +726,7 @@ export function useSTT(): UseSTTReturn {
         setError('Transcription error: ' + (msg.error ?? type));
       }
     };
-  }, [startMicCapture, stopMic]);
+  }, [ensureSttAvailability, markSttUnavailable, startMicCapture, stopMic]);
 
   useEffect(() => {
     const q = feedbackQuestion;
@@ -704,6 +792,8 @@ export function useSTT(): UseSTTReturn {
 
   return {
     isRecording,
+    isSttAvailable,
+    sttAvailabilityMessage,
     start,
     pause,
     stop,
