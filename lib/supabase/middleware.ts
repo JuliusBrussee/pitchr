@@ -28,6 +28,7 @@ export const AUTH_ROUTES = ['/login', '/signup', '/auth', '/forgot-password'];
 // When disabled, /signup redirects to the landing page waitlist.
 const SIGNUP_ENABLED = process.env.NEXT_PUBLIC_SIGNUP_ENABLED === 'true';
 export const BLOCKED_ROUTES: string[] = SIGNUP_ENABLED ? [] : ['/signup'];
+const PLAYWRIGHT_AUTH_BYPASS = process.env.PLAYWRIGHT_DISABLE_SUPABASE_AUTH === 'true';
 function isProtectedRoute(pathname: string): boolean {
   return PROTECTED_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + '/'),
@@ -44,6 +45,12 @@ function requiresAuthLookup(pathname: string): boolean {
   return isProtectedRoute(pathname) || isAuthRoute(pathname);
 }
 
+function hasSupabaseRuntimeConfig(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
+}
+
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -57,6 +64,22 @@ export async function updateSession(request: NextRequest) {
 
   // Public routes skip Supabase auth resolution to avoid request-time latency.
   if (!requiresAuthLookup(pathname)) {
+    return NextResponse.next({ request });
+  }
+
+  // Local E2E can opt out of remote auth lookups to keep route smoke tests stable
+  // when Supabase credentials are intentionally not configured.
+  if (PLAYWRIGHT_AUTH_BYPASS) {
+    return NextResponse.next({ request });
+  }
+
+  if (!hasSupabaseRuntimeConfig()) {
+    if (isProtectedRoute(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.searchParams.set('redirectTo', pathname);
+      return NextResponse.redirect(url);
+    }
     return NextResponse.next({ request });
   }
 
