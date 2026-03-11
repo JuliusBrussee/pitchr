@@ -55,14 +55,12 @@ export function ChapterHero({ chapter }: { chapter: ChapterConfig }) {
           transition: 'opacity 1s cubic-bezier(0.16,1,0.3,1) 0.3s, transform 1s cubic-bezier(0.16,1,0.3,1) 0.3s',
         }}
       >
-        <div className="ch-hero-demo-col">
-          <div className="ch-hero-demo-label">{chapter.demoLabels[0]}</div>
-          <FeatureHeroDemo slug={chapter.demos[0]} color={chapter.color} visible={visible} />
-        </div>
-        <div className="ch-hero-demo-col">
-          <div className="ch-hero-demo-label">{chapter.demoLabels[1]}</div>
-          <FeatureHeroDemo slug={chapter.demos[1]} color={chapter.color} visible={visible} />
-        </div>
+        {chapter.demos.map((slug, i) => (
+          <div key={slug} className="ch-hero-demo-col">
+            <div className="ch-hero-demo-label">{chapter.demoLabels[i]}</div>
+            <FeatureHeroDemo slug={slug} color={chapter.color} visible={visible} />
+          </div>
+        ))}
       </div>
     </section>
   );

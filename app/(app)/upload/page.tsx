@@ -17,10 +17,12 @@ import { ProjectSelect } from '@/views/components/ProjectSelect';
 import { ModeSegmentedControl } from '@/views/components/ModeSegmentedControl';
 import { useProject } from '@/views/components/ProjectProvider';
 import { usePitchRun } from '@/hooks/usePitchRun';
+import { useBilling } from '@/hooks/useBilling';
 import { createClient } from '@/lib/supabase/client';
 import { uploadRecording } from '@/services/recordingService';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
+import { UpgradePrompt } from '@/views/components/billing/UpgradePrompt';
 import type { PitchMode } from '@/types/pitch';
 import type { DeckRecord, SlideRecord } from '@/services/deckService';
 
@@ -53,6 +55,10 @@ export default function UploadPage() {
   const router = useRouter();
   const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
   const { runPitchAnalysis } = usePitchRun();
+  const { credits, subscription, startCheckout, isLoading: isBillingLoading } = useBilling();
+
+  const hasCredits = isBillingLoading || !credits || credits.totalAvailable > 0;
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const [inputTab, setInputTab] = useState<InputTab>('audio');
   const [file, setFile] = useState<File | null>(null);
@@ -133,6 +139,12 @@ export default function UploadPage() {
     if (inputTab === 'audio' && !file) return;
     if (inputTab === 'text' && transcript.trim().length < MIN_TRANSCRIPT_LENGTH) return;
 
+    // Pre-flight credit check — show upgrade modal if out of credits
+    if (!hasCredits) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+
     setError(null);
     setStage(inputTab === 'audio' ? 'uploading' : 'analyzing');
 
@@ -200,7 +212,7 @@ export default function UploadPage() {
         caughtError instanceof Error ? caughtError.message : 'Upload and analysis failed.',
       );
     }
-  }, [inputTab, file, transcript, projectId, pitchMode, selectedDeckId, loadDeckText, runPitchAnalysis, router]);
+  }, [inputTab, file, transcript, projectId, pitchMode, selectedDeckId, loadDeckText, runPitchAnalysis, router, hasCredits]);
 
   const canAnalyze = projectId && !isProcessing && (
     inputTab === 'audio' ? !!file : transcript.trim().length >= MIN_TRANSCRIPT_LENGTH
@@ -432,6 +444,28 @@ export default function UploadPage() {
               </div>
             )}
 
+            {/* Out of credits warning */}
+            {!hasCredits && !isProcessing && (
+              <button
+                type="button"
+                onClick={() => setShowUpgradePrompt(true)}
+                className="mt-4 w-full px-3 py-2.5 rounded-lg text-xs text-left flex items-center justify-between gap-2 transition-colors"
+                style={{
+                  color: '#f59e0b',
+                  backgroundColor: 'rgba(245, 158, 11, 0.08)',
+                  border: '1px solid rgba(245, 158, 11, 0.2)',
+                }}
+              >
+                <span>You have 0 credits remaining. Upgrade or buy credits to continue.</span>
+                <span
+                  className="flex-shrink-0 px-2 py-1 rounded-md text-[11px] font-semibold"
+                  style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' }}
+                >
+                  Upgrade
+                </span>
+              </button>
+            )}
+
             {/* Analyze button */}
             <button
               onClick={handleAnalyze}
@@ -446,7 +480,7 @@ export default function UploadPage() {
                 opacity: canAnalyze ? 1 : 0.6,
               }}
             >
-              {isProcessing ? 'Processing...' : inputTab === 'audio' ? 'Upload & Analyze' : 'Analyze Script'}
+              {isProcessing ? 'Processing...' : !hasCredits ? 'No Credits — Upgrade to Analyze' : inputTab === 'audio' ? 'Upload & Analyze' : 'Analyze Script'}
             </button>
           </GlassCard>
         </div>
@@ -531,6 +565,14 @@ export default function UploadPage() {
       </div>
 
       <AnalyzingOverlay isVisible={stage === 'analyzing'} />
+
+      <UpgradePrompt
+        isOpen={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        context="limit_reached"
+        currentPlan={subscription?.planId}
+        onUpgrade={startCheckout}
+      />
     </main>
   );
 }

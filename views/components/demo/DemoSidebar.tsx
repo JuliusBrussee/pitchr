@@ -12,7 +12,6 @@ import {
   Play,
   Sun,
   Moon,
-  Swords,
 } from 'lucide-react';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
@@ -23,7 +22,6 @@ const NAV_ITEMS = [
   { id: 'history', label: 'History', icon: Clock },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
-  { id: 'arena', label: 'Arena', icon: Swords },
 ];
 
 const TOOL_ITEMS = [

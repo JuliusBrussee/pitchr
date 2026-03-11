@@ -132,55 +132,7 @@ function AnalyticsDemo({ visible }: { visible: boolean }) {
   );
 }
 
-/* ── Card 3: Arena & Challenges ── */
-function ArenaDemo({ visible }: { visible: boolean }) {
-  const [rowsIn, setRowsIn] = useState([false, false, false]);
-  const leaderboard = [
-    { rank: 1, name: 'Sarah K.', score: 92, medal: '#FFD700' },
-    { rank: 2, name: 'Mike T.', score: 88, medal: '#C0C0C0' },
-    { rank: 3, name: 'You', score: 85, medal: '#CD7F32', highlight: true },
-  ];
-
-  const animate = useCallback(() => {
-    setRowsIn([false, false, false]);
-    leaderboard.forEach((_, i) => {
-      setTimeout(() => setRowsIn((p) => { const n = [...p]; n[i] = true; return n; }), 200 + i * 150);
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useLoopAnimation(9000, animate, visible);
-
-  return (
-    <MiniAppFrame>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 10, fontWeight: 700 }}>Weekly Challenge</div>
-          <span style={{ fontSize: 8, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,170,51,0.1)', color: '#ffaa33' }}>Hard</span>
-        </div>
-        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 2 }}>60-Second Elevator Pitch</div>
-        {leaderboard.map((row, i) => (
-          <div
-            key={row.rank}
-            className={`mini-lb-row ${row.highlight ? 'highlight' : ''}`}
-            style={{
-              opacity: rowsIn[i] ? 1 : 0,
-              transform: rowsIn[i] ? 'translateX(0)' : 'translateX(-12px)',
-              transition: 'opacity 0.35s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1)',
-              transitionDelay: `${i * 0.08}s`,
-            }}
-          >
-            <span className="mini-lb-rank" style={{ background: row.medal }}>#{row.rank}</span>
-            <span className="mini-lb-name">{row.name}</span>
-            <span className="mini-lb-score" style={{ color: '#22c55e' }}>{row.score}</span>
-          </div>
-        ))}
-      </div>
-    </MiniAppFrame>
-  );
-}
-
-/* ── Card 4: Projects ── */
+/* ── Card 3: Projects ── */
 function ProjectsDemo({ visible }: { visible: boolean }) {
   const [show, setShow] = useState(false);
 
@@ -256,9 +208,6 @@ export function GrowthSection() {
           </AnimatedCard>
           <AnimatedCard href="/features/analytics" label="Analytics" tagline="Deep dive into your data.">
             <AnalyticsDemo visible={visible} />
-          </AnimatedCard>
-          <AnimatedCard href="/features/arena" label="Arena & Challenges" tagline="Compete. Improve. Win.">
-            <ArenaDemo visible={visible} />
           </AnimatedCard>
           <AnimatedCard href="/features/projects" label="Projects" tagline="Organize every pitch.">
             <ProjectsDemo visible={visible} />

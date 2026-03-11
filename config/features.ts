@@ -324,41 +324,6 @@ export const FEATURES: FeatureConfig[] = [
     ctaDescription: 'The best founders are data-driven about everything — including their pitch.',
   },
   {
-    slug: 'arena',
-    label: 'Arena & Challenges',
-    headline: 'Compete. Improve. Win.',
-    tagline: 'Weekly challenges, leaderboards, and community competition to keep you motivated and improving.',
-    benefits: [
-      { icon: '🏆', title: 'Weekly Challenges', description: 'Themed challenges with different constraints to sharpen specific skills.' },
-      { icon: '🥇', title: 'Leaderboards', description: 'See how you stack up against other founders practicing their pitches.' },
-      { icon: '🔥', title: 'Streaks & Badges', description: 'Stay motivated with practice streaks and achievement badges.' },
-    ],
-    color: '#ffaa33',
-    stats: [
-      { value: 'Weekly', label: 'New Challenges' },
-      { value: '500+', label: 'Active Competitors' },
-      { value: '12+', label: 'Achievement Badges' },
-      { value: '🔥', label: 'Streak Tracking' },
-    ],
-    howItWorks: [
-      { step: 1, title: 'Join a weekly challenge', description: 'Each week features a new challenge with specific constraints — like a 60-second elevator pitch or pitch-without-slides.' },
-      { step: 2, title: 'Submit your best pitch', description: 'Record and submit your pitch for the challenge. Your score determines your ranking.' },
-      { step: 3, title: 'Climb the leaderboard', description: 'See how you compare to other founders and earn badges for achievements and streaks.' },
-    ],
-    useCases: [
-      { icon: '💪', title: 'Accountability Partner', persona: 'Solo founder', description: 'Weekly challenges create external motivation when you don\'t have a co-founder pushing you.' },
-      { icon: '🏅', title: 'Skill Sharpening', persona: 'Advanced pitcher', description: 'Constraints like "60 seconds only" or "no jargon" force you to develop new pitch muscles.' },
-      { icon: '👥', title: 'Community Learning', persona: 'Community-minded founder', description: 'See what scores are possible and get inspired by the community\'s best pitches.' },
-    ],
-    comparison: [
-      { without: 'Practice alone with no external motivation', with: 'Weekly challenges and leaderboard rankings' },
-      { without: 'No benchmark for what "good" looks like', with: 'See top scores and compare to the community' },
-      { without: 'Lose momentum after initial excitement', with: 'Streaks and badges keep you coming back' },
-    ],
-    ctaHeadline: 'Join the arena.',
-    ctaDescription: 'Competition makes everyone better.',
-  },
-  {
     slug: 'projects',
     label: 'Projects',
     headline: 'Organize every pitch.',

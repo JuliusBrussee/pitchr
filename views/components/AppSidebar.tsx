@@ -13,7 +13,6 @@ import {
   Play,
   Sun,
   Moon,
-  Swords,
   Diamond,
 } from 'lucide-react';
 import { useBilling } from '@/hooks/useBilling';
@@ -36,7 +35,6 @@ const NAV_ITEMS = [
   { id: 'session', label: 'Session', icon: Radio, href: '/session' },
   { id: 'history', label: 'History', icon: Clock, href: '/history' },
   { id: 'insights', label: 'Insights', icon: TrendingUp, href: '/insights' },
-  { id: 'arena', label: 'Arena', icon: Swords, href: '/arena' },
 ];
 
 const TOOL_ITEMS = [
@@ -167,9 +165,7 @@ export function AppSidebar({
         {NAV_ITEMS.map(item => {
           const isActive = item.id === 'session'
             ? pathname.startsWith('/session')
-            : item.id === 'arena'
-              ? pathname.startsWith('/arena')
-              : pathname === item.href;
+            : pathname === item.href;
           return <NavLink key={item.id} item={item} isActive={isActive} />;
         })}
       </nav>
@@ -231,20 +227,42 @@ export function AppSidebar({
             </button>
           </div>
 
-          {/* Credits bar — hidden for free users with 0 credits */}
-          {credits && credits.totalAvailable > 0 && (
-            <div
-              className="flex items-center gap-1.5 mt-2 px-2 py-1.5 rounded-lg"
+          {/* Credits bar */}
+          {credits && (
+            <Link
+              href="/settings"
+              onClick={closeSidebar}
+              className="flex items-center gap-1.5 mt-2 px-2 py-1.5 rounded-lg no-underline transition-opacity hover:opacity-80"
               style={{
-                backgroundColor: 'rgba(255,170,51,0.06)',
-                border: isDark ? '1px solid rgba(255,170,51,0.1)' : '1px solid rgba(255,170,51,0.12)',
+                backgroundColor: credits.totalAvailable > 0
+                  ? 'rgba(255,170,51,0.06)'
+                  : 'rgba(239,68,68,0.06)',
+                border: credits.totalAvailable > 0
+                  ? isDark ? '1px solid rgba(255,170,51,0.1)' : '1px solid rgba(255,170,51,0.12)'
+                  : isDark ? '1px solid rgba(239,68,68,0.12)' : '1px solid rgba(239,68,68,0.15)',
               }}
             >
-              <Diamond size={12} style={{ color: '#ffaa33', opacity: 0.7 }} />
-              <span style={{ color: '#ffaa33', opacity: 0.8, fontSize: '10px', fontWeight: 500 }}>
-                {credits.totalAvailable} remaining
+              <Diamond
+                size={12}
+                style={{
+                  color: credits.totalAvailable > 0 ? '#ffaa33' : '#ef4444',
+                  opacity: 0.7,
+                }}
+              />
+              <span
+                className="flex-1"
+                style={{
+                  color: credits.totalAvailable > 0 ? '#ffaa33' : '#ef4444',
+                  opacity: 0.8,
+                  fontSize: '10px',
+                  fontWeight: 500,
+                }}
+              >
+                {credits.totalAvailable > 0
+                  ? `${credits.totalAvailable} remaining`
+                  : '0 credits — Upgrade'}
               </span>
-            </div>
+            </Link>
           )}
         </div>
       )}

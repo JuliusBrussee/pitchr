@@ -7,9 +7,9 @@ export interface ChapterConfig {
   color: string;
   /** Old feature slugs that redirect to this chapter */
   merges: string[];
-  /** Two demo slugs from FeatureHeroDemo to show side by side */
-  demos: [string, string];
-  demoLabels: [string, string];
+  /** Demo slugs from FeatureHeroDemo to show side by side */
+  demos: string[];
+  demoLabels: string[];
   hook: string;
   ctaHeadline: string;
   ctaDescription: string;
@@ -77,14 +77,14 @@ export const CHAPTERS: ChapterConfig[] = [
     number: 5,
     title: 'Compete',
     verb: 'Level up with others',
-    tagline: 'Weekly challenges push you beyond your comfort zone. Projects keep every pitch organized. Competition makes everyone sharper.',
+    tagline: 'Projects keep every pitch organized. Separate workspaces for every fundraise, demo day, and conference talk.',
     color: '#8b5cf6',
-    merges: ['arena', 'projects'],
-    demos: ['arena', 'projects'],
-    demoLabels: ['Arena & Challenges', 'Projects'],
-    hook: 'Practicing alone only gets you so far.',
-    ctaHeadline: 'Join the arena.',
-    ctaDescription: 'The best founders sharpen each other.',
+    merges: ['projects'],
+    demos: ['projects'],
+    demoLabels: ['Projects'],
+    hook: 'One pitch deck doesn\'t fit every audience.',
+    ctaHeadline: 'Stay organized.',
+    ctaDescription: 'Every pitch deserves its own workspace.',
   },
 ];
 

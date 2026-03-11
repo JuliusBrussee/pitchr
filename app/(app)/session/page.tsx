@@ -13,9 +13,12 @@ import { createClient } from '@/lib/supabase/client';
 import { uploadRecording } from '@/services/recordingService';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { usePitchRun } from '@/hooks/usePitchRun';
+import { useBilling } from '@/hooks/useBilling';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { ConfirmDialog } from '@/views/components/ui';
 import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
+import { UpgradePrompt } from '@/views/components/billing/UpgradePrompt';
+import { SessionPaywall } from '@/views/components/billing/SessionPaywall';
 import { useSidebarSession } from '@/views/components/SidebarContext';
 import { useProject } from '@/views/components/ProjectProvider';
 import { useHeadTracking } from '@/lib/headTracking/useHeadTracking';
@@ -57,6 +60,9 @@ function SessionPageContent() {
   const { registerPage } = useTutorial('session');
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { credits, subscription, startCheckout, purchaseCreditPack, isLoading: isBillingLoading } = useBilling();
+  const hasCredits = isBillingLoading || !credits || credits.totalAvailable > 0;
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -380,6 +386,15 @@ function SessionPageContent() {
       return;
     }
 
+    // Pre-flight credit check — show upgrade modal if out of credits
+    if (!hasCredits) {
+      autoSubmitLockRef.current = true;
+      setShowAnalyzing(false);
+      setShowUpgradePrompt(true);
+      setAnalysisError('You have 0 credits remaining. Upgrade or buy credits to continue.');
+      return;
+    }
+
     autoSubmitLockRef.current = true;
     session.setOrbState('active');
     const lockedProjectId = lockedProjectIdRef.current ?? sessionProjectId;
@@ -450,7 +465,29 @@ function SessionPageContent() {
     session,
     stt.saved,
     stt.transcriptSegments,
+    hasCredits,
   ]);
+
+  // Billing loading — don't flash paywall
+  if (isBillingLoading) {
+    return (
+      <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
+        <p style={{ color: 'var(--text-muted)' }}>Loading session...</p>
+      </main>
+    );
+  }
+
+  // Credit paywall — block session when no credits
+  if (!hasCredits) {
+    return (
+      <SessionPaywall
+        credits={credits!}
+        subscription={subscription}
+        onUpgrade={startCheckout}
+        onBuyCreditPack={purchaseCreditPack}
+      />
+    );
+  }
 
   return (
     <div className="flex gap-4 h-full min-h-0">
@@ -568,6 +605,13 @@ function SessionPageContent() {
         confirmLabel="Discard"
         variant="danger"
         onConfirm={handleConfirmDiscard}
+      />
+      <UpgradePrompt
+        isOpen={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        context="limit_reached"
+        currentPlan={subscription?.planId}
+        onUpgrade={startCheckout}
       />
     </div>
   );

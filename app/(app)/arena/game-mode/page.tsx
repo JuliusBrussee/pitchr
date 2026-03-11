@@ -1,14 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { ArrowLeft, Loader2, Mic } from 'lucide-react';
 import Link from 'next/link';
 import { useGameMode } from '@/hooks/useGameMode';
+import { useBilling } from '@/hooks/useBilling';
 import { DIFFICULTY_SETTINGS } from '@/config/arena';
 import { GameModePanel } from '@/views/components/arena/GameModePanel';
 import { ScenarioCard } from '@/views/components/arena/ScenarioCard';
 import { CountdownTimer } from '@/views/components/arena/CountdownTimer';
 import { ArenaRecorder } from '@/views/components/arena/ArenaRecorder';
 import { GameModeResults } from '@/views/components/arena/GameModeResults';
+import { UpgradePrompt } from '@/views/components/billing/UpgradePrompt';
+import type { Difficulty } from '@/config/arena';
 
 export default function GameModePage() {
   const {
@@ -23,6 +27,17 @@ export default function GameModePage() {
     reportError,
     reset,
   } = useGameMode();
+  const { credits, subscription, startCheckout, isLoading: isBillingLoading } = useBilling();
+  const hasCredits = isBillingLoading || !credits || credits.totalAvailable > 0;
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+  const handleSelectDifficulty = (d: Difficulty) => {
+    if (!hasCredits) {
+      setShowUpgradePrompt(true);
+      return;
+    }
+    selectDifficulty(d);
+  };
 
   const isShowFullBrief = difficulty !== 'expert';
 
@@ -64,7 +79,7 @@ export default function GameModePage() {
         {/* State: idle */}
         {state === 'idle' && (
           <GameModePanel
-            onSelectDifficulty={selectDifficulty}
+            onSelectDifficulty={handleSelectDifficulty}
             isLoading={false}
           />
         )}
@@ -72,7 +87,7 @@ export default function GameModePage() {
         {/* State: loading */}
         {state === 'loading' && (
           <GameModePanel
-            onSelectDifficulty={selectDifficulty}
+            onSelectDifficulty={handleSelectDifficulty}
             isLoading={true}
           />
         )}
@@ -143,6 +158,13 @@ export default function GameModePage() {
           />
         )}
       </div>
+      <UpgradePrompt
+        isOpen={showUpgradePrompt}
+        onClose={() => setShowUpgradePrompt(false)}
+        context="limit_reached"
+        currentPlan={subscription?.planId}
+        onUpgrade={startCheckout}
+      />
     </main>
   );
 }
