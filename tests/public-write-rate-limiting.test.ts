@@ -96,12 +96,12 @@ describe('checkPublicWriteRateLimit', () => {
 });
 
 describe('public write endpoints', () => {
-  const requestWithEmail = (email: string) =>
+  const requestWithEmail = (email: string, ip = '198.51.100.10') =>
     new NextRequest('http://localhost/api/waitlist', {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-forwarded-for': '198.51.100.10',
+        'x-forwarded-for': ip,
       },
       body: JSON.stringify({
         email,
@@ -141,7 +141,7 @@ describe('public write endpoints', () => {
     expect(chain.insert).toHaveBeenCalledTimes(1);
   });
 
-  it('uses independent keys per email, allowing different emails', async () => {
+  it('blocks different emails from the same IP due to IP throttle', async () => {
     const chain = buildMockWaitlistClient();
     chain.single.mockResolvedValue({
       data: {
@@ -156,9 +156,31 @@ describe('public write endpoints', () => {
 
     const first = await waitlistPOST(requestWithEmail('user1@example.com'));
     const second = await waitlistPOST(requestWithEmail('user2@example.com'));
+    const secondBody = await second.json();
 
     expect(first.status).toBe(201);
-    expect(second.status).toBe(201);
+    expect(second.status).toBe(429);
+    expect(secondBody).toEqual({ error: 'Too many requests. Please try again shortly.' });
+  });
+
+  it('blocks same email from different IPs due to email throttle', async () => {
+    const chain = buildMockWaitlistClient();
+    chain.single.mockResolvedValue({
+      data: {
+        id: 'waitlist-3',
+        email: 'same@example.com',
+        unsubscribe_token: 'unsub-3',
+        welcome_email_sent_at: null,
+        unsubscribed_at: null,
+      },
+      error: null,
+    });
+
+    const first = await waitlistPOST(requestWithEmail('same@example.com', '198.51.100.10'));
+    const second = await waitlistPOST(requestWithEmail('same@example.com', '198.51.100.11'));
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(429);
   });
 
   it('throttles newsletter unsubscribe by IP across tokens and methods', async () => {
