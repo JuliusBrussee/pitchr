@@ -7,6 +7,14 @@ import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
 import { enforceBillingAntiAbuse } from '@/lib/billing/antiAbuse';
 import { BILLING_PLANS } from '@/config/billing';
 
+function logDayPassServerError(action: 'POST' | 'GET', error: unknown): void {
+  if (error instanceof Error) {
+    console.error(`[billing/day-pass] ${action} failed: ${error.name}`);
+    return;
+  }
+  console.error(`[billing/day-pass] ${action} failed with non-Error throw.`);
+}
+
 /**
  * POST /api/billing/day-pass
  * Creates a Stripe one-time payment Checkout Session for a Day Pass.
@@ -78,7 +86,7 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.name === 'AuthenticationError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('[billing/day-pass] error:', error);
+    logDayPassServerError('POST', error);
     return NextResponse.json(
       { error: 'Failed to create day pass checkout.' },
       { status: 500 },
@@ -102,7 +110,7 @@ export async function GET() {
     if (error instanceof Error && error.name === 'AuthenticationError') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('[billing/day-pass] error:', error);
+    logDayPassServerError('GET', error);
     return NextResponse.json(
       { error: 'Failed to fetch day pass status' },
       { status: 500 },
