@@ -231,7 +231,7 @@ export function ProgressHero({ progress, latestScore, animationDelay, streak, se
 
   return (
     <div
-      className="rounded-2xl border p-6 animate-fade-in-up relative overflow-hidden"
+      className="rounded-2xl border p-6 animate-fade-in-up relative"
       style={{
         backgroundColor: 'var(--bg-surface)',
         backdropFilter: 'blur(var(--blur-strength))',
@@ -243,7 +243,7 @@ export function ProgressHero({ progress, latestScore, animationDelay, streak, se
     >
       {/* Subtle background gradient */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl"
         style={{
           background: `radial-gradient(ellipse at 20% 50%, ${color}08 0%, transparent 60%)`,
         }}
@@ -312,29 +312,23 @@ export function ProgressHero({ progress, latestScore, animationDelay, streak, se
 
         {/* Streak & Sessions (shown when props provided) */}
         {(streak != null || sessionCount != null) && (
-          <div className="flex flex-col gap-1.5 flex-shrink-0">
+          <div className="flex flex-col gap-3 flex-shrink-0 pr-1">
             {streak != null && (
-              <div
-                className="rounded-lg px-2.5 py-1.5 text-center"
-                style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
-              >
-                <div className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <div className="text-center">
+                <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Streak
                 </div>
-                <div className="text-base font-bold tabular-nums" style={{ color: '#ffaa33' }}>
+                <div className="text-2xl font-bold tabular-nums mt-0.5" style={{ color: '#ffaa33' }}>
                   {streak}
                 </div>
               </div>
             )}
             {sessionCount != null && (
-              <div
-                className="rounded-lg px-2.5 py-1.5 text-center"
-                style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
-              >
-                <div className="text-[9px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <div className="text-center">
+                <div className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                   Sessions
                 </div>
-                <div className="text-base font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+                <div className="text-2xl font-bold tabular-nums mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   {sessionCount}
                 </div>
               </div>
