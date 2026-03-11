@@ -36,20 +36,33 @@ export function buildQaAgentSystemPrompt(input: QaAgentPromptInput): string {
     : '';
 
   const isHackathon = input.mode === 'hackathon';
+  const isFinalYear = input.mode === 'final_year';
+
+  const personaLine = isFinalYear
+    ? 'You are an academic examiner running a rapid-fire Q&A round.'
+    : isHackathon
+    ? 'You are a hackathon judge running a rapid-fire Q&A round.'
+    : 'You are a venture investor running a rapid-fire follow-up round.';
+
+  const priorityLine = isFinalYear
+    ? 'Prioritize weak categories first, then methodology choices, evaluation rigour, and limitations.'
+    : isHackathon
+    ? 'Prioritize weak categories first, then technical implementation and theme alignment.'
+    : 'Prioritize weak categories first, then traction and fundraising clarity.';
+
+  const vagueLine = isFinalYear
+    ? 'If student is vague, ask about methodology choices, evaluation metrics, limitations, and future work. Never ask about revenue or TAM.'
+    : isHackathon
+    ? 'If founder is vague, ask about technical implementation details, feasibility, or team dynamics.'
+    : 'If founder is vague, immediately ask for metric, timeframe, and denominator.';
 
   return [
-    isHackathon
-      ? 'You are a hackathon judge running a rapid-fire Q&A round.'
-      : 'You are a venture investor running a rapid-fire follow-up round.',
+    personaLine,
     `Session hard limit: ${timeLimitSeconds} seconds.`,
     'Ask concise, high-signal questions and force concrete answers.',
-    isHackathon
-      ? 'Prioritize weak categories first, then technical implementation and theme alignment.'
-      : 'Prioritize weak categories first, then traction and fundraising clarity.',
+    priorityLine,
     'Do not ask more than one question at a time.',
-    isHackathon
-      ? 'If founder is vague, ask about technical implementation details, feasibility, or team dynamics.'
-      : 'If founder is vague, immediately ask for metric, timeframe, and denominator.',
+    vagueLine,
     `Weak categories to pressure-test: ${weakAreas}.`,
     '',
     drillSection,

@@ -171,7 +171,7 @@ export default function ReviewPage() {
               Pitch Review
             </h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-              {formatDate(run.createdAt)} | {run.mode === 'elevator' ? 'Elevator Pitch' : 'VC Pitch'}
+              {formatDate(run.createdAt)} | {{ elevator: 'Elevator Pitch', vc_pitch: 'VC Pitch', hackathon: 'Hackathon', final_year: 'Final Year' }[run.mode] ?? run.mode}
             </p>
           </div>
         </div>

@@ -22,8 +22,27 @@ import {
 } from 'lucide-react';
 import { useLiveQaAgent } from '@/hooks/useLiveQaAgent';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
+import type { PitchMode } from '@/types/pitch';
 import type { CreateQASessionResponse } from '@/types/qna';
 import type { QATurn } from '@/types/qna';
+
+function modeAwareLabel(mode: PitchMode | undefined): string {
+  if (mode === 'hackathon') return 'Judge';
+  if (mode === 'final_year') return 'Examiner';
+  return 'Investor';
+}
+
+function modeAwareQaTitle(mode: PitchMode | undefined): string {
+  if (mode === 'hackathon') return 'Judge Q&A';
+  if (mode === 'final_year') return 'Panel Q&A';
+  return 'Investor Q&A';
+}
+
+function modeAwareQaDescription(mode: PitchMode | undefined): string {
+  if (mode === 'hackathon') return 'Start the session and speak naturally. The AI judge will grill you on your pitch weaknesses.';
+  if (mode === 'final_year') return 'Start the session and speak naturally. The AI examiner will grill you on your project weaknesses.';
+  return 'Start the session and speak naturally. The AI investor will grill you on your pitch weaknesses.';
+}
 
 interface SessionBootstrap {
   qaSessionId: string;
@@ -212,11 +231,14 @@ function StatusPill({ status }: { status: string }) {
 function ChatBubble({
   turn,
   index,
+  mode,
 }: {
   turn: QATurn;
   index: number;
+  mode?: PitchMode;
 }) {
   const isInvestor = turn.speaker === 'investor';
+  const avatarLabel = mode === 'hackathon' ? 'JDG' : mode === 'final_year' ? 'EXM' : 'VC';
 
   return (
     <div
@@ -225,14 +247,14 @@ function ChatBubble({
     >
       <div className="qa-bubble-avatar">
         {isInvestor ? (
-          <div className="qa-avatar-investor">VC</div>
+          <div className="qa-avatar-investor">{avatarLabel}</div>
         ) : (
           <div className="qa-avatar-founder">You</div>
         )}
       </div>
       <div className={`qa-bubble ${isInvestor ? 'qa-bubble-investor' : 'qa-bubble-founder'}`}>
         <div className="qa-bubble-speaker">
-          {isInvestor ? 'Investor' : 'You'}
+          {isInvestor ? modeAwareLabel(mode) : 'You'}
         </div>
         <div className="qa-bubble-text">{turn.text}</div>
       </div>
@@ -320,6 +342,7 @@ function PreSessionGate({
   isLoading: boolean;
   error: string | null;
   runId: string;
+  mode?: PitchMode;
 }) {
   const budgetPercent = budget.budgetSeconds
     ? Math.round(((budget.budgetSeconds - budget.usedSeconds) / budget.budgetSeconds) * 100)
@@ -337,7 +360,7 @@ function PreSessionGate({
             <Radio size={18} style={{ color: '#ff5941' }} />
           </div>
           <div>
-            <h1 className="qa-gate-title">Investor Q&A</h1>
+            <h1 className="qa-gate-title">{modeAwareQaTitle(mode)}</h1>
             <span className="qa-gate-plan">{planLabel(budget.planId)}</span>
           </div>
         </div>
@@ -616,6 +639,7 @@ function LiveQaPageInner({ runId }: { runId: string }) {
   const [budgetError, setBudgetError] = useState<string | null>(null);
   const [budgetRetryCount, setBudgetRetryCount] = useState(0);
   const [sessionStarted, setSessionStarted] = useState(false);
+  const [runMode, setRunMode] = useState<PitchMode | undefined>(undefined);
   const bootstrapRequestKeyRef = useRef<string | null>(null);
   const bootstrapInFlightRef = useRef<string | null>(null);
   const bootstrapAbortRef = useRef<AbortController | null>(null);
@@ -632,6 +656,22 @@ function LiveQaPageInner({ runId }: { runId: string }) {
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [liveQa.turns]);
+
+  // Fetch run mode on mount
+  useEffect(() => {
+    if (!runId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetchEdge('pitch-run-detail', { cache: 'no-store', params: { runId } });
+        if (!res.ok) return;
+        const payload = await res.json();
+        const run = payload.run ?? payload;
+        if (!cancelled && run?.mode) setRunMode(run.mode as PitchMode);
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+  }, [runId]);
 
   // Fetch Q&A budget on mount (and on retry)
   useEffect(() => {
@@ -882,6 +922,7 @@ function LiveQaPageInner({ runId }: { runId: string }) {
             isLoading={isLoading}
             error={error}
             runId={runId}
+            mode={runMode}
           />
         </main>
       );
@@ -923,7 +964,7 @@ function LiveQaPageInner({ runId }: { runId: string }) {
             {/* Title */}
             <div className="qa-sidebar-header">
               <Radio size={14} style={{ color: '#ff5941' }} />
-              <h1 className="qa-sidebar-title">Investor Q&A</h1>
+              <h1 className="qa-sidebar-title">{modeAwareQaTitle(runMode)}</h1>
             </div>
 
             {/* Countdown Ring */}
@@ -1028,13 +1069,13 @@ function LiveQaPageInner({ runId }: { runId: string }) {
                 </div>
                 <p className="qa-empty-title">Ready for Q&A</p>
                 <p className="qa-empty-desc">
-                  Start the session and speak naturally. The AI investor will grill you on your pitch weaknesses.
+                  {modeAwareQaDescription(runMode)}
                 </p>
               </div>
             ) : (
               <div className="qa-bubbles">
                 {liveQa.turns.map((turn, i) => (
-                  <ChatBubble key={turn.id} turn={turn} index={i} />
+                  <ChatBubble key={turn.id} turn={turn} index={i} mode={runMode} />
                 ))}
                 <div ref={transcriptEndRef} />
               </div>

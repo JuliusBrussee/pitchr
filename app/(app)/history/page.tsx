@@ -84,7 +84,7 @@ const DATE_GROUP_LABELS: Record<string, string> = {
 const DATE_GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'earlier'];
 
 type ViewMode = 'list' | 'grid';
-type ModeFilter = 'all' | 'elevator' | 'vc_pitch' | 'hackathon';
+type ModeFilter = 'all' | 'elevator' | 'vc_pitch' | 'hackathon' | 'final_year';
 
 /* ——— Helpers ——— */
 
@@ -222,6 +222,8 @@ export default function HistoryPage() {
     { value: 'all', label: 'All' },
     { value: 'elevator', label: 'Elevator' },
     { value: 'vc_pitch', label: 'VC Pitch' },
+    { value: 'hackathon', label: 'Hackathon' },
+    { value: 'final_year', label: 'Final Year' },
   ];
 
   return (
@@ -315,6 +317,12 @@ export default function HistoryPage() {
                 } else if (filter.value === 'vc_pitch') {
                   pillColor = '#ff5941';
                   pillBg = 'rgba(255,89,65,0.12)';
+                } else if (filter.value === 'hackathon') {
+                  pillColor = '#8b5cf6';
+                  pillBg = 'rgba(139,92,246,0.12)';
+                } else if (filter.value === 'final_year') {
+                  pillColor = '#10b981';
+                  pillBg = 'rgba(16,185,129,0.12)';
                 } else {
                   pillColor = 'var(--text-primary)';
                   pillBg = 'var(--bg-surface-hover)';

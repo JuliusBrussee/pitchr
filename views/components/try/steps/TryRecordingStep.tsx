@@ -244,7 +244,7 @@ export function TryRecordingStep({ mode, onComplete }: TryRecordingStepProps) {
 
       {!hasStarted && !mediaError && (
         <p className="text-sm text-center max-w-xs" style={{ color: 'var(--text-secondary)' }}>
-          Hit record and give us your best {mode === 'elevator' ? '30-second' : '5-minute'} pitch.
+          Hit record and give us your best {mode === 'elevator' ? '30-second' : mode === 'hackathon' ? '3-minute' : mode === 'final_year' ? '4-minute' : '5-minute'} pitch.
           Don&apos;t overthink it — this is practice.
         </p>
       )}

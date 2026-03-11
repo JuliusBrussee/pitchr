@@ -176,6 +176,57 @@ const HACKATHON_ANTI_PATTERN_PLAYBOOK: Record<string, string> = {
   no_cta: 'End with a clear ask: try the app, vote, follow the repo, or partner.',
 };
 
+const FINAL_YEAR_DO_RULES = [
+  'State the research problem clearly in the first 30 seconds.',
+  'Present methodology before results — explain why you chose this approach.',
+  'Quantify outcomes with metrics and compare against a baseline.',
+  'Discuss limitations honestly with analysis of their implications.',
+  'End with future work and broader implications of your research.',
+];
+
+const FINAL_YEAR_DONT_RULES = [
+  'Do not skip the results section or present without quantitative data.',
+  'Do not claim results without baseline comparisons.',
+  'Do not avoid discussing limitations — examiners reward honesty.',
+  'Do not use unexplained jargon or acronyms.',
+  'Do not present methodology as a description — justify your design choices.',
+];
+
+const FINAL_YEAR_CATEGORY_GUIDANCE: Record<KnowledgeDigestCategory, string[]> = {
+  structure: [
+    'Use introduction -> problem -> approach -> results -> impact -> next steps flow.',
+    'Delineate your personal contributions explicitly.',
+    'Do not end on future work alone — conclude with significance.',
+  ],
+  clarity: [
+    'Explain technical decisions in plain English.',
+    'Define acronyms and domain terms on first use.',
+    'Make the system understandable without specialist background.',
+  ],
+  evidence: [
+    'Present results with metric + baseline + interpretation.',
+    'Justify methodology choices: chose X instead of Y because Z.',
+    'Discuss limitations with implications — this raises scores.',
+  ],
+  market: [
+    'Frame real-world applicability and societal utility.',
+    'Discuss novelty relative to existing work.',
+    'Do NOT require revenue model, TAM, or commercial viability.',
+  ],
+  delivery: [
+    'Maintain measured, professional academic pace.',
+    'Pause before key results for emphasis.',
+    'Stay within the 4-minute time limit.',
+  ],
+};
+
+const FINAL_YEAR_ANTI_PATTERN_PLAYBOOK: Record<string, string> = {
+  no_results: 'Present at least one quantified outcome with metric and baseline comparison.',
+  no_evaluation: 'Include evaluation methodology — how did you measure success?',
+  unsupported_claims: 'Back every claim with a concrete metric, test outcome, or citation.',
+  missing_methodology: 'Explain your approach and justify why you chose it over alternatives.',
+};
+
 const ANTI_PATTERN_CATEGORY_HINTS: Record<string, KnowledgeDigestCategory[]> = {
   no_proof: ['evidence', 'market'],
   no_ask: ['structure', 'market'],
@@ -187,6 +238,10 @@ const ANTI_PATTERN_CATEGORY_HINTS: Record<string, KnowledgeDigestCategory[]> = {
   slides_only: ['evidence', 'structure'],
   too_many_features: ['clarity', 'structure'],
   no_cta: ['structure'],
+  no_results: ['evidence', 'structure'],
+  no_evaluation: ['evidence'],
+  unsupported_claims: ['evidence', 'clarity'],
+  missing_methodology: ['structure', 'evidence'],
 };
 
 let cachedPatterns: PatternsFile | null = null;
@@ -302,8 +357,8 @@ function dropInterviewerHeavySegments(text: string): string {
   return filtered.join(' ').trim();
 }
 
-function extractBeatEvidence(normalizedTranscript: string): ScoringContext['beats'] {
-  const beatPatterns: Array<{
+function extractBeatEvidence(normalizedTranscript: string, mode?: PitchMode): ScoringContext['beats'] {
+  const baseBeatPatterns: Array<{
     beat: ScoringContext['beats'][number]['beat'];
     patterns: RegExp[];
   }> = [
@@ -315,6 +370,32 @@ function extractBeatEvidence(normalizedTranscript: string): ScoringContext['beat
     { beat: 'wedge', patterns: [/\b(niche|segment|wedge|beachhead|icp)\b/iu] },
     { beat: 'ask', patterns: [/\b(raising|ask|use of funds|round)\b/iu] },
   ];
+
+  const hackathonBeatPatterns: Array<{
+    beat: ScoringContext['beats'][number]['beat'];
+    patterns: RegExp[];
+  }> = [
+    { beat: 'demo', patterns: [/\b(demo|prototype|live|screen[- ]?share|show you|let me show|built|working)\b/iu] },
+    { beat: 'innovation', patterns: [/\b(novel|innovative|creative|unique|new approach|first to)\b/iu] },
+    { beat: 'impact', patterns: [/\b(impact|benefit|help|solve|improve|save|reduce)\b/iu] },
+  ];
+
+  const finalYearBeatPatterns: Array<{
+    beat: ScoringContext['beats'][number]['beat'];
+    patterns: RegExp[];
+  }> = [
+    { beat: 'methodology', patterns: [/\b(approach|method|algorithm|model|technique|framework|architecture)\b/iu] },
+    { beat: 'results', patterns: [/\b(results?|findings?|measured|achieved|accuracy|precision|f1|performance)\b/iu] },
+    { beat: 'evaluation', patterns: [/\b(evaluat|test(ed|ing)?|metric|benchmark|compar|baseline|validated?)\b/iu] },
+    { beat: 'limitations', patterns: [/\b(limit|constraint|challenge|shortcoming|weakness|future work)\b/iu] },
+  ];
+
+  let beatPatterns = baseBeatPatterns;
+  if (mode === 'hackathon') {
+    beatPatterns = [...baseBeatPatterns, ...hackathonBeatPatterns];
+  } else if (mode === 'final_year') {
+    beatPatterns = [...baseBeatPatterns, ...finalYearBeatPatterns];
+  }
 
   const sentences = normalizedTranscript
     .split(/(?<=[.!?])\s+/u)
@@ -417,6 +498,30 @@ function detectAntiPatterns(
       evidence: hasCta
         ? 'Call-to-action language detected.'
         : 'No clear call-to-action detected.',
+    },
+    no_results: {
+      hit: !/\b(results?|findings?|measured|achieved|accuracy|precision|f1|performance)\b/u.test(lower),
+      evidence: /\b(results?|findings?|measured|achieved|accuracy|precision|f1|performance)\b/u.test(lower)
+        ? 'Results or findings language detected.'
+        : 'No results, findings, or measurement language detected.',
+    },
+    no_evaluation: {
+      hit: !/\b(evaluat|test(ed|ing)?|metric|benchmark|compar|baseline|validated?)\b/u.test(lower),
+      evidence: /\b(evaluat|test(ed|ing)?|metric|benchmark|compar|baseline|validated?)\b/u.test(lower)
+        ? 'Evaluation or testing language detected.'
+        : 'No evaluation, testing, or benchmarking language detected.',
+    },
+    unsupported_claims: {
+      hit: /\b(significant|effective|better|improved|superior)\b/u.test(lower) && !/\d+%|\d+\.\d+/u.test(lower),
+      evidence: /\b(significant|effective|better|improved|superior)\b/u.test(lower) && !/\d+%|\d+\.\d+/u.test(lower)
+        ? 'Qualitative claims detected without quantitative evidence.'
+        : 'Claims appear supported by quantitative data.',
+    },
+    missing_methodology: {
+      hit: !/\b(approach|method|algorithm|model|technique|framework|architecture|pipeline|implement)\b/u.test(lower),
+      evidence: /\b(approach|method|algorithm|model|technique|framework|architecture|pipeline|implement)\b/u.test(lower)
+        ? 'Methodology or approach language detected.'
+        : 'No methodology, approach, or implementation language detected.',
     },
   };
 
@@ -532,7 +637,11 @@ function mergeCategoryGuidance(
   mode?: PitchMode,
 ): Record<KnowledgeDigestCategory, string[]> {
   const merged = emptyCategoryGuidance();
-  const defaults = mode === 'hackathon' ? HACKATHON_CATEGORY_GUIDANCE : DEFAULT_CATEGORY_GUIDANCE;
+  const defaults = mode === 'hackathon'
+    ? HACKATHON_CATEGORY_GUIDANCE
+    : mode === 'final_year'
+    ? FINAL_YEAR_CATEGORY_GUIDANCE
+    : DEFAULT_CATEGORY_GUIDANCE;
   for (const category of CATEGORY_ORDER) {
     const patternRules = fromPatterns?.category_guidance?.[category] ?? [];
     merged[category] = dedupe([...patternRules, ...defaults[category]]).slice(0, 5);
@@ -541,7 +650,8 @@ function mergeCategoryGuidance(
 }
 
 export function defaultStageForMode(mode: PitchMode): PitchStage {
-  return mode === 'hackathon' ? 'university_hack' : 'seed';
+  if (mode === 'hackathon') return 'university_hack';
+  return 'seed';
 }
 
 export function buildKnowledgeDigest(params: {
@@ -558,6 +668,8 @@ export function buildKnowledgeDigest(params: {
 
   const basePlaybook = mode === 'hackathon'
     ? { ...HACKATHON_ANTI_PATTERN_PLAYBOOK, ...DEFAULT_ANTI_PATTERN_PLAYBOOK }
+    : mode === 'final_year'
+    ? { ...FINAL_YEAR_ANTI_PATTERN_PLAYBOOK, ...DEFAULT_ANTI_PATTERN_PLAYBOOK }
     : DEFAULT_ANTI_PATTERN_PLAYBOOK;
   const antiPatternPlaybook = {
     ...basePlaybook,
@@ -572,6 +684,10 @@ export function buildKnowledgeDigest(params: {
     appendUnique(doRules, 'Show a working demo within the first 45 seconds.');
     appendUnique(doRules, 'Focus on one core innovation, not multiple features.');
     appendUnique(doRules, 'End with a specific ask: try it, vote for it, or partner.');
+  } else if (mode === 'final_year') {
+    appendUnique(doRules, 'State the research problem clearly in the first 30 seconds.');
+    appendUnique(doRules, 'Present methodology before results with justification.');
+    appendUnique(doRules, 'Quantify outcomes with metrics and compare against a baseline.');
   } else if (mode === 'elevator') {
     appendUnique(doRules, 'Keep one customer, one proof point, and one ask in under 45 seconds.');
   } else {
@@ -606,8 +722,16 @@ export function buildKnowledgeDigest(params: {
   }
 
   // Priority 4: general do/dont rules.
-  const baseDoRules = mode === 'hackathon' ? HACKATHON_DO_RULES : DEFAULT_DO_RULES;
-  const baseDontRules = mode === 'hackathon' ? HACKATHON_DONT_RULES : DEFAULT_DONT_RULES;
+  const baseDoRules = mode === 'hackathon'
+    ? HACKATHON_DO_RULES
+    : mode === 'final_year'
+    ? FINAL_YEAR_DO_RULES
+    : DEFAULT_DO_RULES;
+  const baseDontRules = mode === 'hackathon'
+    ? HACKATHON_DONT_RULES
+    : mode === 'final_year'
+    ? FINAL_YEAR_DONT_RULES
+    : DEFAULT_DONT_RULES;
   for (const rule of dedupe([...(guidance?.do_rules ?? []), ...baseDoRules])) {
     appendUnique(doRules, rule);
   }
@@ -715,7 +839,7 @@ export async function buildScoringContext(input: PrepAgentInput): Promise<Scorin
     transcript_word_count: normalizedTranscript.split(/\s+/u).filter(Boolean).length,
     deck_word_count: normalizedDeckText.split(/\s+/u).filter(Boolean).length,
     transcript_segments: input.transcriptSegments,
-    beats: extractBeatEvidence(normalizedTranscript),
+    beats: extractBeatEvidence(normalizedTranscript, input.mode),
     detected_anti_patterns: antiPatternHits,
     delivery_metrics: deliveryMetrics,
     knowledge_digest: knowledgeDigest,

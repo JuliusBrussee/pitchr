@@ -117,6 +117,87 @@
         "local-corpus",
         "yc-demo-day-guide"
       ]
+    },
+    {
+      "id": "no-demo",
+      "label": "no_demo",
+      "description": "No working demo, prototype, or live product shown in hackathon pitch.",
+      "default_weight": 3.5,
+      "citations": [
+        "hackathon-judging-criteria"
+      ]
+    },
+    {
+      "id": "no-theme-alignment",
+      "label": "no_theme_alignment",
+      "description": "No explicit connection to hackathon theme or challenge prompt.",
+      "default_weight": 2.0,
+      "citations": [
+        "hackathon-judging-criteria"
+      ]
+    },
+    {
+      "id": "slides-only",
+      "label": "slides_only",
+      "description": "Presentation is slides-only without live demo or working product evidence.",
+      "default_weight": 3.0,
+      "citations": [
+        "hackathon-winner-patterns"
+      ]
+    },
+    {
+      "id": "too-many-features",
+      "label": "too_many_features",
+      "description": "Feature listing without depth on any single innovation.",
+      "default_weight": 1.8,
+      "citations": [
+        "hackathon-winner-patterns"
+      ]
+    },
+    {
+      "id": "no-cta",
+      "label": "no_cta",
+      "description": "No clear call-to-action at the end of the hackathon pitch.",
+      "default_weight": 1.5,
+      "citations": [
+        "hackathon-judging-criteria"
+      ]
+    },
+    {
+      "id": "no-results",
+      "label": "no_results",
+      "description": "Missing results or findings section in final year project presentation.",
+      "default_weight": 3.5,
+      "citations": [
+        "fyp-rubrics"
+      ]
+    },
+    {
+      "id": "no-evaluation",
+      "label": "no_evaluation",
+      "description": "No evaluation methodology, testing, or benchmarking presented.",
+      "default_weight": 2.8,
+      "citations": [
+        "fyp-rubrics"
+      ]
+    },
+    {
+      "id": "unsupported-claims",
+      "label": "unsupported_claims",
+      "description": "Qualitative claims without quantitative evidence or baseline comparisons.",
+      "default_weight": 2.2,
+      "citations": [
+        "fyp-rubrics"
+      ]
+    },
+    {
+      "id": "missing-methodology",
+      "label": "missing_methodology",
+      "description": "No clear methodology, approach, or implementation description presented.",
+      "default_weight": 2.5,
+      "citations": [
+        "fyp-rubrics"
+      ]
     }
   ],
   "stage_expectations": {
@@ -139,6 +220,27 @@
       "Show operating leverage and category strategy.",
       "Demonstrate durable moat under competition.",
       "Provide benchmarked scale economics and expansion plan."
+    ],
+    "university_hack": [
+      "Show a working demo within the first minute.",
+      "Explain how your hack aligns with the event theme.",
+      "Focus on one core innovation with technical depth.",
+      "End with a clear call-to-action for judges."
+    ],
+    "corporate_hack": [
+      "Demonstrate alignment with sponsor problem statement.",
+      "Show feasibility and potential for real-world deployment.",
+      "Focus on practical implementation over theoretical design."
+    ],
+    "web3_hack": [
+      "Show on-chain demo or protocol interaction.",
+      "Explain UX improvements for non-crypto users.",
+      "Demonstrate smart contract or protocol innovation."
+    ],
+    "science_hack": [
+      "Show scientific rigor in approach and measurement.",
+      "Demonstrate measurable impact on the target problem.",
+      "Explain data collection and analysis methodology."
     ]
   },
   "deck_structure_templates": [

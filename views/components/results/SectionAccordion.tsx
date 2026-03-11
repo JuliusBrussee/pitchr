@@ -43,7 +43,12 @@ function formatTime(value: number): string {
 }
 
 function getDefaultDurationByMode(mode?: PitchMode): number {
-  return mode === 'elevator' ? 45 : 120;
+  switch (mode) {
+    case 'elevator': return 45;
+    case 'hackathon': return 180;
+    case 'final_year': return 240;
+    default: return 120;
+  }
 }
 
 function resolveBeatStartSec(
@@ -144,7 +149,9 @@ export function SectionAccordion({
                   backgroundColor: 'var(--bg-surface)',
                 }}
               >
-                {BEAT_LABELS[beat]} not detected
+                {(mode === 'final_year'
+                  ? { solution: 'Approach', traction: 'Results', ask: 'Next Steps' }[beat]
+                  : undefined) ?? BEAT_LABELS[beat]} not detected
               </span>
             ))}
           </div>
@@ -195,7 +202,9 @@ export function SectionAccordion({
                     }}
                   />
                   <span className="font-medium text-sm truncate">
-                    {BEAT_LABELS[section.beat] ?? section.beat}
+                    {(mode === 'final_year'
+                      ? { solution: 'Approach', traction: 'Results', ask: 'Next Steps' }[section.beat]
+                      : undefined) ?? BEAT_LABELS[section.beat] ?? section.beat}
                   </span>
                 </button>
 

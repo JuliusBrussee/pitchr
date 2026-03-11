@@ -88,7 +88,7 @@ function buildProjectScoringContext(
 }
 
 function isPitchMode(value: unknown): value is PitchMode {
-  return value === 'elevator' || value === 'vc_pitch' || value === 'hackathon';
+  return value === 'elevator' || value === 'vc_pitch' || value === 'hackathon' || value === 'final_year';
 }
 
 function isInputType(value: unknown): value is InputType {
@@ -117,7 +117,7 @@ function validateRequest(body: unknown): ValidatedPitchRunRequest {
 
   const payload = body as Record<string, unknown>;
   if (!isPitchMode(payload.mode)) {
-    throw new PitchValidationError('mode is required. Expected elevator, vc_pitch, or hackathon.');
+    throw new PitchValidationError('mode is required. Expected elevator, vc_pitch, hackathon, or final_year.');
   }
   if (!isInputType(payload.inputType)) {
     throw new PitchValidationError('Invalid inputType. Expected audio or text.');
@@ -327,7 +327,7 @@ async function handleGet(req: Request) {
   const includePending = url.searchParams.get('includePending') === 'true';
   const summary = url.searchParams.get('summary') === 'true';
   const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
-  const parsedMode = mode === 'elevator' || mode === 'vc_pitch' ? mode : undefined;
+  const parsedMode = mode === 'elevator' || mode === 'vc_pitch' || mode === 'hackathon' || mode === 'final_year' ? (mode as PitchMode) : undefined;
   if (projectId && !isUuid(projectId)) {
     return errorResponse('projectId query parameter must be a valid UUID.', 400);
   }
