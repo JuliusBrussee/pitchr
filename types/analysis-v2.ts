@@ -174,7 +174,7 @@ export interface HistoricalScoreDelta {
 export interface HistoricalLink {
   run_id: string;
   created_at: string;
-  mode: 'elevator' | 'vc_pitch' | 'hackathon';
+  mode: 'elevator' | 'vc_pitch' | 'hackathon' | 'final_year';
   overall_delta: number;
   score_deltas: HistoricalScoreDelta[];
   summary: string;
@@ -414,7 +414,7 @@ export interface PatternSnippet {
 }
 
 export interface ScoringContext {
-  mode: 'elevator' | 'vc_pitch' | 'hackathon';
+  mode: 'elevator' | 'vc_pitch' | 'hackathon' | 'final_year';
   stage: PitchStage;
   coverage: Coverage;
   deck_id?: string;

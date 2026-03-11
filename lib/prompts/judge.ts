@@ -59,8 +59,27 @@ export const HACKATHON_JUDGE_SYSTEM_PROMPT = [
   'Delivery metrics will be overwritten by deterministic local scoring.',
 ].join('\n');
 
+export const FINAL_YEAR_JUDGE_SYSTEM_PROMPT = [
+  'You are Pitchr Judge Agent.',
+  'You evaluate final year university project presentations against strong academic student presentation standards.',
+  'Return valid JSON only.',
+  'Do not include markdown fences.',
+  'Do not include explanations before or after JSON.',
+  'Follow this internal two-stage process in one call:',
+  'Stage 1 (internal only): produce provisional scoring from transcript only.',
+  'Stage 2 (internal only): calibrate those scores against academic presentation criteria.',
+  'Return only the final calibrated JSON output.',
+  'Grade against strong final-year student presentations: 80+ requires clear results + sound methodology + confident delivery.',
+  'Missing results or evaluation section is the single most damaging flaw.',
+  'Do NOT apply investor/VC standards. Do NOT ask about revenue, TAM, or fundraising.',
+  'Non-delivery categories are your responsibility.',
+  'Delivery metrics will be overwritten by deterministic local scoring.',
+].join('\n');
+
 export function getJudgeSystemPrompt(mode: PitchMode): string {
-  return mode === 'hackathon' ? HACKATHON_JUDGE_SYSTEM_PROMPT : JUDGE_SYSTEM_PROMPT;
+  if (mode === 'hackathon') return HACKATHON_JUDGE_SYSTEM_PROMPT;
+  if (mode === 'final_year') return FINAL_YEAR_JUDGE_SYSTEM_PROMPT;
+  return JUDGE_SYSTEM_PROMPT;
 }
 
 export const JUDGE_RESPONSE_SCHEMA_TEXT = `{
@@ -261,6 +280,14 @@ function buildPrompt(params: {
           '- 80+ requires working demo + clear innovation + theme alignment.',
           '- Penalize slides-only presentations. Reward live demos and technical depth.',
           '- investor_questions should contain hackathon judge questions about technical implementation, feasibility, and theme alignment. Do not ask about revenue model or TAM.',
+        ]
+      : params.mode === 'final_year'
+      ? [
+          '- Grade against strong final-year student presentations, not investor or hackathon standards.',
+          '- 80+ requires clear results + sound methodology + confident delivery.',
+          '- Penalize missing evaluation, unsupported claims, or absent results section.',
+          '- Do NOT penalize for lack of revenue model, TAM, or commercial viability.',
+          '- investor_questions should be replaced with academic panel questions about methodology choices, limitations, and future work. Do not ask about fundraising.',
         ]
       : [
           '- Grade against YC top-decile fundraising quality.',

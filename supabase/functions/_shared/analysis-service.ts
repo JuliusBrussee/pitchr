@@ -364,7 +364,7 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
   throw new Error('Claude request failed after retries');
 }
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
 const GEMINI_TIMEOUT_MS = 45_000;
 
 interface GeminiResponse {
@@ -377,9 +377,9 @@ interface GeminiResponse {
 }
 
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  const apiKey = Deno.env.get('GOOGLE_AI_API_KEY')?.trim();
+  const apiKey = (Deno.env.get('GOOGLE_AI_API_KEY') ?? Deno.env.get('GOOGLE_API_KEY'))?.trim();
   if (!apiKey) {
-    throw new Error('Missing GOOGLE_AI_API_KEY');
+    throw new Error('Missing GOOGLE_AI_API_KEY or GOOGLE_API_KEY');
   }
 
   const controller = new AbortController();
@@ -583,16 +583,16 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     : profile.systemPrompt;
   const userPrompt = buildUserPrompt(input, profile);
 
-  // Try Claude first
-  let providerUsed = 'anthropic';
+  // Try Gemini first (primary), Claude as fallback
+  let providerUsed = 'gemini';
   let llmCallsUsed = 0;
   let attemptCount = 0;
 
   try {
     attemptCount += 1;
     llmCallsUsed += 1;
-    logDiagnostic('log', '[analysis] calling Claude API...');
-    const rawText = await callClaude(systemPrompt, userPrompt);
+    logDiagnostic('log', '[analysis] calling Gemini API...');
+    const rawText = await callGemini(systemPrompt, userPrompt);
     const jsonText = extractJson(rawText);
     const parsed = JSON.parse(jsonText);
     const { feedback: rawFeedback, qa_1min } = validateAndNormalize(parsed);
@@ -608,7 +608,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       coverage: input.deckText ? 'spoken+deck' : 'spoken_only',
       outputs: { feedback, qa_1min },
       meta: {
-        provider_used: 'anthropic',
+        provider_used: 'gemini',
         fallback_used: false,
         cache_hit: false,
         llm_calls_used: llmCallsUsed,
@@ -620,25 +620,25 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
       fallback: false,
     };
 
-    logDiagnostic('log', '[analysis] Claude succeeded', {
+    logDiagnostic('log', '[analysis] Gemini succeeded', {
       overall_score: feedback.overall_score,
       latency_ms: analysis.meta.latency_ms,
     });
 
     return { analysis, fallback: false };
-  } catch (claudeError) {
-    const claudeMsg = claudeError instanceof Error ? claudeError.message : String(claudeError);
-    logDiagnostic('warn', '[analysis] Claude failed, trying Gemini fallback...', {
-      error: claudeMsg,
+  } catch (geminiError) {
+    const geminiMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+    logDiagnostic('warn', '[analysis] Gemini failed, trying Claude fallback...', {
+      error: geminiMsg,
     });
 
-    // Try Gemini fallback
+    // Try Claude fallback
     try {
-      providerUsed = 'gemini';
+      providerUsed = 'anthropic';
       attemptCount += 1;
       llmCallsUsed += 1;
-      logDiagnostic('log', '[analysis] calling Gemini API...');
-      const rawText = await callGemini(systemPrompt, userPrompt);
+      logDiagnostic('log', '[analysis] calling Claude API...');
+      const rawText = await callClaude(systemPrompt, userPrompt);
       const jsonText = extractJson(rawText);
       const parsed = JSON.parse(jsonText);
       const { feedback: rawFeedback, qa_1min } = validateAndNormalize(parsed);
@@ -654,7 +654,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
         coverage: input.deckText ? 'spoken+deck' : 'spoken_only',
         outputs: { feedback, qa_1min },
         meta: {
-          provider_used: 'gemini',
+          provider_used: 'anthropic',
           fallback_used: true,
           cache_hit: false,
           llm_calls_used: llmCallsUsed,
@@ -666,17 +666,17 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
         fallback: false,
       };
 
-      logDiagnostic('log', '[analysis] Gemini succeeded', {
+      logDiagnostic('log', '[analysis] Claude succeeded', {
         overall_score: feedback.overall_score,
         latency_ms: analysis.meta.latency_ms,
       });
 
       return { analysis, fallback: false };
-    } catch (geminiError) {
-      const geminiMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
+    } catch (claudeError) {
+      const claudeMsg = claudeError instanceof Error ? claudeError.message : String(claudeError);
       logDiagnostic('error', '[analysis] Both LLMs failed, returning sample fallback', {
-        claude_error: claudeMsg,
         gemini_error: geminiMsg,
+        claude_error: claudeMsg,
       });
 
       // Fall back to sample result
@@ -697,10 +697,10 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
         attempt_count: attemptCount,
         rubric_policy: rubricPolicyResult.evaluation,
         error_details: {
-          message: `Claude: ${claudeMsg}; Gemini: ${geminiMsg}`,
+          message: `Gemini: ${geminiMsg}; Claude: ${claudeMsg}`,
           timeout:
-            claudeMsg.toLowerCase().includes('timed out') ||
-            geminiMsg.toLowerCase().includes('timed out'),
+            geminiMsg.toLowerCase().includes('timed out') ||
+            claudeMsg.toLowerCase().includes('timed out'),
         },
       };
       fallback.fallback = true;

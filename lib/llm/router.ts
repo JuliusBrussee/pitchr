@@ -1,4 +1,5 @@
 import { AnthropicProvider } from '@/lib/llm/providers/anthropic';
+import { GeminiProvider } from '@/lib/llm/providers/gemini';
 import { OpenRouterProvider } from '@/lib/llm/providers/openrouter';
 import type {
   LlmCompletionRequest,
@@ -10,11 +11,13 @@ import type {
 function getConfiguredProvider(): LlmProviderName {
   const configured = process.env.LLM_PROVIDER?.toLowerCase();
   if (configured === 'openrouter') return 'openrouter';
+  if (configured === 'gemini') return 'gemini';
   return 'anthropic';
 }
 
 function getProviderInstance(name: LlmProviderName): LlmProvider {
   if (name === 'anthropic') return new AnthropicProvider();
+  if (name === 'gemini') return new GeminiProvider();
   return new OpenRouterProvider();
 }
 

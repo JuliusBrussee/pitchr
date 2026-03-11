@@ -16,6 +16,7 @@ const MODE_DURATION = {
   elevator: 30,
   vc_pitch: 300,
   hackathon: 210,
+  final_year: 300,
 };
 
 export function TryRecordingStep({ mode, onComplete }: TryRecordingStepProps) {

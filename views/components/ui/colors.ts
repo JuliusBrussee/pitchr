@@ -1,5 +1,5 @@
 export type ScoreBand = 'needs-work' | 'getting-there' | 'solid' | 'investor-ready';
-export type PitchMode = 'elevator' | 'vc_pitch' | 'hackathon';
+export type PitchMode = 'elevator' | 'vc_pitch' | 'hackathon' | 'final_year';
 
 export function getScoreBand(score: number): ScoreBand {
   if (score >= 80) return 'investor-ready';
@@ -45,7 +45,10 @@ export function getScoreBandLabel(score: number): string {
 export const MARKET_ORANGE = '#f97316';
 
 export function getModeColor(mode: PitchMode): string {
-  return mode === 'elevator' ? MARKET_ORANGE : ACCENT;
+  if (mode === 'elevator') return MARKET_ORANGE;
+  if (mode === 'hackathon') return '#8b5cf6';
+  if (mode === 'final_year') return '#10b981';
+  return ACCENT;
 }
 
 export function getModeBgColor(mode: PitchMode): string {
@@ -54,7 +57,10 @@ export function getModeBgColor(mode: PitchMode): string {
 }
 
 export function getModeLabel(mode: PitchMode): string {
-  return mode === 'elevator' ? 'Elevator' : 'VC Pitch';
+  if (mode === 'elevator') return 'Elevator';
+  if (mode === 'hackathon') return 'Hackathon';
+  if (mode === 'final_year') return 'Final Year';
+  return 'VC Pitch';
 }
 
 /* ——— Shared palette ——— */

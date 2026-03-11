@@ -19,6 +19,7 @@ const MODE_BEATS: Record<PitchMode, SectionBeat[]> = {
   elevator: ['intro', 'problem', 'solution', 'ask'],
   vc_pitch: ['intro', 'problem', 'solution', 'market', 'model', 'traction', 'team', 'ask'],
   hackathon: ['intro', 'problem', 'demo', 'innovation', 'impact', 'ask'],
+  final_year: ['intro', 'problem', 'solution', 'traction', 'impact', 'ask'],
 };
 
 const BEAT_PATTERNS: Record<SectionBeat, RegExp[]> = {

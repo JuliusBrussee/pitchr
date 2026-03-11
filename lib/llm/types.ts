@@ -14,7 +14,7 @@ export interface LlmProvider {
   complete(request: LlmCompletionRequest): Promise<string>;
 }
 
-export type LlmProviderName = 'openrouter' | 'anthropic';
+export type LlmProviderName = 'openrouter' | 'anthropic' | 'gemini';
 
 export interface LlmRouterTelemetry {
   providerUsed: LlmProviderName;

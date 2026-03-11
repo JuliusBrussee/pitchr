@@ -1,6 +1,6 @@
 'use client';
 
-import { Zap, Presentation, Trophy } from 'lucide-react';
+import { Zap, Presentation, Trophy, GraduationCap } from 'lucide-react';
 import type { PitchMode } from '@/types/pitch';
 
 interface UseCaseStepProps {
@@ -28,6 +28,13 @@ const MODES = [
     description: 'Demo your hack and win the judges',
     icon: Trophy,
     timer: '3 min',
+  },
+  {
+    mode: 'final_year' as PitchMode,
+    label: 'Final Year Project',
+    description: 'Present your research to academic panels',
+    icon: GraduationCap,
+    timer: '4 min',
   },
 ];
 

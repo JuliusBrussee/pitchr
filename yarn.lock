@@ -4327,13 +4327,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vercel/analytics@npm:^1.6.1":
-  version: 1.6.1
-  resolution: "@vercel/analytics@npm:1.6.1"
+"@vercel/analytics@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@vercel/analytics@npm:2.0.0"
   peerDependencies:
     "@remix-run/react": ^2
     "@sveltejs/kit": ^1 || ^2
     next: ">= 13"
+    nuxt: ">= 3"
     react: ^18 || ^19 || ^19.0.0-rc
     svelte: ">= 4"
     vue: ^3
@@ -4353,16 +4354,17 @@ __metadata:
       optional: true
     vue-router:
       optional: true
-  checksum: 10c0/df39ec419299b43350ad80a06fe835502f22f71c32d21d58855ac39ef352d3478b8922e44375dbc5b0c02ceae04a9d23b32579eb517a602656f6460c90f5802a
+  checksum: 10c0/21b646859616899012bf3056bdc2d79db096c95b5717189ea1ef7947136cbb2a4efb704ed66fbf56d43cf6c78c1acf1fc52b43ebfec8765df19a5c88fbf96255
   languageName: node
   linkType: hard
 
-"@vercel/speed-insights@npm:^1.3.1":
-  version: 1.3.1
-  resolution: "@vercel/speed-insights@npm:1.3.1"
+"@vercel/speed-insights@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "@vercel/speed-insights@npm:2.0.0"
   peerDependencies:
     "@sveltejs/kit": ^1 || ^2
     next: ">= 13"
+    nuxt: ">= 3"
     react: ^18 || ^19 || ^19.0.0-rc
     svelte: ">= 4"
     vue: ^3
@@ -4372,6 +4374,8 @@ __metadata:
       optional: true
     next:
       optional: true
+    nuxt:
+      optional: true
     react:
       optional: true
     svelte:
@@ -4380,7 +4384,7 @@ __metadata:
       optional: true
     vue-router:
       optional: true
-  checksum: 10c0/37b943cfd52ec3a62e8ba4bcdce6a9e4251294a6196c5d069b4b1bc79529b0f6765c3142c7bb0c0478efbb83b261c3221180566327d867a58628a713484afb79
+  checksum: 10c0/a8703abcf72f6317183be13a5e991883589c48a8107fedb47d075af08e2d5a71d93e22c1927c8d0c28a69bb0e4712e90386d50947851883b6169c715cd43b4eb
   languageName: node
   linkType: hard
 
@@ -6476,8 +6480,8 @@ __metadata:
     "@types/react-dom": "npm:^19.0.1"
     "@types/three": "npm:^0.169.0"
     "@types/ws": "npm:^8.5.13"
-    "@vercel/analytics": "npm:^1.6.1"
-    "@vercel/speed-insights": "npm:^1.3.1"
+    "@vercel/analytics": "npm:^2.0.0"
+    "@vercel/speed-insights": "npm:^2.0.0"
     "@vitejs/plugin-react": "npm:^5.1.4"
     concurrently: "npm:^9.1.0"
     cross-env: "npm:^7.0.3"
