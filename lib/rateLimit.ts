@@ -15,12 +15,14 @@ type RateLimitState = {
 const DEFAULT_RATE_LIMIT_WINDOW_MS = 60_000;
 const DEFAULT_RATE_LIMIT_MAX_REQUESTS = 5;
 const DEFAULT_RETRY_HEADER_WINDOW_SECONDS = 60;
+const DEFAULT_RATE_LIMIT_KEY_PREFIX = 'pitchr:ratelimit:';
 const DEFAULT_TRUSTED_CLIENT_IP_HEADERS = [
   'cf-connecting-ip',
   'x-real-ip',
   'x-forwarded-for',
   'x-vercel-forwarded-for',
 ];
+const DEFAULT_PUBLIC_WRITE_RATE_LIMIT_BACKEND = 'upstash';
 
 const state = new Map<string, RateLimitState>();
 
@@ -107,18 +109,41 @@ export function getRateLimitResetHeaders(result: RateLimitResult) {
   };
 }
 
-export function checkPublicWriteRateLimit(
+type RateLimitCheckOptions = {
+  now?: number;
+  maxRequests?: number;
+  windowMs?: number;
+};
+
+type RateLimitBackend = 'memory' | 'upstash';
+
+function resolveRateLimitBackend(): RateLimitBackend {
+  const configured = process.env.PUBLIC_WRITE_RATE_LIMIT_BACKEND?.trim().toLowerCase();
+  if (configured === 'memory' || configured === 'upstash') {
+    return configured;
+  }
+
+  if (process.env.NODE_ENV === 'test') {
+    return 'memory';
+  }
+
+  return DEFAULT_PUBLIC_WRITE_RATE_LIMIT_BACKEND;
+}
+
+function buildFailClosedResult(maxRequests: number, windowMs: number): RateLimitResult {
+  return {
+    allowed: false,
+    limit: maxRequests,
+    remaining: 0,
+    retryAfterSeconds: windowMs > 0 ? Math.max(1, Math.ceil(windowMs / 1000)) : DEFAULT_RETRY_HEADER_WINDOW_SECONDS,
+  };
+}
+
+function checkInMemoryPublicWriteRateLimit(
   key: string,
-  options?: {
-    now?: number;
-    maxRequests?: number;
-    windowMs?: number;
-  },
+  options: Required<Pick<RateLimitCheckOptions, 'now' | 'maxRequests' | 'windowMs'>>,
 ): RateLimitResult {
-  const now = options?.now ?? Date.now();
-  const defaults = resolvePublicWriteRateLimitDefaults();
-  const maxRequests = options?.maxRequests ?? defaults.maxRequests;
-  const windowMs = options?.windowMs ?? defaults.windowMs;
+  const { now, maxRequests, windowMs } = options;
 
   if (!key || maxRequests <= 0 || windowMs <= 0) {
     return {
@@ -160,6 +185,132 @@ export function checkPublicWriteRateLimit(
     remaining: maxRequests - existing.count,
     retryAfterSeconds,
   };
+}
+
+function parsePipelineNumber(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+type UpstashPipelineResponse = Array<{
+  result?: unknown;
+  error?: string;
+}>;
+
+async function checkWithUpstashPublicWriteRateLimit(
+  key: string,
+  options: Required<Pick<RateLimitCheckOptions, 'maxRequests' | 'windowMs'>>,
+): Promise<RateLimitResult> {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const { maxRequests, windowMs } = options;
+
+  if (!url || !token) {
+    if (process.env.NODE_ENV === 'production') {
+      return buildFailClosedResult(maxRequests, windowMs);
+    }
+
+    return checkInMemoryPublicWriteRateLimit(key, {
+      now: Date.now(),
+      maxRequests,
+      windowMs,
+    });
+  }
+
+  const normalizedUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+  const namespacedKey = `${DEFAULT_RATE_LIMIT_KEY_PREFIX}${key}`;
+  const commands = [
+    ['INCR', namespacedKey],
+    ['PEXPIRE', namespacedKey, String(windowMs), 'NX'],
+    ['PTTL', namespacedKey],
+  ];
+
+  try {
+    const response = await fetch(`${normalizedUrl}/pipeline`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(commands),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upstash request failed with status ${response.status}`);
+    }
+
+    const pipeline = (await response.json()) as UpstashPipelineResponse;
+    if (!Array.isArray(pipeline) || pipeline.length < 3) {
+      throw new Error('Unexpected Upstash pipeline response shape');
+    }
+
+    if (pipeline.some((entry) => typeof entry?.error === 'string' && entry.error.length > 0)) {
+      throw new Error('Upstash pipeline returned an error result');
+    }
+
+    const count = parsePipelineNumber(pipeline[0]?.result, 1);
+    let ttlMs = parsePipelineNumber(pipeline[2]?.result, windowMs);
+    if (ttlMs <= 0) {
+      ttlMs = windowMs;
+    }
+
+    const retryAfterSeconds = Math.max(0, Math.ceil(ttlMs / 1000));
+    const allowed = count <= maxRequests;
+
+    return {
+      allowed,
+      limit: maxRequests,
+      remaining: allowed ? Math.max(0, maxRequests - count) : 0,
+      retryAfterSeconds,
+    };
+  } catch (error) {
+    console.error('[rateLimit] Shared backend check failed:', error);
+    if (process.env.NODE_ENV === 'production') {
+      return buildFailClosedResult(maxRequests, windowMs);
+    }
+
+    return checkInMemoryPublicWriteRateLimit(key, {
+      now: Date.now(),
+      maxRequests,
+      windowMs,
+    });
+  }
+}
+
+export async function checkPublicWriteRateLimit(
+  key: string,
+  options?: RateLimitCheckOptions,
+): Promise<RateLimitResult> {
+  const now = options?.now ?? Date.now();
+  const defaults = resolvePublicWriteRateLimitDefaults();
+  const maxRequests = options?.maxRequests ?? defaults.maxRequests;
+  const windowMs = options?.windowMs ?? defaults.windowMs;
+
+  if (!key || maxRequests <= 0 || windowMs <= 0) {
+    return {
+      allowed: true,
+      limit: maxRequests,
+      remaining: maxRequests,
+      retryAfterSeconds: 0,
+    };
+  }
+
+  const backend = resolveRateLimitBackend();
+  if (backend === 'memory') {
+    return checkInMemoryPublicWriteRateLimit(key, { now, maxRequests, windowMs });
+  }
+
+  return checkWithUpstashPublicWriteRateLimit(key, { maxRequests, windowMs });
 }
 
 export function resetRateLimitStateForTests(): void {

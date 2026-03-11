@@ -64,9 +64,9 @@ async function unsubscribeByToken(token: string): Promise<UnsubscribeResult> {
   return existingRow.unsubscribed_at ? 'already_unsubscribed' : 'not_found';
 }
 
-function checkUnsubscribeRateLimit(request: NextRequest): NextResponse | null {
+async function checkUnsubscribeRateLimit(request: NextRequest): Promise<NextResponse | null> {
   const ip = getClientIpFallback(request);
-  const rateLimit = checkPublicWriteRateLimit(
+  const rateLimit = await checkPublicWriteRateLimit(
     `newsletter-unsubscribe:ip:${ip ?? "unknown"}`,
   );
 
@@ -85,7 +85,7 @@ function checkUnsubscribeRateLimit(request: NextRequest): NextResponse | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const rateLimitResponse = checkUnsubscribeRateLimit(request);
+    const rateLimitResponse = await checkUnsubscribeRateLimit(request);
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const rateLimitResponse = checkUnsubscribeRateLimit(request);
+  const rateLimitResponse = await checkUnsubscribeRateLimit(request);
   if (rateLimitResponse) {
     return rateLimitResponse;
   }
