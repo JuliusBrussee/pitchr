@@ -521,6 +521,9 @@ export async function checkUsageLimit(
 
 /**
  * Get full Q&A budget info for a user, including plan-specific duration options.
+ *
+ * checkUsageLimit for qa_seconds may return credit counts (not seconds) when the
+ * user has credits. We detect that case and use actual QA seconds from usage_events.
  */
 export async function getQaBudget(
   supabase: SupabaseClient,
@@ -528,6 +531,25 @@ export async function getQaBudget(
 ): Promise<QaBudgetInfo> {
   const usageResult = await checkUsageLimit(supabase, userId, 'qa_seconds');
   const limits = getPlanLimits(usageResult.planId);
+  const planBudget = limits.qaSecondsPerPeriod;
+
+  // When the credit-based path is used, usageResult.used/limit are credit counts,
+  // not seconds. Detect this and fetch real QA seconds usage instead.
+  let budgetSeconds: number | null = usageResult.limit;
+  let usedSeconds: number = usageResult.used;
+  let remainingSeconds: number | null = usageResult.remaining;
+
+  const isCreditBased = usageResult.allowed
+    && planBudget !== null
+    && usageResult.limit !== null
+    && usageResult.limit < planBudget;
+
+  if (isCreditBased) {
+    const usage = await getUsage(supabase, userId);
+    usedSeconds = usage.qaSecondsUsed;
+    budgetSeconds = planBudget;
+    remainingSeconds = Math.max(0, planBudget - usedSeconds);
+  }
 
   const maxSession = limits.maxQaSessionSeconds;
   const options: number[] = [];
@@ -541,9 +563,9 @@ export async function getQaBudget(
   const defaultDuration = usageResult.planId === 'pro' ? 120 : 60;
 
   return {
-    budgetSeconds: usageResult.limit,
-    usedSeconds: usageResult.used,
-    remainingSeconds: usageResult.remaining,
+    budgetSeconds,
+    usedSeconds,
+    remainingSeconds,
     maxSessionSeconds: maxSession,
     gracePeriodSeconds: limits.qaGracePeriodSeconds,
     durationOptions: options,

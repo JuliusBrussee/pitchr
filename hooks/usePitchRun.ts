@@ -76,6 +76,9 @@ export function usePitchRun(): UsePitchRunReturn {
 
         const success = payload as CreatePitchRunResponse;
 
+        // Credits were consumed — refresh the sidebar counter immediately
+        window.dispatchEvent(new Event('billing:refresh'));
+
         return {
           runId: success.runId,
           status: success.status,

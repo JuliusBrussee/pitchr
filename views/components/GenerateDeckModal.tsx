@@ -361,6 +361,9 @@ export function GenerateDeckModal({ isOpen, onClose, onSuccess, projectId }: Gen
         throw new Error(data.error || 'Generation failed');
       }
 
+      // Credits were consumed — refresh the sidebar counter immediately
+      window.dispatchEvent(new Event('billing:refresh'));
+
       onSuccess();
       onClose();
       setCompanyName('');

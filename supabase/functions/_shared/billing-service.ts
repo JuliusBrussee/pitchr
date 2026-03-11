@@ -337,6 +337,10 @@ export async function checkUsageLimit(
 
 /**
  * Get full Q&A budget info including plan-specific limits and duration options.
+ *
+ * checkUsageLimit for qa_seconds may return credit counts (not seconds) when the
+ * user has credits. We detect that case and fetch actual QA seconds from
+ * usage_events so the UI displays a real time budget instead of credit counts.
  */
 export async function getQaBudget(
   supabase: SupabaseClient,
@@ -344,6 +348,47 @@ export async function getQaBudget(
 ): Promise<QaBudgetResult> {
   const result = await checkUsageLimit(supabase, userId, 'qa_seconds');
   const limits = PLAN_LIMITS[result.planId];
+  const planBudget = limits.qaSecondsPerPeriod;
+
+  // When the credit-based path is used, result.used/limit are credit counts,
+  // not seconds. Detect this: if allowed and limit is a small credit number
+  // (not null and much smaller than the plan's seconds budget), fetch real usage.
+  let budgetSeconds: number | null = result.limit;
+  let usedSeconds: number = result.used;
+  let remainingSeconds: number | null = result.remaining;
+
+  const isCreditBased = result.allowed
+    && planBudget !== null
+    && result.limit !== null
+    && result.limit < planBudget;
+
+  if (isCreditBased) {
+    // Fetch actual QA seconds usage from usage_events
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('current_period_start, current_period_end')
+      .eq('user_id', userId)
+      .single();
+
+    const defaultBounds = getDefaultPeriodBounds();
+    const periodStart = sub?.current_period_start ?? defaultBounds.start;
+    const periodEnd = sub?.current_period_end ?? defaultBounds.end;
+
+    const { data: events } = await supabase
+      .from('usage_events')
+      .select('quantity')
+      .eq('user_id', userId)
+      .eq('resource', 'qa_seconds')
+      .gte('period_start', periodStart)
+      .lte('period_end', periodEnd);
+
+    usedSeconds = (events ?? []).reduce(
+      (sum: number, e: { quantity?: number }) => sum + (e.quantity ?? 0),
+      0,
+    );
+    budgetSeconds = planBudget;
+    remainingSeconds = Math.max(0, planBudget - usedSeconds);
+  }
 
   const maxSession = limits.maxQaSessionSeconds;
   const options: number[] = [];
@@ -358,9 +403,9 @@ export async function getQaBudget(
   return {
     allowed: result.allowed,
     planId: result.planId,
-    budgetSeconds: result.limit,
-    usedSeconds: result.used,
-    remainingSeconds: result.remaining,
+    budgetSeconds,
+    usedSeconds,
+    remainingSeconds,
     maxSessionSeconds: maxSession,
     gracePeriodSeconds: limits.qaGracePeriodSeconds,
     durationOptions: options,

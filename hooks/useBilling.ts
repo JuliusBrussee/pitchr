@@ -104,6 +104,24 @@ export function useBilling() {
 
   useEffect(() => {
     fetchBilling();
+
+    // Refetch when tab regains focus so the counter is never stale
+    const onFocus = () => fetchBilling();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') fetchBilling();
+    };
+    // Allow any component to trigger a refresh via custom event
+    const onBillingRefresh = () => fetchBilling();
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('billing:refresh', onBillingRefresh);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('billing:refresh', onBillingRefresh);
+    };
   }, [fetchBilling]);
 
   const startCheckout = useCallback(

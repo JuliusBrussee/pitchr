@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { checkUsageLimit } from '@/services/billingService';
+import { checkUsageLimit, getQaBudget } from '@/services/billingService';
 
 /**
  * GET /api/billing/usage?resource=runs
  * Checks current usage against plan limits for a specific resource.
+ * For qa_seconds, returns real seconds (not credit counts) via getQaBudget.
  */
 export async function GET(request: Request) {
   try {
@@ -26,6 +27,21 @@ export async function GET(request: Request) {
     }
 
     const admin = createAdminClient();
+
+    // For qa_seconds, use getQaBudget which returns actual seconds instead of
+    // credit counts that checkUsageLimit may return for credit-based users.
+    if (resource === 'qa_seconds') {
+      const budget = await getQaBudget(admin, user.id);
+      return NextResponse.json({
+        allowed: budget.budgetSeconds === null || (budget.remainingSeconds ?? Infinity) > 0,
+        resource,
+        used: budget.usedSeconds,
+        limit: budget.budgetSeconds,
+        remaining: budget.remainingSeconds,
+        planId: budget.planId,
+      });
+    }
+
     const result = await checkUsageLimit(admin, user.id, resource);
 
     return NextResponse.json(result);

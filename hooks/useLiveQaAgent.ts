@@ -555,10 +555,12 @@ export function useLiveQaAgent({
       const closeIntent = closeIntentRef.current;
       if (closeIntent === 'completed') {
         setStatus('completed');
+        window.dispatchEvent(new Event('billing:refresh'));
         return;
       }
       if (closeIntent === 'expired') {
         setStatus('expired');
+        window.dispatchEvent(new Event('billing:refresh'));
         return;
       }
       if (closeIntent === 'failed') {
@@ -570,6 +572,7 @@ export function useLiveQaAgent({
       // Server closed the connection with 1000 = normal end of conversation.
       if (closeCode === 1000) {
         setStatus('completed');
+        window.dispatchEvent(new Event('billing:refresh'));
         return;
       }
 
