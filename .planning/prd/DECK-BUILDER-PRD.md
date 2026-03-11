@@ -1455,7 +1455,35 @@ CREATE INDEX idx_deck_views_deck_id ON deck_views(deck_id);
 CREATE INDEX idx_deck_views_created_at ON deck_views(created_at);
 ```
 
-### 18.4 Company Briefs Cache (New)
+### 18.4 Deck Generations State (New)
+
+```sql
+CREATE TABLE IF NOT EXISTS deck_generations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'researching',
+  -- Status values: researching | storyline_ready | confirmed | generating | complete | failed
+  company_brief JSONB,
+  storyline JSONB,
+  confirmed_storyline JSONB,
+  partial_slides JSONB DEFAULT '[]',
+  deck_id UUID REFERENCES decks(id),
+  config JSONB NOT NULL,
+  error_message TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '1 hour')
+);
+
+ALTER TABLE deck_generations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own generations"
+  ON deck_generations FOR ALL USING (user_id = auth.uid());
+
+CREATE INDEX idx_deck_generations_user_id ON deck_generations(user_id);
+CREATE INDEX idx_deck_generations_status ON deck_generations(status);
+```
+
+### 18.5 Company Briefs Cache (New)
 
 ```sql
 CREATE TABLE IF NOT EXISTS company_briefs (
@@ -1476,17 +1504,17 @@ CREATE INDEX idx_company_briefs_user_id ON company_briefs(user_id);
 
 ## 19. API Contracts
 
-### 19.1 Generation Pipeline
+### 19.1 Generation Pipeline — Phase A: Research + Narrative
 
 ```
-POST /api/deck/generate/v2
+POST /api/deck/generate/v2/start
   Body: {
     mode: 'quick' | 'full' | 'from-analysis';
     companyName: string;
     description?: string;
     sourceUrl?: string;
     sourceRunId?: string;
-    pitchType: 'elevator' | 'vc_pitch' | 'board_update' | 'sales_pitch';
+    pitchType: DeckPitchType;     // 'elevator' | 'vc_pitch' | 'board_update' | 'sales_pitch'
     slideCount: number;           // 6-12, default 8
     framework?: NarrativeFramework;  // null = auto-detect
     themeId: string;
@@ -1494,10 +1522,31 @@ POST /api/deck/generate/v2
     projectId?: string;
   }
   Response (SSE stream): {
-    event: 'progress' | 'storyline' | 'slide' | 'review' | 'complete' | 'error';
+    event: 'progress' | 'storyline' | 'error';
+    data: {
+      generationId?: string;      // UUID for the deck_generations row
+      step?: string;
+      storyline?: Storyline;      // sent at 'storyline' event, then stream closes
+      error?: string;
+    };
+  }
+
+  # Quick mode: skips storyline review, continues to Phase B automatically
+  # Full/from-analysis mode: stream closes after 'storyline' event, user reviews
+```
+
+### 19.2 Generation Pipeline — Phase B: Content + Design + Review
+
+```
+POST /api/deck/generate/v2/continue
+  Body: {
+    generationId: string;          // from Phase A
+    storyline: Storyline;          // potentially edited by user
+  }
+  Response (SSE stream): {
+    event: 'progress' | 'slide' | 'review' | 'complete' | 'error';
     data: {
       step?: string;
-      storyline?: Storyline;      // sent at 'storyline' event for user review
       slide?: Slide;              // sent per slide as generated
       review?: DeckReview;
       deck?: Deck;                // final complete deck
@@ -1506,17 +1555,17 @@ POST /api/deck/generate/v2
   }
 ```
 
-### 19.2 Storyline Confirmation
+### 19.3 Pending Generations
 
 ```
-POST /api/deck/generate/v2/confirm-storyline
-  Body: {
-    generationId: string;          // from the SSE stream
-    storyline: Storyline;          // potentially edited by user
-  }
-  Response: { acknowledged: true }
-
-  # After confirmation, the SSE stream continues with Content Agent
+GET /api/deck/generate/v2/pending
+  Response: Array<{
+    generationId: string;
+    status: string;
+    storyline?: Storyline;
+    createdAt: string;
+    expiresAt: string;
+  }>
 ```
 
 ### 19.3 Deck CRUD (Enhanced)
@@ -2245,7 +2294,9 @@ supabase/migrations/YYYYMMDD_create_company_briefs.sql
 ```
 # New dependencies (yarn add)
 pptxgenjs                    # PPTX export
-zustand                      # Editor state management (if not already installed)
+zustand                      # Editor state management (NOT currently installed)
+@mozilla/readability         # HTML → clean article text (for URL ingestion)
+jsdom                        # DOM environment for Readability (for URL ingestion)
 
 # Existing dependencies (no changes needed)
 @react-pdf/renderer          # PDF export (already installed)
@@ -2254,7 +2305,426 @@ zod                          # Schema validation (already installed)
 pdf-parse                    # PDF text extraction (already installed)
 ```
 
-## Appendix C: Environment Variables
+## Appendix C: Errata & Architectural Clarifications
+
+This section resolves ambiguities identified during self-review. When this section conflicts with earlier sections, **this section wins**.
+
+### C.1 Deck Pitch Type (resolves C1)
+
+Create a new type `DeckPitchType` separate from the existing `PitchMode`. Do NOT modify `PitchMode` — it is used by the analysis pipeline.
+
+```typescript
+// types/deckGeneration.ts — ADD (do not modify PitchMode)
+export type DeckPitchType = 'elevator' | 'vc_pitch' | 'board_update' | 'sales_pitch';
+```
+
+The `POST /api/deck/generate/v2` endpoint uses `DeckPitchType`. The existing `POST /api/deck/generate` endpoint continues using the current types unchanged.
+
+### C.2 Generation Pipeline Architecture — Two-Phase SSE (resolves C2)
+
+The storyline confirmation step makes a single long-lived SSE connection impractical. **Use a two-phase architecture:**
+
+**Phase A: Research + Narrative (SSE connection 1)**
+```
+POST /api/deck/generate/v2/start
+  → SSE stream: progress events → storyline event → stream closes
+  → Returns generationId (UUID) stored in Supabase with status 'awaiting_storyline'
+```
+
+**Storage:**
+```sql
+CREATE TABLE IF NOT EXISTS deck_generations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  status TEXT NOT NULL DEFAULT 'researching',  -- researching | storyline_ready | confirmed | generating | complete | failed
+  company_brief JSONB,
+  storyline JSONB,
+  confirmed_storyline JSONB,
+  deck_id UUID REFERENCES decks(id),
+  config JSONB NOT NULL,                       -- original request params
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  expires_at TIMESTAMPTZ DEFAULT (now() + interval '1 hour')
+);
+```
+
+**User reviews storyline in the UI (no SSE connection open)**
+
+**Phase B: Content + Design + Review (SSE connection 2)**
+```
+POST /api/deck/generate/v2/continue
+  Body: { generationId: string; storyline: Storyline }
+  → SSE stream: slide-by-slide progress → review → complete
+  → Returns final Deck
+```
+
+This avoids long-lived connections, allows the user unlimited time to review the storyline, and keeps the pipeline resumable. If a user closes the tab and returns, they can find pending generations via `GET /api/deck/generate/v2/pending`.
+
+**Quick mode** (simple inputs) skips the storyline review: Phase A + Phase B run in a single SSE connection with no pause.
+
+### C.3 Credit Integration (resolves C3)
+
+Add the new resource to the existing billing types:
+
+```typescript
+// types/billing.ts — EXTEND CreditResource union type
+// Add: 'deck_builder_quick' | 'deck_builder_full'
+
+// config/billing.ts — ADD to CREDIT_COSTS
+export const CREDIT_COSTS: Record<CreditResource, number> = {
+  // ... existing entries ...
+  deck_generation: 2,           // Keep existing (backward compat)
+  deck_builder_quick: 2,        // Quick mode (2 LLM calls)
+  deck_builder_full: 3,         // Full mode (4-6 LLM calls)
+};
+```
+
+The existing `POST /api/deck/generate` endpoint continues using `deck_generation` (2 credits). The new `POST /api/deck/generate/v2/*` endpoints use `deck_builder_quick` or `deck_builder_full` based on the `mode` parameter. Billing check and deduction use the existing `checkUsageLimit` / `recordUsage` pattern.
+
+### C.4 EnhancedSlide Type Narrowing (resolves C4)
+
+`EnhancedSlide` uses `SlideType` (8 types), NOT `AnySlideType` (which includes legacy types):
+
+```typescript
+// types/deckGeneration.ts
+interface EnhancedSlide {
+  type: SlideType;              // NOT AnySlideType — no legacy types in new pipeline
+  headline: string;
+  subheadline?: string;
+  bullets: Array<{ text: string; detail?: string }>;
+  callout?: { value: string; label: string };
+  layout_hint?: LayoutHint;
+  speakerNotes?: string;
+  narrativeConnector?: string;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  suggestedVisual?: string;
+}
+```
+
+`EnhancedSlide` does NOT extend `GeneratedSlide`. It is a standalone interface that mirrors the shape but constrains the type. The orchestrator outputs `EnhancedSlide[]`, not `GeneratedSlide[]`. The existing `GeneratedSlide` type continues working for the old pipeline.
+
+### H.1 Mid-Pipeline Failure Strategy (resolves H1)
+
+**Partial failure handling:**
+
+1. **Research Agent fails:** Return error immediately. No state saved. User retries.
+2. **Narrative Agent fails:** Return error. `CompanyBrief` is saved to `deck_generations` table for retry without re-running Research.
+3. **Content Agent fails on slide N of M:**
+   - Slides 1 through N-1 are saved to `deck_generations.partial_slides` (JSONB).
+   - The orchestrator retries the failed slide once.
+   - If retry fails: complete the pipeline with slides 1 through N-1 + skip failed slide.
+   - UI shows: "Generated 7 of 8 slides. Slide 4 (Traction) could not be generated. You can add it manually."
+4. **Review Agent fails:** Skip review. Output the deck as-is with a warning: "Quality review could not be completed."
+5. **LLM rate limiting:** Use existing `lib/llm/router.ts` fallback to Gemini. If both fail, retry after 5 seconds (once).
+
+All partial state is stored in the `deck_generations` table so the user can resume or retry.
+
+### H.2 URL Parsing (resolves H2)
+
+Do NOT add `cheerio`. Use the built-in `fetch` + DOM parsing approach already available in Node.js 18+. For simple HTML-to-text extraction, use a lightweight regex-based approach or the `@mozilla/readability` library (MIT, ~20KB).
+
+**Recommended:** Add `@mozilla/readability` and `jsdom` to parse web pages into clean article text. This is the same approach used by Firefox's Reader View.
+
+```
+# Appendix B addition:
+@mozilla/readability           # HTML → clean article text
+jsdom                          # DOM environment for Readability
+```
+
+### H.3 Zustand Dependency (resolves H3)
+
+`zustand` is NOT in the current `package.json`. It must be added:
+
+```bash
+yarn add zustand
+```
+
+This is listed in Appendix B's dependency changes.
+
+### H.4 Coach Agent Rate Limiting (resolves H4)
+
+Coach Agent messages are rate-limited:
+
+- **Free tier:** Coach is not available (Section 17.3 already specifies this)
+- **Day Pass / Pro:** 30 Coach messages per deck per 24-hour period
+- **Rate limit response:** `429 Too Many Requests` with `retryAfter` header
+
+Rate limiting is enforced at the API route level using a simple counter in the `deck_generations` table or a Redis-like counter. For v1, use a Supabase RPC that counts recent coach messages per deck.
+
+### H.5 Migration Function — Chapter Assignment (resolves H5)
+
+When migrating existing decks (no `chapter_data` or `component_tree`), assign all slides to a single default chapter:
+
+```typescript
+function migrateExistingDeck(deckRecord: DeckRow, slideRecords: SlideRow[]): Deck {
+  const defaultChapter: Chapter = {
+    id: generateId(),
+    title: 'Presentation',
+    slides: slideRecords
+      .sort((a, b) => a.slide_num - b.slide_num)
+      .map((sr, index) => ({
+        id: sr.id,
+        chapterId: defaultChapter.id,
+        position: index,
+        rootComponent: sr.component_tree
+          ? sr.component_tree as ComponentInstance
+          : createLegacyRootComponent(sr.text),  // Fallback: paragraph widget with extracted text
+      })),
+  };
+
+  return {
+    id: deckRecord.id,
+    // ...
+    chapters: [defaultChapter],
+  };
+}
+
+function createLegacyRootComponent(text: string): ComponentInstance {
+  return {
+    id: generateId(),
+    type: 'stack',
+    variants: { gap: 'md', align: 'start' },
+    content: {},
+    children: [{
+      id: generateId(),
+      type: 'paragraph',
+      variants: { size: 'base', align: 'left' },
+      content: { body: text },
+    }],
+  };
+}
+```
+
+The editor detects legacy decks by checking `component_tree IS NULL` on slides. For legacy decks, the editor shows a "Upgrade to editable format" button that runs the migration.
+
+### H.6 Chapter/Slide Storage Strategy (resolves H6)
+
+**Clarification: Chapters are metadata only. Slides remain in the `slides` table.**
+
+```
+decks table:
+  chapter_data JSONB  →  [{ id: "ch1", title: "Problem" }, { id: "ch2", title: "Solution" }]
+                         (chapter metadata only — NO nested slides)
+
+slides table:
+  chapter_id TEXT     →  "ch1"  (FK to chapter_data entry)
+  component_tree JSONB → { id: "...", type: "stack", content: {...}, children: [...] }
+```
+
+To reconstruct the `Deck` object with nested `Chapter.slides`:
+
+```typescript
+async function loadDeck(deckId: string): Promise<Deck> {
+  const deckRow = await supabase.from('decks').select('*').eq('id', deckId).single();
+  const slideRows = await supabase.from('slides').select('*').eq('deck_id', deckId).order('slide_num');
+
+  const chapters: Chapter[] = (deckRow.chapter_data as ChapterMetadata[]).map(ch => ({
+    ...ch,
+    slides: slideRows
+      .filter(s => s.chapter_id === ch.id)
+      .map(s => ({
+        id: s.id,
+        chapterId: s.chapter_id,
+        position: s.slide_num,
+        rootComponent: s.component_tree as ComponentInstance,
+        speakerNotes: s.speaker_notes,
+        transition: s.transition,
+        confidenceLevel: s.confidence_level,
+        narrativeConnector: s.narrative_connector,
+      })),
+  }));
+
+  return {
+    id: deckRow.id,
+    // ...
+    chapters,
+  };
+}
+```
+
+This approach:
+- Keeps slides independently addressable (important for auto-save of individual slides)
+- Avoids storing the entire deck as a single JSONB blob
+- Allows querying slides without loading the full deck
+- Uses `chapter_data` only for chapter ordering and metadata
+
+### H.7 Public Routes (resolves H7)
+
+Clarification of all deck-related routes:
+
+```
+# Authenticated routes (require login)
+app/(app)/deck/page.tsx                         # Deck list/manager (existing)
+app/(app)/deck/create/page.tsx                  # Input wizard (new)
+app/(app)/deck/create/storyline/page.tsx         # Storyline review (new)
+app/(app)/deck/[deckId]/edit/page.tsx            # Editor (new)
+app/(app)/deck/[deckId]/present/page.tsx         # Presenter mode (new, fullscreen)
+
+# Public routes (no login required)
+app/(public)/deck/[deckId]/page.tsx              # Scrollable view (shareable link)
+app/(public)/deck/[deckId]/present/page.tsx      # Public presentation mode
+
+# API routes
+app/api/deck/[deckId]/view/route.ts              # View tracking (no auth required)
+app/api/deck/[deckId]/analytics/route.ts          # Analytics (auth required, deck owner only)
+```
+
+The public routes render the deck read-only. The public present mode is a fullscreen slide-by-slide view. View tracking (`POST /api/deck/[deckId]/view`) does NOT require authentication — it accepts anonymous views with nullable `viewer_id`.
+
+### H.8 Auto-Save Conflict Resolution (resolves H8)
+
+Use optimistic concurrency control with an `updated_at` timestamp:
+
+```typescript
+// PUT /api/deck/[deckId]/slide/[slideId]
+// Request includes the slide's last-known updated_at
+
+async function updateSlide(slideId: string, data: SlideUpdate, lastKnownUpdatedAt: string) {
+  const { data: result, error } = await supabase
+    .from('slides')
+    .update({ ...data, updated_at: new Date().toISOString() })
+    .eq('id', slideId)
+    .gte('updated_at', lastKnownUpdatedAt)  // Only update if not modified since
+    .select()
+    .single();
+
+  if (!result) {
+    // Conflict: slide was modified by another source (Coach Agent, another tab)
+    // Return 409 Conflict with the current server version
+    return { conflict: true, serverVersion: await fetchSlide(slideId) };
+  }
+
+  return { conflict: false, slide: result };
+}
+```
+
+The editor's Zustand store tracks `lastSavedAt` per slide. On conflict, the UI shows: "This slide was modified. [Keep yours] [Use newer version] [Merge]". For v1, simple "keep yours" / "use newer" is sufficient.
+
+Add `updated_at` column to slides table:
+
+```sql
+ALTER TABLE slides ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+```
+
+### M.2 DesignManifest — Use slideId Instead of slideIndex
+
+Replace all `slideIndex: number` references in `DesignManifest` and `DeckReview` with `slideId: string`:
+
+```typescript
+interface DesignManifest {
+  slides: Array<{
+    slideId: string;            // NOT slideIndex
+    layout: LayoutHint;
+    // ...
+  }>;
+}
+
+interface DeckReview {
+  overallScore: number;
+  passesQualityGate: boolean;
+  slideReviews: Array<{
+    slideId: string;            // NOT slideIndex
+    score: number;
+    issues: string[];
+    fixInstructions: string;
+  }>;
+}
+```
+
+### M.6 SlideTransition — Defer to v2
+
+Remove `transition` from the `Slide` interface for v1. The database column can be added now (nullable JSONB) but the editor should NOT render transition UI. Remove `SlideTransition` from the data model section. Keep the DB column for forward compatibility.
+
+### M.7 RLS Policies for New Tables
+
+All new tables must have RLS policies. Pattern:
+
+```sql
+-- deck_views: public insert (for anonymous view tracking), owner-only read
+ALTER TABLE deck_views ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can record a view"
+  ON deck_views FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Deck owner can read views"
+  ON deck_views FOR SELECT
+  USING (
+    deck_id IN (SELECT id FROM decks WHERE user_id = auth.uid())
+  );
+
+-- company_briefs: owner-only CRUD
+ALTER TABLE company_briefs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own briefs"
+  ON company_briefs FOR ALL
+  USING (user_id = auth.uid());
+
+-- deck_generations: owner-only CRUD
+ALTER TABLE deck_generations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users manage own generations"
+  ON deck_generations FOR ALL
+  USING (user_id = auth.uid());
+```
+
+### M.8 Image Upload for Slides
+
+For v1, users can add images to slides via:
+
+1. **URL paste:** Enter an image URL directly into the `mediaUrl` field
+2. **File upload:** Upload to Supabase Storage bucket `deck-assets/{deckId}/{assetId}.{ext}`
+3. **Stock photos:** NOT in v1 scope (would require Unsplash API integration)
+
+The `ImageWidget` shows a placeholder when `mediaUrl` is empty with an "Add Image" button that opens a dialog with URL input and file upload tabs.
+
+### L.1 Token Type Definitions
+
+```typescript
+type FontSizeToken = 'xs' | 'sm' | 'base' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
+type FontWeightToken = 'light' | 'regular' | 'medium' | 'semibold' | 'bold' | 'extrabold';
+type LineHeightToken = 'tight' | 'snug' | 'normal' | 'relaxed' | 'loose';
+type SpaceToken = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '8' | '10' | '12' | '16' | '20' | '24';
+type RadiusToken = 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+type ShadowToken = 'none' | 'sm' | 'md' | 'lg' | 'xl';
+```
+
+### L.2 Phase Parallelism Correction
+
+The Phase Summary should read:
+
+> "Phases 4-6 can run in parallel with each other (all depend on Phase 3). Phase 7 depends on Phase 1 and Phase 3. Phases 8-10 can run in parallel with each other (all depend on Phase 3)."
+
+### L.5 Keyboard Shortcut Conflicts
+
+- `/` key for insert panel: ONLY activates when no text input is focused. If inline editing or Coach chat input is focused, `/` types normally.
+- `Cmd+/`: Conflicts are acceptable — this is the standard "toggle panel" shortcut in VS Code and other tools. Browser extension conflicts are the user's responsibility.
+
+### L.7 Split Container Clarification
+
+`split` takes exactly 2 children. The `children` array must have length 2. `children[0]` is the left/top pane, `children[1]` is the right/bottom pane. The `direction` variant controls orientation.
+
+```typescript
+// Validation
+if (component.type === 'split' && component.children?.length !== 2) {
+  throw new Error('Split component must have exactly 2 children');
+}
+```
+
+### L.8 Deck Title Editing
+
+Add `updateDeckTitle` to the Zustand store:
+
+```typescript
+// In DeckEditorState
+updateDeckTitle: (title: string) => void;
+```
+
+The top bar renders the title as an editable text field (click to edit, blur to save). Changes auto-save via the same debounced PUT mechanism.
+
+---
+
+## Appendix D: Environment Variables
 
 No new environment variables required. All integrations use existing keys:
 - `ANTHROPIC_API_KEY` — Claude API for all agents
