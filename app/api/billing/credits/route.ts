@@ -10,6 +10,7 @@ import {
 import { getOrCreateSubscription, getOrCreateStripeCustomer } from '@/services/billingService';
 import { createPaymentCheckoutSession } from '@/services/stripeService';
 import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
+import { enforceBillingAntiAbuse } from '@/lib/billing/antiAbuse';
 import { CREDIT_PACKS_STATIC } from '@/config/billing';
 
 /**
@@ -62,6 +63,16 @@ export async function POST(request: NextRequest) {
         { error: 'packSlug is required' },
         { status: 400 },
       );
+    }
+
+    const antiAbuseResponse = await enforceBillingAntiAbuse({
+      request,
+      userId: user.id,
+      action: 'credits',
+      idempotencyScope: `pack:${packSlug}`,
+    });
+    if (antiAbuseResponse) {
+      return antiAbuseResponse;
     }
 
     const pack = await getCreditPackBySlug(admin, packSlug);

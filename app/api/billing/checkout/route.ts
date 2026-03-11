@@ -3,6 +3,7 @@ import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { startCheckout } from '@/services/billingService';
 import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
+import { enforceBillingAntiAbuse } from '@/lib/billing/antiAbuse';
 import { BILLING_PLANS, isValidPlanId } from '@/config/billing';
 import type { BillingInterval } from '@/types/billing';
 
@@ -42,6 +43,16 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid interval. Must be "month" or "year".' },
         { status: 400 },
       );
+    }
+
+    const antiAbuseResponse = await enforceBillingAntiAbuse({
+      request,
+      userId: user.id,
+      action: 'checkout',
+      idempotencyScope: `${planId}:${interval}`,
+    });
+    if (antiAbuseResponse) {
+      return antiAbuseResponse;
     }
 
     const plan = BILLING_PLANS[planId];
