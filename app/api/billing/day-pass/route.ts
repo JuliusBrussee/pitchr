@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getActiveDayPass, getOrCreateStripeCustomer } from '@/services/billingService';
 import { createPaymentCheckoutSession } from '@/services/stripeService';
 import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
+import { enforceBillingAntiAbuse } from '@/lib/billing/antiAbuse';
 import { BILLING_PLANS } from '@/config/billing';
 
 /**
@@ -16,6 +17,16 @@ export async function POST(request: NextRequest) {
   try {
     const { user } = await getAuthenticatedUser();
     const admin = createAdminClient();
+
+    const antiAbuseResponse = await enforceBillingAntiAbuse({
+      request,
+      userId: user.id,
+      action: 'day-pass',
+      idempotencyScope: 'day-pass',
+    });
+    if (antiAbuseResponse) {
+      return antiAbuseResponse;
+    }
 
     // Check if user already has an active day pass
     const existingPass = await getActiveDayPass(admin, user.id);
