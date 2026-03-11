@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { startPortalSession } from '@/services/billingService';
+import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
 
 /**
  * POST /api/billing/portal
@@ -10,13 +11,13 @@ import { startPortalSession } from '@/services/billingService';
 export async function POST(request: NextRequest) {
   try {
     const { user } = await getAuthenticatedUser();
-    const origin = request.headers.get('origin') ?? '';
+    const origin = request.headers.get('origin');
     const admin = createAdminClient();
 
     const result = await startPortalSession(
       admin,
       user.id,
-      `${origin}/settings`,
+      buildBillingRedirectUrl({ origin }, '/settings'),
     );
 
     return NextResponse.json(result);
