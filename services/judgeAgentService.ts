@@ -36,7 +36,7 @@ interface JudgeAgentFailureTelemetry {
   latencyMs: number;
   attemptCount: number;
   llmCallsUsed: number;
-  failedAttempts: Array<{ provider: 'openrouter' | 'anthropic'; message: string }>;
+  failedAttempts: Array<{ provider: string; message: string }>;
   promptClipStage: number;
   knowledgeIncluded: boolean;
   knowledgeDigestChars: number;

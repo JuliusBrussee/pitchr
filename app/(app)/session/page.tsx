@@ -82,7 +82,7 @@ function SessionPageContent() {
 
   useEffect(() => {
     const stored = localStorage.getItem('pitchr_session_mode');
-    if (stored === 'elevator' || stored === 'vc_pitch') {
+    if (stored === 'elevator' || stored === 'vc_pitch' || stored === 'hackathon' || stored === 'final_year') {
       setSelectedMode(stored);
       setSelectedDuration(PITCH_MODE_CONFIG[stored].defaultDurationSeconds);
     }

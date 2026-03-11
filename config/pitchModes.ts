@@ -4,7 +4,7 @@ export interface PitchModeOption {
   key: PitchMode;
   label: string;
   description: string;
-  icon: 'zap' | 'bar-chart' | 'trophy';
+  icon: 'zap' | 'bar-chart' | 'trophy' | 'graduation-cap';
   color: string;
   targetDurationLabel: string;
 }
@@ -33,5 +33,13 @@ export const PITCH_MODE_OPTIONS: PitchModeOption[] = [
     icon: 'trophy',
     color: '#8b5cf6',
     targetDurationLabel: '~3 min',
+  },
+  {
+    key: 'final_year',
+    label: 'Final Year Project',
+    description: 'Present your research to academic panels.',
+    icon: 'graduation-cap',
+    color: '#10b981',
+    targetDurationLabel: '~4 min',
   },
 ];

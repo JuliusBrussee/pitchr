@@ -95,6 +95,26 @@ Criteria: Penalize no theme alignment or unclear impact. Reward creative problem
 Description: Appropriate pace, low filler usage, energy, and time compliance (target 180s).
 Criteria: Use local metrics for pace/fillers/repetition/time-limit adherence.`;
 
+const FINAL_YEAR_RUBRIC_TEXT = `1. STRUCTURE (0-20)
+Description: Clear narrative arc from problem statement through methodology to results, with explicit contributions and limitations sections.
+Criteria: Introduction -> Problem & Context -> Approach -> Results -> Contributions (personal, delineated) -> Limitations (with implications) -> Impact/Next Steps. Penalize missing results section, absent limitations, or no explicit contributions delineation. Reward signposting, coherent flow, and a conclusion that does not end on future work alone.
+
+2. CLARITY & COMMUNICATION (0-20)
+Description: Accessible to both technical examiners and non-specialist evaluators; jargon explained or avoided; system explanation clear enough to withstand examiner questioning.
+Criteria: Reward plain-English explanations of technical decisions and design choices. Penalize unexplained acronyms, slides-only reading, or a system that cannot be understood without specialist background. Every key design decision should be explained, not just described.
+
+3. EVIDENCE & METHODOLOGY (0-20)
+Description: Research rigor, implementation depth, soundness of methodology, and quality of quantitative results presented against a baseline.
+Criteria: Reward concrete results with metric + baseline + interpretation (e.g., "X% vs. Y% baseline"). Reward explicit justification of methodology choices ("chose X instead of Y because Z"). Reward honest limitations discussion with analysis of implications — this is a positive signal, not a weakness. Penalize vague unmeasurable objectives, unsupported claims, results without baselines, or hand-waving over why something did not work.
+
+4. IMPACT & ORIGINALITY (0-20)
+Description: Novelty of approach vs. prior work, real-world applicability, and significance relative to existing literature; ambitious scope fully achieved.
+Criteria: Reward clear problem motivation tied to a genuine need, novel approach or insight relative to existing work, and discussion of broader implications or societal utility. Reward ambitious objectives fully achieved over modest objectives perfectly executed. Penalize trivial implementations with no differentiation from prior work. Do NOT penalize for absence of revenue model, TAM, commercial viability, or investor readiness.
+
+5. DELIVERY (0-20)
+Description: Appropriate academic pace, professional tone, confidence, time-limit compliance (target 240s), and ability to clearly explain the system.
+Criteria: Use local metrics for pace/fillers/repetition/time-limit adherence. Reward measured delivery, clear articulation, and explanation depth that would hold up under examiner questioning. Penalize rushed or inaudible sections, excessive filler, slides-only reading, significant overrun, or a presentation that does not demonstrate the system or its results.`;
+
 const PROFILES: Record<PitchMode, AnalysisPromptProfile> = {
   vc_pitch: {
     workflowMode: 'vc_pitch',
@@ -141,6 +161,54 @@ Do not apply investor/VC standards. Grade against hackathon winner quality.`,
       'Score the founder demo pitch content only; ignore judge commentary.',
       'Do not penalize informal or enthusiastic tone — hackathon energy is expected.',
       'Treat screen-sharing references and live demo narration as technical credibility signals.',
+    ],
+  },
+  final_year: {
+    workflowMode: 'final_year',
+    systemPrompt: `You are an academic project presentation evaluator assessing final year university students.
+
+Your job is to give structured, constructive feedback that helps students improve their research communication.
+Focus on methodology rigor, result quality, and academic communication — not commercial viability.
+
+Feedback quality rules:
+- Be specific and actionable.
+- Prefer short, plain language.
+- One clear action per fix.
+- Avoid generic advice (for example: "explain your methods better").
+- Tie each fix to a specific section (introduction, problem framing, methodology, results, impact discussion, delivery).
+- Prioritize by impact on examiner understanding and assessment score.
+- Do NOT evaluate revenue model, market size, investor readiness, or fundraising.
+
+Output rules:
+- Return valid JSON only.
+- Do not use markdown.
+- Do not include explanation text outside JSON.
+- Follow the requested schema exactly (field names and value types must match).`,
+    rubricText: FINAL_YEAR_RUBRIC_TEXT,
+    modeConfig: {
+      label: 'Final Year Project',
+      targetDurationSeconds: 240,
+      targetWpm: 130,
+      structureBeats: ['Introduction', 'Problem & Context', 'Approach', 'Results', 'Impact', 'Next Steps'],
+    },
+    scoringGuidance: [
+      'Grade against strong final-year student presentations, not investor or hackathon standards.',
+      '80+ requires: originality/independent contribution clearly demonstrated + critical self-evaluation of own work + quantitative results with baselines.',
+      '70–79: All criteria met, demanding objectives fully achieved, limitations critically discussed with implications.',
+      '60–69: Competent across all criteria, objectives substantially achieved, some critical depth lacking.',
+      'Below 60: Objectives not achieved, results absent or unsupported, no evaluation of own work.',
+      'Critical self-evaluation (limitations with implications analysis) is the most reliable first-class marker — its absence caps a score at ~65.',
+      'Limitations discussion with analysis of implications RAISES scores, not lowers — it is an explicit positive criterion above 60%.',
+      'Penalize vague unmeasurable objectives, results without baselines, and design decisions stated but not justified.',
+      'Do NOT penalize for absence of revenue model, TAM, commercial viability, or investor readiness.',
+      'Reward methodology justification ("chose X instead of Y because Z") — this separates 70% from 60%.',
+    ],
+    transcriptRules: [
+      'Score the student presentation content only; ignore examiner or supervisor questions and commentary.',
+      'Treat quantitative results with baselines, limitations with implications, and methodology justification as primary scoring signals.',
+      'Do not penalize academic or technical language when it is explained in context — penalize only unexplained jargon.',
+      'A presentation that cannot clearly explain the system it built should be penalised on Clarity even if delivery is fluent.',
+      'Treat explicit contributions delineation ("my contribution was X") as a strong positive signal under Structure.',
     ],
   },
   elevator: {

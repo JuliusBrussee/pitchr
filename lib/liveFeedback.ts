@@ -81,8 +81,31 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+const HACKATHON_BEAT_ORDER: ChecklistItemId[] = [
+  'intro_hook',
+  'problem_statement',
+  'solution_overview',
+  'market_opportunity',
+  'traction_metrics',
+  'ask',
+];
+
+const FINAL_YEAR_BEAT_ORDER: ChecklistItemId[] = [
+  'intro_hook',
+  'problem_statement',
+  'solution_overview',
+  'traction_metrics',
+  'market_opportunity',
+  'ask',
+];
+
 function getBeatOrder(mode: PitchMode): ChecklistItemId[] {
-  return mode === 'elevator' ? ELEVATOR_BEAT_ORDER : VC_BEAT_ORDER;
+  switch (mode) {
+    case 'elevator': return ELEVATOR_BEAT_ORDER;
+    case 'hackathon': return HACKATHON_BEAT_ORDER;
+    case 'final_year': return FINAL_YEAR_BEAT_ORDER;
+    default: return VC_BEAT_ORDER;
+  }
 }
 
 function statusScore(status: ChecklistStatus | undefined): number {

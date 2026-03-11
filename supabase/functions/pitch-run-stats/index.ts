@@ -31,7 +31,7 @@ Deno.serve(async (req: Request) => {
     const mode = url.searchParams.get('mode');
     const projectId = url.searchParams.get('projectId');
     const allProjects = url.searchParams.get('allProjects') === 'true';
-    const parsedMode = mode === 'elevator' || mode === 'vc_pitch' ? mode : undefined;
+    const parsedMode = mode === 'elevator' || mode === 'vc_pitch' || mode === 'hackathon' || mode === 'final_year' ? mode : undefined;
     if (projectId && !isUuid(projectId)) {
       return errorResponse('projectId query parameter must be a valid UUID.', 400);
     }

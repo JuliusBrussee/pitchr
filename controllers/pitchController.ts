@@ -14,7 +14,7 @@ import type { AnalysisOutputs, PitchStage, TranscriptSegment } from '@/types/ana
 export class PitchValidationError extends Error {}
 
 function isPitchMode(value: unknown): value is PitchMode {
-  return value === 'elevator' || value === 'vc_pitch' || value === 'hackathon';
+  return value === 'elevator' || value === 'vc_pitch' || value === 'hackathon' || value === 'final_year';
 }
 
 function isInputType(value: unknown): value is InputType {
@@ -115,7 +115,7 @@ function validateRequest(body: unknown): CreatePitchRunRequest & { mode: PitchMo
   const inputType = payload.inputType;
 
   if (!isPitchMode(mode)) {
-    throw new PitchValidationError('Invalid mode. Expected elevator, vc_pitch, or hackathon.');
+    throw new PitchValidationError('Invalid mode. Expected elevator, vc_pitch, hackathon, or final_year.');
   }
   if (!isInputType(inputType)) {
     throw new PitchValidationError('Invalid inputType. Expected audio or text.');

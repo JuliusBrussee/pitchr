@@ -171,7 +171,7 @@ function extractFeedback(rawRun: Record<string, unknown>): Record<string, unknow
 }
 
 function parseMode(value: unknown): PitchMode {
-  return value === 'elevator' || value === 'vc_pitch' ? value : 'vc_pitch';
+  return value === 'elevator' || value === 'vc_pitch' || value === 'hackathon' || value === 'final_year' ? value : 'vc_pitch';
 }
 
 function parseInputType(value: unknown): InputType {

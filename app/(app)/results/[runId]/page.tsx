@@ -8,7 +8,7 @@ import { useAchievements } from '@/hooks/useAchievements';
 import { AchievementToastContainer } from '@/views/components/achievements';
 import type { ProgressRunRecord } from '@/lib/progress';
 import type { FeedbackOutput, OneMinuteQAPack, RewriteDiff, RunEconomics } from '@/types/analysis-v2';
-import type { Run } from '@/types/pitch';
+import type { PitchMode, Run } from '@/types/pitch';
 import {
   InvestorDrill,
   ReasoningPanel,
@@ -54,17 +54,72 @@ function formatMinutes(value: number): string {
   return `${value.toFixed(1)} min`;
 }
 
-function synthesizeQaFromFeedback(feedback: FeedbackOutput): OneMinuteQAPack {
+function synthesizeQaFromFeedback(feedback: FeedbackOutput, mode?: PitchMode): OneMinuteQAPack {
   const weakest = [...feedback.rubric_breakdown]
     .sort((a, b) => a.score - b.score)
     .slice(0, 3)
     .map((item) => item.category);
+
+  let defaultQuestions: [string, string, string];
+  let defaultAnswers: [string, string, string];
+  let redFlags: string[];
+
+  if (mode === 'hackathon') {
+    defaultQuestions = [
+      'How does your technical implementation handle scale?',
+      'Can you walk us through the live demo?',
+      'How does your project align with the hackathon theme?',
+    ];
+    defaultAnswers = [
+      'Anchor claims with concrete architecture decisions.',
+      'Demonstrate the core flow end-to-end.',
+      'Tie every feature back to the theme requirements.',
+    ];
+    redFlags = [
+      'Do not skip the live demo.',
+      'Do not ignore the hackathon theme or judging criteria.',
+      'Do not hand-wave technical implementation details.',
+    ];
+  } else if (mode === 'final_year') {
+    defaultQuestions = [
+      'What methodology did you use and why?',
+      'What are your key results and how do you validate them?',
+      'What are the limitations of your work?',
+    ];
+    defaultAnswers = [
+      'Justify your methodology with literature support.',
+      'Present results with statistical or empirical backing.',
+      'Acknowledge limitations honestly and suggest future work.',
+    ];
+    redFlags = [
+      'Do not present results without explaining methodology.',
+      'Do not ignore limitations or threats to validity.',
+      'Do not make claims unsupported by your data.',
+    ];
+  } else {
+    defaultQuestions = [
+      'What is your strongest proof point right now?',
+      'Why does this market timing work now?',
+      'What milestones does this raise unlock?',
+    ];
+    defaultAnswers = [
+      'Anchor claims with evidence and milestone clarity.',
+      'Clarify differentiation and execution plan.',
+      'Close with a direct ask and use-of-funds milestones.',
+    ];
+    redFlags = [
+      'Do not answer with vague TAM statements.',
+      'Do not claim traction without concrete numbers.',
+      'Do not avoid direct raise and milestone details.',
+    ];
+  }
+
   const questions = weakest.map(
     (category) => `How are you de-risking your ${category.replace(/_/g, ' ')} concerns?`,
   );
-  const q1 = questions[0] ?? 'What is your strongest proof point right now?';
-  const q2 = questions[1] ?? 'Why does this market timing work now?';
-  const q3 = questions[2] ?? 'What milestones does this raise unlock?';
+  const q1 = questions[0] ?? defaultQuestions[0];
+  const q2 = questions[1] ?? defaultQuestions[1];
+  const q3 = questions[2] ?? defaultQuestions[2];
   return {
     total_target_seconds: 60,
     timing_plan_seconds: [20, 20, 20],
@@ -72,29 +127,22 @@ function synthesizeQaFromFeedback(feedback: FeedbackOutput): OneMinuteQAPack {
     suggested_answers: [
       {
         question: q1,
-        answer:
-          feedback.top_fixes[0]?.fix ?? 'Anchor claims with evidence and milestone clarity.',
+        answer: feedback.top_fixes[0]?.fix ?? defaultAnswers[0],
         target_seconds: 20,
       },
       {
         question: q2,
-        answer:
-          feedback.top_fixes[1]?.fix ?? 'Clarify differentiation and execution plan.',
+        answer: feedback.top_fixes[1]?.fix ?? defaultAnswers[1],
         target_seconds: 20,
       },
       {
         question: q3,
-        answer:
-          feedback.top_fixes[2]?.fix ?? 'Close with a direct ask and use-of-funds milestones.',
+        answer: feedback.top_fixes[2]?.fix ?? defaultAnswers[2],
         target_seconds: 20,
       },
     ],
     focus_tags: weakest,
-    red_flags_to_avoid: [
-      'Do not answer with vague TAM statements.',
-      'Do not claim traction without concrete numbers.',
-      'Do not avoid direct raise and milestone details.',
-    ],
+    red_flags_to_avoid: redFlags,
   };
 }
 
@@ -343,7 +391,7 @@ export default function ResultsPage() {
       run?.outputs?.qa_1min
         ? run.outputs.qa_1min
         : feedback
-          ? synthesizeQaFromFeedback(feedback)
+          ? synthesizeQaFromFeedback(feedback, run?.mode)
           : null,
     [feedback, run],
   );
@@ -567,7 +615,7 @@ export default function ResultsPage() {
             <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
               {formatDate(run.createdAt)}
               <span className="mx-1.5 opacity-40">&middot;</span>
-              {run.mode === 'elevator' ? 'Elevator' : 'VC Pitch'}
+              {{ elevator: 'Elevator', vc_pitch: 'VC Pitch', hackathon: 'Hackathon', final_year: 'Final Year' }[run.mode] ?? run.mode}
               <span className="mx-1.5 opacity-40">&middot;</span>
               {run.coverage ?? run.status}
             </p>
@@ -594,7 +642,7 @@ export default function ResultsPage() {
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
             <MessageCircleQuestion size={14} />
-            VC Q&amp;A
+            {{ hackathon: 'Judge', final_year: 'Panel' }[run.mode] ?? 'Investor'} Q&amp;A
           </Link>
         </div>
       </header>
@@ -732,7 +780,7 @@ export default function ResultsPage() {
       />
 
       {qaPack ? (
-        <Section title="1-Minute Investor Drill">
+        <Section title={`1-Minute ${{ hackathon: 'Judge', final_year: 'Panel' }[run.mode] ?? 'Investor'} Drill`}>
           <InvestorDrill
             qaPack={qaPack}
             runId={run.id}

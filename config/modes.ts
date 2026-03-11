@@ -69,6 +69,23 @@ export const PITCH_MODE_CONFIG: Record<PitchMode, PitchModeConfig> = {
       'Ask',
     ],
   },
+  final_year: {
+    id: 'final_year',
+    label: 'Final Year Project',
+    minDurationSeconds: 150,
+    maxDurationSeconds: 300,
+    targetDurationSeconds: 240,
+    defaultDurationSeconds: 240,
+    targetWpm: 130,
+    structureBeats: [
+      'Introduction',
+      'Problem & Context',
+      'Approach',
+      'Results',
+      'Impact',
+      'Next Steps',
+    ],
+  },
 };
 
 export const STAGE_LABELS: Record<PitchStage, string> = {
