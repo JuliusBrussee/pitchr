@@ -35,7 +35,7 @@ afterEach(() => {
 });
 
 describe('supabase middleware runtime env behavior', () => {
-  it('bypasses Supabase auth in Playwright mode', async () => {
+  it('bypasses Supabase auth lookups while preserving protected-route redirect behavior', async () => {
     process.env.PLAYWRIGHT_DISABLE_SUPABASE_AUTH = 'true';
     process.env.NEXT_PUBLIC_SUPABASE_URL = '';
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = '';
@@ -43,7 +43,8 @@ describe('supabase middleware runtime env behavior', () => {
     const { updateSession } = await import('@/lib/supabase/middleware');
     const response = await updateSession(new NextRequest('http://localhost/session'));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toContain('/login?redirectTo=%2Fsession');
     expect(createServerClientMock).not.toHaveBeenCalled();
   });
 
@@ -60,4 +61,3 @@ describe('supabase middleware runtime env behavior', () => {
     expect(createServerClientMock).not.toHaveBeenCalled();
   });
 });
-
