@@ -22,6 +22,12 @@ export default defineConfig({
     url: "http://localhost:3000",
     reuseExistingServer: false,
     timeout: 180_000,
+    env: {
+      NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "playwright-anon-key",
+      SUPABASE_SERVICE_ROLE_KEY: "playwright-service-role-key",
+      PLAYWRIGHT_DISABLE_SUPABASE_AUTH: "true",
+    },
   },
   projects: [
     {
