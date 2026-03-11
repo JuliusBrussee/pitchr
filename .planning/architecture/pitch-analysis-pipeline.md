@@ -1,5 +1,61 @@
 # Pitch Analysis Pipeline (Anthropic First)
 
+## Pipeline Diagram
+
+```mermaid
+flowchart TD
+    A([User submits pitch\nmode: elevator | vc_pitch | hackathon | final_year]) --> B
+
+    subgraph API["POST /api/pitch/run"]
+        B[pitchController.ts\nisPitchMode validates all 4 modes] --> C[Insert run row\nstatus: queued]
+        C --> D[enqueuePitchRun]
+    end
+
+    subgraph Queue["pitchRunQueueService.ts"]
+        D --> E[processRun\nstatus → running]
+        E --> F[analyzePitch]
+    end
+
+    subgraph Analysis["analysisService.ts — analyzePitch"]
+        F --> G[buildScoringContext\nprepAgentService.ts]
+        G --> H[runJudgeAgent\njudgeAgentService.ts]
+        H --> I[calculateCompositeScore\nscoringService.ts]
+        I --> J[runSectionAgent\nsectionAgentService.ts]
+        J --> K[buildHistoricalLinks\nrunComparisonService.ts]
+    end
+
+    subgraph ModeConfig["config/modes.ts — PITCH_MODE_CONFIG"]
+        G --> M1{mode?}
+        M1 -->|elevator| M2[targetWpm: 165\nbeats: One-liner → Ask\nduration: 30s]
+        M1 -->|vc_pitch| M3[targetWpm: 140\nbeats: Problem → Ask\nduration: 120s]
+        M1 -->|hackathon| M4[targetWpm: 150\nbeats: Hook → Ask\nduration: 180s]
+        M1 -->|final_year| M5[targetWpm: 130\nbeats: Introduction → Next Steps\nduration: 240s]
+        M2 & M3 & M4 & M5 --> H
+    end
+
+    subgraph Profiles["analysis-profiles.ts — getAnalysisPromptProfile"]
+        H --> PR1{mode?}
+        PR1 -->|elevator| PR2[ELEVATOR_RUBRIC_TEXT\nScoring: investor harshness]
+        PR1 -->|vc_pitch| PR3[VC_RUBRIC_TEXT\nScoring: YC top-decile]
+        PR1 -->|hackathon| PR4[HACKATHON_RUBRIC_TEXT\nScoring: demo + innovation]
+        PR1 -->|final_year| PR5[FINAL_YEAR_RUBRIC_TEXT\nScoring: methodology + results\nno revenue/TAM penalty]
+        PR2 & PR3 & PR4 & PR5 --> LLM
+    end
+
+    subgraph JudgePrompts["lib/prompts/judge.ts — getJudgeSystemPrompt + buildPrompt"]
+        H --> P1{mode?}
+        P1 -->|elevator\nvc_pitch| P2[JUDGE_SYSTEM_PROMPT\nYC top-decile lens\nBenchmark: 80+ needs proof+ask]
+        P1 -->|hackathon| P3[HACKATHON_JUDGE_SYSTEM_PROMPT\nDemo quality lens\nBenchmark: 80+ needs demo+innovation]
+        P1 -->|final_year| P4[FINAL_YEAR_JUDGE_SYSTEM_PROMPT\nAcademic panel lens\nBenchmark: 80+ needs results+methodology\nNO revenue/TAM/fundraising questions]
+        P2 & P3 & P4 --> LLM
+    end
+
+    LLM([claude-sonnet-4-6\nGemini fallback → cached sample]) --> R[Parse + validate JSON\nrepair call if invalid]
+    R --> S[Inject deterministic\ndelivery metrics]
+    S --> T[Update run row\nstatus: complete]
+    T --> U([/results/runId])
+```
+
 ## Overview
 Pitch analysis now runs through a server-side model pipeline and stores completed runs client-side in `localStorage`.
 

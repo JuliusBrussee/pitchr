@@ -6,7 +6,7 @@ const STORAGE_KEY = 'pitchr_settings';
 
 export interface PitchrSettings {
   timerDuration: number;       // seconds (default 300 = 5 min)
-  defaultMode: 'elevator' | 'vc_pitch' | 'hackathon';
+  defaultMode: 'elevator' | 'vc_pitch' | 'hackathon' | 'final_year';
 }
 
 const DEFAULTS: PitchrSettings = {

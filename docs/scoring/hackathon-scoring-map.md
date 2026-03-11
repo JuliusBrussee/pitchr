@@ -8,33 +8,41 @@ flowchart LR
         VC_RAW["VC transcript corpus<br/>pitch backend/*.txt<br/>25 transcripts / 45,389 words"]
         EL_RAW["Elevator transcript corpus<br/>curated JSON dataset<br/>30 transcripts / 5,430 words"]
         HK_RAW["Hackathon corpus<br/>curated JSON dataset<br/>10 winner entries / 0 words<br/>+ 40 judging criteria docs<br/>+ 10 winner pattern analyses"]
+        FY_RAW["Final Year corpus<br/>University FYP rubrics<br/>Academic presentation criteria<br/>+ IEEE/showcase judging docs<br/>+ oral defense feedback patterns"]
 
         VC_SEEDS["VC dimension seeds<br/>- narrative_flow<br/>- clarity_of_story<br/>- proof_of_demand<br/>- market_case<br/>- fundraise_readiness<br/>- delivery_control"]
         EL_SEEDS["Elevator dimension seeds<br/>- instant_clarity<br/>- problem_solution_fit<br/>- credibility_signals<br/>- ask_precision<br/>- memorability<br/>- delivery_control"]
         HK_SEEDS["Hackathon dimension seeds<br/>- demo_quality<br/>- technical_credibility<br/>- theme_alignment<br/>- wow_factor<br/>- impact_clarity<br/>- delivery_energy"]
+        FY_SEEDS["Final Year dimension seeds<br/>- research_structure<br/>- methodology_rigor<br/>- results_quality<br/>- academic_communication<br/>- real_world_impact<br/>- delivery_professionalism"]
 
         BUILDER["build-knowledge-pack.ts<br/>Applies regex patterns per seeded dimension<br/>Scans transcript sentences for matches"]
         HK_BUILDER["build-knowledge-pack.ts hackathon section<br/>HACKATHON_BEAT_PATTERNS: demo, innovation,<br/>impact, theme_alignment, technical_stack<br/>Anti-patterns: no_demo, slides_only,<br/>no_theme_alignment, too_many_features, no_cta"]
+        FY_BUILDER["build-knowledge-pack.ts final_year section<br/>FY_BEAT_PATTERNS: methodology, results,<br/>evaluation, limitations, future_work<br/>Anti-patterns: no_results, no_evaluation,<br/>unsupported_claims, missing_methodology"]
 
         SIGNALS["Corpus-derived signals written to artifact<br/>- support_count<br/>- support_ratio<br/>- representative_quotes<br/>- top_terms"]
         HK_SIGNALS["Hackathon signals written to artifact<br/>- beat_patterns list<br/>- anti_patterns list<br/>- category_guidance per rubric dim<br/>- benchmark_profiles:<br/>  hackathon_winner + common_failures"]
+        FY_SIGNALS["Final Year signals written to artifact<br/>- beat_patterns list<br/>- anti_patterns list<br/>- category_guidance per rubric dim<br/>- benchmark_profiles:<br/>  strong_fyp_student + common_failures"]
 
-        MODE_ARTIFACT["knowledge/patterns.v1.json<br/>Published mode base schemas<br/>Now includes hackathon section"]
+        MODE_ARTIFACT["knowledge/patterns.v1.json<br/>Published mode base schemas<br/>Now includes hackathon + final_year sections"]
 
         VC_RAW --> BUILDER
         EL_RAW --> BUILDER
         HK_RAW --> HK_BUILDER
+        FY_RAW --> FY_BUILDER
         VC_SEEDS --> BUILDER
         EL_SEEDS --> BUILDER
         HK_SEEDS --> HK_BUILDER
+        FY_SEEDS --> FY_BUILDER
         BUILDER --> SIGNALS
         HK_BUILDER --> HK_SIGNALS
+        FY_BUILDER --> FY_SIGNALS
         SIGNALS --> MODE_ARTIFACT
         HK_SIGNALS --> MODE_ARTIFACT
+        FY_SIGNALS --> MODE_ARTIFACT
     end
 
     subgraph RUNTIME["Runtime evaluation path"]
-        MODE_SELECT["User selects mode<br/>vc_pitch, elevator, or hackathon"]
+        MODE_SELECT["User selects mode<br/>vc_pitch, elevator, hackathon, or final_year"]
         RUBRIC["Optional uploaded rubric text"]
         PROJECT_CTX["Project context<br/>- description<br/>- target market<br/>- metrics<br/>- notes"]
 
@@ -53,17 +61,17 @@ flowchart LR
 
     subgraph PREP["Prep Agent — buildScoringContext()"]
         NORMALIZE_TX["normalizeText(transcript)<br/>dropInterviewerHeavySegments()"]
-        STAGE_SELECT["defaultStageForMode(mode)<br/>hackathon → university_hack<br/>vc_pitch/elevator → seed<br/>User can override to:<br/>university_hack | corporate_hack<br/>web3_hack | science_hack"]
+        STAGE_SELECT["defaultStageForMode(mode)<br/>hackathon → university_hack<br/>vc_pitch/elevator → seed<br/>final_year → seed (no commercial stage)<br/>User can override to:<br/>university_hack | corporate_hack<br/>web3_hack | science_hack"]
 
-        DELIVERY_CALC["calculateDeliveryMetrics()<br/>Mode-aware from PITCH_MODE_CONFIG:<br/>─────────────────────────<br/>       elev  |  vc   | hack<br/>target: 30s  | 120s  | 180s<br/>WPM:   165   | 140   | 150<br/>min:    25s  | 110s  | 150s<br/>max:    35s  | 130s  | 210s<br/>─────────────────────────<br/>Formula: delivery20 =<br/>20 × (0.28×pace + 0.30×filler<br/>+ 0.18×stutter + 0.14×repeat<br/>+ 0.10×time)"]
+        DELIVERY_CALC["calculateDeliveryMetrics()<br/>Mode-aware from PITCH_MODE_CONFIG:<br/>─────────────────────────────────<br/>       elev  |  vc   | hack  |  fy<br/>target: 30s  | 120s  | 180s  | 240s<br/>WPM:   165   | 140   | 150   | 130<br/>min:    25s  | 110s  | 150s  | 150s<br/>max:    35s  | 130s  | 210s  | 300s<br/>─────────────────────────────────<br/>Formula: delivery20 =<br/>20 × (0.28×pace + 0.30×filler<br/>+ 0.18×stutter + 0.14×repeat<br/>+ 0.10×time)"]
 
-        BEAT_DETECT["extractBeatEvidence()<br/>VC/Elev beats: one_liner, problem,<br/>mechanism, proof, differentiation,<br/>wedge, ask<br/>Hackathon adds detection for:<br/>demo, innovation, impact patterns"]
+        BEAT_DETECT["extractBeatEvidence()<br/>VC/Elev beats: one_liner, problem,<br/>mechanism, proof, differentiation,<br/>wedge, ask<br/>Hackathon adds: demo, innovation, impact<br/>Final Year adds: methodology, results,<br/>evaluation, limitations, future_work"]
 
-        ANTI_DETECT["detectAntiPatterns()<br/>Shared: jargon_overload, no_ask,<br/>no_proof, tam_only, slide_overload<br/>Hackathon-specific:<br/>• no_demo — no demo/prototype/live language<br/>• no_theme_alignment — no theme/challenge ref<br/>• slides_only — slides without demo<br/>• too_many_features — ≥4 feature markers<br/>• no_cta — no try/vote/star/github language"]
+        ANTI_DETECT["detectAntiPatterns()<br/>Shared: jargon_overload, no_ask,<br/>no_proof, tam_only, slide_overload<br/>Hackathon-specific:<br/>• no_demo — no demo/prototype/live language<br/>• no_theme_alignment — no theme/challenge ref<br/>• slides_only — slides without demo<br/>• too_many_features — ≥4 feature markers<br/>• no_cta — no try/vote/star/github language<br/>Final Year-specific:<br/>• no_results — no results/findings language<br/>• no_evaluation — no eval/test/metric language<br/>• unsupported_claims — claims without evidence<br/>• missing_methodology — no approach/method ref"]
 
-        STAGE_EXPECT["getStageExpectations()<br/>Hackathon stages:<br/>• university_hack: creativity, learning, collab<br/>• corporate_hack: sponsor align, feasibility<br/>• web3_hack: on-chain demo, protocol UX<br/>• science_hack: rigor, impact measurement"]
+        STAGE_EXPECT["getStageExpectations()<br/>Hackathon stages:<br/>• university_hack: creativity, learning, collab<br/>• corporate_hack: sponsor align, feasibility<br/>• web3_hack: on-chain demo, protocol UX<br/>• science_hack: rigor, impact measurement<br/>Final Year (seed stage):<br/>• research quality, methodology soundness<br/>• communication of results and impact"]
 
-        KNOWLEDGE["buildKnowledgeDigest()<br/>Mode-conditional content:<br/>─────────────────────────<br/>VC/Elev do_rules:<br/>  Cover problem, mechanism, proof...<br/>Hackathon do_rules:<br/>  Show working demo within 45s<br/>  Focus on one core innovation<br/>  End with specific ask: try/vote/partner<br/>─────────────────────────<br/>Category guidance from:<br/>  vc/elev → DEFAULT_CATEGORY_GUIDANCE<br/>  hackathon → HACKATHON_CATEGORY_GUIDANCE<br/>─────────────────────────<br/>Anti-pattern playbook from:<br/>  vc/elev → DEFAULT_ANTI_PATTERN_PLAYBOOK<br/>  hackathon → HACKATHON_ANTI_PATTERN_PLAYBOOK"]
+        KNOWLEDGE["buildKnowledgeDigest()<br/>Mode-conditional content:<br/>─────────────────────────<br/>VC/Elev do_rules:<br/>  Cover problem, mechanism, proof...<br/>Hackathon do_rules:<br/>  Show working demo within 45s<br/>  Focus on one core innovation<br/>  End with specific ask: try/vote/partner<br/>Final Year do_rules:<br/>  State research problem clearly<br/>  Present methodology before results<br/>  Quantify outcomes with metrics<br/>  Discuss limitations honestly<br/>  End with future work and implications<br/>─────────────────────────<br/>Category guidance from:<br/>  vc/elev → DEFAULT_CATEGORY_GUIDANCE<br/>  hackathon → HACKATHON_CATEGORY_GUIDANCE<br/>  final_year → FINAL_YEAR_CATEGORY_GUIDANCE<br/>─────────────────────────<br/>Anti-pattern playbook from:<br/>  vc/elev → DEFAULT_ANTI_PATTERN_PLAYBOOK<br/>  hackathon → HACKATHON_ANTI_PATTERN_PLAYBOOK<br/>  final_year → FINAL_YEAR_ANTI_PATTERN_PLAYBOOK"]
 
         SCORING_CTX["ScoringContext object<br/>mode + stage + coverage<br/>+ beats + anti_patterns<br/>+ delivery_metrics<br/>+ knowledge_digest<br/>+ stage_expectations<br/>+ benchmark_profiles<br/>+ retrieved_patterns"]
 
@@ -86,9 +94,11 @@ flowchart LR
         SYS_SELECT{"Mode check"}
         SYS_VC["JUDGE_SYSTEM_PROMPT<br/>You are Pitchr Judge Agent<br/>Evaluate against YC top-decile<br/>fundraising standards<br/>80+ rare: clear proof + ask + diff"]
         SYS_HK["HACKATHON_JUDGE_SYSTEM_PROMPT<br/>Evaluate hackathon demo pitches<br/>against hackathon winner quality<br/>80+ requires working demo +<br/>clear innovation + theme alignment<br/>Missing demo is single most damaging flaw<br/>Do not apply investor/VC standards<br/>Do not ask about revenue, TAM, fundraising"]
+        SYS_FY["FINAL_YEAR_JUDGE_SYSTEM_PROMPT<br/>Evaluate final year university project<br/>presentations against strong academic<br/>student presentation standards<br/>80+ requires clear results +<br/>sound methodology + confident delivery<br/>Missing results section is most damaging flaw<br/>Do NOT apply investor/VC standards<br/>Do NOT ask about revenue, TAM, fundraising"]
 
         BENCHMARK_VC["Benchmark policy in user prompt:<br/>Grade against YC top-decile quality<br/>80+ requires strong proof +<br/>clear differentiation + explicit ask"]
         BENCHMARK_HK["Benchmark policy in user prompt:<br/>Grade against hackathon winner quality<br/>80+ requires working demo +<br/>clear innovation + theme alignment<br/>Penalize slides-only presentations<br/>investor_questions should contain<br/>hackathon judge questions about<br/>technical implementation, feasibility,<br/>and theme alignment.<br/>Do NOT ask about revenue or TAM"]
+        BENCHMARK_FY["Benchmark policy in user prompt:<br/>Grade against strong FYP student quality<br/>80+ requires clear results +<br/>sound methodology + confident delivery<br/>Penalize missing evaluation or absent results<br/>Do NOT penalize for lack of revenue model,<br/>TAM, or commercial viability<br/>investor_questions replaced with academic<br/>panel questions: methodology choices,<br/>limitations, future work.<br/>Do NOT ask about fundraising"]
 
         CTX_RULES["Project context appended<br/>as auxiliary context"]
         USER_PROMPT["User prompt includes:<br/>- mode + coverage + stage<br/>- rubricText 5 spoken categories<br/>- compact scoring context JSON<br/>- knowledge_digest<br/>- benchmark_profiles<br/>- retrieved_patterns<br/>- original transcript<br/>- deck text<br/>- response schema"]
@@ -96,12 +106,16 @@ flowchart LR
         MODE_SELECT --> SYS_SELECT
         SYS_SELECT -->|"vc_pitch or elevator"| SYS_VC
         SYS_SELECT -->|"hackathon"| SYS_HK
+        SYS_SELECT -->|"final_year"| SYS_FY
         SYS_SELECT -->|"vc_pitch or elevator"| BENCHMARK_VC
         SYS_SELECT -->|"hackathon"| BENCHMARK_HK
+        SYS_SELECT -->|"final_year"| BENCHMARK_FY
         SYS_VC --> USER_PROMPT
         SYS_HK --> USER_PROMPT
+        SYS_FY --> USER_PROMPT
         BENCHMARK_VC --> USER_PROMPT
         BENCHMARK_HK --> USER_PROMPT
+        BENCHMARK_FY --> USER_PROMPT
         PROJECT_CTX --> CTX_RULES
         CTX_RULES --> USER_PROMPT
         RUNTIME_SCHEMA --> USER_PROMPT
@@ -118,6 +132,7 @@ flowchart LR
         HARD_GATES{"Hard gate caps applied<br/>based on mode"}
         VC_GATES["VC/Elevator HARD_GATE_CAPS:<br/>• no_proof → evidence ≤ 8<br/>• no_ask → structure ≤ 12<br/>• no_ask → deck_ask ≤ 8<br/>• tam_only → market ≤ 10"]
         HK_GATES["Hackathon HACKATHON_HARD_GATE_CAPS:<br/>• no_demo → evidence ≤ 6<br/>• no_demo → structure ≤ 10<br/>• no_theme_alignment → market ≤ 10<br/>• no_cta → structure ≤ 12"]
+        FY_GATES["Final Year FINAL_YEAR_HARD_GATE_CAPS:<br/>• no_results → evidence ≤ 6<br/>• no_results → structure ≤ 10<br/>• no_evaluation → evidence ≤ 8<br/>• missing_methodology → structure ≤ 12"]
 
         COMPOSITE["calculateCompositeScore()<br/>spoken100 = structure + clarity +<br/>evidence + market + delivery20<br/>each 0-20, sum 0-100<br/><br/>deck100 = deck rubric sum if deck<br/><br/>overall_before_penalty =<br/>  spoken only: spoken100<br/>  with deck: 0.65×spoken + 0.35×deck<br/><br/>penalty = Σ hit.weight × hit.penalty<br/>capped at 12<br/><br/>finalScore = overall - penalty<br/>clamped 0-100"]
 
@@ -131,8 +146,10 @@ flowchart LR
         DELIVERY_OVERRIDE --> HARD_GATES
         HARD_GATES -->|"vc_pitch or elevator"| VC_GATES
         HARD_GATES -->|"hackathon"| HK_GATES
+        HARD_GATES -->|"final_year"| FY_GATES
         VC_GATES --> COMPOSITE
         HK_GATES --> COMPOSITE
+        FY_GATES --> COMPOSITE
         COMPOSITE --> CALIBRATE
         CALIBRATE --> RUBRIC_POLICY
     end
@@ -140,7 +157,7 @@ flowchart LR
     subgraph QA["Q&A Generation"]
         QA_FROM_LLM["qa_1min from judge LLM<br/>3 questions + 3 timed answers<br/>+ focus_tags + red_flags"]
         QA_FALLBACK["ensureQaPack() fallback<br/>Generates from weakest<br/>rubric categories"]
-        QA_AGENT["buildQaAgentSystemPrompt()<br/>Mode-conditional persona:<br/>─────────────────────────<br/>VC/Elev: You are a venture<br/>investor running rapid-fire<br/>follow-up. Ask for metric,<br/>timeframe, denominator.<br/>─────────────────────────<br/>Hackathon: You are a hackathon<br/>judge. Ask about technical<br/>implementation, feasibility,<br/>team dynamics."]
+        QA_AGENT["buildQaAgentSystemPrompt()<br/>Mode-conditional persona:<br/>─────────────────────────<br/>VC/Elev: You are a venture<br/>investor running rapid-fire<br/>follow-up. Ask for metric,<br/>timeframe, denominator.<br/>─────────────────────────<br/>Hackathon: You are a hackathon<br/>judge. Ask about technical<br/>implementation, feasibility,<br/>team dynamics.<br/>─────────────────────────<br/>Final Year: You are an academic<br/>examiner. Ask about methodology<br/>choices, evaluation rigour,<br/>limitations, and future work.<br/>Never ask about revenue or TAM."]
 
         LLM --> QA_FROM_LLM
         QA_FROM_LLM --> QA_FALLBACK
@@ -152,21 +169,24 @@ flowchart LR
         SEC_VC["VC beats:<br/>intro, problem, solution,<br/>market, model, traction,<br/>team, ask"]
         SEC_EL["Elevator beats:<br/>intro, problem,<br/>solution, ask"]
         SEC_HK["Hackathon beats:<br/>intro, problem,<br/>demo, innovation,<br/>impact, ask"]
+        SEC_FY["Final Year beats:<br/>intro, problem,<br/>solution (approach),<br/>traction (results),<br/>impact, ask (next steps)"]
 
-        SECTION_PATTERNS["Beat detection patterns<br/>sectioningService.ts<br/>demo: /demo|prototype|live|screen-share/<br/>innovation: /novel|innovative|creative|unique/<br/>impact: /impact|benefit|help|solve|improve/"]
+        SECTION_PATTERNS["Beat detection patterns<br/>sectioningService.ts<br/>demo: /demo|prototype|live|screen-share/<br/>innovation: /novel|innovative|creative|unique/<br/>impact: /impact|benefit|help|solve|improve/<br/>results: /results|findings|measured|achieved/<br/>methodology: /approach|method|algorithm|model/"]
 
-        SECTION_SCORING["Per-section scoring<br/>BEAT_CATEGORY_PRIORITY:<br/>demo → evidence, clarity<br/>innovation → evidence, market<br/>impact → market, clarity"]
+        SECTION_SCORING["Per-section scoring<br/>BEAT_CATEGORY_PRIORITY:<br/>demo → evidence, clarity<br/>innovation → evidence, market<br/>impact → market, clarity<br/>results (traction) → evidence, structure<br/>approach (solution) → evidence, clarity"]
 
         SECTION_BEATS -->|"vc_pitch"| SEC_VC
         SECTION_BEATS -->|"elevator"| SEC_EL
         SECTION_BEATS -->|"hackathon"| SEC_HK
+        SECTION_BEATS -->|"final_year"| SEC_FY
         SEC_HK --> SECTION_PATTERNS
+        SEC_FY --> SECTION_PATTERNS
         SECTION_PATTERNS --> SECTION_SCORING
         MODE_SELECT --> SECTION_BEATS
     end
 
     subgraph UI["Adaptive presentation"]
-        UI_SCHEMA["Results page rendering<br/>SectionAccordion labels:<br/>demo → Demo<br/>innovation → Innovation<br/>impact → Impact<br/>SegmentedControl: 3 modes<br/>UseCaseStep: Trophy icon, 3 min"]
+        UI_SCHEMA["Results page rendering<br/>SectionAccordion labels:<br/>demo → Demo<br/>innovation → Innovation<br/>impact → Impact<br/>traction (fy) → Results<br/>solution (fy) → Approach<br/>ask (fy) → Next Steps<br/>SegmentedControl: 4 modes<br/>UseCaseStep: GraduationCap icon, 4 min<br/>getModeColor: final_year → #10b981<br/>getModeLabel: final_year → Final Year"]
         RESULTS["Final output:<br/>- overall_score 0-100<br/>- rubric_breakdown 5 categories<br/>- section_feedback per beat<br/>- top_fixes ranked<br/>- rewrite_script<br/>- delivery_metrics<br/>- qa_1min pack<br/>- anti_pattern_hits<br/>- stage_expectations<br/>- historical_links"]
 
         RUBRIC_POLICY --> UI_SCHEMA
@@ -202,37 +222,50 @@ flowchart LR
         HK6["delivery_energy support 0<br/>Deterministic, not corpus-mined<br/>targetWpm: 150, informal OK"]
     end
 
+    subgraph FY_FINDINGS["What the final_year corpus found"]
+        FY1["research_structure support N/A<br/>Derived from university FYP rubrics<br/>Problem → Approach → Results arc"]
+        FY2["methodology_rigor support N/A<br/>Pattern weight 1.2<br/>Evaluation presence critical for pass"]
+        FY3["results_quality support N/A<br/>Pattern weight 1.1<br/>Quantified outcomes expected by examiners"]
+        FY4["academic_communication support N/A<br/>Both technical + non-specialist clarity<br/>Jargon explanation expected"]
+        FY5["real_world_impact support N/A<br/>Pattern weight 1.0<br/>Application + originality discussion"]
+        FY6["delivery_professionalism support 0<br/>Deterministic, not corpus-mined<br/>targetWpm: 130, deliberate pace"]
+    end
+
     subgraph RUBRIC_COMPARE["Rubric category comparison across modes"]
         RC_HEAD["Same 5 categories, different criteria"]
-        RC_STRUCT["STRUCTURE 0-20<br/>─────────────────────────<br/>VC: Problem→Solution→Why Now→<br/>Traction→Market→Ask<br/>Penalize missing beats<br/>─────────────────────────<br/>Elevator: One-liner→Problem→<br/>Solution→Proof→Ask in 30s<br/>Penalize missing ask or proof<br/>─────────────────────────<br/>Hackathon: Hook→Problem→Demo→<br/>Innovation→Impact→Ask<br/>Penalize missing demo or no CTA"]
+        RC_STRUCT["STRUCTURE 0-20<br/>─────────────────────────<br/>VC: Problem→Solution→Why Now→<br/>Traction→Market→Ask<br/>Penalize missing beats<br/>─────────────────────────<br/>Elevator: One-liner→Problem→<br/>Solution→Proof→Ask in 30s<br/>Penalize missing ask or proof<br/>─────────────────────────<br/>Hackathon: Hook→Problem→Demo→<br/>Innovation→Impact→Ask<br/>Penalize missing demo or no CTA<br/>─────────────────────────<br/>Final Year: Introduction→Problem<br/>→Approach→Results→Impact→Next Steps<br/>Penalize missing results or absent<br/>problem framing"]
 
-        RC_CLARITY["CLARITY 0-20<br/>─────────────────────────<br/>VC: Direct language, minimal jargon<br/>Every sentence earns its place<br/>─────────────────────────<br/>Elevator: Instantly understandable<br/>Investor gets it in 8 seconds<br/>─────────────────────────<br/>Hackathon: Judge understands what<br/>you built in one sentence<br/>Penalize jargon, unclear product"]
+        RC_CLARITY["CLARITY 0-20<br/>─────────────────────────<br/>VC: Direct language, minimal jargon<br/>Every sentence earns its place<br/>─────────────────────────<br/>Elevator: Instantly understandable<br/>Investor gets it in 8 seconds<br/>─────────────────────────<br/>Hackathon: Judge understands what<br/>you built in one sentence<br/>Penalize jargon, unclear product<br/>─────────────────────────<br/>Final Year: Accessible to both<br/>technical examiners and industry<br/>mentors; jargon explained or avoided<br/>Plain-English technical decisions"]
 
-        RC_EVIDENCE["EVIDENCE 0-20<br/>─────────────────────────<br/>VC: Concrete metrics, milestones<br/>Reward users/revenue/growth<br/>─────────────────────────<br/>Elevator: One proof signal that<br/>survives investor scrutiny<br/>metric + timeframe + denominator<br/>─────────────────────────<br/>Hackathon: Working demo shown<br/>Technical credibility<br/>Penalize slides-only presentations"]
+        RC_EVIDENCE["EVIDENCE 0-20<br/>─────────────────────────<br/>VC: Concrete metrics, milestones<br/>Reward users/revenue/growth<br/>─────────────────────────<br/>Elevator: One proof signal that<br/>survives investor scrutiny<br/>metric + timeframe + denominator<br/>─────────────────────────<br/>Hackathon: Working demo shown<br/>Technical credibility<br/>Penalize slides-only presentations<br/>─────────────────────────<br/>Final Year: Research rigor,<br/>implementation depth, results quality<br/>Reward concrete metrics, benchmarks,<br/>test outcomes, user study data<br/>Credit honest limitations discussion"]
 
-        RC_MARKET["MARKET 0-20<br/>─────────────────────────<br/>VC: TAM/SAM framing, competitors<br/>Clear moat or positioning edge<br/>─────────────────────────<br/>Elevator: Clear buyer, clear<br/>alternative, clear reason to win<br/>─────────────────────────<br/>Hackathon: Theme alignment<br/>Real-world impact, scalability<br/>Differentiation from other hacks"]
+        RC_MARKET["MARKET 0-20<br/>─────────────────────────<br/>VC: TAM/SAM framing, competitors<br/>Clear moat or positioning edge<br/>─────────────────────────<br/>Elevator: Clear buyer, clear<br/>alternative, clear reason to win<br/>─────────────────────────<br/>Hackathon: Theme alignment<br/>Real-world impact, scalability<br/>Differentiation from other hacks<br/>─────────────────────────<br/>Final Year: IMPACT & RELEVANCE<br/>Real-world applicability, originality<br/>Significance of contribution<br/>Do NOT penalize for no revenue model<br/>or TAM — not applicable to academic work"]
 
-        RC_DELIVERY["DELIVERY 0-20<br/>─────────────────────────<br/>All modes: Deterministic formula<br/>delivery20 = 20 × weighted sum<br/>Same formula, different targets:<br/>  VC: 140 WPM, 110-130s window<br/>  Elev: 165 WPM, 25-35s window<br/>  Hack: 150 WPM, 150-210s window"]
+        RC_DELIVERY["DELIVERY 0-20<br/>─────────────────────────<br/>All modes: Deterministic formula<br/>delivery20 = 20 × weighted sum<br/>Same formula, different targets:<br/>  VC:   140 WPM, 110-130s window<br/>  Elev: 165 WPM,  25-35s window<br/>  Hack: 150 WPM, 150-210s window<br/>  FY:   130 WPM, 150-300s window"]
     end
 
     subgraph SYSTEM_COMPARE["System prompt comparison"]
         SP_VC["VC system prompt:<br/>Startup pitch coach and<br/>investor evaluator<br/>Prioritize by impact on<br/>investor decision-making<br/>Grade against YC top-decile"]
         SP_EL["Elevator system prompt:<br/>Base + Judging 30-second<br/>elevator pitch where investors<br/>expect immediate clarity<br/>Skeptical investor lens:<br/>unclear business, vague traction,<br/>weak differentiation penalized"]
         SP_HK["Hackathon system prompt:<br/>Base + Judging 3-minute<br/>hackathon demo pitch<br/>Missing demo is single most<br/>damaging flaw<br/>Judges care about: Does it work?<br/>Is it creative? Does it solve<br/>a real problem?<br/>Do not apply investor/VC standards"]
+        SP_FY["Final Year system prompt:<br/>Academic project presentation<br/>evaluator for university students<br/>Feedback on methodology rigor,<br/>result quality, academic communication<br/>NOT commercial viability<br/>Do NOT evaluate revenue model,<br/>market size, or investor readiness<br/>Grade against strong FYP student quality"]
     end
 
     VC_SEEDS -. "seeded manually" .-> VC_FINDINGS
     EL_SEEDS -. "seeded manually" .-> EL_FINDINGS
     HK_SEEDS -. "seeded from winner patterns + judging criteria" .-> HK_FINDINGS
+    FY_SEEDS -. "seeded from FYP rubrics + academic criteria" .-> FY_FINDINGS
     SIGNALS -. "derived from transcripts" .-> VC_FINDINGS
     SIGNALS -. "derived from transcripts" .-> EL_FINDINGS
     HK_SIGNALS -. "derived from metadata + judging docs" .-> HK_FINDINGS
+    FY_SIGNALS -. "derived from rubrics + academic docs" .-> FY_FINDINGS
 
-    LIMIT["Important limitation<br/>VC and Elevator modes are corpus-grounded:<br/>transcripts validate and enrich mode schemas.<br/><br/>Hackathon mode is criteria-grounded:<br/>no transcripts yet — schema derived from<br/>60 winner metadata entries + 40 judging<br/>criteria docs + 10 extracted winner patterns.<br/><br/>All three share the same scoring pipeline,<br/>delivery formula, and composite score math.<br/>Differences are in: system prompt persona,<br/>rubric criteria text, beat structure,<br/>anti-pattern detection, hard gate caps,<br/>knowledge digest content, and Q&A persona."]
+    LIMIT["Important limitation<br/>VC and Elevator modes are corpus-grounded:<br/>transcripts validate and enrich mode schemas.<br/><br/>Hackathon mode is criteria-grounded:<br/>no transcripts yet — schema derived from<br/>60 winner metadata entries + 40 judging<br/>criteria docs + 10 extracted winner patterns.<br/><br/>Final Year mode is rubric-grounded:<br/>no transcripts yet — schema derived from<br/>university FYP rubrics, IEEE showcase<br/>criteria, oral defense feedback patterns,<br/>and academic presentation research.<br/><br/>All four share the same scoring pipeline,<br/>delivery formula, and composite score math.<br/>Differences are in: system prompt persona,<br/>rubric criteria text, beat structure,<br/>anti-pattern detection, hard gate caps,<br/>knowledge digest content, and Q&A persona."]
 
     VC_FINDINGS --> LIMIT
     EL_FINDINGS --> LIMIT
     HK_FINDINGS --> LIMIT
+    FY_FINDINGS --> LIMIT
 
     classDef source fill:#10213d,stroke:#60a5fa,color:#eef2ff,stroke-width:1px;
     classDef seed fill:#2a1831,stroke:#ff5941,color:#fff1ee,stroke-width:1px;
@@ -240,16 +273,21 @@ flowchart LR
     classDef runtime fill:#251f12,stroke:#f59e0b,color:#fff8e8,stroke-width:1px;
     classDef note fill:#2c1620,stroke:#ef4444,color:#fff0f3,stroke-width:1px;
     classDef hackathon fill:#1a1040,stroke:#8b5cf6,color:#ede9fe,stroke-width:1px;
+    classDef finalyear fill:#0a2018,stroke:#10b981,color:#d1fae5,stroke-width:1px;
 
     class VC_RAW,EL_RAW source;
     class HK_RAW hackathon;
+    class FY_RAW finalyear;
     class VC_SEEDS,EL_SEEDS seed;
     class HK_SEEDS hackathon;
+    class FY_SEEDS finalyear;
     class BUILDER,SIGNALS,MODE_ARTIFACT,VC_FINDINGS,EL_FINDINGS derived;
     class HK_BUILDER,HK_SIGNALS,HK_FINDINGS hackathon;
+    class FY_BUILDER,FY_SIGNALS,FY_FINDINGS finalyear;
     class MODE_SELECT,RUBRIC,PROJECT_CTX,LOAD_BASE,RUBRIC_AST,MERGE,RUNTIME_SCHEMA,CTX_RULES,USER_PROMPT,LLM,NORMALIZE_RUBRIC,DELIVERY_OVERRIDE,COMPOSITE,CALIBRATE,RUBRIC_POLICY,UI_SCHEMA,RESULTS,QA_FROM_LLM,QA_FALLBACK runtime;
     class SYS_VC,BENCHMARK_VC,SP_VC,VC_GATES,SEC_VC source;
     class SYS_HK,BENCHMARK_HK,SP_HK,HK_GATES,SEC_HK hackathon;
+    class SYS_FY,BENCHMARK_FY,SP_FY,FY_GATES,SEC_FY finalyear;
     class LIMIT note;
     class RC_HEAD,RC_STRUCT,RC_CLARITY,RC_EVIDENCE,RC_MARKET,RC_DELIVERY,SYSTEM_COMPARE,RUBRIC_COMPARE note;
     class NORMALIZE_TX,STAGE_SELECT,DELIVERY_CALC,BEAT_DETECT,ANTI_DETECT,STAGE_EXPECT,KNOWLEDGE,SCORING_CTX runtime;

@@ -22,12 +22,14 @@ const DEEP_DIVE_CASES = [
 ] as const;
 
 test.describe('public marketing flow', () => {
+  test.setTimeout(60_000);
+
   test('navigates the landing handoffs to each deep-dive route with breadcrumbs', async ({
     page,
   }) => {
     for (const route of DEEP_DIVE_CASES) {
       await page.goto('/');
-      await page.getByRole('link', { name: route.landingLinkName }).click();
+      await page.locator(`a[href="${route.href}"]`).first().click();
 
       await expect(page).toHaveURL(new RegExp(`${route.href}$`));
       await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible();
@@ -37,16 +39,15 @@ test.describe('public marketing flow', () => {
       await expect(breadcrumbNav.getByRole('link', { name: 'Home' })).toBeVisible();
       await expect(breadcrumbNav.getByText(route.breadcrumbLabel)).toBeVisible();
 
-      const relatedNav = page.getByRole('navigation', { name: 'Keep exploring' });
-      await expect(relatedNav.getByRole('link', { name: 'Journal' })).toBeVisible();
+      await expect(page.getByRole('heading', { level: 2, name: 'Keep exploring' })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Journal/ }).last()).toBeVisible();
     }
   });
 
   test('hands journal visitors off from a deep-dive route', async ({ page }) => {
     await page.goto('/delivery-rubric');
 
-    const relatedNav = page.getByRole('navigation', { name: 'Keep exploring' });
-    await relatedNav.getByRole('link', { name: 'Journal' }).click();
+    await page.getByRole('link', { name: /^Journal/ }).last().click();
 
     await expect(page).toHaveURL(/\/blog$/);
     await expect(page.getByRole('heading', { level: 1, name: /the pitch journal/i })).toBeVisible();

@@ -526,6 +526,7 @@ function EngagementCard({
         </div>
         <div
           className="text-lg font-bold"
+          data-testid="engagement-value"
           style={{
             color,
             transition: 'color 0.5s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',

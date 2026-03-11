@@ -42,7 +42,7 @@ function SetupPageInner() {
   useEffect(() => {
     if (authLoading || !loaded) return;
     if (!user) { router.replace('/login'); return; }
-    const isReplay = searchParams.get('replay') === 'true';
+    const isReplay = searchParams?.get('replay') === 'true';
     // Users arriving from the try flow skip onboarding and go straight to session
     if (state.cameFromTry) {
       complete(user.user_metadata?.full_name || '');

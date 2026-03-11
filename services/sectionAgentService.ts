@@ -17,6 +17,22 @@ const VC_PITCH_BEATS: SectionBeat[] = [
   'team',
   'ask',
 ];
+const HACKATHON_BEATS: SectionBeat[] = [
+  'intro',
+  'problem',
+  'demo',
+  'innovation',
+  'impact',
+  'ask',
+];
+const FINAL_YEAR_BEATS: SectionBeat[] = [
+  'intro',
+  'problem',
+  'solution',
+  'traction',
+  'impact',
+  'ask',
+];
 
 const ALL_BEATS = new Set<string>([
   'intro',
@@ -27,6 +43,9 @@ const ALL_BEATS = new Set<string>([
   'traction',
   'team',
   'ask',
+  'demo',
+  'innovation',
+  'impact',
 ]);
 
 function getSectionAgentTimeoutMs(): number {
@@ -76,7 +95,10 @@ function parseJson(raw: string): unknown {
 }
 
 function beatsForMode(mode: PitchMode): SectionBeat[] {
-  return mode === 'elevator' ? ELEVATOR_BEATS : VC_PITCH_BEATS;
+  if (mode === 'elevator') return ELEVATOR_BEATS;
+  if (mode === 'hackathon') return HACKATHON_BEATS;
+  if (mode === 'final_year') return FINAL_YEAR_BEATS;
+  return VC_PITCH_BEATS;
 }
 
 function isValidSection(value: unknown, expectedBeats: Set<string>): value is RawSection {

@@ -9,6 +9,8 @@ import {
 } from '@/services/creditService';
 import { getOrCreateSubscription, getOrCreateStripeCustomer } from '@/services/billingService';
 import { createPaymentCheckoutSession } from '@/services/stripeService';
+import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
+import { enforceBillingAntiAbuse } from '@/lib/billing/antiAbuse';
 import { CREDIT_PACKS_STATIC } from '@/config/billing';
 
 /**
@@ -63,6 +65,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const antiAbuseResponse = await enforceBillingAntiAbuse({
+      request,
+      userId: user.id,
+      action: 'credits',
+      idempotencyScope: `pack:${packSlug}`,
+    });
+    if (antiAbuseResponse) {
+      return antiAbuseResponse;
+    }
+
     const pack = await getCreditPackBySlug(admin, packSlug);
     if (!pack) {
       return NextResponse.json(
@@ -95,13 +107,19 @@ export async function POST(request: NextRequest) {
       user.email,
     );
 
-    const origin = request.headers.get('origin') ?? 'http://localhost:3000';
+    const origin = request.headers.get('origin');
 
     const session = await createPaymentCheckoutSession({
       customerId,
       priceId: stripePriceId,
-      successUrl: `${origin}/settings?tab=billing&credits=success`,
-      cancelUrl: `${origin}/settings?tab=billing`,
+      successUrl: buildBillingRedirectUrl(
+        { origin },
+        '/settings?tab=billing&credits=success',
+      ),
+      cancelUrl: buildBillingRedirectUrl(
+        { origin },
+        '/settings?tab=billing',
+      ),
       metadata: {
         product_type: 'credit_pack',
         pack_slug: packSlug,

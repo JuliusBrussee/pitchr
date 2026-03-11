@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser } from '@/lib/supabase/auth-helpers';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { startCheckout } from '@/services/billingService';
+import { buildBillingRedirectUrl } from '@/lib/billing/redirect';
+import { enforceBillingAntiAbuse } from '@/lib/billing/antiAbuse';
 import { BILLING_PLANS, isValidPlanId } from '@/config/billing';
 import type { BillingInterval } from '@/types/billing';
 
@@ -43,6 +45,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const antiAbuseResponse = await enforceBillingAntiAbuse({
+      request,
+      userId: user.id,
+      action: 'checkout',
+      idempotencyScope: `${planId}:${interval}`,
+    });
+    if (antiAbuseResponse) {
+      return antiAbuseResponse;
+    }
+
     const plan = BILLING_PLANS[planId];
     const priceId =
       (interval as BillingInterval) === 'year'
@@ -56,7 +68,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const origin = request.headers.get('origin') ?? '';
+    const origin = request.headers.get('origin');
     const admin = createAdminClient();
 
     const result = await startCheckout(admin, {
@@ -64,8 +76,14 @@ export async function POST(request: NextRequest) {
       email: user.email!,
       name: user.user_metadata?.full_name,
       priceId,
-      successUrl: `${origin}/settings?tab=billing&billing=success`,
-      cancelUrl: `${origin}/settings?tab=billing&billing=canceled`,
+      successUrl: buildBillingRedirectUrl(
+        { origin },
+        '/settings?tab=billing&billing=success',
+      ),
+      cancelUrl: buildBillingRedirectUrl(
+        { origin },
+        '/settings?tab=billing&billing=canceled',
+      ),
     });
 
     return NextResponse.json(result);

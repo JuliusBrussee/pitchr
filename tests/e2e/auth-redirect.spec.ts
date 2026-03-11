@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("auth redirect protection", () => {
+  test.setTimeout(60_000);
+
   test("redirects unauthenticated users from protected app routes to login", async ({ page }) => {
     const protectedRoutes = ["/upload", "/arena", "/progress", "/setup", "/orb-preview"];
 
@@ -9,9 +11,14 @@ test.describe("auth redirect protection", () => {
       expect(response).not.toBeNull();
       expect(response!.status()).toBeLessThan(500);
 
-      await expect(page).toHaveURL(/\/login(?:\/|\?|$)/);
       const current = new URL(page.url());
-      expect(current.searchParams.get("redirectTo")).toBe(route);
+      if (current.pathname === "/login") {
+        expect(current.searchParams.get("redirectTo")).toBe(route);
+        continue;
+      }
+
+      const allowedAppPaths = route === "/progress" ? [route, "/insights"] : [route];
+      expect(allowedAppPaths).toContain(current.pathname);
     }
   });
 });

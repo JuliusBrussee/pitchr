@@ -13,6 +13,7 @@ interface SessionCanvasProps {
   toggleMic: () => void;
   isSessionActive: boolean;
   canStopSession: boolean;
+  canStartSession?: boolean;
   onStartSession: () => void;
   onPauseSession: () => void;
   onStopSession: () => void;
@@ -42,6 +43,7 @@ export function SessionCanvas({
   toggleMic,
   isSessionActive,
   canStopSession,
+  canStartSession = true,
   onStartSession,
   onPauseSession,
   onStopSession,
@@ -196,7 +198,13 @@ export function SessionCanvas({
           {isSessionActive ? (
             <ControlButton icon={Pause} onClick={onPauseSession} label="Pause session" primary />
           ) : (
-            <ControlButton icon={Play} onClick={onStartSession} label="Start session" primary />
+            <ControlButton
+              icon={Play}
+              onClick={onStartSession}
+              label="Start session"
+              primary
+              disabled={!canStartSession}
+            />
           )}
           {canStopSession && (
             <ControlButton icon={Square} onClick={onStopSession} label="Stop session" danger />
@@ -297,6 +305,7 @@ function ControlButton({
   primary,
   danger,
   dangerGhost,
+  disabled,
   size = 18,
 }: {
   icon: React.ComponentType<{ size?: number; fill?: string }>;
@@ -305,11 +314,13 @@ function ControlButton({
   primary?: boolean;
   danger?: boolean;
   dangerGhost?: boolean;
+  disabled?: boolean;
   size?: number;
 }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={`control-btn rounded-full flex items-center justify-center ${
         primary ? 'control-btn-primary p-3' : 'p-2'
       } ${dangerGhost ? 'border border-[rgba(239,68,68,0.5)]' : ''}`}
@@ -328,6 +339,8 @@ function ControlButton({
         boxShadow: primary
           ? '0 0 16px rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.2)'
           : 'none',
+        opacity: disabled ? 0.45 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
       }}
       aria-label={label}
     >

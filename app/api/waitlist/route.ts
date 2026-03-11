@@ -2,6 +2,11 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendWaitlistWelcomeEmail } from "@/services/emailService";
+import {
+  checkPublicWriteRateLimit,
+  getClientIpFallback,
+  getRateLimitResetHeaders,
+} from "@/lib/rateLimit";
 
 const MAX_EMAIL_LENGTH = 254; // RFC 5321
 const MAX_FIELD_LENGTH = 512;
@@ -242,10 +247,7 @@ export async function POST(request: NextRequest) {
       return val.trim().slice(0, MAX_FIELD_LENGTH);
     };
 
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      request.headers.get("x-real-ip") ??
-      null;
+    const ip = getClientIpFallback(request);
     const generatedUnsubscribeToken = crypto.randomUUID();
 
     const privacyNoticeVersion =
@@ -271,6 +273,24 @@ export async function POST(request: NextRequest) {
       newsletter_opt_in: body?.newsletter_opt_in === true,
       unsubscribe_token: generatedUnsubscribeToken,
     };
+
+    const [emailRateLimit, ipRateLimit] = await Promise.all([
+      checkPublicWriteRateLimit(`waitlist:email:${email}`),
+      checkPublicWriteRateLimit(`waitlist:ip:${ip ?? "unknown"}`),
+    ]);
+
+    if (!emailRateLimit.allowed || !ipRateLimit.allowed) {
+      const blockedRateLimit = !emailRateLimit.allowed
+        ? emailRateLimit
+        : ipRateLimit;
+      return NextResponse.json(
+        { error: "Too many requests. Please try again shortly." },
+        {
+          status: 429,
+          headers: getRateLimitResetHeaders(blockedRateLimit),
+        },
+      );
+    }
 
     const context = createWaitlistClientContext();
     const { supabase } = context;

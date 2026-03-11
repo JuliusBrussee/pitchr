@@ -21,7 +21,7 @@ const THEME_OPTIONS: { value: ThemePreference; icon: typeof Sun; label: string }
 
 export function BlogNavbar() {
   const { preference, setTheme } = useTheme();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navRef = useRef<HTMLElement>(null);

@@ -95,7 +95,7 @@ The pipeline is structurally the same. The behavior differences come from select
 
 4. Model execution:
 - Primary Claude (`claude-sonnet-4-20250514`): [analysis-service.ts#L271](C:/dev/pitchr/supabase/functions/_shared/analysis-service.ts#L271)
-- Fallback Gemini (`gemini-2.0-flash`): [analysis-service.ts#L346](C:/dev/pitchr/supabase/functions/_shared/analysis-service.ts#L346)
+- Fallback Gemini (`gemini-3-flash`): [analysis-service.ts#L346](C:/dev/pitchr/supabase/functions/_shared/analysis-service.ts#L346)
 
 5. Output normalization and persistence:
 - [analysis-service.ts#L432](C:/dev/pitchr/supabase/functions/_shared/analysis-service.ts#L432)

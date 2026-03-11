@@ -45,7 +45,8 @@ function fallbackQa(feedback: FeedbackOutput): OneMinuteQAPack {
 
 export default function ReviewPage() {
   const params = useParams<{ runId: string | string[] }>();
-  const runId = Array.isArray(params.runId) ? params.runId[0] : params.runId;
+  const runIdParam = params?.runId;
+  const runId = Array.isArray(runIdParam) ? (runIdParam[0] ?? '') : (runIdParam ?? '');
   const [run, setRun] = useState<Run | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<ReviewTab>('feedback');
@@ -170,7 +171,7 @@ export default function ReviewPage() {
               Pitch Review
             </h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
-              {formatDate(run.createdAt)} | {run.mode === 'elevator' ? 'Elevator Pitch' : 'VC Pitch'}
+              {formatDate(run.createdAt)} | {{ elevator: 'Elevator Pitch', vc_pitch: 'VC Pitch', hackathon: 'Hackathon', final_year: 'Final Year' }[run.mode] ?? run.mode}
             </p>
           </div>
         </div>

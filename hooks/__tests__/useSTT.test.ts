@@ -73,10 +73,15 @@ class MockAudioContext {
   }
 }
 
+const mockFetch = vi.fn();
+
 describe('useSTT', () => {
   beforeEach(() => {
     MockWebSocket.instances = [];
     vi.stubGlobal('WebSocket', MockWebSocket as unknown as typeof WebSocket);
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({ ok: false });
+    vi.stubGlobal('fetch', mockFetch as unknown as typeof fetch);
     Object.defineProperty(window, 'AudioContext', {
       configurable: true,
       writable: true,
@@ -210,5 +215,26 @@ describe('useSTT', () => {
     ).length;
     expect(sessionConfigCount).toBe(1);
     expect(result.current.realtimeChecklist[0].status).toBe('partial');
+  });
+
+  it('prevents recording start and shows guidance when STT key is unavailable', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        enabled: false,
+        message: 'Server configuration error: missing ASSEMBLYAI_API_KEY.',
+      }),
+    });
+
+    const { result } = renderHook(() => useSTT());
+
+    await act(async () => {
+      await result.current.start({ mode: 'vc_pitch' });
+    });
+
+    expect(MockWebSocket.instances.length).toBe(0);
+    expect(result.current.isSttAvailable).toBe(false);
+    expect(result.current.error).toContain('ASSEMBLYAI_API_KEY');
+    expect(result.current.error).toContain('Set ASSEMBLYAI_API_KEY');
   });
 });

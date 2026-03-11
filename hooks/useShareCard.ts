@@ -256,7 +256,7 @@ async function renderCardToCanvas(data: ShareCardData): Promise<HTMLCanvasElemen
   ctx.fillText('AI Pitch Coach', contentX + brandWidth + 24, cardY + 68);
 
   // Mode badge (right-aligned)
-  const modeLabel = data.mode === 'elevator' ? 'Elevator Pitch' : 'VC Pitch';
+  const modeLabel = { elevator: 'Elevator Pitch', vc_pitch: 'VC Pitch', hackathon: 'Hackathon', final_year: 'Final Year' }[data.mode] ?? data.mode;
   ctx.font = `600 13px ${FONT}`;
   const modeMetrics = ctx.measureText(modeLabel);
   const modePadX = 16;
