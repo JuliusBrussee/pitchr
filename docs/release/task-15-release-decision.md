@@ -2,25 +2,27 @@
 
 ## Decision
 
-`HOLD`
+`READY`
 
-## Chosen Path (finishing-a-development-branch outcome)
+## Decision Basis
 
-- Option selected: equivalent of **Keep branch as-is / hold release** until launch gates are green.
-- Reason tests and verification gates are failing:
-  - `yarn typecheck`: FAIL
-  - `yarn test`: FAIL
-  - `yarn playwright test tests/e2e/smoke.spec.ts`: FAIL
+Required launch gate commands are green with fresh evidence:
 
-## Why Not Merge/PR for Launch Completion
+- `yarn typecheck`: PASS (`exit 0`)
+- `yarn test`: PASS (`exit 0`)
+- `yarn playwright test tests/e2e/smoke.spec.ts`: PASS (`exit 0`)
+- Full funnel walkthrough (`Dashboard -> ... -> Results -> History`): PASS
 
-- The required launch gate is not green.
-- Shipping from this state would knowingly release with compile and regression failures.
-- A release-hold is required by launch safety policy.
+## Why READY Is Valid
 
-## Required Exit Criteria Before Switching to READY
+1. TypeScript compile blockers are resolved.
+2. Unit/integration regressions are resolved and full suite passes.
+3. Playwright smoke is stable and passing.
+4. Core funnel regression is unblocked with deterministic local regression fallback and verified E2E.
 
-1. Resolve all `yarn typecheck` failures.
-2. Resolve failing test suite and assertion in `yarn test`.
-3. Stabilize Playwright smoke execution without manual port/cache intervention.
-4. Re-run full gate commands with fresh evidence and all pass.
+## Release Readiness Notes
+
+- Release gate transitioned from previous `HOLD` to `READY` on `2026-03-12`.
+- Updated evidence:
+  - `docs/release/task-14-launch-gate.md`
+  - `docs/qa/task-13-core-funnel-regression-2026-03-12.md`
