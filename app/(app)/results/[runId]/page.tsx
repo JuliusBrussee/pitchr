@@ -243,6 +243,12 @@ export default function ResultsPage() {
   const [loading, setLoading] = useState(true);
   const [runError, setRunError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [rubricBannerDismissed, setRubricBannerDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem(`pitchr_rubric_dismissed_${runId}`) === '1';
+    } catch { return false; }
+  });
   const [seekToSec, setSeekToSec] = useState<number | null>(null);
   const recordingRef = useRef<RecordingPlayerHandle | null>(null);
   const [sessionDelta, setSessionDelta] = useState<{ points: number; sessions: number } | null>(null);
@@ -440,15 +446,8 @@ export default function ResultsPage() {
   const rubricContextMeta = useMemo(() => run?.meta?.rubric_context ?? null, [run]);
   const rubricContextAppliedMessage = useMemo(() => {
     if (!rubricContextMeta?.applied) return null;
-    const updatedAt = rubricContextMeta.project_updated_at
-      ? formatDate(rubricContextMeta.project_updated_at)
-      : 'unknown time';
-    return [
-      `Project rubric context was layered on top of the default rubric for this run.`,
-      `Source: ${run?.projectName ?? 'Selected project'}`,
-      `Updated: ${updatedAt}`,
-      rubricContextMeta.hash ? `Reference: ${rubricContextMeta.hash}` : null,
-    ].filter(Boolean).join(' ');
+    const projectName = run?.projectName ?? 'Selected project';
+    return `Custom scoring requirements from '${projectName}' were applied to this analysis.`;
   }, [rubricContextMeta, run?.projectName]);
   const rubricContextFallbackMessage = useMemo(() => {
     if (!rubricContextMeta?.fallback_used) return null;
@@ -658,16 +657,28 @@ export default function ResultsPage() {
           {fallbackWarning}
         </div>
       ) : null}
-      {rubricContextAppliedMessage ? (
+      {rubricContextAppliedMessage && !rubricBannerDismissed ? (
         <div
-          className="rounded-xl border px-3 py-2 text-xs"
+          className="rounded-xl border px-3 py-2 text-xs flex items-center justify-between gap-2"
           style={{
             color: '#60a5fa',
             backgroundColor: 'rgba(96,165,250,0.10)',
             borderColor: 'rgba(96,165,250,0.35)',
           }}
         >
-          {rubricContextAppliedMessage}
+          <span>{rubricContextAppliedMessage}</span>
+          <button
+            type="button"
+            onClick={() => {
+              setRubricBannerDismissed(true);
+              try { localStorage.setItem(`pitchr_rubric_dismissed_${runId}`, '1'); } catch {}
+            }}
+            className="flex-shrink-0 p-0.5 rounded transition-opacity opacity-60 hover:opacity-100"
+            style={{ color: '#60a5fa' }}
+            aria-label="Dismiss"
+          >
+            &times;
+          </button>
         </div>
       ) : null}
       {rubricContextFallbackMessage ? (

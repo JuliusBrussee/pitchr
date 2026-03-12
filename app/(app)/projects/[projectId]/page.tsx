@@ -7,7 +7,10 @@ import Link from 'next/link';
 import { useProject } from '@/views/components/ProjectProvider';
 import { ProjectDeckManager } from '@/views/components/ProjectDeckManager';
 import { ProjectRubricRequirementsEditor } from '@/views/components/ProjectRubricRequirementsEditor';
+import { ModeSegmentedControl } from '@/views/components/ModeSegmentedControl';
+import { PITCH_MODE_CONFIG } from '@/config/modes';
 import type { Project } from '@/types/project';
+import type { PitchMode } from '@/types/pitch';
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -276,6 +279,38 @@ export default function ProjectDetailPage() {
 
         {/* Divider */}
         <div className="h-px" style={{ background: 'linear-gradient(90deg, transparent, var(--border-color) 20%, var(--border-color) 80%, transparent)' }} />
+
+        {/* Pitch Mode (read-only — locked at project creation) */}
+        <section
+          className="rounded-xl border p-5"
+          style={{ borderColor: 'var(--border-color)', backgroundColor: 'var(--bg-surface-hover)' }}
+        >
+          <div className="flex flex-col gap-3">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Pitch Mode
+              </h3>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Set when the project was created. All sessions use this mode.
+              </p>
+            </div>
+            <ModeSegmentedControl
+              value={(project.defaultMode as PitchMode) ?? 'vc_pitch'}
+              onChange={() => {}}
+              disabled
+            />
+            {(() => {
+              const modeConfig = PITCH_MODE_CONFIG[(project.defaultMode as PitchMode) ?? 'vc_pitch'];
+              return (
+                <div className="flex gap-4 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                  <span>Duration: {Math.round(modeConfig.targetDurationSeconds / 60)}min</span>
+                  <span>Target WPM: {modeConfig.targetWpm}</span>
+                  <span>Beats: {modeConfig.structureBeats.join(', ')}</span>
+                </div>
+              );
+            })()}
+          </div>
+        </section>
 
         {/* Deck manager */}
         <section

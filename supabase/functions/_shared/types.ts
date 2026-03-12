@@ -43,6 +43,7 @@ export interface Project {
   keyMetrics: string | null;
   extraNotes: string | null;
   isArchived: boolean;
+  defaultMode: PitchMode | null;
   promptOverrides: ProjectPromptOverrides;
   createdAt: string;
   updatedAt: string;

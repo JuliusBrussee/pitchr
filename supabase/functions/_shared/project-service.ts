@@ -1,5 +1,5 @@
 import type { SupabaseClient } from 'npm:@supabase/supabase-js@^2.97.0';
-import type { Project, ProjectPromptOverrides } from './types.ts';
+import type { PitchMode, Project, ProjectPromptOverrides } from './types.ts';
 
 export class ProjectNotFoundError extends Error {
   constructor(projectId: string) {
@@ -33,6 +33,7 @@ function toProjectResponse(project: ProjectRecord): Project {
     keyMetrics: project.key_metrics ?? null,
     extraNotes: project.extra_notes ?? null,
     isArchived: project.is_archived,
+    defaultMode: (project.workflow_mode as PitchMode) ?? null,
     promptOverrides: (project.prompt_overrides ?? {}) as ProjectPromptOverrides,
     createdAt: project.created_at,
     updatedAt: project.updated_at,
@@ -104,6 +105,7 @@ export async function createProject(
     targetMarket?: string;
     keyMetrics?: string;
     extraNotes?: string;
+    workflowMode?: PitchMode;
     promptOverrides?: ProjectPromptOverrides;
   },
 ): Promise<ProjectRecord> {
@@ -116,6 +118,7 @@ export async function createProject(
       target_market: input.targetMarket?.trim() || null,
       key_metrics: input.keyMetrics?.trim() || null,
       extra_notes: input.extraNotes?.trim() || null,
+      workflow_mode: input.workflowMode ?? 'vc_pitch',
       type: 'two_min_pitch',
       is_seeded: false,
       is_archived: false,
@@ -140,6 +143,7 @@ export async function updateProject(
     keyMetrics?: string | null;
     extraNotes?: string | null;
     isArchived?: boolean;
+    workflowMode?: PitchMode;
     promptOverrides?: ProjectPromptOverrides;
   },
 ): Promise<ProjectRecord> {
@@ -150,6 +154,7 @@ export async function updateProject(
   if (updates.keyMetrics !== undefined) payload.key_metrics = updates.keyMetrics?.trim() || null;
   if (updates.extraNotes !== undefined) payload.extra_notes = updates.extraNotes?.trim() || null;
   if (updates.isArchived !== undefined) payload.is_archived = updates.isArchived;
+  if (updates.workflowMode !== undefined) payload.workflow_mode = updates.workflowMode;
   if (updates.promptOverrides !== undefined) payload.prompt_overrides = updates.promptOverrides;
   if (Object.keys(payload).length === 0) {
     return getProjectById(supabase, userId, projectId);

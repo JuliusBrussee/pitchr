@@ -28,6 +28,8 @@ export interface ProjectPromptOverrides {
   [key: string]: unknown;
 }
 
+export type PitchModeProject = 'elevator' | 'vc_pitch' | 'hackathon' | 'final_year';
+
 export interface Project {
   id: string;
   name: string;
@@ -36,6 +38,7 @@ export interface Project {
   keyMetrics: string | null;
   extraNotes: string | null;
   isArchived: boolean;
+  defaultMode: PitchModeProject | null;
   promptOverrides: ProjectPromptOverrides;
   createdAt: string;
   updatedAt: string;

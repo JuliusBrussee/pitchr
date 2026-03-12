@@ -156,6 +156,10 @@ async function handlePost(req: Request): Promise<Response> {
   const targetMarket = typeof body.targetMarket === 'string' ? body.targetMarket : undefined;
   const keyMetrics = typeof body.keyMetrics === 'string' ? body.keyMetrics : undefined;
   const extraNotes = typeof body.extraNotes === 'string' ? body.extraNotes : undefined;
+  const validModes = ['elevator', 'vc_pitch', 'hackathon', 'final_year'];
+  const workflowMode = typeof body.workflowMode === 'string' && validModes.includes(body.workflowMode)
+    ? (body.workflowMode as 'elevator' | 'vc_pitch' | 'hackathon' | 'final_year')
+    : undefined;
   const promptOverrides = normalizePromptOverrides(body.promptOverrides, {
     updatedBy: user.id,
     nowIso: new Date().toISOString(),
@@ -167,6 +171,7 @@ async function handlePost(req: Request): Promise<Response> {
     targetMarket,
     keyMetrics,
     extraNotes,
+    workflowMode,
     promptOverrides,
   });
   if (setActive) {
@@ -213,6 +218,7 @@ async function handlePatch(req: Request): Promise<Response> {
     throw error;
   }
 
+  // workflowMode is intentionally NOT accepted on PATCH — it is locked at creation time
   project = await updateProject(supabase, user.id, projectId, {
     name: typeof body.name === 'string' ? body.name : undefined,
     description: typeof body.description === 'string' ? body.description : undefined,

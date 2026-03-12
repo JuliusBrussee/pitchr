@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { getEdgeErrorMessage, type EdgeErrorPayload } from '@/lib/supabase/edge-error';
-import type { Project, ProjectPromptOverrides } from '@/types/project';
+import type { PitchModeProject, Project, ProjectPromptOverrides } from '@/types/project';
 
 const CACHE_KEY = 'pitchr_active_project';
 
@@ -40,6 +40,7 @@ export interface CreateProjectInput {
   targetMarket?: string;
   keyMetrics?: string;
   extraNotes?: string;
+  defaultMode?: PitchModeProject;
   promptOverrides?: ProjectPromptOverrides;
   setActive?: boolean;
 }
@@ -84,6 +85,7 @@ const ProjectContext = createContext<ProjectContextValue>({
     keyMetrics: null,
     extraNotes: null,
     isArchived: false,
+    defaultMode: null,
     promptOverrides: {},
     createdAt: '',
     updatedAt: '',
@@ -164,6 +166,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
         targetMarket: input.targetMarket,
         keyMetrics: input.keyMetrics,
         extraNotes: input.extraNotes,
+        workflowMode: input.defaultMode,
         promptOverrides: input.promptOverrides,
         setActive: input.setActive,
       }),

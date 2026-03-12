@@ -1,18 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { ModeSegmentedControl } from '@/views/components/ModeSegmentedControl';
 import { DurationSlider } from '@/views/components/DurationSlider';
 import {
   DURATION_SLIDER_MIN,
   DURATION_SLIDER_MAX,
   DURATION_SLIDER_STEP,
 } from '@/config/modes';
-import type { PitchMode } from '@/types/pitch';
 
 interface PreSessionConfigProps {
-  mode: PitchMode;
-  onModeChange: (mode: PitchMode) => void;
   duration: number;
   onDurationChange: (duration: number) => void;
   isCollapsed: boolean;
@@ -20,8 +16,6 @@ interface PreSessionConfigProps {
 }
 
 export function PreSessionConfig({
-  mode,
-  onModeChange,
   duration,
   onDurationChange,
   isCollapsed,
@@ -42,7 +36,7 @@ export function PreSessionConfig({
       }}
     >
       <div
-        className="config-strip rounded-xl border px-4 py-3 flex items-start gap-4"
+        className="config-strip rounded-xl border px-4 py-3"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         style={{
@@ -56,26 +50,14 @@ export function PreSessionConfig({
           transition: 'border-color 0.3s ease, box-shadow 0.4s ease',
         }}
       >
-        <div className="flex-shrink-0 flex flex-col gap-1" style={{ minWidth: '220px' }}>
-          <ModeSegmentedControl value={mode} onChange={onModeChange} disabled={disabled} />
-          <span
-            className="text-[10px]"
-            style={{ color: 'var(--text-muted)', opacity: 0.7 }}
-          >
-            Mode affects grading criteria
-          </span>
-        </div>
-
-        <div className="flex-1 min-w-[120px] pt-0.5">
-          <DurationSlider
-            value={duration}
-            onChange={onDurationChange}
-            min={DURATION_SLIDER_MIN}
-            max={DURATION_SLIDER_MAX}
-            step={DURATION_SLIDER_STEP}
-            disabled={disabled}
-          />
-        </div>
+        <DurationSlider
+          value={duration}
+          onChange={onDurationChange}
+          min={DURATION_SLIDER_MIN}
+          max={DURATION_SLIDER_MAX}
+          step={DURATION_SLIDER_STEP}
+          disabled={disabled}
+        />
       </div>
     </div>
   );
