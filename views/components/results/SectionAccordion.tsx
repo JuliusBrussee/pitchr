@@ -14,7 +14,7 @@ interface SectionAccordionProps {
   mode?: PitchMode;
 }
 
-const BEAT_LABELS: Record<string, string> = {
+const BEAT_LABELS: Record<SectionBeat, string> = {
   intro: 'Introduction',
   problem: 'Problem',
   solution: 'Solution',
@@ -26,6 +26,12 @@ const BEAT_LABELS: Record<string, string> = {
   demo: 'Demo',
   innovation: 'Innovation',
   impact: 'Impact',
+};
+
+const FINAL_YEAR_LABEL_OVERRIDES: Partial<Record<SectionBeat, string>> = {
+  solution: 'Approach',
+  traction: 'Results',
+  ask: 'Next Steps',
 };
 
 const MODE_BEATS: Record<PitchMode, SectionBeat[]> = {
@@ -83,6 +89,13 @@ function isSectionUndetected(section: SectionFeedback): boolean {
   const lowConfidenceMissing = quotes.length === 0 && confidence <= 0.2;
 
   return explicitMissing || lowConfidenceMissing;
+}
+
+function getBeatLabel(beat: SectionBeat, mode?: PitchMode): string {
+  if (mode === 'final_year') {
+    return FINAL_YEAR_LABEL_OVERRIDES[beat] ?? BEAT_LABELS[beat] ?? beat;
+  }
+  return BEAT_LABELS[beat] ?? beat;
 }
 
 export function SectionAccordion({
@@ -149,9 +162,7 @@ export function SectionAccordion({
                   backgroundColor: 'var(--bg-surface)',
                 }}
               >
-                {(mode === 'final_year'
-                  ? { solution: 'Approach', traction: 'Results', ask: 'Next Steps' }[beat]
-                  : undefined) ?? BEAT_LABELS[beat]} not detected
+                {getBeatLabel(beat, mode)} not detected
               </span>
             ))}
           </div>
@@ -202,9 +213,7 @@ export function SectionAccordion({
                     }}
                   />
                   <span className="font-medium text-sm truncate">
-                    {(mode === 'final_year'
-                      ? { solution: 'Approach', traction: 'Results', ask: 'Next Steps' }[section.beat]
-                      : undefined) ?? BEAT_LABELS[section.beat] ?? section.beat}
+                    {getBeatLabel(section.beat, mode)}
                   </span>
                 </button>
 
