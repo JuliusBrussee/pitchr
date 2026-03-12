@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { createInitialChecklistState } from '@/config/realtimeChecklist';
+import { isLocalRegressionMode } from '@/lib/supabase/local-regression-edge';
 import type {
   RealtimeChecklistErrorMessage,
   RealtimeChecklistUpdateMessage,
@@ -14,6 +15,16 @@ const TARGET_SAMPLE_RATE = 16000;
 const CHUNK_SAMPLES = 2048;
 const STT_MISSING_KEY_GUIDANCE =
   'Speech recording is unavailable. Set ASSEMBLYAI_API_KEY in .env.local and restart yarn dev.';
+const LOCAL_REGRESSION_TRANSCRIPT_BY_MODE: Record<PitchMode, string> = {
+  elevator:
+    'We help startup teams practice investor updates faster with automatic scoring, concise fixes, and clearer asks.',
+  vc_pitch:
+    'We help founders turn rough investor pitches into fundable stories using structured scoring, ranked fixes, and rewrites before meetings.',
+  hackathon:
+    'This demo shows an end-to-end prototype that helps teams rehearse pitches, track clarity, and improve final delivery in minutes.',
+  final_year:
+    'This project evaluates a structured pitch-coaching workflow, reports measured improvement in clarity and confidence, and outlines next validation steps.',
+};
 
 function getWsUrl(): string {
   if (typeof window === 'undefined') return '';
@@ -261,6 +272,13 @@ export function useSTT(): UseSTTReturn {
   }, []);
 
   const ensureSttAvailability = useCallback(async (): Promise<boolean> => {
+    if (isLocalRegressionMode()) {
+      sttCapabilityCheckedRef.current = true;
+      setIsSttAvailable(true);
+      setSttAvailabilityMessage(null);
+      return true;
+    }
+
     if (!isSttAvailable) return false;
     if (sttCapabilityCheckedRef.current) return true;
     if (sttCapabilityProbeRef.current) {
@@ -415,6 +433,28 @@ export function useSTT(): UseSTTReturn {
   }, [stopMic]);
 
   const stop = useCallback(() => {
+    if (isLocalRegressionMode()) {
+      stopMic();
+      setIsRecording(false);
+      setLiveText('');
+      setTranscriptSegments((prev) => {
+        if (prev.length > 0) return prev;
+        const text = LOCAL_REGRESSION_TRANSCRIPT_BY_MODE[modeRef.current];
+        const start = 0;
+        const end = Math.max(30, Number((text.split(/\s+/u).length / 2.4).toFixed(3)));
+        return [
+          {
+            text,
+            start,
+            end,
+            words: buildSyntheticWords(text, start, end),
+          },
+        ];
+      });
+      setSaved(true);
+      return;
+    }
+
     stopMic();
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -574,6 +614,11 @@ export function useSTT(): UseSTTReturn {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
+    }
+
+    if (isLocalRegressionMode()) {
+      setIsRecording(true);
+      return;
     }
 
     const existingWs = wsRef.current;
