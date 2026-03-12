@@ -1,37 +1,44 @@
-# Task 14 Launch Verification Gate - 2026-03-12
+# Task 14 - Launch Verification Gate (2026-03-12)
 
-## Required Commands
+## Command Results
 
-1. `yarn typecheck`
-2. `yarn test`
-3. `yarn playwright test tests/e2e/smoke.spec.ts`
-
-## Execution Record (Europe/Amsterdam)
-
-| Command | Start time | Exit code | Result |
+| Command | Run Window (CET) | Exit | Result |
 | --- | --- | --- | --- |
-| `yarn typecheck` | `2026-03-12T11:14:29+01:00` | `1` | FAIL |
-| `yarn test` | `2026-03-12T11:15:14+01:00` | `1` | FAIL |
-| `yarn playwright test tests/e2e/smoke.spec.ts` | `2026-03-12T11:18:14+01:00` | `1` | FAIL |
+| `yarn typecheck` | 11:15-11:16 | `1` | FAIL |
+| `yarn test` | 11:16-11:17 | `1` | FAIL |
+| `yarn playwright test tests/e2e/smoke.spec.ts` | 11:17-11:18 | `1` | FAIL |
 
-## Key Failure Signals
+## Key Failure Evidence
 
 ### `yarn typecheck`
-- `app/(app)/qa/[runId]/page.tsx(363,61): Cannot find name 'mode'`
-- `app/(app)/results/[runId]/page.tsx`: mode map key/type mismatches (`elevator`, `vc_pitch`)
-- `instrumentation-client.ts(15,19): TS2554 Expected 2 arguments, but got 1`
-- `services/prepAgentService.ts`: section key union mismatches (`demo`, `innovation`, `impact`, etc.)
-- `views/components/results/SectionAccordion.tsx`: missing key properties on constrained map type
+
+- `instrumentation-client.ts(15,19): error TS2554: Expected 2 arguments, but got 1.`
+- Multiple pre-existing type errors in:
+  - `app/(app)/qa/[runId]/page.tsx`
+  - `app/(app)/results/[runId]/page.tsx`
+  - `services/prepAgentService.ts`
+  - `views/components/results/SectionAccordion.tsx`
 
 ### `yarn test`
-- Suite import failure: `tests/analytics-page.test.tsx` cannot resolve `@/app/(app)/analytics/page`
-- Assertion failure: `lib/supabase/__tests__/middleware.test.ts` expected redirect `307`, received `200`
+
+- Failed suite: `tests/analytics-page.test.tsx`
+  - Import resolution error for `@/app/(app)/analytics/page`
+- Failed test: `lib/supabase/__tests__/middleware.test.ts`
+  - `redirects EEA users without compliance completion to /compliance/check`
+  - Expected status `307`, received `200`
 
 ### `yarn playwright test tests/e2e/smoke.spec.ts`
-- Blocked before execution:
-  - `Error: http://localhost:3000 is already used ... set reuseExistingServer:true in config.webServer.`
+
+- Initial run failed because `http://localhost:3000` was already in use.
+- Fresh rerun after stopping listeners failed with:
+  - `Error: Process from config.webServer exited early.`
+- Web server stderr during diagnostic repro included:
+  - `ENOENT ... pitchr-next-cache ... vendor-chunks/@opentelemetry.js`
 
 ## Gate Verdict
 
-Launch verification gate status: `FAIL`  
-Fresh required commands were executed and at least one failure occurred in each required gate.
+- Launch verification gate status: `FAILED`
+- Blocking categories:
+  1. TypeScript compile failures
+  2. Unit/integration regression failures
+  3. Unstable Playwright webServer startup
