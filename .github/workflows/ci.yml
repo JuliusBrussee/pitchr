@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - arav_multi_impl_features
+      - codex/**
+
+jobs:
+  validate:
+    name: Typecheck, Tests, Smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Unit and integration tests
+        run: yarn test
+
+      - name: Install Playwright browser
+        run: yarn playwright install --with-deps chromium
+
+      - name: E2E smoke
+        run: yarn playwright test tests/e2e/smoke.spec.ts
