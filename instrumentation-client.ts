@@ -8,11 +8,15 @@ Sentry.init({
   enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
 });
 
-type RouterTransitionStart = (url: string) => unknown;
+type RouterTransitionStart = (...args: unknown[]) => unknown;
 
-export const onRouterTransitionStart: RouterTransitionStart = (url) => {
-  if (typeof Sentry.captureRouterTransitionStart === 'function') {
-    return Sentry.captureRouterTransitionStart(url);
+export const onRouterTransitionStart: RouterTransitionStart = (...args) => {
+  const captureRouterTransitionStart = Sentry.captureRouterTransitionStart as
+    | ((...params: unknown[]) => unknown)
+    | undefined;
+
+  if (typeof captureRouterTransitionStart === 'function') {
+    return captureRouterTransitionStart(...args);
   }
 
   return undefined;
