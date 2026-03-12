@@ -1,0 +1,357 @@
+/* ——— Variation F5: Split-Screen Proof Mode ——— */
+
+/* ——— Cinematic caption (prefixed f5- to avoid collision) ——— */
+
+.f5-cinematic-caption {
+  text-align: center;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.f5-cinematic-caption--cta .f5-cinematic-caption__text {
+  transform: scale(1.05);
+}
+
+.f5-cinematic-caption__text {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(28px, 3.5vw, 42px);
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0 0.3em;
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.f5-cinematic-word {
+  display: inline-block;
+  opacity: 0;
+  will-change: opacity, transform;
+}
+
+.f5-cinematic-word--highlight {
+  background: linear-gradient(135deg, #ff5941, #ff8c33);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Staggered word entrance — applied on every step change */
+.f5-cinematic-word--enter {
+  opacity: 0;
+  transform: translateY(14px) scale(0.96);
+  animation: f5CinematicWordIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes f5CinematicWordIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ——— Scale wrapper — instant resize, no transition fighting ——— */
+
+.f5-scale-wrapper {
+  width: 1440px;
+  height: 900px;
+  transform-origin: top left;
+  /* No transition — scale tracks viewport size instantly via ResizeObserver */
+}
+
+/* Override: the stage inside F5 only handles camera pan/zoom, not viewport scale */
+.f5-stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* ——— Split-screen layout container ——— */
+
+.f5-split-container {
+  display: flex;
+  width: 100%;
+  max-width: 1240px;
+  gap: 0;
+  align-items: stretch;
+  position: relative;
+}
+
+/* ——— Browser wrapper — animates width ——— */
+
+.f5-browser-wrap {
+  flex: 1;
+  max-width: 100%;
+  transition: max-width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 0;
+}
+
+.f5-browser-wrap--narrow {
+  max-width: 65%;
+}
+
+/* When narrow, slightly reduce the browser frame's border-radius on the right */
+.f5-browser-wrap--narrow .demo-browser {
+  border-top-right-radius: 12px;
+  border-bottom-right-radius: 12px;
+}
+
+/* ——— Proof panel — slides from right ——— */
+
+.f5-proof-panel {
+  width: 35%;
+  flex-shrink: 0;
+  overflow: hidden;
+  transform: translateX(100%);
+  opacity: 0;
+  transition:
+    transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.4s ease;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.f5-proof-panel--active {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+  position: relative;
+}
+
+.f5-proof-panel__inner {
+  background: #111;
+  border-radius: 0 16px 16px 0;
+  padding: 32px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  box-shadow:
+    -4px 0 24px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Section header */
+.f5-proof-panel__header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #ff5941;
+  margin-bottom: 4px;
+}
+
+/* Cards container */
+.f5-proof-panel__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+/* ——— Card wrapper: slide-up stagger entrance ——— */
+
+.f5-proof-card-wrapper {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: f5CardSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes f5CardSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ——— Proof card base ——— */
+
+.f5-proof-card {
+  border-radius: 12px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ——— Metric card ——— */
+
+.f5-proof-card--metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 24px 20px;
+}
+
+.f5-proof-metric-value {
+  font-size: 48px;
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(135deg, #ff5941, #ff8c33);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+.f5-proof-metric-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+/* ——— Quote card ——— */
+
+.f5-proof-card--quote {
+  border-left: 3px solid #ff5941;
+  padding-left: 20px;
+}
+
+.f5-proof-quote-text {
+  font-size: 16px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.f5-proof-quote-attr {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+/* ——— Rubric card ——— */
+
+.f5-proof-card--rubric {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.f5-rubric-row__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.f5-rubric-row__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.f5-rubric-row__score {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+.f5-rubric-row__track {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.f5-rubric-row__fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff5941, #ff8c33);
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ——— Stat row card ——— */
+
+.f5-proof-card--statrow {
+  display: flex;
+  justify-content: space-around;
+  gap: 12px;
+  padding: 20px 16px;
+}
+
+.f5-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  flex: 1;
+}
+
+.f5-stat-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.f5-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.1;
+}
+
+.f5-stat-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+}
+
+/* ——— F5 container overrides — fit caption + browser on one screen ——— */
+
+.demo-container {
+  padding: 24px 24px;
+  gap: 16px;
+}
+
+/* ——— Responsive: collapse proof panel on small screens ——— */
+
+@media (max-width: 768px) {
+  .f5-split-container {
+    flex-direction: column;
+  }
+
+  .f5-browser-wrap,
+  .f5-browser-wrap--narrow {
+    max-width: 100%;
+  }
+
+  .f5-proof-panel {
+    width: 100%;
+    position: relative;
+    transform: translateY(20px);
+  }
+
+  .f5-proof-panel--active {
+    transform: translateY(0);
+  }
+
+  .f5-proof-panel__inner {
+    border-radius: 0 0 16px 16px;
+    max-height: 240px;
+  }
+}
