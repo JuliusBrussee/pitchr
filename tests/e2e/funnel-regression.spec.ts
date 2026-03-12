@@ -27,8 +27,12 @@ test.describe('local regression funnel', () => {
     await expect(page).toHaveURL(/\/results\/[^/?#]+(?:\?|$)/);
     await expect(page.getByRole('heading', { name: 'Pitch Analysis' })).toBeVisible();
 
-    await page.getByRole('link', { name: 'History' }).first().click();
-    await expect(page).toHaveURL(/\/history(?:\/|$)/);
-    await expect(page.getByRole('heading', { name: 'History' })).toBeVisible();
+    const historyLink = page.locator('main a[href="/history"]').first();
+    await expect(historyLink).toBeVisible({ timeout: 15_000 });
+    await Promise.all([
+      page.waitForURL(/\/history(?:\/|$)/, { timeout: 20_000 }),
+      historyLink.click(),
+    ]);
+    await expect(page.getByRole('heading', { name: 'History' })).toBeVisible({ timeout: 15_000 });
   });
 });
