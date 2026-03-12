@@ -2,22 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { Sparkles, X } from 'lucide-react';
-import { isEarlyAdopterPeriod, getEarlyAdopterDaysRemaining, EARLY_ADOPTER_CREDITS } from '@/config/early-adopter';
+import { EARLY_ADOPTER_CREDITS } from '@/config/early-adopter';
+import { useEarlyAdopter } from '@/hooks/useEarlyAdopter';
 
 const DISMISS_KEY = 'pitchr_early_adopter_banner_dismissed';
 
 export function EarlyAdopterBanner() {
+  const { isActive, claimed, isLoading, daysRemaining } = useEarlyAdopter();
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
     setDismissed(localStorage.getItem(DISMISS_KEY) === '1');
   }, []);
 
-  if (!isEarlyAdopterPeriod() || dismissed) return null;
+  // Only show when period is active, credits were claimed, and not dismissed
+  if (!isActive || !claimed || isLoading || dismissed) return null;
 
-  const daysRemaining = getEarlyAdopterDaysRemaining();
   const totalDays = 31; // March 13 → April 13
-  const progressPct = Math.max(0, Math.min(100, (daysRemaining / totalDays) * 100));
+  const progressPct = Math.max(0, Math.min(100, ((totalDays - daysRemaining) / totalDays) * 100));
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_KEY, '1');

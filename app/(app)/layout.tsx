@@ -8,7 +8,7 @@ import { AppSidebar } from '@/views/components/AppSidebar';
 import { SidebarProvider, useSidebar } from '@/views/components/SidebarContext';
 import { ProjectProvider } from '@/views/components/ProjectProvider';
 import { Menu, X } from 'lucide-react';
-import { useEarlyAdopter } from '@/hooks/useEarlyAdopter';
+import { useEarlyAdopter, EarlyAdopterProvider } from '@/hooks/useEarlyAdopter';
 
 function EarlyAdopterClaimer() {
   const { justClaimed } = useEarlyAdopter();
@@ -98,7 +98,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <ToastProvider>
           <SidebarProvider>
             <ProjectProvider>
-              <AppLayoutInner>{children}</AppLayoutInner>
+              <EarlyAdopterProvider>
+                <AppLayoutInner>{children}</AppLayoutInner>
+              </EarlyAdopterProvider>
             </ProjectProvider>
           </SidebarProvider>
         </ToastProvider>

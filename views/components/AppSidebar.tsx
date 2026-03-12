@@ -16,7 +16,7 @@ import {
   Diamond,
   Sparkles,
 } from 'lucide-react';
-import { isEarlyAdopterPeriod } from '@/config/early-adopter';
+import { useEarlyAdopter } from '@/hooks/useEarlyAdopter';
 import { useBilling } from '@/hooks/useBilling';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useAuth } from '@/views/components/AuthProvider';
@@ -55,6 +55,7 @@ export function AppSidebar({
   const pathname = usePathname() ?? '';
   const { closeSidebar } = useSidebar();
   const { subscription, credits } = useBilling();
+  const { isActive: isEarlyAdopter, claimed: earlyAdopterClaimed } = useEarlyAdopter();
 
   const planLabel = subscription?.planId === 'pro'
     ? 'Pro Plan'
@@ -217,7 +218,7 @@ export function AppSidebar({
               </span>
               <span className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
                 {planLabel}
-                {isEarlyAdopterPeriod() && (
+                {isEarlyAdopter && earlyAdopterClaimed && (
                   <span
                     className="inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold"
                     style={{

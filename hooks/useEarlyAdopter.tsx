@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { isEarlyAdopterPeriod, getEarlyAdopterDaysRemaining, EARLY_ADOPTER_EXPIRY } from '@/config/early-adopter';
 
 interface EarlyAdopterState {
@@ -13,17 +14,24 @@ interface EarlyAdopterState {
   justClaimed: boolean;
 }
 
-export function useEarlyAdopter(): EarlyAdopterState {
-  const [state, setState] = useState<EarlyAdopterState>({
-    isActive: isEarlyAdopterPeriod(),
-    eligible: false,
-    claimed: false,
-    daysRemaining: getEarlyAdopterDaysRemaining(),
-    expiresAt: EARLY_ADOPTER_EXPIRY.toISOString(),
-    isLoading: true,
-    justClaimed: false,
-  });
+const DEFAULT_STATE: EarlyAdopterState = {
+  isActive: isEarlyAdopterPeriod(),
+  eligible: false,
+  claimed: false,
+  daysRemaining: getEarlyAdopterDaysRemaining(),
+  expiresAt: EARLY_ADOPTER_EXPIRY.toISOString(),
+  isLoading: true,
+  justClaimed: false,
+};
 
+const EarlyAdopterContext = createContext<EarlyAdopterState>(DEFAULT_STATE);
+
+export function useEarlyAdopter(): EarlyAdopterState {
+  return useContext(EarlyAdopterContext);
+}
+
+export function EarlyAdopterProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<EarlyAdopterState>(DEFAULT_STATE);
   const hasRun = useRef(false);
 
   const checkAndClaim = useCallback(async () => {
@@ -79,5 +87,9 @@ export function useEarlyAdopter(): EarlyAdopterState {
     void checkAndClaim();
   }, [checkAndClaim]);
 
-  return state;
+  return (
+    <EarlyAdopterContext.Provider value={state}>
+      {children}
+    </EarlyAdopterContext.Provider>
+  );
 }
