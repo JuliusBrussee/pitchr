@@ -21,3 +21,8 @@
 | --- | --- | --- | --- |
 | P2-01 | `/api/billing/subscription` 500 noise during local app navigation | Backend/Billing | 1d |
 | P2-02 | Local regression docs/screenshots need centralized storage for repeatable audits | QA | 1d |
+
+## R2 Resolution Notes (2026-03-12)
+
+- P1-01: Unit test target moved from deleted `/analytics` page to current `/insights` page, with expectations updated for current query and range behavior.
+- P1-02: Middleware compliance redirect expectation was stale. Compliance flow and `/compliance/check` gating were intentionally removed in commit `2915fb5` ("Remove GDPR compliance flow and routes"); middleware tests now assert auth-only behavior.
