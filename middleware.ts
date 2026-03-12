@@ -31,6 +31,5 @@ export const config = {
     '/settings/:path*',
     '/projects/:path*',
     '/demo/:path*',
-    '/reset-password/:path*',
   ],
 };
