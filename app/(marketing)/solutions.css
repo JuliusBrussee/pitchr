@@ -119,16 +119,24 @@
 }
 
 @media (max-width: 768px) {
+  .marketing-nav .nav-inner {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
   .marketing-nav .nav-links {
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
   }
 
   .marketing-nav .nav-link {
-    display: none;
+    font-size: 12px;
   }
 
-  .marketing-nav .solutions-dropdown {
-    display: none;
+  .marketing-nav .nav-cta {
+    padding: 8px 12px;
+    font-size: 12px;
   }
 }
 

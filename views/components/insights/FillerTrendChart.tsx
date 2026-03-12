@@ -15,7 +15,7 @@ export function FillerTrendChart({ data }: { data: { label: string; total: numbe
       <h4 className="text-xs font-semibold mb-3" style={{ color: 'var(--text-secondary)' }}>
         Filler Count per Session
       </h4>
-      <div className="flex gap-0" style={{ height: 180 }}>
+      <div className="flex gap-0 h-[140px] sm:h-[180px]">
         {/* Y-axis labels */}
         <div
           className="flex flex-col justify-between pr-3 py-1"

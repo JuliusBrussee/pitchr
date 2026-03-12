@@ -8,7 +8,7 @@ export function ScoreTrendChart({ data }: { data: TrendPoint[] }) {
   const yLabels = [100, 80, 60, 40, 20, 0];
 
   return (
-    <div className="flex gap-0" style={{ height: 220 }}>
+    <div className="flex gap-0 h-[160px] sm:h-[220px]">
       {/* Y-axis labels */}
       <div
         className="flex flex-col justify-between pr-3 py-1"

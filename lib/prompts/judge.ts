@@ -102,7 +102,6 @@ export const JUDGE_RESPONSE_SCHEMA_TEXT = `{
         "impact": "high|medium|low"
       }
     ],
-    "rewrite_script": "string",
     "sentiment_profile": {
       "confidence": "number",
       "urgency": "number",
@@ -312,7 +311,6 @@ function buildPrompt(params: {
     '- Keep each rubric rationale under 18 words.',
     '- Keep top_fixes ranked with concrete issue and fix.',
     '- Keep each fix issue and fix under 16 words each.',
-    '- Keep rewrite_script under 120 words.',
     '- Citations are optional and may be empty; if present keep max 2.',
     '- Keep citation excerpt under 80 characters.',
     '- Keep do_next_checklist to maximum 5 short bullets.',

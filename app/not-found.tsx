@@ -15,7 +15,7 @@ export default function NotFound() {
     >
       {/* Background glow */}
       <div
-        className="fixed top-1/2 left-1/2 w-[500px] h-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+        className="fixed top-1/2 left-1/2 w-[280px] h-[280px] sm:w-[500px] sm:h-[500px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
         style={{
           background: 'radial-gradient(circle, rgba(255, 89, 65, 0.06) 0%, transparent 70%)',
         }}

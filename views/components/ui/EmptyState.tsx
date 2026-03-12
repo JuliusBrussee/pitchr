@@ -45,7 +45,7 @@ export function EmptyState({
       {/* Background glow */}
       {showGlow && !isFiltered && (
         <div
-          className="absolute top-1/2 left-1/2 w-[300px] h-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+          className="absolute top-1/2 left-1/2 w-[200px] h-[200px] sm:w-[300px] sm:h-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
           style={{
             background: `radial-gradient(circle, ${glowColor} 0%, transparent 70%)`,
           }}

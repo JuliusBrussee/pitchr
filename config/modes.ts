@@ -1,6 +1,9 @@
 import type { PitchMode } from '@/types/pitch';
 import type { PitchStage } from '@/types/analysis-v2';
 
+const TARGET_WORDS_MIN = 50;
+const TARGET_WORDS_MAX = 550;
+
 export interface PitchModeConfig {
   id: PitchMode;
   label: string;
@@ -22,6 +25,16 @@ export function computeTimingWindow(targetSeconds: number): { min: number; max: 
     min: Math.round(targetSeconds * 0.85),
     max: Math.round(targetSeconds * 1.15),
   };
+}
+
+/**
+ * Target word count for a rewrite so it fits the mode's duration at target WPM.
+ * Clamped so elevator stays usable and long modes don't explode.
+ */
+export function getTargetWordCount(mode: PitchMode): number {
+  const config = PITCH_MODE_CONFIG[mode];
+  const raw = Math.ceil((config.targetDurationSeconds * config.targetWpm) / 60);
+  return Math.max(TARGET_WORDS_MIN, Math.min(TARGET_WORDS_MAX, raw));
 }
 
 export const PITCH_MODE_CONFIG: Record<PitchMode, PitchModeConfig> = {

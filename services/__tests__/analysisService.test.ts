@@ -1,4 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { runJudgeAgent } from '@/services/judgeAgentService';
+import { runRewriteAgent } from '@/services/rewriteAgentService';
 import { applyHardGateCaps, analyzePitch } from '@/services/analysisService';
 import type { RubricScore, ScoringContext } from '@/types/analysis-v2';
 
@@ -57,37 +59,48 @@ vi.mock('@/services/prepAgentService', () => ({
 }));
 
 vi.mock('@/services/judgeAgentService', () => ({
-  runJudgeAgent: vi.fn().mockResolvedValue({
-    payload: {
-      feedback: {
-        one_line_verdict: 'Test verdict',
-        rubric_breakdown: [
-          { category: 'structure', score: 14, max_score: 20, rationale: 'Solid structure.' },
-          { category: 'clarity', score: 12, max_score: 20, rationale: 'Clear enough.' },
-          { category: 'evidence', score: 10, max_score: 20, rationale: 'Needs numbers.' },
-          { category: 'market', score: 11, max_score: 20, rationale: 'Market present.' },
-          { category: 'delivery', score: 15, max_score: 20, rationale: 'LLM estimate.' },
-        ],
-        top_fixes: [
-          { rank: 1, category: 'evidence', issue: 'No metrics', fix: 'Add ARR', impact: 'high' },
-        ],
-        rewrite_script: 'Improved pitch text.',
-        sentiment_profile: { tone: 'neutral', confidence: 0.8 },
-        citations: [],
-        do_next_checklist: ['Add metrics'],
+  runJudgeAgent: vi.fn().mockImplementation(() =>
+    Promise.resolve({
+      payload: {
+        feedback: {
+          one_line_verdict: 'Test verdict',
+          rubric_breakdown: [
+            { category: 'structure', score: 14, max_score: 20, rationale: 'Solid structure.' },
+            { category: 'clarity', score: 12, max_score: 20, rationale: 'Clear enough.' },
+            { category: 'evidence', score: 10, max_score: 20, rationale: 'Needs numbers.' },
+            { category: 'market', score: 11, max_score: 20, rationale: 'Market present.' },
+            { category: 'delivery', score: 15, max_score: 20, rationale: 'LLM estimate.' },
+          ],
+          top_fixes: [
+            { rank: 1, category: 'evidence', issue: 'No metrics', fix: 'Add ARR', impact: 'high' },
+          ],
+          sentiment_profile: {
+            confidence: 0.8,
+            urgency: 0.5,
+            credibility: 0.7,
+            clarity: 0.6,
+            investor_readiness: 0.5,
+          },
+          citations: [],
+          do_next_checklist: ['Add metrics'],
+        },
+        qa_1min: null,
       },
-      qa_1min: null,
-    },
-    meta: {
-      provider_used: 'anthropic',
-      fallback_used: false,
-      cache_hit: false,
-      llm_calls_used: 1,
-      latency_ms: 1500,
-      attempt_count: 1,
-      telemetry: {},
-    },
-  }),
+      meta: {
+        provider_used: 'anthropic',
+        fallback_used: false,
+        cache_hit: false,
+        llm_calls_used: 1,
+        latency_ms: 1500,
+        attempt_count: 1,
+        telemetry: {},
+      },
+      raw: '{}',
+    }),
+  ),
+}));
+vi.mock('@/services/rewriteAgentService', () => ({
+  runRewriteAgent: vi.fn().mockResolvedValue({ rewrite_script: 'Improved pitch text.' }),
 }));
 
 vi.mock('@/services/analysisCacheService', () => ({
@@ -249,8 +262,48 @@ describe('applyHardGateCaps', () => {
 // ---------------------------------------------------------------------------
 
 describe('analyzePitch', () => {
+  const defaultJudgeResult = {
+    payload: {
+      feedback: {
+        one_line_verdict: 'Test verdict',
+        rubric_breakdown: [
+          { category: 'structure', score: 14, max_score: 20, rationale: 'Solid structure.' },
+          { category: 'clarity', score: 12, max_score: 20, rationale: 'Clear enough.' },
+          { category: 'evidence', score: 10, max_score: 20, rationale: 'Needs numbers.' },
+          { category: 'market', score: 11, max_score: 20, rationale: 'Market present.' },
+          { category: 'delivery', score: 15, max_score: 20, rationale: 'LLM estimate.' },
+        ],
+        top_fixes: [
+          { rank: 1, category: 'evidence', issue: 'No metrics', fix: 'Add ARR', impact: 'high' },
+        ],
+        sentiment_profile: {
+          confidence: 0.8,
+          urgency: 0.5,
+          credibility: 0.7,
+          clarity: 0.6,
+          investor_readiness: 0.5,
+        },
+        citations: [] as const,
+        do_next_checklist: ['Add metrics'] as const,
+      },
+      qa_1min: null,
+    },
+    meta: {
+      provider_used: 'anthropic' as const,
+      fallback_used: false,
+      cache_hit: false,
+      llm_calls_used: 1,
+      latency_ms: 1500,
+      attempt_count: 1,
+      telemetry: {},
+    },
+    raw: '{}',
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(runJudgeAgent).mockResolvedValue(defaultJudgeResult as any);
+    vi.mocked(runRewriteAgent).mockResolvedValue({ rewrite_script: 'Improved pitch text.' });
   });
 
   it('returns v2 analysis result with correct structure', async () => {

@@ -24,7 +24,7 @@ export function WpmTrendChart({ data }: { data: { label: string; wpm: number }[]
   }
 
   return (
-    <div className="flex gap-0" style={{ height: 220 }}>
+    <div className="flex gap-0 h-[160px] sm:h-[220px]">
       {/* Y-axis labels */}
       <div
         className="flex flex-col justify-between pr-3 py-1"
