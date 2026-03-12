@@ -1,12 +1,32 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { AuthProvider } from '@/views/components/AuthProvider';
 import { TutorialProvider } from '@/views/components/TutorialProvider';
-import { ToastProvider } from '@/views/components/Toast';
+import { ToastProvider, useToast } from '@/views/components/Toast';
 import { AppSidebar } from '@/views/components/AppSidebar';
 import { SidebarProvider, useSidebar } from '@/views/components/SidebarContext';
 import { ProjectProvider } from '@/views/components/ProjectProvider';
 import { Menu, X } from 'lucide-react';
+import { useEarlyAdopter } from '@/hooks/useEarlyAdopter';
+
+function EarlyAdopterClaimer() {
+  const { justClaimed } = useEarlyAdopter();
+  const { toast } = useToast();
+  const toasted = useRef(false);
+
+  useEffect(() => {
+    if (justClaimed && !toasted.current) {
+      // Prevent repeat toasts across navigations within same session
+      if (sessionStorage.getItem('pitchr_ea_toasted')) return;
+      toasted.current = true;
+      sessionStorage.setItem('pitchr_ea_toasted', '1');
+      toast('success', 'Welcome, Early Adopter! 20 bonus credits added.');
+    }
+  }, [justClaimed, toast]);
+
+  return null;
+}
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
   const {
@@ -59,6 +79,9 @@ function AppLayoutInner({ children }: { children: React.ReactNode }) {
           isProjectSwitchLocked={isProjectSwitchLocked}
         />
       </div>
+
+      {/* Early adopter auto-claim (renderless) */}
+      <EarlyAdopterClaimer />
 
       {/* Main content — add left padding on mobile for hamburger */}
       <main className="flex-1 min-w-0 min-h-0 flex flex-col md:pl-0 pt-12 md:pt-0">

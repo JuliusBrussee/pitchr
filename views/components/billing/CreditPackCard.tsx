@@ -72,12 +72,12 @@ export function CreditPackCard({ name, credits, priceUsd, isLoading, onPurchase,
 
       {/* Price */}
       <p className="text-lg font-bold" style={{ color: '#ff5941' }}>
-        ${priceUsd}
+        €{priceUsd}
       </p>
 
       {/* Per-credit cost */}
       <p className="text-[10px] font-medium" style={{ color: 'var(--text-muted)' }}>
-        ${perCredit} per credit
+        €{perCredit} per credit
       </p>
 
       {/* Buy button */}

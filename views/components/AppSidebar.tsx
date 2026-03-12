@@ -14,7 +14,9 @@ import {
   Sun,
   Moon,
   Diamond,
+  Sparkles,
 } from 'lucide-react';
+import { isEarlyAdopterPeriod } from '@/config/early-adopter';
 import { useBilling } from '@/hooks/useBilling';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { useAuth } from '@/views/components/AuthProvider';
@@ -213,8 +215,20 @@ export function AppSidebar({
               >
                 {user.email}
               </span>
-              <span className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>
+              <span className="flex items-center gap-1 text-[10px]" style={{ color: 'var(--text-muted)' }}>
                 {planLabel}
+                {isEarlyAdopterPeriod() && (
+                  <span
+                    className="inline-flex items-center gap-0.5 px-1 py-px rounded text-[8px] font-semibold"
+                    style={{
+                      backgroundColor: 'rgba(245,158,11,0.12)',
+                      color: '#f59e0b',
+                    }}
+                  >
+                    <Sparkles size={7} />
+                    Early Adopter
+                  </span>
+                )}
               </span>
             </div>
             <button

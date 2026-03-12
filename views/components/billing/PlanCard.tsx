@@ -114,7 +114,7 @@ export function PlanCard({
               className="text-4xl font-extrabold tracking-tight"
               style={{ color: 'var(--text-primary)' }}
             >
-              $0
+              €0
             </span>
             <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
               /forever
@@ -127,7 +127,7 @@ export function PlanCard({
                 className="text-4xl font-extrabold tracking-tight"
                 style={{ color: 'var(--text-primary)' }}
               >
-                ${monthlyEquivalent}
+                €{monthlyEquivalent}
               </span>
               <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                 /mo
@@ -135,7 +135,7 @@ export function PlanCard({
             </div>
             {interval === 'year' && (
               <p className="text-[11px] mt-1.5 font-medium" style={{ color: '#22c55e' }}>
-                ${price}/year — save ${plan.pricing.monthly * 12 - price}
+                €{price}/year — save €{plan.pricing.monthly * 12 - price}
               </p>
             )}
             {interval === 'month' && (

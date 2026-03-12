@@ -176,7 +176,7 @@ export function SessionPaywall({
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' }}
                   >
-                    Save $58
+                    Save €58
                   </span>
                 </button>
               </div>
@@ -189,7 +189,7 @@ export function SessionPaywall({
                   className="text-2xl font-extrabold tracking-tight"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  ${displayPrice}
+                  €{displayPrice}
                 </span>
                 <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                   /mo
@@ -197,7 +197,7 @@ export function SessionPaywall({
               </div>
               {interval === 'year' && (
                 <p className="text-[11px] mt-0.5" style={{ color: '#22c55e' }}>
-                  Billed ${yearlyPrice}/year
+                  Billed €{yearlyPrice}/year
                 </p>
               )}
             </div>
@@ -287,7 +287,7 @@ export function SessionPaywall({
                         {pack.name}
                       </p>
                       <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                        {pack.credits} credits · ${pack.priceUsd}
+                        {pack.credits} credits · €{pack.priceUsd}
                       </p>
                     </div>
                   </div>

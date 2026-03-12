@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, X, Zap, ArrowRight, Coins } from 'lucide-react';
+import { Check, X, Zap, ArrowRight, Coins, Sparkles } from 'lucide-react';
+import { isEarlyAdopterPeriod, getEarlyAdopterDaysRemaining, EARLY_ADOPTER_CREDITS } from '@/config/early-adopter';
 import { BILLING_PLANS, CREDIT_PACKS_STATIC, MONTHLY_CREDITS, CREDIT_COSTS } from '@/config/billing';
 import { buildFeatureList, buildExcludedFeatures } from '@/config/billing-features';
 import type { BillingPlan, BillingInterval } from '@/types/billing';
@@ -51,16 +52,16 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
       <div className="lp-price-block">
         {isFree ? (
           <>
-            <span className="lp-price">$0</span>
+            <span className="lp-price">€0</span>
             <span className="lp-price-period">/forever</span>
           </>
         ) : (
           <>
-            <span className="lp-price">${monthlyEquivalent}</span>
+            <span className="lp-price">€{monthlyEquivalent}</span>
             <span className="lp-price-period">/mo</span>
             {interval === 'year' && (
               <p className="lp-price-note lp-price-note-green">
-                ${yearlyPrice}/yr — save ${plan.pricing.monthly * 12 - yearlyPrice}
+                €{yearlyPrice}/yr — save €{plan.pricing.monthly * 12 - yearlyPrice}
               </p>
             )}
             {interval === 'month' && (
@@ -144,7 +145,7 @@ function LandingCreditsCard() {
 
       {/* Price range */}
       <div className="lp-price-block">
-        <span className="lp-price">$5–$35</span>
+        <span className="lp-price">€5–€35</span>
         <span className="lp-price-period">/pack</span>
         <p className="lp-price-note">Credits never expire</p>
       </div>
@@ -162,7 +163,7 @@ function LandingCreditsCard() {
                 <span className="lp-credit-row-count">{pack.credits} cr</span>
               </div>
               <div className="lp-credit-row-right">
-                <span className="lp-credit-row-price">${pack.priceUsd}</span>
+                <span className="lp-credit-row-price">€{pack.priceUsd}</span>
                 {savingsPct > 0 && (
                   <span className={`lp-credit-row-save ${savingsPct >= 40 ? 'lp-credit-row-save-high' : ''}`}>
                     −{savingsPct}%
@@ -249,6 +250,29 @@ export function LandingPricing() {
             </button>
           </div>
         </div>
+
+        {/* Early adopter callout */}
+        {isEarlyAdopterPeriod() && (
+          <div
+            className="reveal"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 20px',
+              borderRadius: 12,
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(245,158,11,0.04) 100%)',
+              border: '1px solid rgba(245,158,11,0.2)',
+              marginBottom: 24,
+            }}
+          >
+            <Sparkles size={18} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--lp-text, #d1d5db)' }}>
+              <strong style={{ color: '#f59e0b' }}>Early Adopter Bonus:</strong>{' '}
+              Sign up now and get <strong>{EARLY_ADOPTER_CREDITS} free credits</strong> — {getEarlyAdopterDaysRemaining()} days left
+            </p>
+          </div>
+        )}
 
         {/* 3-col grid: Free | Pro | Credits */}
         <div className="lp-grid">

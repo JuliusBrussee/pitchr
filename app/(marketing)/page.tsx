@@ -11,7 +11,7 @@ import { LandingDemo } from '@/views/components/landing/LandingDemo';
 import { LandingBlog } from '@/views/components/landing/LandingBlog';
 import { LandingPricing } from '@/views/components/landing/LandingPricing';
 import { DELIVERY_WAVE_BARS } from '@/views/components/landing/heroDeliveryFunnel.config';
-import { JourneyBarLanding } from '@/views/components/features/JourneyBar';
+
 import { SolutionsDropdown } from '@/views/components/landing/SolutionsDropdown';
 import type { CSSProperties } from 'react';
 import '@/app/(marketing)/landing.css';
@@ -320,8 +320,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ═══ JOURNEY BAR ═══ */}
-        <JourneyBarLanding />
 
         {/* ═══ BLOG ═══ */}
         <LandingBlog posts={posts} />

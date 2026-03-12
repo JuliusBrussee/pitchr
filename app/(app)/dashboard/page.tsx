@@ -47,6 +47,7 @@ import { CoachSummary } from '@/views/components/dashboard/CoachSummary';
 import { Sparkline } from '@/views/components/dashboard/Sparkline';
 import { RadarChart } from '@/views/components/dashboard/RadarChart';
 import { StreakBadge } from '@/views/components/dashboard/StreakBadge';
+import { EarlyAdopterBanner } from '@/views/components/billing/EarlyAdopterBanner';
 
 /* ——— Types ——— */
 
@@ -189,6 +190,9 @@ export default function DashboardPage() {
       }}
     >
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
+        {/* ——— Early Adopter Banner ——— */}
+        <EarlyAdopterBanner />
+
         {/* ——— Header: Greeting + CTA ——— */}
         <div
           className="flex items-center justify-between animate-fade-in-up"

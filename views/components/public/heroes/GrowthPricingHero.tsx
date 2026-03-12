@@ -25,7 +25,7 @@ const PLANS = [
   {
     name: 'Credits',
     price: 5,
-    period: '–$35',
+    period: '–€35',
     credits: 'Buy anytime',
     featured: false,
     barColor: 'var(--pp-orange)',
@@ -79,7 +79,7 @@ export function GrowthPricingHero() {
             )}
             <div className="pp-mini-plan-name">{plan.name}</div>
             <div className="pp-mini-plan-price">
-              ${plan.price}
+              €{plan.price}
               <span>{plan.period}</span>
             </div>
             <div className="pp-mini-plan-credits">{plan.credits}</div>

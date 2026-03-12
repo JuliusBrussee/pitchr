@@ -1,8 +1,9 @@
 'use client';
 
-import { Coins, RefreshCw, ShoppingBag, Gift } from 'lucide-react';
+import { Coins, RefreshCw, ShoppingBag, Gift, Sparkles } from 'lucide-react';
 import type { CreditInfo } from '@/hooks/useBilling';
 import { CREDIT_COSTS } from '@/config/billing';
+import { isEarlyAdopterPeriod, getEarlyAdopterDaysRemaining } from '@/config/early-adopter';
 
 interface CreditBalanceProps {
   credits: CreditInfo;
@@ -96,20 +97,29 @@ export function CreditBalance({ credits }: CreditBalanceProps) {
         </div>
 
         {/* Bonus */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5">
-            <Gift size={10} style={{ color: 'var(--text-muted)' }} />
-            <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              Bonus
-            </span>
-          </div>
-          <p className="text-lg font-bold tabular-nums" style={{ color: bonusCredits > 0 ? '#ffaa33' : 'var(--text-primary)' }}>
-            {bonusCredits}
-          </p>
-          <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-            {bonusCredits > 0 ? 'Limited time' : '—'}
-          </p>
-        </div>
+        {(() => {
+          const isEA = isEarlyAdopterPeriod() && bonusCredits > 0;
+          const BonusIcon = isEA ? Sparkles : Gift;
+          const bonusLabel = isEA ? 'Early Adopter' : 'Bonus';
+          const bonusColor = isEA ? '#f59e0b' : '#ffaa33';
+          const daysLeft = isEA ? getEarlyAdopterDaysRemaining() : 0;
+          return (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <BonusIcon size={10} style={{ color: isEA ? bonusColor : 'var(--text-muted)' }} />
+                <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: isEA ? bonusColor : 'var(--text-muted)' }}>
+                  {bonusLabel}
+                </span>
+              </div>
+              <p className="text-lg font-bold tabular-nums" style={{ color: bonusCredits > 0 ? bonusColor : 'var(--text-primary)' }}>
+                {bonusCredits}
+              </p>
+              <p className="text-[10px]" style={{ color: isEA ? bonusColor : 'var(--text-muted)' }}>
+                {isEA ? `Expires in ${daysLeft}d` : bonusCredits > 0 ? 'Limited time' : '—'}
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Divider */}

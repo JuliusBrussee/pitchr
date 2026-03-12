@@ -315,7 +315,7 @@ export function UpgradePrompt({
                     className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: 'rgba(34, 197, 94, 0.12)', color: '#22c55e' }}
                   >
-                    Save ${savings}
+                    Save €{savings}
                   </span>
                 )}
               </button>
@@ -329,7 +329,7 @@ export function UpgradePrompt({
                 className="text-3xl font-extrabold tracking-tight"
                 style={{ color: 'var(--text-primary)' }}
               >
-                ${displayPrice}
+                €{displayPrice}
               </span>
               <span className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                 /mo
@@ -337,7 +337,7 @@ export function UpgradePrompt({
             </div>
             {interval === 'year' && (
               <p className="text-[11px] mt-1" style={{ color: '#22c55e' }}>
-                Billed ${yearlyPrice}/year
+                Billed €{yearlyPrice}/year
               </p>
             )}
           </div>
