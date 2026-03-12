@@ -4,41 +4,27 @@
 
 | Command | Run Window (CET) | Exit | Result |
 | --- | --- | --- | --- |
-| `yarn typecheck` | 11:15-11:16 | `1` | FAIL |
-| `yarn test` | 11:16-11:17 | `1` | FAIL |
-| `yarn playwright test tests/e2e/smoke.spec.ts` | 11:17-11:18 | `1` | FAIL |
+| `yarn typecheck` | 18:35:07-18:35:21 | `0` | PASS |
+| `yarn test` | 18:35:29-18:35:46 | `0` | PASS |
+| `yarn playwright test tests/e2e/smoke.spec.ts` | 18:35:54-18:36:37 | `0` | PASS |
 
-## Key Failure Evidence
+## Full Funnel Walkthrough
 
-### `yarn typecheck`
+| Command | Run Window (CET) | Exit | Result |
+| --- | --- | --- | --- |
+| `yarn playwright test tests/e2e/funnel-regression.spec.ts` | 18:36:46-18:37:42 | `0` | PASS |
 
-- `instrumentation-client.ts(15,19): error TS2554: Expected 2 arguments, but got 1.`
-- Multiple pre-existing type errors in:
-  - `app/(app)/qa/[runId]/page.tsx`
-  - `app/(app)/results/[runId]/page.tsx`
-  - `services/prepAgentService.ts`
-  - `views/components/results/SectionAccordion.tsx`
+Flow verified:
+`Dashboard -> Run a Pitch -> Select mode -> Input -> Analyze -> Results -> History`
 
-### `yarn test`
+## Supporting Evidence
 
-- Failed suite: `tests/analytics-page.test.tsx`
-  - Import resolution error for `@/app/(app)/analytics/page`
-- Failed test: `lib/supabase/__tests__/middleware.test.ts`
-  - `redirects EEA users without compliance completion to /compliance/check`
-  - Expected status `307`, received `200`
-
-### `yarn playwright test tests/e2e/smoke.spec.ts`
-
-- Initial run failed because `http://localhost:3000` was already in use.
-- Fresh rerun after stopping listeners failed with:
-  - `Error: Process from config.webServer exited early.`
-- Web server stderr during diagnostic repro included:
-  - `ENOENT ... pitchr-next-cache ... vendor-chunks/@opentelemetry.js`
+- Unit/integration suite summary: `72` test files passed, `391` tests passed.
+- Smoke suite summary: `2/2` tests passed.
+- Funnel suite summary: `1/1` test passed.
+- Regression fallback tests: `lib/supabase/__tests__/local-regression-edge.test.ts` passed (`2/2`).
 
 ## Gate Verdict
 
-- Launch verification gate status: `FAILED`
-- Blocking categories:
-  1. TypeScript compile failures
-  2. Unit/integration regression failures
-  3. Unstable Playwright webServer startup
+- Launch verification gate status: `PASSED`
+- Blocking categories from previous run: `CLEARED`
