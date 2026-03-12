@@ -60,7 +60,8 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:registry.npmjs.org)",
       "WebFetch(domain:www.npmjs.com)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(ls -la /Users/julb/Desktop/GitHub/pitchr/app/\\\\\\(app\\\\\\)/)"
     ]
   }
 }
