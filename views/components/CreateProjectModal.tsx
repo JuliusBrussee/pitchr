@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, FolderPlus, Loader2, CornerDownLeft } from 'lucide-react';
 import { useProject } from '@/views/components/ProjectProvider';
+import { ModeSegmentedControl } from '@/views/components/ModeSegmentedControl';
+import type { PitchMode } from '@/types/pitch';
 
 interface CreateProjectModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [scoringRequirements, setScoringRequirements] = useState('');
+  const [selectedMode, setSelectedMode] = useState<PitchMode>('vc_pitch');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -42,6 +45,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
         name: name.trim(),
         description: description.trim() || undefined,
         extraNotes: scoringRequirements.trim() || undefined,
+        defaultMode: selectedMode,
         promptOverrides: scoringRequirements.trim()
           ? { analysis_system_prompt: scoringRequirements.trim() }
           : undefined,
@@ -50,6 +54,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
       setName('');
       setDescription('');
       setScoringRequirements('');
+      setSelectedMode('vc_pitch');
       onCreated(created.id);
       handleClose();
     } catch (e) {
@@ -168,7 +173,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
           </div>
 
           {/* Description */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label
               className="block text-[11px] font-semibold mb-2 uppercase tracking-wider"
               style={{ color: 'var(--text-muted)' }}
@@ -193,6 +198,20 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
             />
           </div>
 
+          {/* Default Pitch Mode */}
+          <div className="mb-6">
+            <label
+              className="block text-[11px] font-semibold mb-2 uppercase tracking-wider"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              Default Pitch Mode
+            </label>
+            <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
+              Sets the default grading criteria for sessions
+            </p>
+            <ModeSegmentedControl value={selectedMode} onChange={setSelectedMode} />
+          </div>
+
           <div className="mb-6">
             <label
               className="block text-[11px] font-semibold mb-2 uppercase tracking-wider"
@@ -201,7 +220,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
               Scoring Requirements <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: '0' }}>(optional)</span>
             </label>
             <p className="text-[11px] mb-2" style={{ color: 'var(--text-muted)' }}>
-              What should the AI judge explicitly check for?
+              What should the AI judge explicitly check for? These requirements customize how your pitches are graded and will appear in your results.
             </p>
             <textarea
               value={scoringRequirements}

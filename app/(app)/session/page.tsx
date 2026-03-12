@@ -80,21 +80,16 @@ function SessionPageContent() {
   );
   const [isConfigCollapsed, setIsConfigCollapsed] = useState(false);
 
+  // Default session mode from the active project's defaultMode
   useEffect(() => {
-    const stored = localStorage.getItem('pitchr_session_mode');
-    if (stored === 'elevator' || stored === 'vc_pitch' || stored === 'hackathon' || stored === 'final_year') {
-      setSelectedMode(stored);
-      setSelectedDuration(PITCH_MODE_CONFIG[stored].defaultDurationSeconds);
+    if (!activeProject?.defaultMode) return;
+    const mode = activeProject.defaultMode;
+    if (mode === 'elevator' || mode === 'vc_pitch' || mode === 'hackathon' || mode === 'final_year') {
+      setSelectedMode(mode);
+      setSelectedDuration(PITCH_MODE_CONFIG[mode].defaultDurationSeconds);
     }
-  }, []);
+  }, [activeProject?.defaultMode]);
 
-  const handleModeChange = useCallback((mode: PitchMode) => {
-    setSelectedMode(mode);
-    setSelectedDuration(PITCH_MODE_CONFIG[mode].defaultDurationSeconds);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('pitchr_session_mode', mode);
-    }
-  }, []);
 
   // Deck state
   const [decks, setDecks] = useState<DeckRecord[]>([]);
@@ -465,8 +460,6 @@ function SessionPageContent() {
     <div className="flex gap-4 h-full min-h-0">
       <div className="flex-1 min-w-0 min-h-0 flex flex-col gap-2">
         <PreSessionConfig
-          mode={selectedMode}
-          onModeChange={handleModeChange}
           duration={selectedDuration}
           onDurationChange={setSelectedDuration}
           isCollapsed={isConfigCollapsed}

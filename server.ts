@@ -165,7 +165,7 @@ const httpServer = createServer(app);
 const wss = new WebSocketServer({ server: httpServer, path: "/ws" });
 
 function isPitchMode(value: unknown): value is PitchMode {
-  return value === "elevator" || value === "vc_pitch";
+  return value === "elevator" || value === "vc_pitch" || value === "hackathon" || value === "final_year";
 }
 
 wss.on("connection", (clientWs, req) => {
@@ -202,6 +202,8 @@ wss.on("connection", (clientWs, req) => {
   let checklistPendingForce = false;
   let transcriptionInProgress = false;
   let streamingSession: ReturnType<typeof createAssemblyAIStreamingSession> | null = null;
+  let lastChecklistEvalMs = 0;
+  const CHECKLIST_EVAL_THROTTLE_MS = 10_000;
 
   function forwardToClient(obj: object) {
     if (clientWs.readyState === WebSocket.OPEN) {
@@ -467,6 +469,12 @@ wss.on("connection", (clientWs, req) => {
                 text,
                 words: words.map((w) => ({ text: w.text, start: w.start, end: w.end })),
               });
+              // Periodically evaluate checklist as user speaks
+              const now = Date.now();
+              if (now - lastChecklistEvalMs >= CHECKLIST_EVAL_THROTTLE_MS) {
+                lastChecklistEvalMs = now;
+                queueChecklistEvaluation(false);
+              }
             }
           },
           onError(err) {
