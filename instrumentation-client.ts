@@ -8,5 +8,7 @@ Sentry.init({
   enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
 });
 
+const noopRouterTransitionStart = () => undefined;
+
 export const onRouterTransitionStart =
-  Sentry.captureRouterTransitionStart ?? (() => undefined);
+  Sentry.captureRouterTransitionStart ?? noopRouterTransitionStart;
