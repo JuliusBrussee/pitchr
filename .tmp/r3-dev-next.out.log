@@ -1,0 +1,12 @@
+[check:vercel-integrations] Vercel analytics integrations resolved.
+Prepared local Next cache junctions: C:\projects\pitchr\.next -> C:\Users\20243223\AppData\Local\pitchr-next-cache\c98895e538bd, C:\Users\20243223\AppData\Local\pitchr-next-cache\node_modules -> C:\projects\pitchr\node_modules
+   ▲ Next.js 15.5.12
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.178.217:3000
+   - Experiments (use with caution):
+     · clientTraceMetadata
+
+ ✓ Starting...
+ ○ Compiling /instrumentation ...
+ ✓ Compiled /instrumentation in 2.2s (1142 modules)
+ ✓ Ready in 4.3s
