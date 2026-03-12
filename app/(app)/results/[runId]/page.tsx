@@ -641,7 +641,7 @@ export default function ResultsPage() {
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
             <MessageCircleQuestion size={14} />
-            {{ hackathon: 'Judge', final_year: 'Panel' }[run.mode] ?? 'Investor'} Q&amp;A
+            {({ hackathon: 'Judge', final_year: 'Panel' } as Record<string, string>)[run.mode] ?? 'Investor'} Q&amp;A
           </Link>
         </div>
       </header>
@@ -791,7 +791,7 @@ export default function ResultsPage() {
       />
 
       {qaPack ? (
-        <Section title={`1-Minute ${{ hackathon: 'Judge', final_year: 'Panel' }[run.mode] ?? 'Investor'} Drill`}>
+        <Section title={`1-Minute ${({ hackathon: 'Judge', final_year: 'Panel' } as Record<string, string>)[run.mode] ?? 'Investor'} Drill`}>
           <InvestorDrill
             qaPack={qaPack}
             runId={run.id}
