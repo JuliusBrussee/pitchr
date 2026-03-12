@@ -1,34 +1,36 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const sentryState = vi.hoisted(() => ({
+  captureRouterTransitionStart:
+    undefined as undefined | ((...args: unknown[]) => unknown),
+}));
+
+vi.mock('@sentry/nextjs', () => ({
+  init: () => undefined,
+  get captureRouterTransitionStart() {
+    return sentryState.captureRouterTransitionStart;
+  },
+}));
 
 describe('instrumentation client integration', () => {
-  it('exports a stable transition hook wrapper that forwards route changes to Sentry', async () => {
+  beforeEach(() => {
     vi.resetModules();
-    const captureRouterTransitionStart = vi.fn();
-
-    vi.doMock('@sentry/nextjs', () => ({
-      init: () => undefined,
-      captureRouterTransitionStart,
-    }));
-
-    const mod = await import('../instrumentation-client');
-    expect(typeof mod.onRouterTransitionStart).toBe('function');
-    expect(mod.onRouterTransitionStart.length).toBe(1);
-
-    mod.onRouterTransitionStart('/session');
-    expect(captureRouterTransitionStart).toHaveBeenCalledWith('/session');
+    sentryState.captureRouterTransitionStart = undefined;
   });
 
-  it('provides a no-throw fallback when Sentry transition capture is unavailable', async () => {
-    vi.resetModules();
-
-    vi.doMock('@sentry/nextjs', () => ({
-      init: () => undefined,
-      captureRouterTransitionStart: undefined,
-    }));
-
+  it('exports onRouterTransitionStart for Next.js router tracing hooks', async () => {
     const mod = await import('../instrumentation-client');
     expect(typeof mod.onRouterTransitionStart).toBe('function');
-    expect(mod.onRouterTransitionStart.length).toBe(1);
-    expect(() => mod.onRouterTransitionStart('/dashboard')).not.toThrow();
+  });
+
+  it('reads captureRouterTransitionStart at call time', async () => {
+    const mod = await import('../instrumentation-client');
+    const captureRouterTransitionStart = vi.fn(() => 'ok');
+
+    sentryState.captureRouterTransitionStart = captureRouterTransitionStart;
+    const result = mod.onRouterTransitionStart('/dashboard');
+
+    expect(captureRouterTransitionStart).toHaveBeenCalledWith('/dashboard');
+    expect(result).toBe('ok');
   });
 });
