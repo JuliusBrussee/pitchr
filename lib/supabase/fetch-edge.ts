@@ -6,6 +6,10 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
+import {
+  handleLocalRegressionEdgeRequest,
+  isLocalRegressionMode,
+} from '@/lib/supabase/local-regression-edge';
 
 /** Cached auth token to avoid repeated getSession/getUser calls on the same page load. */
 let cachedToken: string | null = null;
@@ -105,6 +109,10 @@ export async function fetchEdge(
   functionName: string,
   init?: RequestInit & { params?: Record<string, string> | URLSearchParams },
 ): Promise<Response> {
+  if (isLocalRegressionMode()) {
+    return handleLocalRegressionEdgeRequest(functionName, init);
+  }
+
   const url = edgeFunctionUrl(functionName, init?.params);
   const authHeaders = await getEdgeHeaders(
     init?.headers as Record<string, string> | undefined,
