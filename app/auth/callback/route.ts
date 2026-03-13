@@ -11,6 +11,18 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // For OAuth sign-ins (e.g. Google) where redirectTo is not /setup,
+      // detect first-time users by checking if their account was just created
+      // (within the last 2 minutes) and route them through onboarding.
+      if (redirectTo !== '/setup') {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.created_at) {
+          const ageMs = Date.now() - new Date(user.created_at).getTime();
+          if (ageMs < 2 * 60 * 1000) {
+            return NextResponse.redirect(new URL('/setup', origin));
+          }
+        }
+      }
       return NextResponse.redirect(new URL(redirectTo, origin));
     }
   }

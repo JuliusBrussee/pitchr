@@ -400,7 +400,14 @@ export interface BeatMatch {
     | 'proof'
     | 'differentiation'
     | 'wedge'
-    | 'ask';
+    | 'ask'
+    | 'demo'
+    | 'innovation'
+    | 'impact'
+    | 'methodology'
+    | 'results'
+    | 'evaluation'
+    | 'limitations';
   evidence: string;
 }
 
