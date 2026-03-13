@@ -22,7 +22,7 @@ const DEFAULT_TRUSTED_CLIENT_IP_HEADERS = [
   'x-forwarded-for',
   'x-vercel-forwarded-for',
 ];
-const DEFAULT_PUBLIC_WRITE_RATE_LIMIT_BACKEND = 'upstash';
+const DEFAULT_PUBLIC_WRITE_RATE_LIMIT_BACKEND = 'memory';
 
 const state = new Map<string, RateLimitState>();
 

@@ -334,6 +334,7 @@ function PreSessionGate({
   isLoading,
   error,
   runId,
+  mode,
 }: {
   budget: QaBudgetState;
   selectedDuration: number;

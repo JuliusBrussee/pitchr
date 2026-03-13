@@ -150,7 +150,7 @@ export function SectionAccordion({
                 }}
               >
                 {(mode === 'final_year'
-                  ? { solution: 'Approach', traction: 'Results', ask: 'Next Steps' }[beat]
+                  ? ({ solution: 'Approach', traction: 'Results', ask: 'Next Steps' } as Record<string, string>)[beat]
                   : undefined) ?? BEAT_LABELS[beat]} not detected
               </span>
             ))}
@@ -203,7 +203,7 @@ export function SectionAccordion({
                   />
                   <span className="font-medium text-sm truncate">
                     {(mode === 'final_year'
-                      ? { solution: 'Approach', traction: 'Results', ask: 'Next Steps' }[section.beat]
+                      ? ({ solution: 'Approach', traction: 'Results', ask: 'Next Steps' } as Record<string, string>)[section.beat]
                       : undefined) ?? BEAT_LABELS[section.beat] ?? section.beat}
                   </span>
                 </button>

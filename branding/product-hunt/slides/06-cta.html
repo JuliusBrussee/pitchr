@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 2540px; height: 1520px;
+      background: #08080a;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      width: 100%; height: 100%;
+    }
+    .headline {
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #ff5941, #ffaa33);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #9a9a98; line-height: 1.5; }
+    .pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 48px;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #ededec;
+      font-size: 24px;
+      font-weight: 500;
+    }
+    .pill-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Central coral glow behind the headline — the "hero light" -->
+  <div style="position:absolute;width:800px;height:300px;top:38%;left:50%;margin-left:-400px;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,89,65,0.20) 0%, transparent 70%);
+    filter:blur(50px);pointer-events:none;"></div>
+
+  <!-- Fine noise -->
+  <svg style="position:absolute;width:0;height:0;">
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </svg>
+  <div style="position:absolute;inset:0;z-index:0;opacity:0.025;filter:url(#grain);pointer-events:none;"></div>
+
+  <!-- Vignette -->
+  <div style="position:absolute;inset:0;z-index:0;
+    background:radial-gradient(ellipse 85% 80% at 50% 50%, transparent 50%, rgba(0,0,0,0.4) 100%);
+    pointer-events:none;"></div>
+
+  <div class="content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 1520px; padding: 60px 80px;">
+
+    <div class="logo" style="display: flex; align-items: center; margin-bottom: 40px;">
+      <span style="width: 56px; height: 56px; background: #e63b26; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" fill="none" viewBox="0 0 430 559">
+          <path stroke="#F4F4F4" stroke-linecap="round" stroke-linejoin="round" stroke-width="70" d="M35 524V211c0-100 74-176 150-176h48c93 0 162 70 162 168 0 84-62 162-166 170l-80 6c-60 4-114 52-114 100"/>
+          <rect fill="#fff" width="36" height="190" x="197" y="113" rx="18"/>
+          <rect fill="#fff" width="31" height="151" x="267" y="136" rx="15.5"/>
+          <rect fill="#fff" width="32" height="151" x="132" y="133" rx="16"/>
+        </svg>
+      </span>
+      <span style="font-size: 36px; font-weight: 700; color: #ededec; margin-left: 12px;">Pitchr</span>
+    </div>
+
+    <h1 class="headline" style="font-size: 76px; text-align: center; margin-bottom: 32px;">Ship pitches<br>that close rounds.</h1>
+
+    <p class="subtitle" style="font-size: 28px; text-align: center; margin-bottom: 56px;">Free to start. No credit card required.</p>
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 24px;">
+      <div style="display: flex; gap: 24px;">
+        <div class="pill"><span class="pill-dot" style="background: #ff5941;"></span>AI Scoring /100</div>
+        <div class="pill"><span class="pill-dot" style="background: #ffaa33;"></span>Priority Fixes</div>
+        <div class="pill"><span class="pill-dot" style="background: #4ade80;"></span>Investor Q&amp;A Drills</div>
+      </div>
+      <div style="display: flex; gap: 24px;">
+        <div class="pill"><span class="pill-dot" style="background: #ff5941;"></span>Script Rewrites</div>
+        <div class="pill"><span class="pill-dot" style="background: #ffaa33;"></span>Delivery Metrics</div>
+        <div class="pill"><span class="pill-dot" style="background: #4ade80;"></span>Progress Tracking</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

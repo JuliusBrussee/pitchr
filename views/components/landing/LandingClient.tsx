@@ -18,8 +18,6 @@ import { PitchrLogo } from '@/views/components/PitchrLogo';
 import { LandingDemo } from '@/views/components/landing/LandingDemo';
 import '@/app/(marketing)/landing.css';
 
-const PRIVACY_NOTICE_VERSION = process.env.NEXT_PUBLIC_GDPR_POLICY_VERSION || '2026-03-04';
-
 export function LandingClient({
   posts,
   initialNowMs,
@@ -45,11 +43,6 @@ export function LandingClient({
   const deliveryWaveRef = useRef<SVGSVGElement>(null);
   const deliveryTranscriptRef = useRef<HTMLDivElement>(null);
 
-  const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [waitlistPrivacyAck, setWaitlistPrivacyAck] = useState(true);
-  const [waitlistNewsletterOptIn, setWaitlistNewsletterOptIn] = useState(false);
-  const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [waitlistMessage, setWaitlistMessage] = useState('');
   const [heroTileRenderCap, setHeroTileRenderCap] = useState(180);
   const [heroFunnelEnabled, setHeroFunnelEnabled] = useState(false);
 
@@ -132,50 +125,6 @@ export function LandingClient({
       ? 'auto'
       : 'smooth';
   };
-
-  async function handleWaitlistSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!waitlistEmail.trim()) return;
-    setWaitlistStatus('loading');
-    try {
-      // Collect UTM params from current URL
-      const params = new URLSearchParams(window.location.search);
-
-      const res = await fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: waitlistEmail.trim(),
-          referrer: document.referrer || null,
-          utm_source: params.get('utm_source') || null,
-          utm_medium: params.get('utm_medium') || null,
-          utm_campaign: params.get('utm_campaign') || null,
-          landing_page: window.location.pathname,
-          privacy_notice_acknowledged: waitlistPrivacyAck,
-          privacy_notice_version: PRIVACY_NOTICE_VERSION,
-          newsletter_opt_in: waitlistNewsletterOptIn,
-        }),
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setWaitlistStatus('success');
-        setWaitlistMessage(data.message);
-        setWaitlistEmail('');
-      } else {
-        setWaitlistStatus('error');
-        setWaitlistMessage(data.error || 'Something went wrong.');
-      }
-    } catch {
-      setWaitlistStatus('error');
-      setWaitlistMessage('Something went wrong. Please try again.');
-    }
-  }
-
-  function scrollToWaitlist(e: React.MouseEvent) {
-    e.preventDefault();
-    document.getElementById('waitlist')?.scrollIntoView({ behavior: getScrollBehavior(), block: 'center' });
-  }
 
   const handleScroll = useCallback(() => {
     if (!navRef.current) return;
@@ -314,13 +263,14 @@ export function LandingClient({
                 </svg>
               )}
             </button>
-            <a href="#waitlist" className="nav-cta" onClick={scrollToWaitlist}>
+            <Link href="/login" className="nav-cta">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <polyline points="22,6 12,13 2,6" />
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                <polyline points="10 17 15 12 10 7" />
+                <line x1="15" y1="12" x2="3" y2="12" />
               </svg>
-              Join Waitlist
-            </a>
+              Log In
+            </Link>
           </div>
         </div>
       </nav>
@@ -353,15 +303,15 @@ export function LandingClient({
           </p>
 
           <div className="hero-ctas">
-            <a href="#waitlist" className="btn-primary" onClick={scrollToWaitlist}>
-              Join the Waitlist
+            <Link href="/signup" className="btn-primary">
+              Get Started Free
               <span className="btn-icon">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
                 </svg>
               </span>
-            </a>
+            </Link>
             <a href="#demo" className="btn-secondary" onClick={(e) => scrollToSection(e, 'demo')}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
@@ -379,7 +329,7 @@ export function LandingClient({
       </section>
 
       {/* ═══ LAUNCH COUNTDOWN ═══ */}
-      <LaunchCountdown initialNowMs={initialNowMs} onCtaClick={scrollToWaitlist} />
+      <LaunchCountdown initialNowMs={initialNowMs} />
 
       {/* ═══ PRODUCT DEMO ═══ */}
       <LandingDemo />
@@ -597,79 +547,32 @@ export function LandingClient({
       {/* ═══ PRICING ═══ */}
       <LandingPricing />
 
-      {/* ═══ WAITLIST ═══ */}
-      <section className="cta-section" id="waitlist" ref={ctaContainerRef}>
+      {/* ═══ CTA ═══ */}
+      <section className="cta-section" id="cta" ref={ctaContainerRef}>
         <div className="cta-glow" ref={ctaGlowRef} />
         <div className="container cta-content reveal">
-          <div className="section-label" style={{ textAlign: 'center' }}>Early Access</div>
+          <div className="section-label" style={{ textAlign: 'center' }}>Get Started</div>
           <h2 className="section-title" style={{ textAlign: 'center', marginBottom: '20px' }}>
-            Be the first to<br />
-            <span className="accent">start scoring.</span>
+            Ready to<br />
+            <span className="accent">start scoring?</span>
           </h2>
           <p className="section-desc" style={{ textAlign: 'center', margin: '0 auto 32px' }}>
-            Pitchr is launching soon. Join the waitlist to get early access to AI-powered
-            pitch scoring, ranked fixes, and rewritten scripts.
+            Create your free account and get your first AI-powered pitch score in under 30 seconds.
           </p>
-
-          {waitlistStatus === 'success' ? (
-            <div className="waitlist-success">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-              <span>{waitlistMessage}</span>
-            </div>
-          ) : (
-            <form onSubmit={handleWaitlistSubmit} className="waitlist-form">
-              <div className="waitlist-input-wrap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="waitlist-input-icon">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <Link href="/signup" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              Sign Up Free
+              <span className="btn-icon">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
                 </svg>
-                <input
-                  type="email"
-                  placeholder="you@company.com"
-                  value={waitlistEmail}
-                  onChange={(e) => setWaitlistEmail(e.target.value)}
-                  required
-                  className="waitlist-input"
-                  disabled={waitlistStatus === 'loading'}
-                />
-                <button
-                  type="submit"
-                  className="btn-primary waitlist-btn"
-                  disabled={waitlistStatus === 'loading'}
-                >
-                  {waitlistStatus === 'loading' ? 'Joining...' : 'Join Waitlist'}
-                  <span className="btn-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M5 12h14" />
-                      <path d="m12 5 7 7-7 7" />
-                    </svg>
-                  </span>
-                </button>
-              </div>
-              <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)', textAlign: 'center' }}>
-                By joining, you agree to the <Link href="/privacy" className="underline">Privacy Notice</Link>.
-              </p>
-              <label className="waitlist-toggle-label mt-2">
-                <span className="waitlist-toggle-text">Send me product updates</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={waitlistNewsletterOptIn}
-                  className={`waitlist-toggle ${waitlistNewsletterOptIn ? 'waitlist-toggle--on' : ''}`}
-                  onClick={() => setWaitlistNewsletterOptIn(!waitlistNewsletterOptIn)}
-                >
-                  <span className="waitlist-toggle-knob" />
-                </button>
-              </label>
-              {waitlistStatus === 'error' && (
-                <p className="waitlist-error">{waitlistMessage}</p>
-              )}
-            </form>
-          )}
-
+              </span>
+            </Link>
+            <Link href="/login" className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              Log In
+            </Link>
+          </div>
         </div>
       </section>
 

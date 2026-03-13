@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 2540px; height: 1520px;
+      background: #08080a;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      width: 100%; height: 100%;
+    }
+    .headline {
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #ff5941, #ffaa33);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #9a9a98; line-height: 1.5; }
+    .screenshot-frame {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 40px 100px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .screenshot-frame img {
+      width: 100%;
+      border-radius: 16px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Focused amber glow behind the screenshot (left side) -->
+  <div style="position:absolute;width:700px;height:500px;top:50%;left:22%;margin-top:-250px;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,170,51,0.20) 0%, transparent 70%);
+    filter:blur(50px);pointer-events:none;"></div>
+
+  <!-- Tiny coral accent near bottom-left -->
+  <div style="position:absolute;width:400px;height:150px;bottom:10%;left:5%;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,89,65,0.12) 0%, transparent 70%);
+    filter:blur(35px);pointer-events:none;"></div>
+
+  <!-- Fine noise -->
+  <svg style="position:absolute;width:0;height:0;">
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </svg>
+  <div style="position:absolute;inset:0;z-index:0;opacity:0.025;filter:url(#grain);pointer-events:none;"></div>
+
+  <!-- Vignette -->
+  <div style="position:absolute;inset:0;z-index:0;
+    background:radial-gradient(ellipse 85% 80% at 45% 50%, transparent 50%, rgba(0,0,0,0.4) 100%);
+    pointer-events:none;"></div>
+
+  <!-- Content -->
+  <div class="content">
+    <div style="display: flex; align-items: center; gap: 80px; padding: 80px 100px; min-height: 1520px;">
+
+      <div style="flex: 1; transform: perspective(1600px) rotateY(3deg) rotateX(1deg);">
+        <div class="screenshot-frame">
+          <img src="../screenshots/session.png" alt="Practice session screenshot">
+        </div>
+      </div>
+
+      <div style="flex: 0 0 38%;">
+        <h1 class="headline" style="font-size: 56px; margin-bottom: 24px;">Load your deck.<br>Hit record.<br>Get scored live.</h1>
+        <p class="subtitle" style="font-size: 26px; margin-bottom: 32px;">Upload your pitch deck, set your time target, and practice against a real-time rubric. Track every beat of your pitch as you go.</p>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: #ff5941; flex-shrink: 0;"></div>
+            <span style="font-size: 24px; color: #9a9a98;">Live timing &amp; beat tracking</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: #ffaa33; flex-shrink: 0;"></div>
+            <span style="font-size: 24px; color: #9a9a98;">Deck slide sync</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 12px; height: 12px; border-radius: 50%; background: #4ade80; flex-shrink: 0;"></div>
+            <span style="font-size: 24px; color: #9a9a98;">5-dimension rubric preview</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
