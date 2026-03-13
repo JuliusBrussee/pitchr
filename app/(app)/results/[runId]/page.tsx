@@ -25,7 +25,8 @@ import {
 } from '@/views/components/RecordingPlayer';
 import { buildRewriteDiff } from '@/services/rewriteDiffService';
 import { resolveSectionFeedbackForDisplay } from '@/services/sectionFeedbackService';
-import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
+import { useAnalysisTracker } from '@/views/components/AnalysisTrackerProvider';
+import { ResultsSkeleton } from '@/views/components/results/ResultsSkeleton';
 import { fetchEdge } from '@/lib/supabase/fetch-edge';
 import { useTutorial } from '@/hooks/useTutorial';
 
@@ -255,10 +256,20 @@ export default function ResultsPage() {
   const achievements = useAchievements();
   const achievementCheckDone = useRef(false);
   const { registerPage } = useTutorial('results');
+  const tracker = useAnalysisTracker();
+  const isTrackerRun = tracker.activeRunId === runId;
 
   useEffect(() => {
     registerPage('results');
   }, [registerPage]);
+
+  // Sync tracker state into local state when tracker owns this run
+  useEffect(() => {
+    if (!isTrackerRun) return;
+    setRun(tracker.activeRun);
+    setLoading(tracker.isPolling);
+    if (tracker.error) setRunError(tracker.error);
+  }, [isTrackerRun, tracker.activeRun, tracker.isPolling, tracker.error]);
 
   // When the run completes, fetch all runs and check achievements
   useEffect(() => {
@@ -309,6 +320,11 @@ export default function ResultsPage() {
     if (!runId) {
       setLoading(false);
       setRun(null);
+      return;
+    }
+
+    if (isTrackerRun) {
+      // Tracker owns polling for this run — read its state directly
       return;
     }
 
@@ -501,7 +517,7 @@ export default function ResultsPage() {
     // initial fetch (run is null) — e.g. navigating from history — show a
     // lightweight loader instead to avoid a jarring flash.
     if (run && (run.status === 'queued' || run.status === 'running')) {
-      return <AnalyzingOverlay isVisible />;
+      return <ResultsSkeleton startedAt={run.createdAt} />;
     }
     return (
       <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">

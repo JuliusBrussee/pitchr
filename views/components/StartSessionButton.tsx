@@ -6,9 +6,11 @@ import { Play, Pause } from 'lucide-react';
 interface StartSessionButtonProps {
   onClick: () => void;
   isSessionActive: boolean;
+  disabled?: boolean;
+  disabledReason?: string;
 }
 
-export function StartSessionButton({ onClick, isSessionActive }: StartSessionButtonProps) {
+export function StartSessionButton({ onClick, isSessionActive, disabled, disabledReason }: StartSessionButtonProps) {
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
   const counter = useRef(0);
   const busyRef = useRef(false);
@@ -53,7 +55,10 @@ export function StartSessionButton({ onClick, isSessionActive }: StartSessionBut
       <div className="session-start-glow" />
       <button
         onClick={handleClick}
+        disabled={disabled}
+        title={disabled ? (disabledReason ?? 'Unavailable') : undefined}
         className="session-start-btn"
+        style={disabled ? { opacity: 0.5, cursor: 'not-allowed', pointerEvents: 'none' } : undefined}
       >
         {ripples.map(r => (
           <span
