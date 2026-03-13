@@ -7,15 +7,10 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       width: 2540px; height: 1520px;
-      background: #050505;
+      background: #08080a;
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
       overflow: hidden;
       position: relative;
-    }
-    .gradient-blob {
-      position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
     }
     .content {
       position: relative;
@@ -31,21 +26,9 @@
       background-clip: text;
     }
     .subtitle { color: #9a9a98; line-height: 1.5; }
-    .tag {
-      display: inline-block;
-      padding: 8px 20px;
-      border-radius: 40px;
-      font-size: 22px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-    }
-    .tag-coral { background: rgba(255,89,65,0.15); color: #ff5941; }
-    .tag-amber { background: rgba(255,170,51,0.15); color: #ffaa33; }
-    .tag-green { background: rgba(74,222,128,0.15); color: #4ade80; }
     .pill {
       background: rgba(255,255,255,0.04);
-      border: 2px solid rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.10);
       border-radius: 48px;
       padding: 16px 32px;
       display: flex;
@@ -63,10 +46,21 @@
   </style>
 </head>
 <body>
-  <!-- Central coral glow -->
-  <div class="gradient-blob" style="width: 800px; height: 800px; top: 50%; left: 50%; margin-top: -400px; margin-left: -400px; background: rgba(255,89,65,0.18); filter: blur(120px);"></div>
-  <!-- Amber top-right -->
-  <div class="gradient-blob" style="width: 500px; height: 500px; top: -150px; right: -100px; background: rgba(255,170,51,0.12); filter: blur(100px);"></div>
+  <!-- Central coral glow behind the headline — the "hero light" -->
+  <div style="position:absolute;width:800px;height:300px;top:38%;left:50%;margin-left:-400px;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,89,65,0.20) 0%, transparent 70%);
+    filter:blur(50px);pointer-events:none;"></div>
+
+  <!-- Fine noise -->
+  <svg style="position:absolute;width:0;height:0;">
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </svg>
+  <div style="position:absolute;inset:0;z-index:0;opacity:0.025;filter:url(#grain);pointer-events:none;"></div>
+
+  <!-- Vignette -->
+  <div style="position:absolute;inset:0;z-index:0;
+    background:radial-gradient(ellipse 85% 80% at 50% 50%, transparent 50%, rgba(0,0,0,0.4) 100%);
+    pointer-events:none;"></div>
 
   <div class="content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 1520px; padding: 60px 80px;">
 

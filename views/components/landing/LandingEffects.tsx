@@ -221,7 +221,7 @@ export function LandingEffects() {
       const el = document.getElementById(id);
       if (!el) return;
       e.preventDefault();
-      el.scrollIntoView({ behavior: getScrollBehavior(), block: id === 'waitlist' ? 'center' : 'start' });
+      el.scrollIntoView({ behavior: getScrollBehavior(), block: id === 'cta' ? 'center' : 'start' });
     };
 
     document.addEventListener('click', handleClick);
