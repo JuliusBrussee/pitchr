@@ -21,10 +21,10 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({
     viewport: { width: WIDTH, height: HEIGHT },
-    deviceScaleFactor: 2,
+    deviceScaleFactor: 1,
     recordVideo: {
       dir: DOWNLOADS,
-      size: { width: WIDTH * 2, height: HEIGHT * 2 }, // 4K output
+      size: { width: WIDTH, height: HEIGHT },
     },
     colorScheme: 'dark',
   });
