@@ -119,10 +119,15 @@ export function useRunPoller(
   }, [runId]);
 
   useEffect(() => {
-    if (!runId || !enabled) {
+    if (!runId) {
       setRun(null);
       setLoading(false);
       setError(null);
+      return;
+    }
+    if (!enabled) {
+      // Stop polling but preserve the last fetched run value
+      setLoading(false);
       return;
     }
     let cleanup: (() => void) | undefined;
