@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 2540px; height: 1520px;
+      background: #050505;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+    .gradient-blob {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      width: 100%; height: 100%;
+    }
+    .headline {
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #ff5941, #ffaa33);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #9a9a98; line-height: 1.5; }
+    .screenshot-frame {
+      background: rgba(255,255,255,0.02);
+      border: 2px solid rgba(255,255,255,0.06);
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: 0 60px 160px rgba(255,89,65,0.06), 0 20px 60px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+    .screenshot-frame img {
+      width: 115%;
+      margin-left: -12%;
+      border-radius: 16px;
+      display: block;
+    }
+    .tag {
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-size: 22px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .tag-coral { background: rgba(255,89,65,0.15); color: #ff5941; }
+    .tag-amber { background: rgba(255,170,51,0.15); color: #ffaa33; }
+    .tag-green { background: rgba(74,222,128,0.15); color: #4ade80; }
+  </style>
+</head>
+<body>
+  <!-- Gradient blobs -->
+  <div class="gradient-blob" style="width: 1000px; height: 800px; top: -300px; left: 50%; margin-left: -500px; background: rgba(255,89,65,0.22); filter: blur(120px);"></div>
+  <div class="gradient-blob" style="width: 500px; height: 500px; bottom: -150px; right: -100px; background: rgba(255,170,51,0.08); filter: blur(100px);"></div>
+
+  <!-- Content -->
+  <div class="content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 1520px; padding: 60px 80px;">
+    <h1 class="headline" style="font-size: 60px; text-align: center; margin-bottom: 24px;">Investor-grade feedback.<br>In seconds, not weeks.</h1>
+    <p class="subtitle" style="font-size: 26px; text-align: center; max-width: 840px; margin-bottom: 48px;">Every pitch gets a score out of 100 with category breakdowns, ranked priority fixes, and actionable next steps.</p>
+    <div class="screenshot-frame" style="max-width: 1200px; transform: perspective(1800px) rotateX(4deg);"><img src="../screenshots/analysis.png" alt="Analysis"></div>
+  </div>
+</body>
+</html>

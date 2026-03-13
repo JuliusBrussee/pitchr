@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 2540px; height: 1520px;
+      background: #050505;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+    .gradient-blob {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      width: 100%; height: 100%;
+    }
+    .headline {
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #ff5941, #ffaa33);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #9a9a98; line-height: 1.5; }
+    .screenshot-frame {
+      background: rgba(255,255,255,0.02);
+      border: 2px solid rgba(255,255,255,0.06);
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow: 0 60px 160px rgba(255,89,65,0.06), 0 20px 60px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+    .screenshot-frame img {
+      width: 115%;
+      margin-left: -12%;
+      border-radius: 16px;
+      display: block;
+    }
+    .tag {
+      display: inline-block;
+      padding: 8px 20px;
+      border-radius: 40px;
+      font-size: 22px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .tag-coral { background: rgba(255,89,65,0.15); color: #ff5941; }
+    .tag-amber { background: rgba(255,170,51,0.15); color: #ffaa33; }
+    .tag-green { background: rgba(74,222,128,0.15); color: #4ade80; }
+  </style>
+</head>
+<body>
+  <!-- Gradient blobs -->
+  <div class="gradient-blob" style="width: 900px; height: 900px; top: -300px; right: -150px; background: rgba(255,89,65,0.18); filter: blur(120px);"></div>
+  <div class="gradient-blob" style="width: 700px; height: 700px; bottom: -200px; left: -150px; background: rgba(255,170,51,0.12); filter: blur(100px);"></div>
+
+  <!-- Content -->
+  <div class="content" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 1520px; padding: 60px 80px;">
+
+    <!-- Logo -->
+    <div class="logo" style="display: flex; align-items: center; margin-bottom: 32px;">
+      <span style="width: 40px; height: 40px; background: #e63b26; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="30" fill="none" viewBox="0 0 430 559">
+          <path stroke="#F4F4F4" stroke-linecap="round" stroke-linejoin="round" stroke-width="70" d="M35 524V211c0-100 74-176 150-176h48c93 0 162 70 162 168 0 84-62 162-166 170l-80 6c-60 4-114 52-114 100"/>
+          <rect fill="#fff" width="36" height="190" x="197" y="113" rx="18"/>
+          <rect fill="#fff" width="31" height="151" x="267" y="136" rx="15.5"/>
+          <rect fill="#fff" width="32" height="151" x="132" y="133" rx="16"/>
+        </svg>
+      </span>
+      <span style="font-size: 28px; font-weight: 700; color: #ededec; margin-left: 12px;">Pitchr</span>
+    </div>
+
+    <!-- Headline -->
+    <h1 class="headline" style="font-size: 72px; text-align: center; margin-bottom: 24px;">Your pitch coach<br>that never sleeps.</h1>
+
+    <!-- Subtitle -->
+    <p class="subtitle" style="font-size: 26px; text-align: center; max-width: 800px; margin-bottom: 32px;">Record your pitch. Get an investor-grade score, ranked fixes, and a rewritten script — in seconds.</p>
+
+    <!-- Tags row -->
+    <div style="display: flex; gap: 16px; margin-bottom: 48px;">
+      <span class="tag tag-coral">AI Scoring</span>
+      <span class="tag tag-amber">Priority Fixes</span>
+      <span class="tag tag-green">Investor Q&amp;A</span>
+    </div>
+
+    <!-- Screenshot -->
+    <div class="screenshot-frame" style="max-width: 1120px; transform: perspective(2000px) rotateX(3deg);">
+      <img src="../screenshots/dashboard.png" alt="Dashboard">
+    </div>
+
+  </div>
+</body>
+</html>
