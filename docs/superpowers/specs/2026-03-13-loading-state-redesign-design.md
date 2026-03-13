@@ -17,7 +17,7 @@ Replace the blocking full-screen overlay with a non-blocking system: **skeleton 
 **Step 1 — Session page after submit:**
 - Remove `AnalyzingOverlay` from the session page entirely
 - After `runPitchAnalysis()` succeeds and returns `runId`, show a brief "Pitch submitted!" confirmation state (not a blocking overlay) with two CTAs: "View Progress" (links to `/results/{runId}`) and "Go to Dashboard"
-- Immediately redirect to `/results/{runId}` after a short delay (~1.5s) or on "View Progress" click
+- Redirect to `/results/{runId}` immediately via `router.push()` (same as current behavior — no added delay). The "Pitch submitted!" confirmation is shown as a brief flash before navigation, not a gate.
 - Remove the `beforeunload` handler — users can navigate freely
 
 **Step 2 — Results page (skeleton while analyzing):**
@@ -43,12 +43,15 @@ Replace the blocking full-screen overlay with a non-blocking system: **skeleton 
 
 ### State Management
 
-Add an `AnalysisTracker` context provider (wraps the app alongside `SidebarProvider`):
+Add an `AnalysisTracker` context provider (nested inside `AuthProvider` in `layout.tsx`, since it needs `fetchEdge`):
 
 ```typescript
 interface AnalysisTrackerState {
   activeRunId: string | null;
+  activeRun: Run | null;
   activeRunStatus: RunStatus | null;
+  isPolling: boolean;
+  error: string | null;
   startTracking: (runId: string) => void;
   stopTracking: () => void;
 }
@@ -57,15 +60,20 @@ interface AnalysisTrackerState {
 - `startTracking(runId)` is called from the session page after `runPitchAnalysis()` returns
 - The tracker polls `pitch-run-detail` for status updates (reusing the same polling logic from the results page, extracted to a shared hook)
 - When status reaches `complete` or `failed`, it stops polling and fires a `billing:refresh` event
-- The results page checks `AnalysisTracker` — if it's already tracking the same `runId`, it reads status from the tracker instead of running its own parallel poll
-- `stopTracking()` is called when the sidebar indicator fades away (after completion) or on manual dismiss
+- `stopTracking()` is called by a `useEffect` timer inside `SidebarAnalysisIndicator` ~5s after completion, or on manual dismiss. Since the sidebar is always mounted, this cleanup is reliable.
+
+**Polling ownership protocol:** The tracker is the single owner of polling for active runs. The results page NEVER starts its own poll when `tracker.activeRunId === runId`. Instead, it reads `tracker.activeRun` directly. The results page only runs its own `useRunPoller` for historical runs (where `tracker.activeRunId` is null or differs from the page's `runId`). This is enforced by passing `enabled: tracker.activeRunId !== runId` to `useRunPoller`.
+
+**Orb state:** The session page resets `session.setOrbState('idle')` before redirecting. The orb is not tied to the tracker.
 
 ### Shared Polling Hook
 
 Extract polling logic from the results page into a reusable hook:
 
 ```typescript
-function useRunPoller(runId: string | null): {
+function useRunPoller(runId: string | null, options?: {
+  enabled?: boolean;  // default true — set false to skip polling
+}): {
   run: Run | null;
   status: RunStatus | null;
   loading: boolean;
@@ -73,9 +81,11 @@ function useRunPoller(runId: string | null): {
 }
 ```
 
+Preserves configurable polling intervals via `getRunPollMs()` (reads from env vars).
+
 This hook is used by both:
 - `AnalysisTracker` (global polling, runs everywhere)
-- Results page (consumes from tracker when available, falls back to own polling for historical runs)
+- Results page (passes `enabled: tracker.activeRunId !== runId` — only polls for historical runs)
 
 ### Components
 
@@ -105,7 +115,7 @@ This hook is used by both:
 
 ### Visual Design
 
-**Skeleton shimmer:** Coral-tinted shimmer animation (`rgba(255, 89, 65, 0.06)`) sliding left-to-right over `rgba(255, 255, 255, 0.04)` placeholder blocks.
+**Skeleton shimmer:** Uses CSS custom properties (`--shimmer-base`, `--shimmer-highlight`) that respect dark/light theme, defaulting to coral-tinted values in dark mode. Slides left-to-right over placeholder blocks.
 
 **Sidebar indicator:**
 - Active: coral gradient background (`linear-gradient(135deg, #ff5941, #ffaa33)`), white spinner inside, pulsing dot badge
@@ -116,7 +126,7 @@ This hook is used by both:
 
 ### Edge Cases
 
-- **Multiple tabs:** `AnalysisTracker` uses `localStorage` events to sync across tabs. Only one tab polls at a time.
+- **Multiple tabs:** `AnalysisTracker` persists `activeRunId` to `localStorage`. Each tab polls independently (no leader election — simplicity over efficiency). The polling is lightweight (one GET every 2-8s) and the edge function is cached, so duplicate polls are acceptable.
 - **Page refresh during analysis:** Tracker checks `localStorage` for `activeRunId` on mount, resumes tracking if found.
 - **Analysis completes while on different page:** Sidebar indicator shows "Results ready!" — clicking navigates to results.
 - **Network failure during polling:** Same exponential backoff + 90s timeout as current implementation. Sidebar indicator shows error state.
