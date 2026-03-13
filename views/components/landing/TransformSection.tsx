@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useScrollReveal } from '@/views/components/landing/animations/useScrollReveal';
 import { MiniAppFrame } from '@/views/components/landing/animations/MiniAppFrame';
 
@@ -162,12 +163,9 @@ export function TransformSection() {
               Paste or record your pitch. Get a score, ranked fixes, and a rewritten
               script in under 30 seconds.
             </p>
-            <a href="#waitlist" className="demo-cta" onClick={(e) => {
-              e.preventDefault();
-              document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }}>
+            <Link href="/signup" className="demo-cta">
               Try it free &rarr;
-            </a>
+            </Link>
           </div>
 
           {/* Right: animated demo */}

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import '@/app/(marketing)/landing.css';
 import '@/app/(marketing)/solutions.css';
 import { MarketingNav } from '@/views/components/landing/MarketingNav';
 

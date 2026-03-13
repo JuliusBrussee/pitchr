@@ -3,7 +3,6 @@ import { getAllPosts } from '@/lib/blog';
 import { HomeJsonLd } from '@/views/components/seo/HomeJsonLd';
 import { PitchrLogoStatic } from '@/views/components/PitchrLogoStatic';
 import { ThemeToggleButton } from '@/views/components/landing/ThemeToggleButton';
-import { WaitlistSection } from '@/views/components/landing/WaitlistSection';
 import { LandingEffects } from '@/views/components/landing/LandingEffects';
 import { HeroPresenterIsland } from '@/views/components/landing/HeroPresenterIsland';
 import { LaunchCountdown } from '@/views/components/landing/LaunchCountdown';
@@ -52,13 +51,14 @@ export default function LandingPage() {
                 Journal
               </Link>
               <ThemeToggleButton />
-              <a href="#waitlist" className="nav-cta">
+              <Link href="/login" className="nav-cta">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                  <polyline points="22,6 12,13 2,6" />
+                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                  <polyline points="10 17 15 12 10 7" />
+                  <line x1="15" y1="12" x2="3" y2="12" />
                 </svg>
-                Join Waitlist
-              </a>
+                Log In
+              </Link>
             </div>
           </div>
         </nav>
@@ -87,15 +87,15 @@ export default function LandingPage() {
             </p>
 
             <div className="hero-ctas">
-              <a href="#waitlist" className="btn-primary">
-                Join the Waitlist
+              <Link href="/signup" className="btn-primary">
+                Get Started Free
                 <span className="btn-icon">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12h14" />
                     <path d="m12 5 7 7-7 7" />
                   </svg>
                 </span>
-              </a>
+              </Link>
               <a href="#demo" className="btn-secondary">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
@@ -330,8 +330,33 @@ export default function LandingPage() {
         {/* ═══ PRICING ═══ */}
         <LandingPricing />
 
-        {/* ═══ WAITLIST ═══ */}
-        <WaitlistSection />
+        {/* ═══ CTA ═══ */}
+        <section className="cta-section" id="cta">
+          <div className="container cta-content reveal">
+            <div className="section-label" style={{ textAlign: 'center' }}>Get Started</div>
+            <h2 className="section-title" style={{ textAlign: 'center', marginBottom: '20px' }}>
+              Ready to<br />
+              <span className="accent">start scoring?</span>
+            </h2>
+            <p className="section-desc" style={{ textAlign: 'center', margin: '0 auto 32px' }}>
+              Create your free account and get your first AI-powered pitch score in under 30 seconds.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <Link href="/signup" className="btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                Sign Up Free
+                <span className="btn-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14" />
+                    <path d="m12 5 7 7-7 7" />
+                  </svg>
+                </span>
+              </Link>
+              <Link href="/login" className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                Log In
+              </Link>
+            </div>
+          </div>
+        </section>
 
         {/* ═══ FOOTER ═══ */}
         <footer className="footer">

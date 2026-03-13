@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Zap,
   Calendar,
@@ -106,7 +107,8 @@ export default function DashboardPage() {
   const [formattedDate, setFormattedDate] = useState('');
   const [allRuns, setAllRuns] = useState<RunRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const { state: onboardingState } = useOnboarding();
+  const router = useRouter();
+  const { state: onboardingState, loaded: onboardingLoaded } = useOnboarding();
   const { activeProjectId } = useProject();
   const [fetchError, setFetchError] = useState(false);
   const { showTooltip } = useSmartTooltip();
@@ -149,6 +151,13 @@ export default function DashboardPage() {
   useEffect(() => {
     registerPage('dashboard');
   }, [registerPage]);
+
+  // Redirect to onboarding if not completed (catches Google OAuth users who skip /setup)
+  useEffect(() => {
+    if (onboardingLoaded && !onboardingState.isComplete) {
+      router.replace('/setup');
+    }
+  }, [onboardingLoaded, onboardingState.isComplete, router]);
 
   /* ——— Computed Metrics ——— */
   const totalRuns = allRuns.length;

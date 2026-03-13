@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
+import Link from 'next/link';
 
 const LAUNCH_MS = new Date('2026-03-13T09:00:00-04:00').getTime();
 
@@ -75,22 +76,41 @@ export function LaunchCountdown({
         </p>
 
         {/* CTA */}
-        <a href="#waitlist" className="cd-cta" onClick={onCtaClick}>
-          {t.done ? 'Start Scoring Now' : 'Join the Waitlist'}
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-          </svg>
-        </a>
+        {t.done ? (
+          <Link href="/signup" className="cd-cta">
+            Start Scoring Now
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </Link>
+        ) : (
+          <a href="#waitlist" className="cd-cta" onClick={onCtaClick}>
+            Join the Waitlist
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </a>
+        )}
         <p className="cd-sub">
           {t.done ? 'Early access is live — limited spots available.' : 'Free to join · Early access perks for waitlist members'}
         </p>

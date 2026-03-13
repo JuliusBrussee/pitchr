@@ -61,7 +61,11 @@
       "WebFetch(domain:registry.npmjs.org)",
       "WebFetch(domain:www.npmjs.com)",
       "Bash(python:*)",
-      "Bash(ls -la /Users/julb/Desktop/GitHub/pitchr/app/\\\\\\(app\\\\\\)/)"
+      "Bash(ls -la /Users/julb/Desktop/GitHub/pitchr/app/\\\\\\(app\\\\\\)/)",
+      "Bash(claude plugin:*)",
+      "Bash(mkdir -p ~/.claude/agents)",
+      "Bash(cp -r /tmp/agency-agents/design /tmp/agency-agents/engineering /tmp/agency-agents/examples /tmp/agency-agents/game-development /tmp/agency-agents/integrations /tmp/agency-agents/marketing /tmp/agency-agents/paid-media /tmp/agency-agents/product /tmp/agency-agents/project-management /tmp/agency-agents/sales /tmp/agency-agents/spatial-computing /tmp/agency-agents/specialized /tmp/agency-agents/strategy /tmp/agency-agents/support /tmp/agency-agents/testing ~/.claude/agents/)",
+      "Read(//Users/julb/.claude/agents/**)"
     ]
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Check, X, Zap, ArrowRight, Coins, Sparkles } from 'lucide-react';
 import { isEarlyAdopterPeriod, getEarlyAdopterDaysRemaining, EARLY_ADOPTER_CREDITS } from '@/config/early-adopter';
 import { BILLING_PLANS, CREDIT_PACKS_STATIC, MONTHLY_CREDITS, CREDIT_COSTS } from '@/config/billing';
@@ -110,17 +111,13 @@ function LandingPlanCard({ plan, interval, delay }: LandingPlanCardProps) {
       </ul>
 
       {/* CTA */}
-      <a
-        href="#waitlist"
+      <Link
+        href="/signup"
         className={`lp-cta ${isPro ? 'lp-cta-pro' : 'lp-cta-free'}`}
-        onClick={(e) => {
-          e.preventDefault();
-          document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }}
       >
         {isFree ? 'Get Started Free' : 'Upgrade to Pro'}
         {!isFree && <ArrowRight size={14} className="lp-cta-arrow" />}
-      </a>
+      </Link>
     </div>
   );
 }
@@ -201,17 +198,13 @@ function LandingCreditsCard() {
       </ul>
 
       {/* CTA */}
-      <a
-        href="#waitlist"
+      <Link
+        href="/signup"
         className="lp-cta lp-cta-free"
-        onClick={(e) => {
-          e.preventDefault();
-          document.getElementById('waitlist')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }}
       >
         Buy Credits
         <ArrowRight size={14} className="lp-cta-arrow" />
-      </a>
+      </Link>
     </div>
   );
 }

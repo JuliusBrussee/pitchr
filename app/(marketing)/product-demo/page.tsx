@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { DemoClient } from '@/views/components/demo/DemoClient';
+import { DemoClient } from '@/views/components/demo/variations/F5/DemoClient';
 
 export const metadata: Metadata = {
   title: 'Pitchr Demo — See It in Action',
