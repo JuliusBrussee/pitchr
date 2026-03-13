@@ -15,14 +15,14 @@ import { DemoQA } from '@/views/components/demo/screens/DemoQA';
 import '@/views/components/demo/demo.css';
 import '@/views/components/demo/variations/F5/demo.css';
 
-export function DemoClient({ paused = false }: { paused?: boolean }) {
+export function DemoClient({ paused = false, onComplete }: { paused?: boolean; onComplete?: () => void }) {
   const [step, setStep] = useState(0);
   const [labelVisible, setLabelVisible] = useState(true);
   const [cursorClicking, setCursorClicking] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const clickTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const viewportRef = useRef<HTMLDivElement>(null);
-  const [scaleFactor, setScaleFactor] = useState(1);
+  const [scaleFactor, setScaleFactor] = useState<number | null>(null);
 
   const currentStep = DEMO_STEPS[step];
   const totalSteps = DEMO_STEPS.length;
@@ -49,13 +49,16 @@ export function DemoClient({ paused = false }: { paused?: boolean }) {
     setTimeout(() => {
       setStep((prev) => {
         const next = prev + 1;
-        if (next >= totalSteps) return 0;
+        if (next >= totalSteps) {
+          if (onComplete) { onComplete(); return prev; }
+          return 0;
+        }
         return next;
       });
       setLabelVisible(true);
       setCursorClicking(false);
     }, 300);
-  }, [totalSteps]);
+  }, [totalSteps, onComplete]);
 
   useEffect(() => {
     if (paused) return;
@@ -109,7 +112,10 @@ export function DemoClient({ paused = false }: { paused?: boolean }) {
               {/* Outer wrapper handles viewport-fitting scale (no transition) */}
               <div
                 className="f5-scale-wrapper"
-                style={{ transform: `scale(${scaleFactor})` }}
+                style={{
+                  transform: `scale(${scaleFactor ?? 1})`,
+                  visibility: scaleFactor === null ? 'hidden' : 'visible',
+                }}
               >
                 {/* Inner stage handles camera pan/zoom (with CSS transition) */}
                 <div
