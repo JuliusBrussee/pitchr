@@ -24,6 +24,7 @@ export const config = {
     '/session/:path*',
     '/history/:path*',
     '/analytics/:path*',
+    '/insights/:path*',
     '/results/:path*',
     '/review/:path*',
     '/deck/:path*',

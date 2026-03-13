@@ -472,38 +472,6 @@ function SessionPageContent() {
     hasCredits,
   ]);
 
-  // Temporary maintenance screen — blocks all session usage
-  return (
-    <main className="flex-1 overflow-y-auto min-h-0 flex items-center justify-center">
-      <div
-        className="flex flex-col items-center gap-4 rounded-2xl border p-10 text-center max-w-md"
-        style={{
-          backgroundColor: 'var(--bg-surface)',
-          borderColor: 'rgba(255, 89, 65, 0.25)',
-        }}
-      >
-        <div
-          className="flex items-center justify-center w-12 h-12 rounded-full"
-          style={{ backgroundColor: 'rgba(255, 89, 65, 0.12)' }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff5941" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-          </svg>
-        </div>
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
-            Temporarily experiencing issues
-          </h2>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-            Live sessions are currently unavailable. We&apos;re working on a fix and will be back shortly.
-          </p>
-        </div>
-      </div>
-    </main>
-  );
-
   // Billing loading — don't flash paywall
   if (isBillingLoading) {
     return (

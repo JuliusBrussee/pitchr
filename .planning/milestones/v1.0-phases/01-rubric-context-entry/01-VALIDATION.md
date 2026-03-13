@@ -1,4 +1,4 @@
-﻿---
+---
 phase: 1
 slug: rubric-context-entry
 status: draft

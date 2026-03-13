@@ -81,7 +81,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="presentation">
       {/* Backdrop */}
       <div
         className="absolute inset-0 transition-all duration-300"
@@ -94,6 +94,9 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
 
       {/* Modal */}
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-project-title"
         className="relative w-full max-w-[420px] rounded-2xl border transition-all duration-300 overflow-hidden"
         style={{
           backgroundColor: 'var(--bg-primary)',
@@ -125,7 +128,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreated }: CreateProject
                 <FolderPlus size={18} style={{ color: '#ff5941' }} />
               </div>
               <div>
-                <h2 className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                <h2 id="create-project-title" className="text-base font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                   New Project
                 </h2>
                 <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>

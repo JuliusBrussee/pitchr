@@ -7,6 +7,7 @@ const DISALLOWED_PATHS = [
   '/session',
   '/history',
   '/analytics',
+  '/insights',
   '/progress',
   '/results/',
   '/review/',

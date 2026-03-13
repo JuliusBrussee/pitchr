@@ -1,4 +1,4 @@
-﻿# Deck Commonality Notes
+# Deck Commonality Notes
 
 ## Shared DNA / Stage-by-Stage (verbatim)
 

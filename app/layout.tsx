@@ -67,7 +67,7 @@ export default function RootLayout({
             __html: `(function(){try{var p=localStorage.getItem('pitchr-theme');var d=p==='dark'||(p!=='light'&&matchMedia('(prefers-color-scheme:dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})()`,
           }}
         />
-        <link rel="help" type="text/plain" href="/llms.txt" />
+        <link rel="help" type="text/plain" href="/llms-full.txt" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Non-render-blocking font loading: insert stylesheet asynchronously

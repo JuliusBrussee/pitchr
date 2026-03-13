@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import AnalyticsPage from '@/app/(app)/analytics/page';
+import AnalyticsPage from '@/app/(app)/insights/page';
 
 const mockFetchEdge = vi.fn();
 const mockUseProject = vi.fn();
@@ -89,6 +89,7 @@ describe('AnalyticsPage', () => {
       }),
     });
     mockUseProject.mockReturnValue({
+      projects: [],
       activeProjectId: 'project-alpha',
     });
 
@@ -162,6 +163,7 @@ describe('AnalyticsPage', () => {
       }),
     });
     mockUseProject.mockReturnValue({
+      projects: [],
       activeProjectId: 'project-alpha',
     });
 
@@ -237,6 +239,7 @@ describe('AnalyticsPage', () => {
     });
 
     mockUseProject.mockReturnValue({
+      projects: [],
       activeProjectId: 'project-alpha',
     });
 

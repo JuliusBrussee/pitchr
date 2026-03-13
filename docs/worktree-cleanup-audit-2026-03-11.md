@@ -1,4 +1,4 @@
-﻿# Worktree Cleanup Audit (2026-03-11)
+# Worktree Cleanup Audit (2026-03-11)
 
 ## Scope
 Task K cleanup for residual detached worktrees and parking recovery state.

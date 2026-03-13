@@ -12,6 +12,7 @@ export const PROTECTED_ROUTES = [
   '/session',
   '/history',
   '/analytics',
+  '/insights',
   '/results',
   '/review',
   '/deck',
