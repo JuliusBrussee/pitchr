@@ -1,5 +1,5 @@
 // Shared analysis service for Supabase Edge Functions.
-// Makes direct fetch() calls to Claude API (primary) and Gemini API (fallback).
+// Makes direct fetch() calls to Gemini API with retry, cached sample as fallback.
 // Adapts prompts from lib/prompts/ for use in Deno runtime.
 
 import { SAMPLE_RESULT } from './sample-result.ts';
@@ -288,84 +288,10 @@ function buildUserPrompt(
 // LLM API callers
 // ---------------------------------------------------------------------------
 
-const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
-const CLAUDE_TIMEOUT_MS = 45_000;
-const MAX_ATTEMPTS = 2;
-
-interface ClaudeResponse {
-  content?: Array<{ type?: string; text?: string }>;
-  error?: { message?: string };
-}
-
-async function callClaude(systemPrompt: string, userPrompt: string): Promise<string> {
-  const apiKey = Deno.env.get('ANTHROPIC_API_KEY')?.trim();
-  if (!apiKey) {
-    throw new Error('Missing ANTHROPIC_API_KEY');
-  }
-
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), CLAUDE_TIMEOUT_MS);
-
-    try {
-      const response = await fetch(CLAUDE_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model: CLAUDE_MODEL,
-          temperature: 0,
-          max_tokens: 4096,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
-        signal: controller.signal,
-      });
-
-      const payload = (await response.json()) as ClaudeResponse;
-
-      if (!response.ok) {
-        const errorMessage =
-          payload.error?.message ?? `Claude request failed with status ${response.status}`;
-        if (attempt < MAX_ATTEMPTS && (response.status === 429 || response.status >= 500)) {
-          continue;
-        }
-        throw new Error(errorMessage);
-      }
-
-      const text = payload.content
-        ?.filter((part) => part.type === 'text')
-        .map((part) => part.text ?? '')
-        .join('')
-        .trim();
-
-      if (!text) {
-        throw new Error('Claude returned an empty completion');
-      }
-
-      return text;
-    } catch (error) {
-      if (attempt < MAX_ATTEMPTS) {
-        continue;
-      }
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Claude request timed out');
-      }
-      throw error;
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  throw new Error('Claude request failed after retries');
-}
-
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent';
-const GEMINI_TIMEOUT_MS = 45_000;
+const GEMINI_TIMEOUT_MS = 60_000;
+const GEMINI_MAX_ATTEMPTS = 2;
+const GEMINI_RETRY_DELAY_MS = 2_000;
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -382,51 +308,66 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
     throw new Error('Missing GOOGLE_AI_API_KEY or GOOGLE_API_KEY');
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+  for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt += 1) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
 
-  try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
-        ],
-        generationConfig: {
-          temperature: 0,
-          maxOutputTokens: 4096,
-        },
-      }),
-      signal: controller.signal,
-    });
+    try {
+      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
+          ],
+          generationConfig: {
+            temperature: 0,
+            maxOutputTokens: 4096,
+          },
+        }),
+        signal: controller.signal,
+      });
 
-    const payload = (await response.json()) as GeminiResponse;
+      const payload = (await response.json()) as GeminiResponse;
 
-    if (!response.ok) {
-      const errorMessage =
-        payload.error?.message ?? `Gemini request failed with status ${response.status}`;
-      throw new Error(errorMessage);
+      if (!response.ok) {
+        const errorMessage =
+          payload.error?.message ?? `Gemini request failed with status ${response.status}`;
+        if (attempt < GEMINI_MAX_ATTEMPTS && (response.status === 429 || response.status >= 500)) {
+          await new Promise((resolve) => setTimeout(resolve, GEMINI_RETRY_DELAY_MS));
+          continue;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const text = payload.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text ?? '')
+        .join('')
+        .trim();
+
+      if (!text) {
+        throw new Error('Gemini returned an empty completion');
+      }
+
+      return text;
+    } catch (error) {
+      if (attempt < GEMINI_MAX_ATTEMPTS) {
+        await new Promise((resolve) => setTimeout(resolve, GEMINI_RETRY_DELAY_MS));
+        continue;
+      }
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Gemini request timed out');
+      }
+      if (error instanceof TypeError) {
+        throw new Error(`Gemini connection failed (network/DNS error): ${error.message}`);
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
-
-    const text = payload.candidates?.[0]?.content?.parts
-      ?.map((part) => part.text ?? '')
-      .join('')
-      .trim();
-
-    if (!text) {
-      throw new Error('Gemini returned an empty completion');
-    }
-
-    return text;
-  } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Gemini request timed out');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  throw new Error('Gemini request failed after retries');
 }
 
 // ---------------------------------------------------------------------------
@@ -583,8 +524,7 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     : profile.systemPrompt;
   const userPrompt = buildUserPrompt(input, profile);
 
-  // Try Gemini first (primary), Claude as fallback
-  let providerUsed = 'gemini';
+  // Try Gemini (with retry), fall back to cached sample
   let llmCallsUsed = 0;
   let attemptCount = 0;
 
@@ -628,85 +568,35 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
     return { analysis, fallback: false };
   } catch (geminiError) {
     const geminiMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
-    logDiagnostic('warn', '[analysis] Gemini failed, trying Claude fallback...', {
+    logDiagnostic('error', '[analysis] Gemini failed, returning sample fallback', {
       error: geminiMsg,
     });
 
-    // Try Claude fallback
-    try {
-      providerUsed = 'anthropic';
-      attemptCount += 1;
-      llmCallsUsed += 1;
-      logDiagnostic('log', '[analysis] calling Claude API...');
-      const rawText = await callClaude(systemPrompt, userPrompt);
-      const jsonText = extractJson(rawText);
-      const parsed = JSON.parse(jsonText);
-      const { feedback: rawFeedback, qa_1min } = validateAndNormalize(parsed);
-      const rubricPolicyResult = applyRubricPolicyToFeedback(rawFeedback, {
-        policy: input.rubricPolicy,
-        transcript: input.transcript,
-        deckText: input.deckText,
-      });
-      const feedback = rubricPolicyResult.feedback;
+    // Fall back to sample result
+    const fallback = cloneSample();
+    fallback.coverage = input.deckText ? 'spoken+deck' : 'spoken_only';
+    const rubricPolicyResult = applyRubricPolicyToFeedback(fallback.outputs.feedback, {
+      policy: input.rubricPolicy,
+      transcript: input.transcript,
+      deckText: input.deckText,
+    });
+    fallback.outputs.feedback = rubricPolicyResult.feedback;
+    fallback.meta = {
+      provider_used: 'none',
+      fallback_used: true,
+      cache_hit: false,
+      llm_calls_used: llmCallsUsed,
+      latency_ms: Date.now() - startedAt,
+      attempt_count: attemptCount,
+      rubric_policy: rubricPolicyResult.evaluation,
+      error_details: {
+        message: `Gemini: ${geminiMsg}`,
+        timeout: geminiMsg.toLowerCase().includes('timed out'),
+      },
+    };
+    fallback.fallback = true;
+    fallback.analysis = fallback.outputs.feedback;
 
-      const analysis: AnalysisResultV2 = {
-        analysisVersion: 'v2',
-        coverage: input.deckText ? 'spoken+deck' : 'spoken_only',
-        outputs: { feedback, qa_1min },
-        meta: {
-          provider_used: 'anthropic',
-          fallback_used: true,
-          cache_hit: false,
-          llm_calls_used: llmCallsUsed,
-          latency_ms: Date.now() - startedAt,
-          attempt_count: attemptCount,
-          rubric_policy: rubricPolicyResult.evaluation,
-        },
-        analysis: feedback,
-        fallback: false,
-      };
-
-      logDiagnostic('log', '[analysis] Claude succeeded', {
-        overall_score: feedback.overall_score,
-        latency_ms: analysis.meta.latency_ms,
-      });
-
-      return { analysis, fallback: false };
-    } catch (claudeError) {
-      const claudeMsg = claudeError instanceof Error ? claudeError.message : String(claudeError);
-      logDiagnostic('error', '[analysis] Both LLMs failed, returning sample fallback', {
-        gemini_error: geminiMsg,
-        claude_error: claudeMsg,
-      });
-
-      // Fall back to sample result
-      const fallback = cloneSample();
-      fallback.coverage = input.deckText ? 'spoken+deck' : 'spoken_only';
-      const rubricPolicyResult = applyRubricPolicyToFeedback(fallback.outputs.feedback, {
-        policy: input.rubricPolicy,
-        transcript: input.transcript,
-        deckText: input.deckText,
-      });
-      fallback.outputs.feedback = rubricPolicyResult.feedback;
-      fallback.meta = {
-        provider_used: 'none',
-        fallback_used: true,
-        cache_hit: false,
-        llm_calls_used: llmCallsUsed,
-        latency_ms: Date.now() - startedAt,
-        attempt_count: attemptCount,
-        rubric_policy: rubricPolicyResult.evaluation,
-        error_details: {
-          message: `Gemini: ${geminiMsg}; Claude: ${claudeMsg}`,
-          timeout:
-            geminiMsg.toLowerCase().includes('timed out') ||
-            claudeMsg.toLowerCase().includes('timed out'),
-        },
-      };
-      fallback.fallback = true;
-      fallback.analysis = fallback.outputs.feedback;
-
-      return { analysis: fallback, fallback: true };
-    }
+    return { analysis: fallback, fallback: true };
   }
 }
