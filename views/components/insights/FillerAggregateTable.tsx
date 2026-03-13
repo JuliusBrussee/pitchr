@@ -10,7 +10,7 @@ export function FillerAggregateTable({ data }: { data: { word: string; total: nu
         Most Used Filler Words
       </h4>
       {topItems.length === 0 ? (
-        <div className="flex items-center justify-center h-[180px]">
+        <div className="flex items-center justify-center h-[140px] sm:h-[180px]">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>No filler words detected</span>
         </div>
       ) : (

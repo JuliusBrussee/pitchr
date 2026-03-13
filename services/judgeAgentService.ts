@@ -56,7 +56,6 @@ export interface JudgeAgentPayload {
     one_line_verdict: string;
     rubric_breakdown: RubricScore[];
     top_fixes: Fix[];
-    rewrite_script: string;
     sentiment_profile: SentimentProfile;
     citations: Citation[];
     do_next_checklist: string[];
@@ -182,7 +181,6 @@ function validatePayload(
     !feedback.rubric_breakdown.every(isRubricScore) ||
     !Array.isArray(feedback.top_fixes) ||
     !feedback.top_fixes.every(isFix) ||
-    typeof feedback.rewrite_script !== 'string' ||
     !isSentimentProfile(feedback.sentiment_profile) ||
     !Array.isArray(feedback.citations) ||
     !feedback.citations.every(isCitation) ||
@@ -211,7 +209,6 @@ function validatePayload(
       one_line_verdict: feedback.one_line_verdict,
       rubric_breakdown: feedback.rubric_breakdown,
       top_fixes: feedback.top_fixes,
-      rewrite_script: feedback.rewrite_script,
       sentiment_profile: feedback.sentiment_profile,
       citations: feedback.citations,
       do_next_checklist: feedback.do_next_checklist as string[],

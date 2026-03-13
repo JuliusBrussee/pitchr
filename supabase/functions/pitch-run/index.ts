@@ -345,10 +345,15 @@ async function handleGet(req: Request) {
   const visibleRuns = includePending
     ? allRuns
     : allRuns.filter((run) => run.status === 'complete');
+
+  const scoredVisibleRuns = visibleRuns.filter(
+    (run) => run.status !== 'complete' || run.overall_score !== 0,
+  );
+
   const runs =
     Number.isFinite(limit) && limit !== undefined
-      ? visibleRuns.slice(0, limit)
-      : visibleRuns;
+      ? scoredVisibleRuns.slice(0, limit)
+      : scoredVisibleRuns;
 
   // Fetch QA summaries in parallel with building the response
   let qaSummariesByRunId = new Map<string, NonNullable<Run['qaSessionsSummary']>>();
@@ -360,7 +365,7 @@ async function handleGet(req: Request) {
 
   const response: ListPitchRunsResponse = {
     runs: runs.map((run) => toRunResponse(run, qaSummariesByRunId.get(run.id))),
-    stats: computeRunStats(visibleRuns),
+    stats: computeRunStats(scoredVisibleRuns),
   };
 
   return jsonResponse(response, 200);

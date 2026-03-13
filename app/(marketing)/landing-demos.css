@@ -196,6 +196,7 @@
 }
 
 @media (max-width: 600px) {
+  .demos-landing .dl-container { padding: 0 16px; }
   .dl-section-title { font-size: 24px; }
   .dl-hero h1 { font-size: 30px; }
   .dl-hero-sub { font-size: 16px; }

@@ -10,6 +10,7 @@ import { linkSectionFeedbackToDeck } from '@/services/deckLinkingService';
 import { calibrateFeedbackWithKnowledge } from '@/services/knowledgeCalibrationService';
 import { buildScoringContext } from '@/services/prepAgentService';
 import { runJudgeAgent } from '@/services/judgeAgentService';
+import { runRewriteAgent } from '@/services/rewriteAgentService';
 import { buildRewriteDiff, buildSectionRewriteDiff } from '@/services/rewriteDiffService';
 import { runSectionAgent } from '@/services/sectionAgentService';
 import { buildHistoricalLinks } from '@/services/runComparisonService';
@@ -69,6 +70,7 @@ const ENABLE_REWRITE_DIFF = process.env.ENABLE_REWRITE_DIFF !== 'false';
 const ENABLE_KNOWLEDGE_CALIBRATED_JUDGE =
   process.env.ENABLE_KNOWLEDGE_CALIBRATED_JUDGE !== 'false';
 const EXPOSE_JUDGE_CITATIONS = process.env.EXPOSE_JUDGE_CITATIONS === 'true';
+const MIN_TRANSCRIPT_LENGTH_FOR_REWRITE = 20;
 
 function cloneSample(): AnalysisResultV2 {
   return JSON.parse(JSON.stringify(SAMPLE_RESULT)) as AnalysisResultV2;
@@ -281,7 +283,6 @@ function applyDeterministicScoring(
     one_line_verdict: string;
     rubric_breakdown: RubricScore[];
     top_fixes: FeedbackOutput['top_fixes'];
-    rewrite_script: string;
     sentiment_profile: FeedbackOutput['sentiment_profile'];
     citations: FeedbackOutput['citations'];
     do_next_checklist: string[];
@@ -326,7 +327,7 @@ function applyDeterministicScoring(
       ...fix,
       rank: index + 1,
     })),
-    rewrite_script: judgeFeedback.rewrite_script.trim(),
+    rewrite_script: '',
     delivery_metrics: context.delivery_metrics,
     spoken_score: composite.spoken100,
     deck_score: composite.deck100,
@@ -387,6 +388,21 @@ async function analyzeWithContext(
     feedback.summary_bad = summary.bad;
     feedback.advanced_reasoning = buildAdvancedReasoning(feedback, context);
 
+    if (input.transcript.trim().length >= MIN_TRANSCRIPT_LENGTH_FOR_REWRITE) {
+      try {
+        const rewriteResult = await runRewriteAgent({
+          mode: input.mode,
+          transcript: input.transcript,
+          topFixes: feedback.top_fixes,
+        });
+        feedback.rewrite_script = (rewriteResult.rewrite_script ?? '').trim();
+      } catch (rewriteError) {
+        console.warn('[analysis] rewrite agent failed', {
+          message: rewriteError instanceof Error ? rewriteError.message : String(rewriteError),
+        });
+      }
+    }
+
     let sectioningConfidence = 0;
     let deckLinkConfidence = 0;
     if (ENABLE_SECTION_FEEDBACK) {
@@ -435,7 +451,10 @@ async function analyzeWithContext(
     }
 
     if (ENABLE_REWRITE_DIFF) {
-      feedback.rewrite_diff = buildRewriteDiff(input.transcript, feedback.rewrite_script);
+      feedback.rewrite_diff = buildRewriteDiff(
+        input.transcript,
+        feedback.rewrite_script ?? '',
+      );
     }
 
     try {

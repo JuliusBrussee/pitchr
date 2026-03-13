@@ -259,7 +259,7 @@ function SkillTrack({ category, index }: SkillTrackProps) {
       {/* Expanded details */}
       {isExpanded && (
         <div
-          className="mt-3 pt-3 grid grid-cols-4 gap-3 animate-fade-in-up"
+          className="mt-3 pt-3 grid grid-cols-2 md:grid-cols-4 gap-3 animate-fade-in-up"
           style={{ borderTop: '1px solid var(--border-color)' }}
         >
           <div className="text-center">
