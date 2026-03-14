@@ -203,7 +203,7 @@
 </div>
 
 <script>
-  // Measure actual path length and set dasharray/dashoffset accurately
+  // Measure actual path length and animate with inline styles
   window.addEventListener('load', () => {
     const pStroke = document.getElementById('pStroke');
     const pathLength = pStroke.getTotalLength();
@@ -212,21 +212,6 @@
     pStroke.style.strokeDasharray = pathLength;
     pStroke.style.strokeDashoffset = pathLength;
 
-    // Update the keyframes to use the exact path length
-    const styleSheet = document.styleSheets[0];
-    for (let i = 0; i < styleSheet.cssRules.length; i++) {
-      if (styleSheet.cssRules[i].name === 'drawStroke') {
-        styleSheet.deleteRule(i);
-        styleSheet.insertRule(`
-          @keyframes drawStroke {
-            from { stroke-dashoffset: ${pathLength}; }
-            to   { stroke-dashoffset: 0; }
-          }
-        `, i);
-        break;
-      }
-    }
-
     const glow      = document.getElementById('glow');
     const barLeft   = document.getElementById('barLeft');
     const barCenter = document.getElementById('barCenter');
@@ -234,17 +219,10 @@
     const tagline   = document.getElementById('tagline');
     const url       = document.getElementById('url');
 
-    // Timeline (all times relative to page load)
-    // 0.0s: black screen
-    // 1.0s: P stroke draws (800ms)
-    // 1.8s: bars pop in (left, center+100ms, right+200ms)
-    // 2.0s: glow bloom
-    // 2.5s: tagline
-    // 3.5s: URL
-
-    // 1.0s — draw P stroke
+    // 1.0s — draw P stroke using inline transition (avoids stylesheet access)
     setTimeout(() => {
-      pStroke.classList.add('animate');
+      pStroke.style.transition = 'stroke-dashoffset 800ms ease-in-out';
+      pStroke.style.strokeDashoffset = '0';
     }, 1000);
 
     // 1.8s — left bar
