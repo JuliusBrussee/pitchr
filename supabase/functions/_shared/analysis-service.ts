@@ -174,60 +174,7 @@ function logDiagnostic(
 }
 
 // ---------------------------------------------------------------------------
-// Prompt constants (adapted from lib/prompts/)
-// ---------------------------------------------------------------------------
-
-const RESPONSE_SCHEMA = `{
-  "feedback": {
-    "one_line_verdict": "string (under 24 words)",
-    "rubric_breakdown": [
-      {
-        "category": "structure|clarity|evidence|market|delivery",
-        "score": "number (0-20)",
-        "max_score": 20,
-        "rationale": "string (under 18 words)"
-      }
-    ],
-    "top_fixes": [
-      {
-        "rank": "number (1-5)",
-        "category": "structure|clarity|evidence|market|delivery",
-        "issue": "string (under 16 words)",
-        "fix": "string (under 16 words)",
-        "impact": "high|medium|low"
-      }
-    ],
-    "rewrite_script": "string (rewritten pitch, under 120 words)",
-    "delivery_metrics": {
-      "wpm": "number",
-      "duration_seconds": "number",
-      "filler_words": [{ "word": "string", "count": "number" }],
-      "repeated_phrases": [{ "phrase": "string", "count": "number" }],
-      "within_time_limit": "boolean"
-    },
-    "sentiment_profile": {
-      "confidence": "number (0-1)",
-      "urgency": "number (0-1)",
-      "credibility": "number (0-1)",
-      "clarity": "number (0-1)",
-      "investor_readiness": "number (0-1)"
-    },
-    "do_next_checklist": ["string (max 5 short bullets)"]
-  },
-  "qa_1min": {
-    "total_target_seconds": 60,
-    "timing_plan_seconds": [20, 20, 20],
-    "investor_questions": ["string", "string", "string"],
-    "suggested_answers": [
-      {"question": "string", "answer": "string (under 45 words)", "target_seconds": 20}
-    ],
-    "focus_tags": ["string"],
-    "red_flags_to_avoid": ["string"]
-  }
-}`;
-
-// ---------------------------------------------------------------------------
-// Build user prompt
+// Build user prompt (variable content only — static content in system prompt)
 // ---------------------------------------------------------------------------
 
 function buildUserPrompt(
@@ -237,21 +184,10 @@ function buildUserPrompt(
   const config = profile.modeConfig;
 
   const parts = [
-    'Task: evaluate this startup pitch and produce feedback + Q&A pack in a single JSON object.',
-    '',
     `Mode: ${config.label}`,
     `Target duration: ${config.targetDurationSeconds} seconds`,
     `Target WPM: ${config.targetWpm}`,
     `Structure beats: ${config.structureBeats.join(' -> ')}`,
-    '',
-    'Rubric:',
-    profile.rubricText,
-    '',
-    'Scoring guidance:',
-    ...profile.scoringGuidance.map((line) => `- ${line}`),
-    '',
-    'Transcript handling:',
-    ...profile.transcriptRules.map((line) => `- ${line}`),
     '',
     'Original transcript:',
     input.transcript || '[empty transcript]',
@@ -261,26 +197,6 @@ function buildUserPrompt(
     parts.push('', 'Deck text:', input.deckText);
   }
 
-  parts.push(
-    '',
-    'Rules:',
-    '- Return JSON only with fields exactly matching the schema.',
-    '- Provide exactly 5 rubric_breakdown items (one per spoken category: structure, clarity, evidence, market, delivery).',
-    '- Provide at most 5 top_fixes, ranked by impact.',
-    '- Keep one_line_verdict to one sentence under 24 words.',
-    '- Keep each rubric rationale under 18 words.',
-    '- Keep each fix issue and fix under 16 words each.',
-    '- rewrite_script must be spoken-language ready for this mode, under 120 words.',
-    '- delivery_metrics values should be your best estimates from the transcript.',
-    '- Q&A must have exactly 3 questions and 3 timed answers.',
-    '- Keep each Q&A answer under 45 words.',
-    '- Questions should prioritize weakest scoring dimensions.',
-    '- Keep do_next_checklist to maximum 5 short bullets.',
-    '',
-    'Response schema:',
-    RESPONSE_SCHEMA,
-  );
-
   return parts.join('\n');
 }
 
@@ -288,10 +204,18 @@ function buildUserPrompt(
 // LLM API callers
 // ---------------------------------------------------------------------------
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
-const GEMINI_TIMEOUT_MS = 60_000;
-const GEMINI_MAX_ATTEMPTS = 2;
+const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const GEMINI_RETRY_DELAY_MS = 2_000;
+
+function geminiConfig(transcript: string, deckText?: string) {
+  const inputLen = (transcript?.length ?? 0) + (deckText?.length ?? 0);
+  const isLong = inputLen > 3000;
+  return {
+    timeout: isLong ? 120_000 : 60_000,
+    maxAttempts: isLong ? 3 : 2,
+  };
+}
 
 interface GeminiResponse {
   candidates?: Array<{
@@ -302,39 +226,55 @@ interface GeminiResponse {
   error?: { message?: string };
 }
 
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+interface CallGeminiOptions {
+  timeoutMs: number;
+  maxAttempts: number;
+}
+
+async function callGemini(
+  systemPrompt: string,
+  userPrompt: string,
+  options?: CallGeminiOptions,
+): Promise<string> {
   const apiKey = (Deno.env.get('GOOGLE_AI_API_KEY') ?? Deno.env.get('GOOGLE_API_KEY'))?.trim();
   if (!apiKey) {
     throw new Error('Missing GOOGLE_AI_API_KEY or GOOGLE_API_KEY');
   }
 
-  for (let attempt = 1; attempt <= GEMINI_MAX_ATTEMPTS; attempt += 1) {
+  const timeoutMs = options?.timeoutMs ?? 60_000;
+  const maxAttempts = options?.maxAttempts ?? 2;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: [
-            { role: 'user', parts: [{ text: userPrompt }] },
-          ],
-          generationConfig: {
-            temperature: 0,
-            maxOutputTokens: 16384,
-          },
-        }),
-        signal: controller.signal,
-      });
+      const response = await fetch(
+        `${GEMINI_API_BASE}/${GEMINI_MODEL}:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: [
+              { role: 'user', parts: [{ text: userPrompt }] },
+            ],
+            generationConfig: {
+              temperature: 0,
+              maxOutputTokens: 16384,
+              responseMimeType: 'application/json',
+            },
+          }),
+          signal: controller.signal,
+        },
+      );
 
       const payload = (await response.json()) as GeminiResponse;
 
       if (!response.ok) {
         const errorMessage =
           payload.error?.message ?? `Gemini request failed with status ${response.status}`;
-        if (attempt < GEMINI_MAX_ATTEMPTS && (response.status === 429 || response.status >= 500)) {
+        if (attempt < maxAttempts && (response.status === 429 || response.status >= 500)) {
           await new Promise((resolve) => setTimeout(resolve, GEMINI_RETRY_DELAY_MS));
           continue;
         }
@@ -352,7 +292,7 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 
       return text;
     } catch (error) {
-      if (attempt < GEMINI_MAX_ATTEMPTS) {
+      if (attempt < maxAttempts) {
         await new Promise((resolve) => setTimeout(resolve, GEMINI_RETRY_DELAY_MS));
         continue;
       }
@@ -372,22 +312,8 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
 }
 
 // ---------------------------------------------------------------------------
-// JSON extraction and validation
+// JSON validation and normalization
 // ---------------------------------------------------------------------------
-
-function extractJson(raw: string): string {
-  // Strip markdown fences if present
-  let cleaned = raw.trim();
-  if (cleaned.startsWith('```json')) {
-    cleaned = cleaned.slice(7);
-  } else if (cleaned.startsWith('```')) {
-    cleaned = cleaned.slice(3);
-  }
-  if (cleaned.endsWith('```')) {
-    cleaned = cleaned.slice(0, -3);
-  }
-  return cleaned.trim();
-}
 
 const REQUIRED_CATEGORIES = ['structure', 'clarity', 'evidence', 'market', 'delivery'];
 
@@ -529,13 +455,21 @@ export async function analyzePitch(input: AnalyzePitchInput): Promise<AnalyzePit
   let llmCallsUsed = 0;
   let attemptCount = 0;
 
+  const config = geminiConfig(input.transcript, input.deckText);
+
   try {
     attemptCount += 1;
     llmCallsUsed += 1;
-    logDiagnostic('log', '[analysis] calling Gemini API...');
-    const rawText = await callGemini(systemPrompt, userPrompt);
-    const jsonText = extractJson(rawText);
-    const parsed = JSON.parse(jsonText);
+    logDiagnostic('log', '[analysis] calling Gemini API...', {
+      model: GEMINI_MODEL,
+      timeout: config.timeout,
+      maxAttempts: config.maxAttempts,
+    });
+    const rawText = await callGemini(systemPrompt, userPrompt, {
+      timeoutMs: config.timeout,
+      maxAttempts: config.maxAttempts,
+    });
+    const parsed = JSON.parse(rawText);
     const { feedback: rawFeedback, qa_1min } = validateAndNormalize(parsed);
     const rubricPolicyResult = applyRubricPolicyToFeedback(rawFeedback, {
       policy: input.rubricPolicy,

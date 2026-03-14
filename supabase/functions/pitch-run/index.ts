@@ -15,6 +15,7 @@ import {
 import { assertComplianceForEndpoint } from '../_shared/compliance-service.ts';
 import { listQASessionSummariesByRunIds } from '../_shared/qna-session-service.ts';
 import { analyzePitch } from '../_shared/analysis-service.ts';
+import { computeTranscriptHash, findCachedAnalysis } from '../_shared/analysis-cache.ts';
 import { checkUsageLimit, recordUsageEvent } from '../_shared/billing-service.ts';
 import { resolveProjectForRequest, ProjectNotFoundError } from '../_shared/project-service.ts';
 import {
@@ -175,6 +176,7 @@ interface ProcessQueuedRunInput {
   rubricPolicy?: RubricPolicy;
   rubricContextMeta: RubricContextRunMetadata;
   targetDurationSeconds?: number;
+  transcriptHash?: string;
 }
 
 async function processQueuedRun(
@@ -199,6 +201,40 @@ async function processQueuedRun(
   }
 
   try {
+    // Check DB cache before calling LLM
+    if (input.transcriptHash) {
+      const cachedAnalysis = await findCachedAnalysis(supabaseAdmin, input.transcriptHash);
+      if (cachedAnalysis) {
+        const cachedMeta = {
+          ...(cachedAnalysis.meta ?? {}),
+          cache_hit: true,
+          latency_ms: Date.now() - startedAtMs,
+          rubric_context: input.rubricContextMeta,
+        };
+        cachedAnalysis.meta = cachedMeta;
+
+        await updateRun(supabaseAdmin, input.runId, {
+          status: 'complete',
+          completed_at: new Date().toISOString(),
+          overall_score: cachedAnalysis.outputs?.feedback?.overall_score ?? 0,
+          analysis: cachedAnalysis,
+          meta: cachedMeta,
+          is_fallback: false,
+          error_message: null,
+        });
+
+        try {
+          await tryCompleteReferral(supabaseAdmin, input.userId);
+        } catch (refErr) {
+          console.error('[pitch-run] referral completion check failed (cached)', {
+            runId: input.runId,
+            error: refErr instanceof Error ? refErr.message : String(refErr),
+          });
+        }
+        return;
+      }
+    }
+
     const { analysis, fallback } = await analyzePitch({
       transcript: input.transcript,
       mode: input.mode,
@@ -405,6 +441,12 @@ async function handlePost(req: Request) {
   }
 
   const runId = crypto.randomUUID();
+  const transcriptHash = await computeTranscriptHash(
+    payload.transcript,
+    mode,
+    payload.deckText,
+    scoringContextPrompt,
+  );
 
   // Record usage eagerly so concurrent requests cannot bypass the limit.
   try {
@@ -429,6 +471,7 @@ async function handlePost(req: Request) {
     transcript: payload.transcript,
     audio_url: payload.audioUrl,
     deck_id: payload.deckId,
+    transcript_hash: transcriptHash,
     overall_score: 0,
     analysis: {},
     meta: {
@@ -468,6 +511,7 @@ async function handlePost(req: Request) {
       rubricPolicy,
       rubricContextMeta,
       targetDurationSeconds: payload.targetDurationSeconds,
+      transcriptHash,
     }),
   );
 

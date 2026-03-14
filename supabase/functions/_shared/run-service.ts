@@ -33,6 +33,7 @@ export interface RunRecord {
   meta: any;
   deck_id: string | null;
   is_fallback: boolean;
+  transcript_hash: string | null;
   created_at: string;
 }
 
@@ -55,6 +56,7 @@ export interface RunInsert {
   meta?: any;
   deck_id?: string;
   is_fallback?: boolean;
+  transcript_hash?: string;
 }
 
 function withMigrationHint(message: string): string {
@@ -105,6 +107,7 @@ export async function insertRun(supabase: SupabaseClient, run: RunInsert): Promi
     audio_url: run.audio_url ?? null,
     deck_id: run.deck_id ?? null,
     is_fallback: run.is_fallback ?? false,
+    transcript_hash: run.transcript_hash ?? null,
     meta: run.meta ?? null,
   };
   const { data, error } = await supabase

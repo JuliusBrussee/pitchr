@@ -20,7 +20,7 @@ export default defineConfig({
   webServer: {
     command: "yarn dev:next",
     url: "http://localhost:3000",
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 180_000,
     env: {
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",

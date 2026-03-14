@@ -634,12 +634,14 @@ export function useSTT(): UseSTTReturn {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });
-        if (!response.ok) return;
-        const data = (await response.json()) as StopResponse;
-        setSaved(true);
-        setFeedbackQuestion(data.feedbackQuestion ?? null);
-        setFeedbackError(data.feedbackError ?? null);
+        if (response.ok) {
+          const data = (await response.json()) as StopResponse;
+          setFeedbackQuestion(data.feedbackQuestion ?? null);
+          setFeedbackError(data.feedbackError ?? null);
+        }
       } catch {
+        // Network error — still proceed to save
+      } finally {
         setSaved(true);
       }
     })();

@@ -16,7 +16,97 @@ export interface AnalysisPromptProfile {
   transcriptRules: string[];
 }
 
-const COMMON_SYSTEM_PROMPT = `You are a startup pitch coach and investor evaluator.
+const RESPONSE_SCHEMA = `{
+  "feedback": {
+    "one_line_verdict": "string (under 24 words)",
+    "rubric_breakdown": [
+      {
+        "category": "structure|clarity|evidence|market|delivery",
+        "score": "number (0-20)",
+        "max_score": 20,
+        "rationale": "string (under 18 words)"
+      }
+    ],
+    "top_fixes": [
+      {
+        "rank": "number (1-5)",
+        "category": "structure|clarity|evidence|market|delivery",
+        "issue": "string (under 16 words)",
+        "fix": "string (under 16 words)",
+        "impact": "high|medium|low"
+      }
+    ],
+    "rewrite_script": "string (rewritten pitch, under 120 words)",
+    "delivery_metrics": {
+      "wpm": "number",
+      "duration_seconds": "number",
+      "filler_words": [{ "word": "string", "count": "number" }],
+      "repeated_phrases": [{ "phrase": "string", "count": "number" }],
+      "within_time_limit": "boolean"
+    },
+    "sentiment_profile": {
+      "confidence": "number (0-1)",
+      "urgency": "number (0-1)",
+      "credibility": "number (0-1)",
+      "clarity": "number (0-1)",
+      "investor_readiness": "number (0-1)"
+    },
+    "do_next_checklist": ["string (max 5 short bullets)"]
+  },
+  "qa_1min": {
+    "total_target_seconds": 60,
+    "timing_plan_seconds": [20, 20, 20],
+    "investor_questions": ["string", "string", "string"],
+    "suggested_answers": [
+      {"question": "string", "answer": "string (under 45 words)", "target_seconds": 20}
+    ],
+    "focus_tags": ["string"],
+    "red_flags_to_avoid": ["string"]
+  }
+}`;
+
+const OUTPUT_RULES = `Rules:
+- Return JSON only with fields exactly matching the schema.
+- Provide exactly 5 rubric_breakdown items (one per spoken category: structure, clarity, evidence, market, delivery).
+- Provide at most 5 top_fixes, ranked by impact.
+- Keep one_line_verdict to one sentence under 24 words.
+- Keep each rubric rationale under 18 words.
+- Keep each fix issue and fix under 16 words each.
+- rewrite_script must be spoken-language ready for this mode, under 120 words.
+- delivery_metrics values should be your best estimates from the transcript.
+- Q&A must have exactly 3 questions and 3 timed answers.
+- Keep each Q&A answer under 45 words.
+- Questions should prioritize weakest scoring dimensions.
+- Keep do_next_checklist to maximum 5 short bullets.
+
+Response schema:
+${RESPONSE_SCHEMA}`;
+
+function buildFullSystemPrompt(
+  basePrompt: string,
+  rubricText: string,
+  scoringGuidance: string[],
+  transcriptRules: string[],
+): string {
+  return [
+    basePrompt,
+    '',
+    'Task: evaluate the pitch and produce feedback + Q&A pack in a single JSON object.',
+    '',
+    'Rubric:',
+    rubricText,
+    '',
+    'Scoring guidance:',
+    ...scoringGuidance.map((line) => `- ${line}`),
+    '',
+    'Transcript handling:',
+    ...transcriptRules.map((line) => `- ${line}`),
+    '',
+    OUTPUT_RULES,
+  ].join('\n');
+}
+
+const COMMON_BASE_PROMPT = `You are a startup pitch coach and investor evaluator.
 
 Your job is to help founders improve quickly with direct, practical feedback.
 Focus on what they should change next, not abstract commentary.
@@ -115,57 +205,31 @@ Criteria: Reward clear problem motivation tied to a genuine need, novel approach
 Description: Appropriate academic pace, professional tone, confidence, time-limit compliance (target 240s), and ability to clearly explain the system.
 Criteria: Use local metrics for pace/fillers/repetition/time-limit adherence. Reward measured delivery, clear articulation, and explanation depth that would hold up under examiner questioning. Penalize rushed or inaudible sections, excessive filler, slides-only reading, significant overrun, or a presentation that does not demonstrate the system or its results.`;
 
-const PROFILES: Record<PitchMode, AnalysisPromptProfile> = {
-  vc_pitch: {
-    workflowMode: 'vc_pitch',
-    systemPrompt: COMMON_SYSTEM_PROMPT,
-    rubricText: VC_RUBRIC_TEXT,
-    modeConfig: {
-      label: 'VC Pitch',
-      targetDurationSeconds: 120,
-      targetWpm: 140,
-      structureBeats: ['Problem', 'Solution', 'Why Now', 'Traction', 'Market', 'Ask'],
-    },
-    scoringGuidance: [
-      'Score harshly: 80+ should be rare and reserved for clear proof, clear ask, and clear differentiation.',
-      'Penalize generic and vague language aggressively.',
-      'Grade against YC top-decile fundraising quality.',
-    ],
-    transcriptRules: [
-      'Score the founder pitch content, not audience chatter.',
-      'If transcript includes unrelated discussion, extract the founder pitch signal and score that signal only.',
-    ],
-  },
-  hackathon: {
-    workflowMode: 'hackathon',
-    systemPrompt: `${COMMON_SYSTEM_PROMPT}
+const VC_SCORING_GUIDANCE = [
+  'Score harshly: 80+ should be rare and reserved for clear proof, clear ask, and clear differentiation.',
+  'Penalize generic and vague language aggressively.',
+  'Grade against YC top-decile fundraising quality.',
+];
 
-You are judging a 3-minute hackathon demo pitch where judges expect a working product demo, clear innovation, and theme alignment.
-Missing demo is the single most damaging flaw. Slides-only presentations should score poorly on evidence.
-Judges care about: Does it work? Is it creative? Does it solve a real problem?
-Do not apply investor/VC standards. Grade against hackathon winner quality.`,
-    rubricText: HACKATHON_RUBRIC_TEXT,
-    modeConfig: {
-      label: 'Hackathon Pitch',
-      targetDurationSeconds: 180,
-      targetWpm: 150,
-      structureBeats: ['Hook', 'Problem', 'Demo', 'Innovation', 'Impact', 'Ask'],
-    },
-    scoringGuidance: [
-      'Grade against hackathon winner quality, not YC/investor standards.',
-      '80+ requires working demo + clear innovation + theme alignment.',
-      'Penalize slides-only presentations heavily on evidence.',
-      'Reward creativity, technical implementation depth, and real-world impact.',
-    ],
-    transcriptRules: [
-      'Score the founder demo pitch content only; ignore judge commentary.',
-      'Do not penalize informal or enthusiastic tone — hackathon energy is expected.',
-      'Treat screen-sharing references and live demo narration as technical credibility signals.',
-    ],
-  },
-  final_year: {
-    workflowMode: 'final_year',
-    systemPrompt: `You are an academic project presentation evaluator assessing final year university students.
+const VC_TRANSCRIPT_RULES = [
+  'Score the founder pitch content, not audience chatter.',
+  'If transcript includes unrelated discussion, extract the founder pitch signal and score that signal only.',
+];
+
+const HACKATHON_SCORING_GUIDANCE = [
+  'Grade against hackathon winner quality, not YC/investor standards.',
+  '80+ requires working demo + clear innovation + theme alignment.',
+  'Penalize slides-only presentations heavily on evidence.',
+  'Reward creativity, technical implementation depth, and real-world impact.',
+];
+
+const HACKATHON_TRANSCRIPT_RULES = [
+  'Score the founder demo pitch content only; ignore judge commentary.',
+  'Do not penalize informal or enthusiastic tone — hackathon energy is expected.',
+  'Treat screen-sharing references and live demo narration as technical credibility signals.',
+];
+
+const FINAL_YEAR_BASE_PROMPT = `You are an academic project presentation evaluator assessing final year university students.
 
 Your job is to give structured, constructive feedback that helps students improve their research communication.
 Focus on methodology rigor, result quality, and academic communication — not commercial viability.
@@ -183,7 +247,83 @@ Output rules:
 - Return valid JSON only.
 - Do not use markdown.
 - Do not include explanation text outside JSON.
-- Follow the requested schema exactly (field names and value types must match).`,
+- Follow the requested schema exactly (field names and value types must match).`;
+
+const FINAL_YEAR_SCORING_GUIDANCE = [
+  'Grade against strong final-year student presentations, not investor or hackathon standards.',
+  '80+ requires: originality/independent contribution clearly demonstrated + critical self-evaluation of own work + quantitative results with baselines.',
+  '70–79: All criteria met, demanding objectives fully achieved, limitations critically discussed with implications.',
+  '60–69: Competent across all criteria, objectives substantially achieved, some critical depth lacking.',
+  'Below 60: Objectives not achieved, results absent or unsupported, no evaluation of own work.',
+  'Critical self-evaluation (limitations with implications analysis) is the most reliable first-class marker — its absence caps a score at ~65.',
+  'Limitations discussion with analysis of implications RAISES scores, not lowers — it is an explicit positive criterion above 60%.',
+  'Penalize vague unmeasurable objectives, results without baselines, and design decisions stated but not justified.',
+  'Do NOT penalize for absence of revenue model, TAM, commercial viability, or investor readiness.',
+  'Reward methodology justification ("chose X instead of Y because Z") — this separates 70% from 60%.',
+];
+
+const FINAL_YEAR_TRANSCRIPT_RULES = [
+  'Score the student presentation content only; ignore examiner or supervisor questions and commentary.',
+  'Treat quantitative results with baselines, limitations with implications, and methodology justification as primary scoring signals.',
+  'Do not penalize academic or technical language when it is explained in context — penalize only unexplained jargon.',
+  'A presentation that cannot clearly explain the system it built should be penalised on Clarity even if delivery is fluent.',
+  'Treat explicit contributions delineation ("my contribution was X") as a strong positive signal under Structure.',
+];
+
+const ELEVATOR_SCORING_GUIDANCE = [
+  'Score harshly: any missing proof, unclear what-you-do statement, or incomplete ask should cap strong scores.',
+  'Penalize vague traction claims unless they include metric + timeframe + denominator.',
+  'Penalize unclear differentiation versus alternatives.',
+  'Reward crisp investor-ready asks with amount + instrument/equity + clear fund use.',
+  'In 30-second mode, verbosity is a defect: penalize overlong or wandering scripts.',
+];
+
+const ELEVATOR_TRANSCRIPT_RULES = [
+  'Transcripts may include investor panel reactions after the founder pitch. Ignore panel commentary while scoring the founder.',
+  'If mixed transcript segments exist, prioritize the founder opening and ask segment for score rationales.',
+  'Do not let positive panel sentiment compensate for missing founder evidence.',
+];
+
+const PROFILES: Record<PitchMode, AnalysisPromptProfile> = {
+  vc_pitch: {
+    workflowMode: 'vc_pitch',
+    systemPrompt: buildFullSystemPrompt(COMMON_BASE_PROMPT, VC_RUBRIC_TEXT, VC_SCORING_GUIDANCE, VC_TRANSCRIPT_RULES),
+    rubricText: VC_RUBRIC_TEXT,
+    modeConfig: {
+      label: 'VC Pitch',
+      targetDurationSeconds: 120,
+      targetWpm: 140,
+      structureBeats: ['Problem', 'Solution', 'Why Now', 'Traction', 'Market', 'Ask'],
+    },
+    scoringGuidance: VC_SCORING_GUIDANCE,
+    transcriptRules: VC_TRANSCRIPT_RULES,
+  },
+  hackathon: {
+    workflowMode: 'hackathon',
+    systemPrompt: buildFullSystemPrompt(
+      `${COMMON_BASE_PROMPT}
+
+You are judging a 3-minute hackathon demo pitch where judges expect a working product demo, clear innovation, and theme alignment.
+Missing demo is the single most damaging flaw. Slides-only presentations should score poorly on evidence.
+Judges care about: Does it work? Is it creative? Does it solve a real problem?
+Do not apply investor/VC standards. Grade against hackathon winner quality.`,
+      HACKATHON_RUBRIC_TEXT,
+      HACKATHON_SCORING_GUIDANCE,
+      HACKATHON_TRANSCRIPT_RULES,
+    ),
+    rubricText: HACKATHON_RUBRIC_TEXT,
+    modeConfig: {
+      label: 'Hackathon Pitch',
+      targetDurationSeconds: 180,
+      targetWpm: 150,
+      structureBeats: ['Hook', 'Problem', 'Demo', 'Innovation', 'Impact', 'Ask'],
+    },
+    scoringGuidance: HACKATHON_SCORING_GUIDANCE,
+    transcriptRules: HACKATHON_TRANSCRIPT_RULES,
+  },
+  final_year: {
+    workflowMode: 'final_year',
+    systemPrompt: buildFullSystemPrompt(FINAL_YEAR_BASE_PROMPT, FINAL_YEAR_RUBRIC_TEXT, FINAL_YEAR_SCORING_GUIDANCE, FINAL_YEAR_TRANSCRIPT_RULES),
     rubricText: FINAL_YEAR_RUBRIC_TEXT,
     modeConfig: {
       label: 'Final Year Project',
@@ -191,32 +331,20 @@ Output rules:
       targetWpm: 130,
       structureBeats: ['Introduction', 'Problem & Context', 'Approach', 'Results', 'Impact', 'Next Steps'],
     },
-    scoringGuidance: [
-      'Grade against strong final-year student presentations, not investor or hackathon standards.',
-      '80+ requires: originality/independent contribution clearly demonstrated + critical self-evaluation of own work + quantitative results with baselines.',
-      '70–79: All criteria met, demanding objectives fully achieved, limitations critically discussed with implications.',
-      '60–69: Competent across all criteria, objectives substantially achieved, some critical depth lacking.',
-      'Below 60: Objectives not achieved, results absent or unsupported, no evaluation of own work.',
-      'Critical self-evaluation (limitations with implications analysis) is the most reliable first-class marker — its absence caps a score at ~65.',
-      'Limitations discussion with analysis of implications RAISES scores, not lowers — it is an explicit positive criterion above 60%.',
-      'Penalize vague unmeasurable objectives, results without baselines, and design decisions stated but not justified.',
-      'Do NOT penalize for absence of revenue model, TAM, commercial viability, or investor readiness.',
-      'Reward methodology justification ("chose X instead of Y because Z") — this separates 70% from 60%.',
-    ],
-    transcriptRules: [
-      'Score the student presentation content only; ignore examiner or supervisor questions and commentary.',
-      'Treat quantitative results with baselines, limitations with implications, and methodology justification as primary scoring signals.',
-      'Do not penalize academic or technical language when it is explained in context — penalize only unexplained jargon.',
-      'A presentation that cannot clearly explain the system it built should be penalised on Clarity even if delivery is fluent.',
-      'Treat explicit contributions delineation ("my contribution was X") as a strong positive signal under Structure.',
-    ],
+    scoringGuidance: FINAL_YEAR_SCORING_GUIDANCE,
+    transcriptRules: FINAL_YEAR_TRANSCRIPT_RULES,
   },
   elevator: {
     workflowMode: 'elevator',
-    systemPrompt: `${COMMON_SYSTEM_PROMPT}
+    systemPrompt: buildFullSystemPrompt(
+      `${COMMON_BASE_PROMPT}
 
 You are judging a 30-second elevator pitch where investors expect immediate clarity.
 Use a skeptical investor lens: unclear business definition, vague traction, weak differentiation, and incomplete ask details must be penalized heavily.`,
+      ELEVATOR_RUBRIC_TEXT,
+      ELEVATOR_SCORING_GUIDANCE,
+      ELEVATOR_TRANSCRIPT_RULES,
+    ),
     rubricText: ELEVATOR_RUBRIC_TEXT,
     modeConfig: {
       label: 'Elevator Pitch',
@@ -224,18 +352,8 @@ Use a skeptical investor lens: unclear business definition, vague traction, weak
       targetWpm: 165,
       structureBeats: ['One-liner', 'Problem', 'Solution', 'Proof', 'Ask'],
     },
-    scoringGuidance: [
-      'Score harshly: any missing proof, unclear what-you-do statement, or incomplete ask should cap strong scores.',
-      'Penalize vague traction claims unless they include metric + timeframe + denominator.',
-      'Penalize unclear differentiation versus alternatives.',
-      'Reward crisp investor-ready asks with amount + instrument/equity + clear fund use.',
-      'In 30-second mode, verbosity is a defect: penalize overlong or wandering scripts.',
-    ],
-    transcriptRules: [
-      'Transcripts may include investor panel reactions after the founder pitch. Ignore panel commentary while scoring the founder.',
-      'If mixed transcript segments exist, prioritize the founder opening and ask segment for score rationales.',
-      'Do not let positive panel sentiment compensate for missing founder evidence.',
-    ],
+    scoringGuidance: ELEVATOR_SCORING_GUIDANCE,
+    transcriptRules: ELEVATOR_TRANSCRIPT_RULES,
   },
 };
 
