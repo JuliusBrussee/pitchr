@@ -111,8 +111,16 @@ vi.mock('@/views/components/ui', () => ({
   ConfirmDialog: () => null,
 }));
 
-vi.mock('@/views/components/AnalyzingOverlay', () => ({
-  AnalyzingOverlay: () => null,
+vi.mock('@/views/components/AnalysisTrackerProvider', () => ({
+  useAnalysisTracker: () => ({
+    activeRunId: null,
+    activeRun: null,
+    activeRunStatus: null,
+    isPolling: false,
+    error: null,
+    startTracking: vi.fn(),
+    stopTracking: vi.fn(),
+  }),
 }));
 
 vi.mock('@/views/components/SidebarContext', () => ({

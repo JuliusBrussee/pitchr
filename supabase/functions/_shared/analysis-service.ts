@@ -288,7 +288,7 @@ function buildUserPrompt(
 // LLM API callers
 // ---------------------------------------------------------------------------
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent';
 const GEMINI_TIMEOUT_MS = 60_000;
 const GEMINI_MAX_ATTEMPTS = 2;
 const GEMINI_RETRY_DELAY_MS = 2_000;
@@ -317,12 +317,13 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
           contents: [
-            { role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] },
+            { role: 'user', parts: [{ text: userPrompt }] },
           ],
           generationConfig: {
             temperature: 0,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 16384,
           },
         }),
         signal: controller.signal,

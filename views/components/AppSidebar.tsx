@@ -25,6 +25,8 @@ import { ProjectSelect } from '@/views/components/ProjectSelect';
 import { StartSessionButton } from '@/views/components/StartSessionButton';
 import { useSidebar } from '@/views/components/SidebarContext';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
+import { SidebarAnalysisIndicator } from '@/views/components/SidebarAnalysisIndicator';
+import { useAnalysisTracker } from '@/views/components/AnalysisTrackerProvider';
 
 interface AppSidebarProps {
   onStartSession?: () => void;
@@ -54,6 +56,8 @@ export function AppSidebar({
   const { projects, activeProjectId, setActiveProject, isLoading: isProjectLoading } = useProject();
   const pathname = usePathname() ?? '';
   const { closeSidebar } = useSidebar();
+  const { activeRunId } = useAnalysisTracker();
+  const isAnalysisInProgress = Boolean(activeRunId);
   const { subscription, credits } = useBilling();
   const { isActive: isEarlyAdopter, claimed: earlyAdopterClaimed } = useEarlyAdopter();
 
@@ -173,6 +177,9 @@ export function AppSidebar({
         })}
       </nav>
 
+      {/* Analysis in progress indicator */}
+      <SidebarAnalysisIndicator />
+
       {/* Divider */}
       <div className="my-4 h-px" style={{ backgroundColor: 'var(--border-color)' }} />
 
@@ -284,11 +291,21 @@ export function AppSidebar({
 
       {/* Start Session CTA */}
       {onStartSession ? (
-        <StartSessionButton onClick={onStartSession} isSessionActive={isSessionActive} />
+        <StartSessionButton
+          onClick={onStartSession}
+          isSessionActive={isSessionActive}
+          disabled={isAnalysisInProgress}
+          disabledReason="Analysis in progress"
+        />
       ) : (
         <div className="session-start-wrap">
           <div className="session-start-glow" />
-          <Link href="/session" className="session-start-btn no-underline">
+          <Link
+            href="/session"
+            className={`session-start-btn no-underline${isAnalysisInProgress ? ' opacity-50 pointer-events-none' : ''}`}
+            aria-disabled={isAnalysisInProgress}
+            title={isAnalysisInProgress ? 'Analysis in progress' : undefined}
+          >
             <span className="session-start-btn__icon">
               <Play size={15} fill="currentColor" />
             </span>

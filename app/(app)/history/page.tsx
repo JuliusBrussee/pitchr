@@ -646,13 +646,15 @@ export default function HistoryPage() {
 
                           {/* Review link */}
                           <div className="flex items-center justify-end">
-                            <span
+                            <Link
+                              href={`/review/${run.id}`}
+                              onClick={(e) => e.stopPropagation()}
                               className="text-xs font-medium flex items-center gap-1 transition-all duration-200 group-hover:gap-2"
                               style={{ color: 'var(--text-secondary)' }}
                             >
                               Review
                               <ArrowRight size={13} />
-                            </span>
+                            </Link>
                           </div>
                         </div>
                       );

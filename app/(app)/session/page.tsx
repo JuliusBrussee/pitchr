@@ -16,7 +16,7 @@ import { usePitchRun } from '@/hooks/usePitchRun';
 import { useBilling } from '@/hooks/useBilling';
 import { useTheme } from '@/views/components/ThemeProvider';
 import { ConfirmDialog } from '@/views/components/ui';
-import { AnalyzingOverlay } from '@/views/components/AnalyzingOverlay';
+import { useAnalysisTracker } from '@/views/components/AnalysisTrackerProvider';
 import { UpgradePrompt } from '@/views/components/billing/UpgradePrompt';
 import { SessionPaywall } from '@/views/components/billing/SessionPaywall';
 import { useSidebarSession } from '@/views/components/SidebarContext';
@@ -62,6 +62,7 @@ function SessionPageContent() {
   const sessionProject = activeProject && !activeProject.isArchived ? activeProject : null;
   const sessionProjectId = sessionProject?.id ?? null;
   const { setOrbState } = useTheme();
+  const { startTracking } = useAnalysisTracker();
   const { registerPage } = useTutorial('session');
   const trackingVideoRef = useRef<HTMLVideoElement | null>(null);
   const trackingCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -69,7 +70,6 @@ function SessionPageContent() {
   const hasCredits = isBillingLoading || !credits || credits.totalAvailable > 0;
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
-  const [showAnalyzing, setShowAnalyzing] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const deckTextCacheRef = useRef<Record<string, string>>({});
@@ -286,7 +286,6 @@ function SessionPageContent() {
       return;
     }
     setAnalysisError(null);
-    setShowAnalyzing(false);
     autoSubmitLockRef.current = false;
     setIsPaused(false);
     setIsConfigCollapsed(true);
@@ -314,14 +313,12 @@ function SessionPageContent() {
     }
     session.stopSession();
     stt.pause();
-    setShowAnalyzing(false);
     setIsPaused(true);
   }, [session, stt]);
 
   const handleStopSession = useCallback(() => {
     session.stopSession();
     stt.stop();
-    setShowAnalyzing(true);
     setIsPaused(false);
     // Do NOT stop the recorder here — the auto-submit effect handles stopping
     // and capturing the blob for upload. Stopping here causes a race condition
@@ -336,7 +333,6 @@ function SessionPageContent() {
     session.resetSession(pitchMode);
     stt.discard();
     void recorder.stopRecording(); // ignore blob; stt.saved never set so auto-submit won't run
-    setShowAnalyzing(false);
     setAnalysisError(null);
     setIsPaused(false);
     hasStartedRef.current = false;
@@ -344,16 +340,6 @@ function SessionPageContent() {
     setIsProjectSwitchLocked(false);
     setShowDiscardConfirm(false);
   }, [session, stt, recorder, pitchMode]);
-
-  // Warn before navigating away during analysis
-  useEffect(() => {
-    if (!showAnalyzing) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [showAnalyzing]);
 
   const handleSessionToggle = useCallback(() => {
     if (session.isSessionActive) {
@@ -378,14 +364,12 @@ function SessionPageContent() {
       .trim();
     if (!transcript) {
       autoSubmitLockRef.current = true;
-      setShowAnalyzing(false);
       setAnalysisError('Transcript was saved but no text was captured for analysis.');
       return;
     }
     const MAX_TRANSCRIPT_CHARS = 50_000;
     if (transcript.length > MAX_TRANSCRIPT_CHARS) {
       autoSubmitLockRef.current = true;
-      setShowAnalyzing(false);
       setAnalysisError(`Transcript is too long (${transcript.length.toLocaleString()} chars). Maximum is ${MAX_TRANSCRIPT_CHARS.toLocaleString()} characters.`);
       return;
     }
@@ -393,7 +377,6 @@ function SessionPageContent() {
     // Pre-flight credit check — show upgrade modal if out of credits
     if (!hasCredits) {
       autoSubmitLockRef.current = true;
-      setShowAnalyzing(false);
       setShowUpgradePrompt(true);
       setAnalysisError('You have 0 credits remaining. Upgrade or buy credits to continue.');
       return;
@@ -404,26 +387,30 @@ function SessionPageContent() {
     const lockedProjectId = lockedProjectIdRef.current ?? sessionProjectId;
     if (!lockedProjectId) {
       autoSubmitLockRef.current = false;
-      setShowAnalyzing(false);
       setAnalysisError('Select a project before running analysis.');
       return;
     }
 
     void (async () => {
       try {
-        // Stop recording and upload blob
-        let audioUrl: string | undefined;
-        try {
-          const blob = await recorder.stopRecording();
-          if (blob && blob.size > 0) {
+        // Stop recorder first, then fan out upload + analysis in parallel.
+        // We wait for both before navigating so audio_url is guaranteed to be
+        // in the DB before the results page makes its first poll (2 s later).
+        const blob = await recorder.stopRecording();
+
+        // Kick off upload immediately (non-blocking)
+        const uploadPromise: Promise<string | undefined> = (async () => {
+          if (!blob || blob.size === 0) return undefined;
+          try {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
             const tempId = crypto.randomUUID();
-            audioUrl = await uploadRecording(supabase, user?.id ?? 'anonymous', tempId, blob);
+            return await uploadRecording(supabase, user?.id ?? 'anonymous', tempId, blob);
+          } catch (uploadErr) {
+            console.warn('[session] Recording upload failed, proceeding without:', uploadErr);
+            return undefined;
           }
-        } catch (uploadErr) {
-          console.warn('[session] Recording upload failed, proceeding without:', uploadErr);
-        }
+        })();
 
         let deckText: string | undefined;
         if (selectedDeckId !== null) {
@@ -431,27 +418,45 @@ function SessionPageContent() {
             deckText = await loadDeckText(selectedDeckId);
           } catch {
             autoSubmitLockRef.current = false;
-            setShowAnalyzing(false);
             setAnalysisError('Could not load selected deck context. Please retry.');
             session.setOrbState('idle');
             return;
           }
         }
-        const result = await runPitchAnalysis({
-          projectId: lockedProjectId,
-          mode: pitchMode,
-          inputType: 'audio',
-          transcript,
-          audioUrl,
-          deckId: selectedDeckId ?? undefined,
-          deckText,
-          transcriptSegments: stt.transcriptSegments,
-          targetDurationSeconds: selectedDuration,
-        });
+
+        // Run analysis and upload in parallel — total wait = max(upload, analysis)
+        // instead of upload + analysis sequentially.
+        const [audioUrl, result] = await Promise.all([
+          uploadPromise,
+          runPitchAnalysis({
+            projectId: lockedProjectId,
+            mode: pitchMode,
+            inputType: 'audio',
+            transcript,
+            deckId: selectedDeckId ?? undefined,
+            deckText,
+            transcriptSegments: stt.transcriptSegments,
+            targetDurationSeconds: selectedDuration,
+          }),
+        ]);
+
+        // Patch audio_url onto the run (fire-and-forget — completes in ~100 ms,
+        // well before the results page's first 2 s poll).
+        if (audioUrl) {
+          void fetch(`/api/runs/${result.runId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ audioUrl }),
+          }).catch(() => {
+            console.warn('[session] Failed to patch audio_url on run');
+          });
+        }
+
+        session.setOrbState('idle');
+        startTracking(result.runId);
         router.push(`/results/${result.runId}`);
       } catch (error) {
         autoSubmitLockRef.current = false;
-        setShowAnalyzing(false);
         setAnalysisError(
           error instanceof Error ? error.message : 'Failed to run pitch analysis.',
         );
@@ -470,6 +475,8 @@ function SessionPageContent() {
     stt.saved,
     stt.transcriptSegments,
     hasCredits,
+    startTracking,
+    selectedDuration,
   ]);
 
   // Billing loading — don't flash paywall
@@ -591,8 +598,8 @@ function SessionPageContent() {
             ?? stt.error
             ?? (!isProjectLoading && !sessionProjectId ? 'Select a project before starting a session.' : null)
           }
-          sttSaved={stt.saved && !showAnalyzing}
-          isAnalyzing={showAnalyzing}
+          sttSaved={stt.saved}
+          isAnalyzing={false}
           analysisError={
             (isPitchRateLimited ? `Too many requests. Try again in ${pitchCooldownSeconds}s.` : null)
             ?? analysisError
@@ -613,7 +620,6 @@ function SessionPageContent() {
         className="sr-only"
         aria-hidden="true"
       />
-      <AnalyzingOverlay isVisible={showAnalyzing} />
       <ConfirmDialog
         open={showDiscardConfirm}
         onClose={() => setShowDiscardConfirm(false)}

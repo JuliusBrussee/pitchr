@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 test.describe("app smoke", () => {
   test("opens key app routes", async ({ page }) => {
-    const routes = ["/dashboard", "/session", "/analytics"];
+    const routes = ["/dashboard", "/session", "/insights"];
 
     for (const route of routes) {
       const response = await page.goto(route, { waitUntil: "domcontentloaded" });

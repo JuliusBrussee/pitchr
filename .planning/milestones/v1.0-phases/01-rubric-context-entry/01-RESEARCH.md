@@ -1,4 +1,4 @@
-﻿# Phase 1: Rubric Context Entry - Research
+# Phase 1: Rubric Context Entry - Research
 
 **Researched:** 2026-03-05
 **Domain:** Project-scoped rubric/context configuration UX and validation

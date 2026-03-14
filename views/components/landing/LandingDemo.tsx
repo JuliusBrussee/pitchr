@@ -82,9 +82,6 @@ export function LandingDemo() {
           <h2 className="landing-demo-title">
             See it in <i>action</i>.
           </h2>
-          <p className="landing-demo-subtitle">
-            From recording to investor-ready report — watch a full session unfold.
-          </p>
         </div>
 
         <div className={`landing-demo-stage${hasLoaded ? ' landing-demo-stage--loaded' : ''}`}>

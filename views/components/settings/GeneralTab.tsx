@@ -352,7 +352,7 @@ export function GeneralTab() {
         )}
         <button
           onClick={() => setShowDeleteAccount(true)}
-          disabled={hasActivePaidPlan}
+          disabled={hasActivePaidPlan || !user?.email}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-40"
           style={{
             color: '#ef4444',

@@ -1,6 +1,6 @@
 import type { LlmCompletionRequest, LlmProvider } from '@/lib/llm/types';
 
-const DEFAULT_MODEL = 'gemini-3-flash';
+const DEFAULT_MODEL = 'gemini-3-flash-preview';
 const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_MAX_TOKENS = 4096;
 const DEFAULT_TIMEOUT_MS = 25_000;

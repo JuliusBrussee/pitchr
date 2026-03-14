@@ -3,7 +3,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { createInitialChecklistState } from '@/config/realtimeChecklist';
 import type {
-  RealtimeChecklistErrorMessage,
   RealtimeChecklistUpdateMessage,
   RealtimeChecklistItemState,
 } from '@/types/checklist';
@@ -12,37 +11,9 @@ import type { PitchMode } from '@/types/pitch';
 
 const TARGET_SAMPLE_RATE = 16000;
 const CHUNK_SAMPLES = 2048;
-const STT_MISSING_KEY_GUIDANCE =
-  'Speech recording is unavailable. Set ASSEMBLYAI_API_KEY in .env.local and restart yarn dev.';
-
-function getWsUrl(): string {
-  if (typeof window === 'undefined') return '';
-  const base = process.env.NEXT_PUBLIC_WS_URL;
-  if (base) {
-    const url = base.replace(/^http/, 'ws');
-    return url.endsWith('/ws') ? url : `${url.replace(/\/$/, '')}/ws`;
-  }
-  // When Next runs on :3000 and STT server on :3001 (yarn dev), connect to backend
-  const host = window.location.hostname;
-  const port = window.location.port;
-  if (host === 'localhost' && port === '3000') {
-    return 'ws://localhost:3001/ws';
-  }
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  return `${protocol}//${window.location.host}/ws`;
-}
-
-function getApiBaseUrl(): string {
-  if (typeof window === 'undefined') return '';
-  const base = process.env.NEXT_PUBLIC_WS_URL;
-  if (base) {
-    return base.replace(/\/ws\/?$/, '').replace(/^ws/, 'http');
-  }
-  const host = window.location.hostname;
-  const port = window.location.port;
-  if (host === 'localhost' && port === '3000') return 'http://localhost:3001';
-  return `${window.location.protocol}//${window.location.host}`;
-}
+const ASSEMBLYAI_WS_BASE = 'wss://streaming.assemblyai.com/v3/ws';
+const CHECKLIST_POLL_INTERVAL_MS = 10_000;
+const TOKEN_REFRESH_BUFFER_MS = 60_000;
 
 function resampleTo16k(float32Mono: Float32Array, inputSampleRate: number): Float32Array {
   if (inputSampleRate === TARGET_SAMPLE_RATE) return float32Mono;
@@ -69,33 +40,41 @@ function floatTo16BitPcm(float32Array: Float32Array): Int16Array {
   return int16;
 }
 
-function base64FromInt16(int16Array: Int16Array): string {
-  const uint8 = new Uint8Array(int16Array.buffer);
-  let binary = '';
-  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
-  return btoa(binary);
-}
-
 interface StartOptions {
   resume?: boolean;
   mode?: PitchMode;
 }
 
-interface RealtimeSttMessage {
+interface AssemblyAIMessage {
   type?: string;
-  message_type?: string;
-  text?: string;
+  turn_is_formatted?: boolean;
+  transcript?: string;
+  utterance?: string;
   words?: Array<{ text?: string; start?: number; end?: number }>;
   error?: string;
-  feedbackQuestion?: string;
-  feedbackAnswer?: string;
-  feedbackError?: string;
-  base64?: string;
 }
 
-interface RealtimeSttCapabilitiesResponse {
-  enabled?: boolean;
-  message?: string;
+interface TokenResponse {
+  token: string;
+  expiresInSeconds: number;
+}
+
+interface ChecklistResponse {
+  skipped?: boolean;
+  message?: RealtimeChecklistUpdateMessage;
+  items?: RealtimeChecklistItemState[];
+  scheduler?: { lastEvaluatedAtMs: number; lastEvaluatedWordCount: number };
+}
+
+interface StopResponse {
+  feedbackQuestion?: string;
+  feedbackError?: string;
+}
+
+interface CoachAnswerResponse {
+  feedbackText?: string;
+  audioBase64?: string;
+  audioError?: string;
 }
 
 function buildSyntheticWords(
@@ -119,48 +98,55 @@ function buildSyntheticWords(
 }
 
 function buildCommittedSegment(
-  message: RealtimeSttMessage,
+  text: string,
+  words: Array<{ text: string; start: number; end: number }>,
   previous: TranscriptSegment[],
 ): TranscriptSegment | null {
-  const text = message.text?.trim() ?? '';
-  if (!text) return null;
+  const trimmed = text.trim();
+  if (!trimmed) return null;
 
-  const normalizedWords = (message.words ?? [])
-    .map((word) => {
-      const wordText = String(word.text ?? '').trim();
-      const start = typeof word.start === 'number' ? word.start : Number.NaN;
-      const end = typeof word.end === 'number' ? word.end : Number.NaN;
-      if (!wordText || !Number.isFinite(start) || !Number.isFinite(end) || end < start) {
-        return null;
-      }
-      return {
-        text: wordText,
-        start: Number(start.toFixed(3)),
-        end: Number(end.toFixed(3)),
-      };
-    })
-    .filter((word): word is TranscriptSegment['words'][number] => Boolean(word));
-
-  if (normalizedWords.length > 0) {
+  if (words.length > 0) {
     return {
-      text,
-      start: normalizedWords[0].start,
-      end: normalizedWords[normalizedWords.length - 1].end,
-      words: normalizedWords,
+      text: trimmed,
+      start: words[0].start,
+      end: words[words.length - 1].end,
+      words,
     };
   }
 
   const previousEnd = previous.length > 0 ? previous[previous.length - 1].end : 0;
-  const tokens = text.split(/\s+/u).filter(Boolean).length;
-  const duration = Math.max(0.25, tokens * 0.33);
+  const tokenCount = trimmed.split(/\s+/u).filter(Boolean).length;
+  const duration = Math.max(0.25, tokenCount * 0.33);
   const start = Number(previousEnd.toFixed(3));
   const end = Number((previousEnd + duration).toFixed(3));
   return {
-    text,
+    text: trimmed,
     start,
     end,
-    words: buildSyntheticWords(text, start, end),
+    words: buildSyntheticWords(trimmed, start, end),
   };
+}
+
+function parseAssemblyAITurn(msg: AssemblyAIMessage): {
+  text: string;
+  words: Array<{ text: string; start: number; end: number }>;
+  isFormatted: boolean;
+} | null {
+  if (msg.type !== 'Turn') return null;
+  const formatted = msg.turn_is_formatted === true;
+  const text =
+    formatted && (msg.utterance ?? '').trim().length > 0
+      ? (msg.utterance ?? '').trim()
+      : (msg.transcript ?? '').trim();
+  const wordsRaw = msg.words ?? [];
+  const words = wordsRaw
+    .map((w) => ({
+      text: String(w.text ?? '').trim(),
+      start: Number((Number(w.start) || 0) / 1000),
+      end: Number((Number(w.end) || 0) / 1000),
+    }))
+    .filter((w) => w.text && Number.isFinite(w.start) && Number.isFinite(w.end));
+  return { text, words, isFormatted: formatted };
 }
 
 function isChecklistUpdateMessage(value: unknown): value is RealtimeChecklistUpdateMessage {
@@ -174,10 +160,18 @@ function isChecklistUpdateMessage(value: unknown): value is RealtimeChecklistUpd
   );
 }
 
-function isChecklistErrorMessage(value: unknown): value is RealtimeChecklistErrorMessage {
-  if (!value || typeof value !== 'object') return false;
-  const msg = value as Record<string, unknown>;
-  return msg.type === 'checklist_error' && typeof msg.error === 'string';
+
+async function fetchToken(): Promise<TokenResponse> {
+  const response = await fetch('/api/stt/token', { method: 'GET', cache: 'no-store' });
+  if (!response.ok) {
+    const data = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `Token request failed: ${response.status}`);
+  }
+  return (await response.json()) as TokenResponse;
+}
+
+function buildAssemblyAIWsUrl(token: string): string {
+  return `${ASSEMBLYAI_WS_BASE}?token=${token}&sample_rate=${TARGET_SAMPLE_RATE}&encoding=pcm_s16le&format_turns=true&speech_model=universal-streaming-english`;
 }
 
 export interface UseSTTReturn {
@@ -226,9 +220,7 @@ export function useSTT(): UseSTTReturn {
   const [realtimeChecklist, setRealtimeChecklist] = useState<RealtimeChecklistItemState[]>(
     createInitialChecklistState('elevator'),
   );
-  const [checklistSource, setChecklistSource] = useState<'llm' | 'heuristic' | null>(
-    null,
-  );
+  const [checklistSource, setChecklistSource] = useState<'llm' | 'heuristic' | null>(null);
   const [checklistNextHint, setChecklistNextHint] = useState<string | null>(null);
   const [checklistError, setChecklistError] = useState<string | null>(null);
   const [isSttAvailable, setIsSttAvailable] = useState(true);
@@ -236,11 +228,9 @@ export function useSTT(): UseSTTReturn {
 
   const wsRef = useRef<WebSocket | null>(null);
   const isRecordingRef = useRef(false);
+  const hadActiveSessionRef = useRef(false);
   const answerWsRef = useRef<WebSocket | null>(null);
-  const targetWsRef = useRef<WebSocket | null>(null);
   const submittedAnswerRef = useRef<string | null>(null);
-  const answerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
@@ -249,11 +239,27 @@ export function useSTT(): UseSTTReturn {
   const sttCapabilityCheckedRef = useRef(false);
   const sttCapabilityProbeRef = useRef<Promise<boolean> | null>(null);
 
+  // Checklist polling refs
+  const checklistIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const checklistItemsRef = useRef<RealtimeChecklistItemState[]>([]);
+  const checklistSchedulerRef = useRef({ lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 });
+  const checklistSessionStartRef = useRef(0);
+  const checklistInFlightRef = useRef(false);
+
+  // Transcript accumulation refs (for checklist context)
+  const committedTranscriptRef = useRef('');
+  const livePartialRef = useRef('');
+
+  // Token refresh refs
+  const tokenExpiresAtRef = useRef(0);
+  const tokenRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track which WS should receive audio (main or answer)
+  const activeWsRef = useRef<WebSocket | null>(null);
+
   const markSttUnavailable = useCallback((message?: string) => {
     const reason = message?.trim();
-    const guidance = reason
-      ? `${reason} Set ASSEMBLYAI_API_KEY in .env.local and restart yarn dev.`
-      : STT_MISSING_KEY_GUIDANCE;
+    const guidance = reason || 'Speech recording is currently unavailable.';
     sttCapabilityCheckedRef.current = true;
     setIsSttAvailable(false);
     setSttAvailabilityMessage(guidance);
@@ -268,14 +274,8 @@ export function useSTT(): UseSTTReturn {
     }
 
     const probePromise = (async () => {
-      const apiBase = getApiBaseUrl();
-      if (!apiBase) {
-        sttCapabilityCheckedRef.current = true;
-        return true;
-      }
-
       try {
-        const response = await fetch(`${apiBase}/api/stt-capabilities`, {
+        const response = await fetch('/api/stt/capabilities', {
           method: 'GET',
           cache: 'no-store',
         });
@@ -284,7 +284,7 @@ export function useSTT(): UseSTTReturn {
           return true;
         }
 
-        const payload = (await response.json()) as RealtimeSttCapabilitiesResponse;
+        const payload = (await response.json()) as { enabled?: boolean; message?: string };
         if (payload.enabled === false) {
           markSttUnavailable(payload.message);
           return false;
@@ -295,7 +295,7 @@ export function useSTT(): UseSTTReturn {
           setSttAvailabilityMessage(null);
         }
       } catch {
-        // Ignore probe failures; websocket flow still handles runtime errors.
+        // Ignore probe failures
       }
 
       sttCapabilityCheckedRef.current = true;
@@ -316,17 +316,10 @@ export function useSTT(): UseSTTReturn {
     isRecordingRef.current = isRecording;
   }, [isRecording]);
 
-  const sendChunk = useCallback((base64: string, commit: boolean) => {
-    const ws = targetWsRef.current;
+  const sendBinaryAudio = useCallback((int16: Int16Array) => {
+    const ws = activeWsRef.current;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(
-      JSON.stringify({
-        message_type: 'input_audio_chunk',
-        audio_base_64: base64,
-        commit: !!commit,
-        sample_rate: TARGET_SAMPLE_RATE,
-      })
-    );
+    ws.send(int16.buffer);
   }, []);
 
   const stopMic = useCallback(() => {
@@ -349,6 +342,70 @@ export function useSTT(): UseSTTReturn {
       audioContextRef.current = null;
     }
   }, []);
+
+  const stopChecklistPolling = useCallback(() => {
+    if (checklistIntervalRef.current) {
+      clearInterval(checklistIntervalRef.current);
+      checklistIntervalRef.current = null;
+    }
+  }, []);
+
+  const stopTokenRefresh = useCallback(() => {
+    if (tokenRefreshTimerRef.current) {
+      clearTimeout(tokenRefreshTimerRef.current);
+      tokenRefreshTimerRef.current = null;
+    }
+  }, []);
+
+  const runChecklistEval = useCallback(async (force = false) => {
+    if (checklistInFlightRef.current) return;
+    const transcript = committedTranscriptRef.current.trim();
+    const partial = livePartialRef.current.trim();
+    const fullTranscript = partial
+      ? (transcript ? `${transcript} ${partial}` : partial)
+      : transcript;
+    if (!fullTranscript) return;
+
+    checklistInFlightRef.current = true;
+    try {
+      const response = await fetch('/api/stt/checklist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode: modeRef.current,
+          transcript: fullTranscript,
+          previousItems: checklistItemsRef.current,
+          scheduler: checklistSchedulerRef.current,
+          sessionStartedAtMs: checklistSessionStartRef.current,
+          force,
+        }),
+      });
+      if (!response.ok) return;
+      const data = (await response.json()) as ChecklistResponse;
+      if (data.skipped) return;
+      if (data.message && isChecklistUpdateMessage(data.message)) {
+        setRealtimeChecklist(data.message.items);
+        setChecklistSource(data.message.source);
+        setChecklistNextHint(data.message.nextHint);
+        setChecklistError(null);
+        checklistItemsRef.current = data.message.items;
+      }
+      if (data.scheduler) {
+        checklistSchedulerRef.current = data.scheduler;
+      }
+    } catch {
+      // Checklist polling failure is non-fatal
+    } finally {
+      checklistInFlightRef.current = false;
+    }
+  }, []);
+
+  const startChecklistPolling = useCallback(() => {
+    stopChecklistPolling();
+    checklistIntervalRef.current = setInterval(() => {
+      void runChecklistEval(false);
+    }, CHECKLIST_POLL_INTERVAL_MS);
+  }, [runChecklistEval, stopChecklistPolling]);
 
   const startMicCapture = useCallback(async (): Promise<boolean> => {
     try {
@@ -381,8 +438,7 @@ export function useSTT(): UseSTTReturn {
           const chunk = buffer.slice(0, CHUNK_SAMPLES);
           buffer = buffer.slice(CHUNK_SAMPLES);
           const int16 = floatTo16BitPcm(chunk);
-          const b64 = base64FromInt16(int16);
-          sendChunk(b64, false);
+          sendBinaryAudio(int16);
         }
       };
 
@@ -401,57 +457,215 @@ export function useSTT(): UseSTTReturn {
       );
       return false;
     }
-  }, [sendChunk, stopMic]);
+  }, [sendBinaryAudio, stopMic]);
+
+  const handleAssemblyAIMessage = useCallback(
+    (event: MessageEvent, isAnswerMode: boolean) => {
+      let parsed: AssemblyAIMessage;
+      try {
+        parsed = JSON.parse(event.data as string) as AssemblyAIMessage;
+      } catch {
+        return;
+      }
+
+      if (parsed.type === 'Begin' || parsed.type === 'Termination') return;
+
+      const turn = parseAssemblyAITurn(parsed);
+      if (turn) {
+        if (isAnswerMode) {
+          // In answer mode, accumulate the formatted transcript
+          if (turn.isFormatted && turn.text) {
+            setAnswerTranscript((prev) => {
+              const combined = prev ? `${prev} ${turn.text}` : turn.text;
+              return combined;
+            });
+          }
+          return;
+        }
+
+        if (!turn.isFormatted) {
+          // Partial transcript
+          livePartialRef.current = turn.text;
+          setLiveText(turn.text);
+        } else {
+          // Committed (formatted) turn
+          if (turn.text) {
+            committedTranscriptRef.current = committedTranscriptRef.current
+              ? `${committedTranscriptRef.current} ${turn.text}`
+              : turn.text;
+            livePartialRef.current = '';
+            setTranscriptSegments((prev) => {
+              const next = buildCommittedSegment(turn.text, turn.words, prev);
+              if (!next) return prev;
+              if (prev.length === 0) return [next];
+              const last = prev[prev.length - 1];
+              if (last.text === next.text) return prev;
+              if (next.text.startsWith(last.text) && next.text.length > last.text.length) {
+                return [...prev.slice(0, -1), { ...next, start: last.start }];
+              }
+              return [...prev, next];
+            });
+            setLiveText('');
+          }
+        }
+        return;
+      }
+
+      // Error messages
+      if (parsed.error || (parsed.type && (parsed.type.endsWith('_error') || parsed.type === 'error'))) {
+        setError('Transcription error: ' + (parsed.error ?? parsed.type));
+      }
+    },
+    [],
+  );
+
+  const connectToAssemblyAI = useCallback(
+    async (isAnswerMode: boolean): Promise<WebSocket | null> => {
+      let tokenData: TokenResponse;
+      try {
+        tokenData = await fetchToken();
+      } catch (e) {
+        if (e instanceof Error && (e.message.includes('401') || e.message.includes('Authentication'))) {
+          setError('Please sign in to use speech recording.');
+        } else {
+          setError(e instanceof Error ? e.message : 'Failed to get transcription token');
+        }
+        return null;
+      }
+
+      tokenExpiresAtRef.current = Date.now() + tokenData.expiresInSeconds * 1000;
+
+      const url = buildAssemblyAIWsUrl(tokenData.token);
+      let ws: WebSocket;
+      try {
+        ws = new WebSocket(url);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'WebSocket connection failed');
+        return null;
+      }
+
+      ws.binaryType = 'arraybuffer';
+
+      ws.onmessage = (event: MessageEvent) => handleAssemblyAIMessage(event, isAnswerMode);
+      ws.onerror = () => setError('Transcription connection error.');
+
+      return ws;
+    },
+    [handleAssemblyAIMessage],
+  );
+
+  const scheduleTokenRefresh = useCallback(() => {
+    stopTokenRefresh();
+    const msUntilExpiry = tokenExpiresAtRef.current - Date.now();
+    const refreshIn = Math.max(5000, msUntilExpiry - TOKEN_REFRESH_BUFFER_MS);
+
+    tokenRefreshTimerRef.current = setTimeout(async () => {
+      // Get new token and reconnect
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+      try {
+        const tokenData = await fetchToken();
+        tokenExpiresAtRef.current = Date.now() + tokenData.expiresInSeconds * 1000;
+
+        // Close old connection and open new one
+        ws.send(JSON.stringify({ type: 'Terminate' }));
+        ws.close();
+
+        const newUrl = buildAssemblyAIWsUrl(tokenData.token);
+        const newWs = new WebSocket(newUrl);
+        newWs.binaryType = 'arraybuffer';
+        newWs.onmessage = (event: MessageEvent) => handleAssemblyAIMessage(event, false);
+        newWs.onerror = () => setError('Transcription connection error.');
+        newWs.onclose = () => {
+          if (wsRef.current === newWs) {
+            wsRef.current = null;
+            activeWsRef.current = null;
+          }
+        };
+        newWs.onopen = () => {
+          wsRef.current = newWs;
+          activeWsRef.current = newWs;
+          scheduleTokenRefresh();
+        };
+      } catch {
+        // Token refresh failure — recording continues until WS closes
+      }
+    }, refreshIn);
+  }, [handleAssemblyAIMessage, stopTokenRefresh]);
 
   const pause = useCallback(() => {
     stopMic();
+    stopChecklistPolling();
+    stopTokenRefresh();
     setIsRecording(false);
     setLiveText('');
     setSaved(false);
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
-  }, [stopMic]);
+  }, [stopMic, stopChecklistPolling, stopTokenRefresh]);
 
   const stop = useCallback(() => {
     stopMic();
+    stopChecklistPolling();
+    stopTokenRefresh();
+
+    // Final checklist eval
+    void runChecklistEval(true);
+
     const ws = wsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'stop' }));
-      // Keep socket open so server can receive final commit and send "saved"
-      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = setTimeout(() => {
-        closeTimerRef.current = null;
-        if (wsRef.current) {
-          wsRef.current.close();
-          wsRef.current = null;
-        }
-      }, 20000);
-    } else if (ws) {
+      ws.send(JSON.stringify({ type: 'Terminate' }));
       ws.close();
-      wsRef.current = null;
     }
+    wsRef.current = null;
+    activeWsRef.current = null;
+
     setIsRecording(false);
     setLiveText('');
-  }, [stopMic]);
+
+    // Only call stop endpoint if a session was actually active
+    if (!hadActiveSessionRef.current) {
+      return;
+    }
+
+    // Call stop endpoint for feedback question + TTS
+    void (async () => {
+      try {
+        const response = await fetch('/api/stt/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) return;
+        const data = (await response.json()) as StopResponse;
+        setSaved(true);
+        setFeedbackQuestion(data.feedbackQuestion ?? null);
+        setFeedbackError(data.feedbackError ?? null);
+      } catch {
+        setSaved(true);
+      }
+    })();
+  }, [stopMic, stopChecklistPolling, stopTokenRefresh, runChecklistEval]);
 
   const discard = useCallback(() => {
     stopMic();
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
-    }
+    stopChecklistPolling();
+    stopTokenRefresh();
     const ws = wsRef.current;
     if (ws) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'Terminate' }));
+      }
       ws.close();
       wsRef.current = null;
     }
+    activeWsRef.current = null;
+    hadActiveSessionRef.current = false;
     setIsRecording(false);
     setLiveText('');
     setTranscriptSegments([]);
     setSaved(false);
-  }, [stopMic]);
+    committedTranscriptRef.current = '';
+    livePartialRef.current = '';
+  }, [stopMic, stopChecklistPolling, stopTokenRefresh]);
 
   useEffect(() => {
     return () => {
@@ -465,90 +679,51 @@ export function useSTT(): UseSTTReturn {
       return;
     }
 
-    const wsUrl = getWsUrl();
-    if (!wsUrl) {
-      setError('WebSocket URL not configured');
-      return;
-    }
     setAnswerTranscript(null);
     setCoachFeedbackText(null);
     setHasCoachFeedbackAudio(false);
     coachFeedbackAudioErrorRef.current = null;
     submittedAnswerRef.current = null;
     setError(null);
-    let answerWs: WebSocket;
-    try {
-      answerWs = new WebSocket(wsUrl);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'WebSocket error');
-      return;
-    }
-    answerWsRef.current = answerWs;
-    answerWs.onopen = () => {
-      answerWs.send(JSON.stringify({ type: 'start_answer' }));
-      targetWsRef.current = answerWs;
-      void startMicCapture().then((micReady) => {
-        if (!micReady) {
-          answerWs.close();
+
+    void (async () => {
+      const ws = await connectToAssemblyAI(true);
+      if (!ws) return;
+
+      answerWsRef.current = ws;
+      ws.onclose = () => {
+        if (answerWsRef.current === ws) {
           answerWsRef.current = null;
-          targetWsRef.current = wsRef.current;
-          return;
+          activeWsRef.current = wsRef.current;
+          setIsAnswerRecording(false);
         }
-        setIsAnswerRecording(true);
-      });
-    };
-    answerWs.onmessage = (event: MessageEvent) => {
-      let msg: { type?: string; text?: string; error?: string };
-      try {
-        msg = JSON.parse(event.data as string);
-      } catch {
-        return;
-      }
-      if (msg.type === 'answer_transcript') {
-        if (answerTimeoutRef.current) {
-          clearTimeout(answerTimeoutRef.current);
-          answerTimeoutRef.current = null;
-        }
-        const text = msg.text != null ? String(msg.text).trim() : '';
-        setAnswerTranscript(text || null);
-        setIsAnswerRecording(false);
-        answerWsRef.current = null;
-        targetWsRef.current = wsRef.current;
-      } else if (msg.type === 'error') {
-        if (answerTimeoutRef.current) {
-          clearTimeout(answerTimeoutRef.current);
-          answerTimeoutRef.current = null;
-        }
-        setError(msg.error ?? 'Error');
-      }
-    };
-    answerWs.onerror = () => setError('WebSocket error.');
-    answerWs.onclose = () => {
-      if (answerWsRef.current === answerWs) {
-        answerWsRef.current = null;
-        targetWsRef.current = wsRef.current;
-        setIsAnswerRecording(false);
-      }
-    };
-  }, [isSttAvailable, markSttUnavailable, startMicCapture, sttAvailabilityMessage]);
+      };
+
+      ws.onopen = () => {
+        activeWsRef.current = ws;
+        void startMicCapture().then((micReady) => {
+          if (!micReady) {
+            ws.close();
+            answerWsRef.current = null;
+            activeWsRef.current = wsRef.current;
+            return;
+          }
+          setIsAnswerRecording(true);
+        });
+      };
+    })();
+  }, [isSttAvailable, markSttUnavailable, sttAvailabilityMessage, connectToAssemblyAI, startMicCapture]);
 
   const stopAnswerRecording = useCallback(() => {
     const ws = answerWsRef.current;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'stop' }));
-      if (answerTimeoutRef.current) clearTimeout(answerTimeoutRef.current);
-      answerTimeoutRef.current = setTimeout(() => {
-        answerTimeoutRef.current = null;
-        if (answerWsRef.current) {
-          setError('No transcript received. Try speaking and stopping again.');
-        }
-      }, 6000);
-    } else {
-      setError('Answer recording not active. Click "Record answer" first.');
+      ws.send(JSON.stringify({ type: 'Terminate' }));
+      ws.close();
     }
     stopMic();
     setIsAnswerRecording(false);
-    targetWsRef.current = wsRef.current;
+    activeWsRef.current = wsRef.current;
+    answerWsRef.current = null;
   }, [stopMic]);
 
   const start = useCallback(async (options?: StartOptions) => {
@@ -570,17 +745,20 @@ export function useSTT(): UseSTTReturn {
       setTranscriptSegments([]);
       setRealtimeChecklist(createInitialChecklistState(mode));
       setChecklistNextHint(null);
-    }
-    if (closeTimerRef.current) {
-      clearTimeout(closeTimerRef.current);
-      closeTimerRef.current = null;
+      committedTranscriptRef.current = '';
+      livePartialRef.current = '';
+      checklistItemsRef.current = createInitialChecklistState(mode);
+      checklistSchedulerRef.current = { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 };
+      checklistSessionStartRef.current = Date.now();
     }
 
     const existingWs = wsRef.current;
     if (resume && existingWs && existingWs.readyState === WebSocket.OPEN) {
       const micReady = await startMicCapture();
       if (micReady) {
+        hadActiveSessionRef.current = true;
         setIsRecording(true);
+        startChecklistPolling();
       }
       return;
     }
@@ -590,152 +768,58 @@ export function useSTT(): UseSTTReturn {
       wsRef.current = null;
     }
 
-    const wsUrl = getWsUrl();
-    let ws: WebSocket;
-    try {
-      ws = new WebSocket(wsUrl);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'WebSocket error');
-      return;
-    }
+    const ws = await connectToAssemblyAI(false);
+    if (!ws) return;
+
     wsRef.current = ws;
 
-    let opened = false;
-    ws.onerror = () => setError('WebSocket error.');
-    ws.onclose = (event) => {
+    ws.onclose = () => {
       stopMic();
-      wsRef.current = null;
+      stopChecklistPolling();
+      stopTokenRefresh();
+      if (wsRef.current === ws) {
+        wsRef.current = null;
+        activeWsRef.current = null;
+      }
       const wasRecording = isRecordingRef.current;
       setIsRecording(false);
       setLiveText('');
-      if (!opened) {
-        setError(
-          'Could not connect to transcript server. Run "yarn dev" (both Next and server) or start the server on port 3001.',
-        );
-      } else if (wasRecording && !event.wasClean) {
-        setError('Connection to transcript server lost. Your recording was interrupted — please try again.');
+      if (wasRecording) {
+        // Connection lost during recording — don't show error if stop was triggered
       }
     };
+
     ws.onopen = () => {
-      opened = true;
-      targetWsRef.current = ws;
-      ws.send(
-        JSON.stringify({
-          type: 'session_config',
-          mode: modeRef.current,
-        }),
-      );
+      activeWsRef.current = ws;
+      scheduleTokenRefresh();
       void startMicCapture().then((micReady) => {
         if (!micReady) {
           ws.close();
           return;
         }
+        hadActiveSessionRef.current = true;
         setIsRecording(true);
+        startChecklistPolling();
       });
     };
+  }, [
+    ensureSttAvailability,
+    startMicCapture,
+    stopMic,
+    connectToAssemblyAI,
+    scheduleTokenRefresh,
+    startChecklistPolling,
+    stopChecklistPolling,
+    stopTokenRefresh,
+  ]);
 
-    ws.onmessage = (event: MessageEvent) => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(event.data as string);
-      } catch {
-        return;
-      }
-
-      if (isChecklistUpdateMessage(parsed)) {
-        setRealtimeChecklist(parsed.items);
-        setChecklistSource(parsed.source);
-        setChecklistNextHint(parsed.nextHint);
-        setChecklistError(null);
-        return;
-      }
-
-      if (isChecklistErrorMessage(parsed)) {
-        setChecklistError(parsed.error ?? 'Checklist error');
-        return;
-      }
-
-      const msg = parsed as RealtimeSttMessage;
-      if (msg.type === 'saved') {
-        setSaved(true);
-        setFeedbackQuestion(msg.feedbackQuestion ?? null);
-        setFeedbackAnswer(msg.feedbackAnswer ?? null);
-        setFeedbackError(msg.feedbackError ?? null);
-        if (closeTimerRef.current) {
-          clearTimeout(closeTimerRef.current);
-          closeTimerRef.current = null;
-        }
-        if (wsRef.current) {
-          wsRef.current.close();
-          wsRef.current = null;
-        }
-        return;
-      }
-      if (msg.type === 'feedback_audio' && typeof msg.base64 === 'string') {
-        try {
-          const binary = atob(msg.base64);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-          const blob = new Blob([bytes], { type: 'audio/mpeg' });
-          const url = URL.createObjectURL(blob);
-          const audio = new Audio(url);
-          audio.onended = () => URL.revokeObjectURL(url);
-          audio.onerror = () => URL.revokeObjectURL(url);
-          audio.play().catch(() => URL.revokeObjectURL(url));
-        } catch (_) {}
-        return;
-      }
-      if (msg.type === 'error') {
-        if (typeof msg.error === 'string' && msg.error.includes('ASSEMBLYAI_API_KEY')) {
-          markSttUnavailable(msg.error);
-          return;
-        }
-        setError(msg.error ?? 'Error');
-        return;
-      }
-      const type = msg.message_type;
-      if (type === 'partial_transcript' && msg.text != null) {
-        setLiveText(msg.text);
-        return;
-      }
-      if ((type === 'committed_transcript_with_timestamps' || type === 'committed_transcript') && msg.text != null) {
-        setTranscriptSegments((prev) => {
-          const next = buildCommittedSegment(msg, prev);
-          if (!next) return prev;
-          if (prev.length === 0) return [next];
-
-          const last = prev[prev.length - 1];
-          if (last.text === next.text) return prev;
-
-          if (next.text.startsWith(last.text) && next.text.length > last.text.length) {
-            return [
-              ...prev.slice(0, -1),
-              {
-                ...next,
-                start: last.start,
-              },
-            ];
-          }
-
-          return [...prev, next];
-        });
-        setLiveText('');
-        return;
-      }
-      if (type === 'error' || type === 'auth_error' || (type && type.endsWith('_error'))) {
-        setError('Transcription error: ' + (msg.error ?? type));
-      }
-    };
-  }, [ensureSttAvailability, markSttUnavailable, startMicCapture, stopMic]);
-
+  // Coach feedback effect: when answerTranscript is set, call coach-answer API
   useEffect(() => {
     const q = feedbackQuestion;
     const a = answerTranscript;
     if (!a || !q || submittedAnswerRef.current === a) return;
     submittedAnswerRef.current = a;
-    const apiBase = getApiBaseUrl();
-    if (!apiBase) return;
-    fetch(`${apiBase}/api/coach-answer`, {
+    fetch('/api/stt/coach-answer', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question: q, answer: a }),
@@ -744,7 +828,7 @@ export function useSTT(): UseSTTReturn {
         if (!res.ok) throw new Error(res.statusText);
         return res.json();
       })
-      .then((data: { feedbackText?: string; audioBase64?: string; audioError?: string }) => {
+      .then((data: CoachAnswerResponse) => {
         setCoachFeedbackText(data.feedbackText ?? null);
         setHasCoachFeedbackAudio(!!data.audioBase64);
         coachFeedbackAudioErrorRef.current = data.audioError ?? null;
@@ -775,7 +859,7 @@ export function useSTT(): UseSTTReturn {
       setError(
         serverError
           ? `Voice wasn't generated: ${serverError}`
-          : "Voice wasn't generated. Set ELEVENLABS_API_KEY_TTS and ELEVENLABS_VOICE_ID in .env.local and restart the STT server.",
+          : "Voice wasn't generated. TTS is not configured on the server.",
       );
       return;
     }

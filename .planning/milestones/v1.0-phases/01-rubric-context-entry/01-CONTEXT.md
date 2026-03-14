@@ -1,4 +1,4 @@
-﻿# Phase 1: Rubric Context Entry - Context
+# Phase 1: Rubric Context Entry - Context
 
 **Gathered:** 2026-03-05
 **Status:** Ready for planning
