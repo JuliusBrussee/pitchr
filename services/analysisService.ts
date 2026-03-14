@@ -387,66 +387,77 @@ async function analyzeWithContext(
     feedback.summary_bad = summary.bad;
     feedback.advanced_reasoning = buildAdvancedReasoning(feedback, context);
 
+    // Run section agent, rewrite diff, and historical links in parallel
+    // (all depend on judge output but not on each other)
     let sectioningConfidence = 0;
     let deckLinkConfidence = 0;
-    if (ENABLE_SECTION_FEEDBACK) {
+
+    const sectionTask = ENABLE_SECTION_FEEDBACK
+      ? (async () => {
+          try {
+            const sectionResult = await runSectionAgent({
+              mode: input.mode,
+              transcript: input.transcript,
+              globalVerdict: feedback.one_line_verdict,
+              topFixes: feedback.top_fixes.map((fix) => fix.fix),
+            });
+            for (const section of sectionResult.sections) {
+              section.rewrite_diff = buildSectionRewriteDiff(
+                section.quotes,
+                section.rewrite,
+              );
+            }
+            let sectionFeedback = sectionResult.sections;
+            sectioningConfidence = 0.8;
+            if (input.deckId) {
+              const linked = await linkSectionFeedbackToDeck(input.supabase, sectionFeedback, input.deckId);
+              sectionFeedback = linked.sections;
+              deckLinkConfidence = linked.averageConfidence;
+            }
+            feedback.section_feedback = sectionFeedback;
+          } catch (sectionError) {
+            console.warn('[analysis] section agent failed, falling back to regex', {
+              message: sectionError instanceof Error ? sectionError.message : String(sectionError),
+            });
+            const slices = buildSectionSlices({
+              transcript: input.transcript,
+              mode: input.mode,
+              segments: input.transcriptSegments,
+            });
+            sectioningConfidence =
+              slices.length === 0
+                ? 0
+                : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
+            let sectionFeedback = buildSectionFeedback(slices, feedback);
+            if (input.deckId) {
+              const linked = await linkSectionFeedbackToDeck(input.supabase, sectionFeedback, input.deckId);
+              sectionFeedback = linked.sections;
+              deckLinkConfidence = linked.averageConfidence;
+            }
+            feedback.section_feedback = sectionFeedback;
+          }
+        })()
+      : Promise.resolve();
+
+    const rewriteTask = ENABLE_REWRITE_DIFF
+      ? Promise.resolve().then(() => {
+          feedback.rewrite_diff = buildRewriteDiff(input.transcript, feedback.rewrite_script);
+        })
+      : Promise.resolve();
+
+    const historyTask = (async () => {
       try {
-        const sectionResult = await runSectionAgent({
+        feedback.historical_links = await buildHistoricalLinks(input.supabase, {
           mode: input.mode,
-          transcript: input.transcript,
-          globalVerdict: feedback.one_line_verdict,
-          topFixes: feedback.top_fixes.map((fix) => fix.fix),
+          currentFeedback: feedback,
+          currentRunId: input.runId,
         });
-        for (const section of sectionResult.sections) {
-          section.rewrite_diff = buildSectionRewriteDiff(
-            section.quotes,
-            section.rewrite,
-          );
-        }
-        let sectionFeedback = sectionResult.sections;
-        sectioningConfidence = 0.8;
-        if (input.deckId) {
-          const linked = await linkSectionFeedbackToDeck(input.supabase, sectionFeedback, input.deckId);
-          sectionFeedback = linked.sections;
-          deckLinkConfidence = linked.averageConfidence;
-        }
-        feedback.section_feedback = sectionFeedback;
-      } catch (sectionError) {
-        console.warn('[analysis] section agent failed, falling back to regex', {
-          message: sectionError instanceof Error ? sectionError.message : String(sectionError),
-        });
-        const slices = buildSectionSlices({
-          transcript: input.transcript,
-          mode: input.mode,
-          segments: input.transcriptSegments,
-        });
-        sectioningConfidence =
-          slices.length === 0
-            ? 0
-            : slices.reduce((sum, slice) => sum + slice.confidence, 0) / slices.length;
-        let sectionFeedback = buildSectionFeedback(slices, feedback);
-        if (input.deckId) {
-          const linked = await linkSectionFeedbackToDeck(input.supabase, sectionFeedback, input.deckId);
-          sectionFeedback = linked.sections;
-          deckLinkConfidence = linked.averageConfidence;
-        }
-        feedback.section_feedback = sectionFeedback;
+      } catch {
+        feedback.historical_links = [];
       }
-    }
+    })();
 
-    if (ENABLE_REWRITE_DIFF) {
-      feedback.rewrite_diff = buildRewriteDiff(input.transcript, feedback.rewrite_script);
-    }
-
-    try {
-      feedback.historical_links = await buildHistoricalLinks(input.supabase, {
-        mode: input.mode,
-        currentFeedback: feedback,
-        currentRunId: input.runId,
-      });
-    } catch {
-      feedback.historical_links = [];
-    }
+    await Promise.all([sectionTask, rewriteTask, historyTask]);
 
     const qaPack = ensureQaPack(judged.payload.qa_1min, feedback, context);
     const analysis: AnalysisResultV2 = {
