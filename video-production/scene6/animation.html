@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1080, height=1920, initial-scale=1">
+<title>Pitchr — Scene 6: The Close</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html, body {
+    width: 1080px;
+    height: 1920px;
+    overflow: hidden;
+    background: #000000;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .scene {
+    width: 1080px;
+    height: 1920px;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .content-group {
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo-wrap {
+    position: relative;
+    width: 430px;
+    height: 559px;
+    /* Scale logo to look good at 1080x1920 — 1.4x */
+    transform: scale(1.4);
+    transform-origin: center top;
+    /* Reserve visual height: 559 * 1.4 = 783, extra = 224 */
+    margin-bottom: 224px;
+  }
+
+  .glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    transform: translate(-50%, -50%) scale(1);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 89, 65, 0.15) 0%, rgba(255, 89, 65, 0) 70%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .logo-svg {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* P curve stroke */
+  .p-stroke {
+    stroke: #F4F4F4;
+    stroke-width: 70;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    stroke-dasharray: 1200;
+    stroke-dashoffset: 1200;
+  }
+
+  .p-stroke.animate {
+    animation: drawStroke 800ms ease-in-out forwards;
+  }
+
+  @keyframes drawStroke {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Vertical bars */
+  .bar {
+    fill: #F4F4F4;
+    opacity: 0;
+    transform-origin: center center;
+    transform: scale(0.8);
+  }
+
+  .bar.animate {
+    animation: barPop 200ms cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes barPop {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Glow */
+  .glow.animate {
+    animation: glowBloom 600ms ease-out forwards;
+  }
+
+  @keyframes glowBloom {
+    0% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    66% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(2);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(2);
+      background: radial-gradient(circle, rgba(255, 89, 65, 0.05) 0%, rgba(255, 89, 65, 0) 70%);
+    }
+  }
+
+  /* We need a two-stage glow; use JS for the fade portion */
+  .glow.hold {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(2);
+    background: radial-gradient(circle, rgba(255, 89, 65, 0.05) 0%, rgba(255, 89, 65, 0) 70%);
+  }
+
+  /* Tagline */
+  .tagline {
+    margin-top: 30px;
+    font-weight: 300;
+    font-size: 22px;
+    letter-spacing: 0.05em;
+    color: rgba(244, 244, 244, 0.8);
+    opacity: 0;
+    text-align: center;
+  }
+
+  .tagline.animate {
+    animation: fadeIn 400ms linear forwards;
+  }
+
+  /* URL */
+  .url {
+    margin-top: 16px;
+    font-weight: 500;
+    font-size: 28px;
+    color: #ff5941;
+    opacity: 0;
+    text-align: center;
+  }
+
+  .url.animate {
+    animation: fadeIn 300ms linear forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="scene">
+  <div class="content-group">
+    <div class="logo-wrap">
+      <div class="glow" id="glow"></div>
+      <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" width="430" height="559" fill="none" viewBox="0 0 430 559">
+        <path
+          id="pStroke"
+          class="p-stroke"
+          d="M35 524V211c0-100 74-176 150-176h48c93 0 162 70 162 168 0 84-62 162-166 170l-80 6c-60 4-114 52-114 100"
+        />
+        <rect id="barLeft"   class="bar" width="32" height="151" x="132" y="133" rx="16"/>
+        <rect id="barCenter" class="bar" width="36" height="190" x="197" y="113" rx="18"/>
+        <rect id="barRight"  class="bar" width="31" height="151" x="267" y="136" rx="15.5"/>
+      </svg>
+    </div>
+    <div class="tagline" id="tagline">Your pitch, perfected.</div>
+    <div class="url" id="url">pitchr.live</div>
+  </div>
+</div>
+
+<script>
+  // Measure actual path length and set dasharray/dashoffset accurately
+  window.addEventListener('load', () => {
+    const pStroke = document.getElementById('pStroke');
+    const pathLength = pStroke.getTotalLength();
+
+    // Set precise dash values from measured path
+    pStroke.style.strokeDasharray = pathLength;
+    pStroke.style.strokeDashoffset = pathLength;
+
+    // Update the keyframes to use the exact path length
+    const styleSheet = document.styleSheets[0];
+    for (let i = 0; i < styleSheet.cssRules.length; i++) {
+      if (styleSheet.cssRules[i].name === 'drawStroke') {
+        styleSheet.deleteRule(i);
+        styleSheet.insertRule(`
+          @keyframes drawStroke {
+            from { stroke-dashoffset: ${pathLength}; }
+            to   { stroke-dashoffset: 0; }
+          }
+        `, i);
+        break;
+      }
+    }
+
+    const glow      = document.getElementById('glow');
+    const barLeft   = document.getElementById('barLeft');
+    const barCenter = document.getElementById('barCenter');
+    const barRight  = document.getElementById('barRight');
+    const tagline   = document.getElementById('tagline');
+    const url       = document.getElementById('url');
+
+    // Timeline (all times relative to page load)
+    // 0.0s: black screen
+    // 1.0s: P stroke draws (800ms)
+    // 1.8s: bars pop in (left, center+100ms, right+200ms)
+    // 2.0s: glow bloom
+    // 2.5s: tagline
+    // 3.5s: URL
+
+    // 1.0s — draw P stroke
+    setTimeout(() => {
+      pStroke.classList.add('animate');
+    }, 1000);
+
+    // 1.8s — left bar
+    setTimeout(() => {
+      barLeft.classList.add('animate');
+    }, 1800);
+
+    // 1.9s — center bar
+    setTimeout(() => {
+      barCenter.classList.add('animate');
+    }, 1900);
+
+    // 2.0s — right bar
+    setTimeout(() => {
+      barRight.classList.add('animate');
+    }, 2000);
+
+    // 2.0s — glow bloom (using JS for two-stage animation)
+    setTimeout(() => {
+      glow.style.opacity = '1';
+      glow.style.transition = 'transform 400ms ease-out';
+      glow.style.transform = 'translate(-50%, -50%) scale(2)';
+
+      // After expand, fade the glow intensity
+      setTimeout(() => {
+        glow.style.transition = 'background 200ms ease-out';
+        glow.style.background = 'radial-gradient(circle, rgba(255, 89, 65, 0.05) 0%, rgba(255, 89, 65, 0) 70%)';
+      }, 400);
+    }, 2000);
+
+    // 2.5s — tagline
+    setTimeout(() => {
+      tagline.classList.add('animate');
+    }, 2500);
+
+    // 3.5s — URL
+    setTimeout(() => {
+      url.classList.add('animate');
+    }, 3500);
+  });
+</script>
+</body>
+</html>
