@@ -37,6 +37,9 @@ export function MarketingNav() {
           <Link href="/#pricing" className="nav-link">
             Plans
           </Link>
+          <Link href="/about" className="nav-link">
+            About
+          </Link>
           <Link href="/blog" className="nav-link">
             Journal
           </Link>

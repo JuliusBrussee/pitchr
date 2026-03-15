@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { createInitialChecklistState } from '@/config/realtimeChecklist';
+import { isLocalRegressionMode } from '@/lib/supabase/local-regression-edge';
 import type {
   RealtimeChecklistUpdateMessage,
   RealtimeChecklistItemState,
@@ -14,6 +15,46 @@ const CHUNK_SAMPLES = 2048;
 const ASSEMBLYAI_WS_BASE = 'wss://streaming.assemblyai.com/v3/ws';
 const CHECKLIST_POLL_INTERVAL_MS = 10_000;
 const TOKEN_REFRESH_BUFFER_MS = 60_000;
+const STT_MISSING_KEY_GUIDANCE =
+  'Speech recording is unavailable. Set ASSEMBLYAI_API_KEY in .env.local and restart yarn dev.';
+const LOCAL_REGRESSION_TRANSCRIPT_BY_MODE: Record<PitchMode, string> = {
+  elevator:
+    'We help startup teams practice investor updates faster with automatic scoring, concise fixes, and clearer asks.',
+  vc_pitch:
+    'We help founders turn rough investor pitches into fundable stories using structured scoring, ranked fixes, and rewrites before meetings.',
+  hackathon:
+    'This demo shows an end-to-end prototype that helps teams rehearse pitches, track clarity, and improve final delivery in minutes.',
+  final_year:
+    'This project evaluates a structured pitch-coaching workflow, reports measured improvement in clarity and confidence, and outlines next validation steps.',
+};
+
+function getWsUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const base = process.env.NEXT_PUBLIC_WS_URL;
+  if (base) {
+    const url = base.replace(/^http/, 'ws');
+    return url.endsWith('/ws') ? url : `${url.replace(/\/$/, '')}/ws`;
+  }
+  const host = window.location.hostname;
+  const port = window.location.port;
+  if (host === 'localhost' && port === '3000') {
+    return 'ws://localhost:3001/ws';
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/ws`;
+}
+
+function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const base = process.env.NEXT_PUBLIC_WS_URL;
+  if (base) {
+    return base.replace(/\/ws\/?$/, '').replace(/^ws/, 'http');
+  }
+  const host = window.location.hostname;
+  const port = window.location.port;
+  if (host === 'localhost' && port === '3000') return 'http://localhost:3001';
+  return `${window.location.protocol}//${window.location.host}`;
+}
 
 function resampleTo16k(float32Mono: Float32Array, inputSampleRate: number): Float32Array {
   if (inputSampleRate === TARGET_SAMPLE_RATE) return float32Mono;
@@ -267,6 +308,13 @@ export function useSTT(): UseSTTReturn {
   }, []);
 
   const ensureSttAvailability = useCallback(async (): Promise<boolean> => {
+    if (isLocalRegressionMode()) {
+      sttCapabilityCheckedRef.current = true;
+      setIsSttAvailable(true);
+      setSttAvailabilityMessage(null);
+      return true;
+    }
+
     if (!isSttAvailable) return false;
     if (sttCapabilityCheckedRef.current) return true;
     if (sttCapabilityProbeRef.current) {
@@ -604,6 +652,28 @@ export function useSTT(): UseSTTReturn {
   }, [stopMic, stopChecklistPolling, stopTokenRefresh]);
 
   const stop = useCallback(() => {
+    if (isLocalRegressionMode()) {
+      stopMic();
+      setIsRecording(false);
+      setLiveText('');
+      setTranscriptSegments((prev) => {
+        if (prev.length > 0) return prev;
+        const text = LOCAL_REGRESSION_TRANSCRIPT_BY_MODE[modeRef.current];
+        const start = 0;
+        const end = Math.max(30, Number((text.split(/\s+/u).length / 2.4).toFixed(3)));
+        return [
+          {
+            text,
+            start,
+            end,
+            words: buildSyntheticWords(text, start, end),
+          },
+        ];
+      });
+      setSaved(true);
+      return;
+    }
+
     stopMic();
     stopChecklistPolling();
     stopTokenRefresh();
@@ -752,6 +822,11 @@ export function useSTT(): UseSTTReturn {
       checklistItemsRef.current = createInitialChecklistState(mode);
       checklistSchedulerRef.current = { lastEvaluatedAtMs: 0, lastEvaluatedWordCount: 0 };
       checklistSessionStartRef.current = Date.now();
+    }
+
+    if (isLocalRegressionMode()) {
+      setIsRecording(true);
+      return;
     }
 
     const existingWs = wsRef.current;

@@ -357,9 +357,52 @@ function dropInterviewerHeavySegments(text: string): string {
   return filtered.join(' ').trim();
 }
 
+type CanonicalScoringBeat = ScoringContext['beats'][number]['beat'];
+type ModeSpecificScoringBeat =
+  | 'demo'
+  | 'innovation'
+  | 'impact'
+  | 'methodology'
+  | 'results'
+  | 'evaluation'
+  | 'limitations';
+type ExtractedScoringBeat = CanonicalScoringBeat | ModeSpecificScoringBeat;
+
+const MODE_SPECIFIC_BEAT_TO_SCORING_BEAT: Record<ModeSpecificScoringBeat, CanonicalScoringBeat> = {
+  demo: 'mechanism',
+  innovation: 'differentiation',
+  impact: 'wedge',
+  methodology: 'mechanism',
+  results: 'proof',
+  evaluation: 'proof',
+  limitations: 'wedge',
+};
+
+const CANONICAL_SCORING_BEATS = new Set<CanonicalScoringBeat>([
+  'one_liner',
+  'problem',
+  'mechanism',
+  'proof',
+  'differentiation',
+  'wedge',
+  'ask',
+]);
+
+function isCanonicalScoringBeat(beat: ExtractedScoringBeat): beat is CanonicalScoringBeat {
+  return CANONICAL_SCORING_BEATS.has(beat as CanonicalScoringBeat);
+}
+
+export function normalizeBeatForScoring(
+  beat: ExtractedScoringBeat,
+  _mode?: PitchMode,
+): CanonicalScoringBeat {
+  if (isCanonicalScoringBeat(beat)) return beat;
+  return MODE_SPECIFIC_BEAT_TO_SCORING_BEAT[beat];
+}
+
 function extractBeatEvidence(normalizedTranscript: string, mode?: PitchMode): ScoringContext['beats'] {
   const baseBeatPatterns: Array<{
-    beat: ScoringContext['beats'][number]['beat'];
+    beat: ExtractedScoringBeat;
     patterns: RegExp[];
   }> = [
     { beat: 'one_liner', patterns: [/\bwe (build|are|help)\b/iu, /\bis a\b/iu] },
@@ -372,7 +415,7 @@ function extractBeatEvidence(normalizedTranscript: string, mode?: PitchMode): Sc
   ];
 
   const hackathonBeatPatterns: Array<{
-    beat: ScoringContext['beats'][number]['beat'];
+    beat: ExtractedScoringBeat;
     patterns: RegExp[];
   }> = [
     { beat: 'demo', patterns: [/\b(demo|prototype|live|screen[- ]?share|show you|let me show|built|working)\b/iu] },
@@ -381,7 +424,7 @@ function extractBeatEvidence(normalizedTranscript: string, mode?: PitchMode): Sc
   ];
 
   const finalYearBeatPatterns: Array<{
-    beat: ScoringContext['beats'][number]['beat'];
+    beat: ExtractedScoringBeat;
     patterns: RegExp[];
   }> = [
     { beat: 'methodology', patterns: [/\b(approach|method|algorithm|model|technique|framework|architecture)\b/iu] },
@@ -402,14 +445,23 @@ function extractBeatEvidence(normalizedTranscript: string, mode?: PitchMode): Sc
     .map((sentence) => sentence.trim())
     .filter(Boolean);
 
-  return beatPatterns
-    .map((entry) => {
-      const evidence = sentences.find((sentence) =>
-        entry.patterns.some((pattern) => pattern.test(sentence)),
-      );
-      return evidence ? { beat: entry.beat, evidence } : null;
-    })
-    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const normalizedBeats = new Set<CanonicalScoringBeat>();
+  const extracted: ScoringContext['beats'] = [];
+
+  for (const entry of beatPatterns) {
+    const evidence = sentences.find((sentence) =>
+      entry.patterns.some((pattern) => pattern.test(sentence)),
+    );
+    if (!evidence) continue;
+
+    const beat = normalizeBeatForScoring(entry.beat, mode);
+    if (normalizedBeats.has(beat)) continue;
+
+    normalizedBeats.add(beat);
+    extracted.push({ beat, evidence });
+  }
+
+  return extracted;
 }
 
 function detectAntiPatterns(

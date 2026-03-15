@@ -55,6 +55,12 @@ function formatMinutes(value: number): string {
   return `${value.toFixed(1)} min`;
 }
 
+function modeAwareQaCounterparty(mode: PitchMode): string {
+  if (mode === 'hackathon') return 'Judge';
+  if (mode === 'final_year') return 'Panel';
+  return 'Investor';
+}
+
 function synthesizeQaFromFeedback(feedback: FeedbackOutput, mode?: PitchMode): OneMinuteQAPack {
   const weakest = [...feedback.rubric_breakdown]
     .sort((a, b) => a.score - b.score)
@@ -657,7 +663,7 @@ export default function ResultsPage() {
             style={{ color: 'white', backgroundColor: '#ff5941' }}
           >
             <MessageCircleQuestion size={14} />
-            {({ hackathon: 'Judge', final_year: 'Panel' } as Record<string, string>)[run.mode] ?? 'Investor'} Q&amp;A
+            {modeAwareQaCounterparty(run.mode)} Q&amp;A
           </Link>
         </div>
       </header>
@@ -807,7 +813,7 @@ export default function ResultsPage() {
       />
 
       {qaPack ? (
-        <Section title={`1-Minute ${({ hackathon: 'Judge', final_year: 'Panel' } as Record<string, string>)[run.mode] ?? 'Investor'} Drill`}>
+        <Section title={`1-Minute ${modeAwareQaCounterparty(run.mode)} Drill`}>
           <InvestorDrill
             qaPack={qaPack}
             runId={run.id}

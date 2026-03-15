@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
     try {
       const supabase = createClient();
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback?redirectTo=/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
 
       if (resetError) {
@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
     return (
       <>
         <div
-          className="w-full max-w-[380px] rounded-2xl border p-8 text-center"
+          className="w-full max-w-[380px] rounded-2xl border p-6 sm:p-8 text-center"
           style={{
             backgroundColor: 'var(--bg-surface)',
             borderColor: 'var(--border-color)',
@@ -151,7 +151,7 @@ export default function ForgotPasswordPage() {
 
       {/* Card */}
       <div
-        className="w-full max-w-[380px] rounded-2xl border p-8"
+        className="w-full max-w-[380px] rounded-2xl border p-6 sm:p-8"
         style={{
           backgroundColor: 'var(--bg-surface)',
           borderColor: 'var(--border-color)',

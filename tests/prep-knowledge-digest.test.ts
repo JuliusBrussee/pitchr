@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildKnowledgeDigest } from '@/services/prepAgentService';
+import { buildKnowledgeDigest, normalizeBeatForScoring } from '@/services/prepAgentService';
 import type { AntiPatternHit, StageExpectation } from '@/types/analysis-v2';
 
 function antiPattern(label: string, hit: boolean): AntiPatternHit {
@@ -81,5 +81,26 @@ describe('buildKnowledgeDigest', () => {
     expect(
       digest.do_rules.some((rule) => rule.toLowerCase().includes('amount raised')),
     ).toBe(true);
+  });
+});
+
+describe('normalizeBeatForScoring', () => {
+  it('maps hackathon-specific beats to canonical scoring beats', () => {
+    expect(normalizeBeatForScoring('demo', 'hackathon')).toBe('mechanism');
+    expect(normalizeBeatForScoring('innovation', 'hackathon')).toBe('differentiation');
+    expect(normalizeBeatForScoring('impact', 'hackathon')).toBe('wedge');
+  });
+
+  it('maps final_year-specific beats to canonical scoring beats', () => {
+    expect(normalizeBeatForScoring('methodology', 'final_year')).toBe('mechanism');
+    expect(normalizeBeatForScoring('results', 'final_year')).toBe('proof');
+    expect(normalizeBeatForScoring('evaluation', 'final_year')).toBe('proof');
+    expect(normalizeBeatForScoring('limitations', 'final_year')).toBe('wedge');
+  });
+
+  it('keeps canonical beats unchanged', () => {
+    expect(normalizeBeatForScoring('problem', 'hackathon')).toBe('problem');
+    expect(normalizeBeatForScoring('ask', 'final_year')).toBe('ask');
+    expect(normalizeBeatForScoring('one_liner', 'vc_pitch')).toBe('one_liner');
   });
 });

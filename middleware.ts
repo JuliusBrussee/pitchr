@@ -7,8 +7,9 @@ export async function middleware(request: NextRequest) {
   return await updateSession(request);
 }
 
-// Keep in sync with PROTECTED_ROUTES, AUTH_ROUTES, and BLOCKED_ROUTES in lib/supabase/middleware.ts.
-// Next.js only accepts inline-literal matcher values here.
+// Catch-all matcher excluding static assets.
+// Device detection (x-device-type cookie) needs to run on ALL page routes,
+// including marketing and auth pages that were previously excluded.
 export const config = {
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',

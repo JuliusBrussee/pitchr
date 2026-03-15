@@ -44,6 +44,9 @@ export default function LandingPage() {
               <a href="#pricing" className="nav-link">
                 Plans
               </a>
+              <Link href="/about" className="nav-link">
+                About
+              </Link>
               <Link href="/blog" className="nav-link">
                 Journal
               </Link>
@@ -302,7 +305,7 @@ export default function LandingPage() {
         </section>
 
         {/* ═══ TESTIMONIAL ═══ */}
-        <section className="testimonial-section" style={{ padding: '100px 0' }}>
+        <section className="testimonial-section">
           <div className="container">
             <div className="testimonial-card reveal">
               <div className="testimonial-quote">

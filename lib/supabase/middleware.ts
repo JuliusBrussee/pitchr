@@ -21,7 +21,6 @@ export const PROTECTED_ROUTES = [
   '/settings',
   '/projects',
   '/demo',
-  '/reset-password',
 ];
 
 export const AUTH_ROUTES = ['/login', '/signup', '/auth', '/forgot-password'];

@@ -8,5 +8,16 @@ Sentry.init({
   enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
 });
 
-export const onRouterTransitionStart =
-  Sentry.captureRouterTransitionStart ?? (() => undefined);
+type RouterTransitionStart = (...args: unknown[]) => unknown;
+
+export const onRouterTransitionStart: RouterTransitionStart = (...args) => {
+  const captureRouterTransitionStart = Sentry.captureRouterTransitionStart as
+    | ((...params: unknown[]) => unknown)
+    | undefined;
+
+  if (typeof captureRouterTransitionStart === 'function') {
+    return captureRouterTransitionStart(...args);
+  }
+
+  return undefined;
+};
