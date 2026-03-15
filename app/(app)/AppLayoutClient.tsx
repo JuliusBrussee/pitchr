@@ -46,7 +46,7 @@ function DesktopAppShell({ children }: { children: React.ReactNode }) {
   } = useSidebar();
 
   return (
-    <div className="flex h-screen p-4 gap-4 overflow-hidden relative">
+    <div className="flex h-screen p-3 md:p-4 gap-4 overflow-hidden relative">
       {/* Mobile hamburger button */}
       <button
         onClick={toggleSidebar}
