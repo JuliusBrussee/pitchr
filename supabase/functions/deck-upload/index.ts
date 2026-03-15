@@ -268,12 +268,19 @@ Deno.serve(async (req: Request) => {
     return errorResponse('Method not allowed', 405);
   }
 
+  let userId: string | undefined;
   try {
     const { supabase, user } = await getAuthenticatedUser(req);
+    userId = user.id;
     const complianceResponse = await assertComplianceForEndpoint(supabase, req, user.id, 'deck-upload');
     if (complianceResponse) return complianceResponse;
     await checkRateLimit(user.id, 'deck-upload');
-    const formData = await req.formData();
+    let formData: FormData;
+    try {
+      formData = await req.formData();
+    } catch {
+      return errorResponse('Invalid request. Expected multipart form data.', 400);
+    }
     const file = formData.get('file') as File | null;
     const rawProjectId = formData.get('projectId');
     const projectId = typeof rawProjectId === 'string' && rawProjectId.trim().length > 0
@@ -391,9 +398,12 @@ Deno.serve(async (req: Request) => {
     if (error instanceof ProjectNotFoundError) {
       return errorResponse(error.message, 404);
     }
-    return errorResponse(
-      error instanceof Error ? error.message : 'Upload failed',
-      500,
-    );
+    const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+    console.error('[deck-upload]', {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      userId,
+    });
+    return errorResponse(errorMessage, 500);
   }
 });

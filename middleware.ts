@@ -11,27 +11,6 @@ export async function middleware(request: NextRequest) {
 // Next.js only accepts inline-literal matcher values here.
 export const config = {
   matcher: [
-    '/login/:path*',
-    '/signup/:path*',
-    '/auth/:path*',
-    '/forgot-password/:path*',
-    '/arena/:path*',
-    '/orb-preview/:path*',
-    '/progress/:path*',
-    '/setup/:path*',
-    '/upload/:path*',
-    '/dashboard/:path*',
-    '/session/:path*',
-    '/history/:path*',
-    '/analytics/:path*',
-    '/insights/:path*',
-    '/results/:path*',
-    '/review/:path*',
-    '/deck/:path*',
-    '/qa/:path*',
-    '/settings/:path*',
-    '/projects/:path*',
-    '/demo/:path*',
-    '/reset-password/:path*',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
   ],
 };

@@ -3093,3 +3093,15 @@ html.dark .light-hidden { display: inline; }
   animation: shareCardEnter 0.3s ease-out both;
   animation-delay: 0.1s;
 }
+
+/* ——— Mobile Shell Animations ——— */
+
+@keyframes mobileSheetSlideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}

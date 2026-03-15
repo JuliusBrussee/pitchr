@@ -242,12 +242,40 @@ export function ProjectDeckManager({ projectId }: ProjectDeckManagerProps) {
       formData.append('projectId', projectId);
       const res = await fetchEdge('deck-upload', { method: 'POST', body: formData });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Upload failed');
+        const data = await res.json().catch(() => ({} as { error?: string }));
+        const serverMsg = data.error;
+
+        // Map status codes to user-friendly messages
+        let message: string;
+        switch (res.status) {
+          case 401:
+            message = 'Session expired. Please refresh the page and try again.';
+            break;
+          case 413:
+            message = 'File too large. Maximum size is 50MB.';
+            break;
+          case 400:
+            message = serverMsg?.toLowerCase().includes('too large')
+              ? 'File too large. Maximum size is 50MB.'
+              : serverMsg || 'Invalid upload request. Please check the file and try again.';
+            break;
+          case 422:
+            message = serverMsg || 'Unsupported file format.';
+            break;
+          case 429:
+            message = 'Too many uploads. Please wait a moment and try again.';
+            break;
+          case 500:
+            message = 'Upload failed. Please try again or contact support.';
+            break;
+          default:
+            message = serverMsg || `Upload failed (${res.status}). Please try again.`;
+        }
+        throw new Error(message);
       }
       await fetchDecks();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed');
+      setError(e instanceof Error ? e.message : 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
     }

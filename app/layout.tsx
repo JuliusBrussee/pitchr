@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import './globals.css';
 import { ThemeProvider } from '@/views/components/ThemeProvider';
 import { AnalyticsScripts } from '@/views/components/AnalyticsScripts';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Analytics } from '@vercel/analytics/next';
+import { DeviceTypeProvider } from '@/contexts/DeviceTypeContext';
+import type { DeviceType } from '@/lib/detectDevice';
 
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 const ENABLE_VERCEL_INSIGHTS = process.env.NEXT_PUBLIC_ENABLE_VERCEL_INSIGHTS !== 'false';
@@ -45,18 +48,30 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f0f0f3' },
-    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
-  ],
-};
+export function generateViewport() {
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    viewportFit: 'cover' as const,
+    themeColor: [
+      { media: '(prefers-color-scheme: light)', color: '#f0f0f3' },
+      { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+    ],
+  };
+}
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cookieStore = await cookies();
+  const deviceType = (cookieStore.get('x-device-type')?.value || 'desktop') as DeviceType;
+
+  const fontUrl = deviceType === 'mobile'
+    ? 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap'
+    : 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap';
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -74,23 +89,25 @@ export default function RootLayout({
             so it doesn't delay FCP. Uses a static string with no user input. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap';document.head.appendChild(l)})()`,
+            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='${fontUrl}';document.head.appendChild(l)})()`,
           }}
         />
         <noscript>
           {/* Fallback for no-JS: load fonts synchronously */}
           {/* eslint-disable-next-line @next/next/no-page-custom-font */}
           <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap"
+            href={fontUrl}
             rel="stylesheet"
           />
         </noscript>
       </head>
       <body>
         {GA_MEASUREMENT_ID ? <AnalyticsScripts measurementId={GA_MEASUREMENT_ID} /> : null}
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+        <DeviceTypeProvider deviceType={deviceType}>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
+        </DeviceTypeProvider>
         {ENABLE_VERCEL_INSIGHTS ? <SpeedInsights /> : null}
         {ENABLE_VERCEL_INSIGHTS ? <Analytics /> : null}
       </body>

@@ -49,5 +49,8 @@ verify_jwt = true
 [functions.integration-health]
 verify_jwt = true
 
+[functions.admin-dashboard]
+verify_jwt = false
+
 [functions.newsletter-send]
 verify_jwt = false

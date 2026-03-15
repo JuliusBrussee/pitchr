@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -9,6 +10,7 @@ import {
   TrendingUp,
   FolderOpen,
   Settings,
+  Shield,
   LogOut,
   Play,
   Sun,
@@ -27,6 +29,7 @@ import { useSidebar } from '@/views/components/SidebarContext';
 import { PitchrLogo } from '@/views/components/PitchrLogo';
 import { SidebarAnalysisIndicator } from '@/views/components/SidebarAnalysisIndicator';
 import { useAnalysisTracker } from '@/views/components/AnalysisTrackerProvider';
+import { fetchEdge } from '@/lib/supabase/fetch-edge';
 
 interface AppSidebarProps {
   onStartSession?: () => void;
@@ -46,6 +49,8 @@ const TOOL_ITEMS = [
   { id: 'settings', label: 'Settings', icon: Settings, href: '/settings' },
 ];
 
+const ADMIN_ITEM = { id: 'admin', label: 'Admin', icon: Shield, href: '/admin' };
+
 export function AppSidebar({
   onStartSession,
   isSessionActive = false,
@@ -60,6 +65,15 @@ export function AppSidebar({
   const isAnalysisInProgress = Boolean(activeRunId);
   const { subscription, credits } = useBilling();
   const { isActive: isEarlyAdopter, claimed: earlyAdopterClaimed } = useEarlyAdopter();
+
+  // Check admin status via edge function (HEAD = lightweight, no data returned)
+  const [isAdmin, setIsAdmin] = useState(false);
+  useEffect(() => {
+    if (!user) return;
+    fetchEdge('admin-dashboard', { method: 'HEAD' })
+      .then((res) => setIsAdmin(res.ok))
+      .catch(() => setIsAdmin(false));
+  }, [user]);
 
   const planLabel = subscription?.planId === 'pro'
     ? 'Pro Plan'
@@ -188,8 +202,8 @@ export function AppSidebar({
         <span className="px-3 text-xs font-medium mb-1" style={{ color: 'var(--text-muted)' }}>
           Tools
         </span>
-        {TOOL_ITEMS.map(item => {
-          const isActive = pathname === item.href;
+        {[...TOOL_ITEMS, ...(isAdmin ? [ADMIN_ITEM] : [])].map(item => {
+          const isActive = pathname === item.href || (item.id === 'admin' && pathname.startsWith('/admin'));
           return <NavLink key={item.id} item={item} isActive={isActive} />;
         })}
       </nav>

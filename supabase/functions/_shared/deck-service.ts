@@ -17,7 +17,7 @@ export async function uploadToStorage(
     .from('decks')
     .upload(filePath, buffer, { contentType, upsert: true });
 
-  if (error) throw new Error(`Storage upload failed: ${error.message}`);
+  if (error) throw new Error(`Storage upload failed for path "${filePath}": ${error.message}`);
 
   const { data } = supabase.storage.from('decks').getPublicUrl(filePath);
   return data.publicUrl;

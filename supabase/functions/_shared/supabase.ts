@@ -46,11 +46,16 @@ export class AuthenticationError extends Error {
   }
 }
 
+interface JwtClaims {
+  sub: string;
+  email?: string;
+}
+
 /**
- * Decode the JWT payload to extract the user ID without a network call.
+ * Decode the JWT payload to extract user claims without a network call.
  * RLS on the Supabase client (which carries the JWT) handles actual authorization.
  */
-function getUserIdFromJwt(req: Request): string {
+function getClaimsFromJwt(req: Request): JwtClaims {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     throw new AuthenticationError('Missing Authorization header');
@@ -62,12 +67,13 @@ function getUserIdFromJwt(req: Request): string {
       throw new AuthenticationError('Invalid JWT: missing sub claim');
     }
     // Reject obviously expired tokens (exp is seconds since epoch)
-    if (typeof payload.exp === 'number' && payload.exp < Date.now() / 1000) {
+    if (typeof payload.exp === 'number' && payload.exp < (Date.now() / 1000) - 60) {
       throw new AuthenticationError('Token expired');
     }
-    return sub;
+    return { sub, email: typeof payload.email === 'string' ? payload.email : undefined };
   } catch (e) {
     if (e instanceof AuthenticationError) throw e;
+    console.error('[auth] JWT decode failed:', e instanceof Error ? e.message : String(e));
     throw new AuthenticationError('Invalid JWT');
   }
 }
@@ -79,7 +85,7 @@ function getUserIdFromJwt(req: Request): string {
  */
 export function getAuthenticatedUser(req: Request) {
   const supabase = createSupabaseClient(req);
-  const userId = getUserIdFromJwt(req);
+  const claims = getClaimsFromJwt(req);
 
-  return { supabase, user: { id: userId } };
+  return { supabase, user: { id: claims.sub, email: claims.email } };
 }
