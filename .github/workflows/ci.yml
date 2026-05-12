@@ -4,8 +4,8 @@ on:
   pull_request:
   push:
     branches:
-      - arav_multi_impl_features
-      - codex/**
+      - main
+  workflow_dispatch:
 
 jobs:
   validate:
