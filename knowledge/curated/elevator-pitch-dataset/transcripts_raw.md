@@ -1,0 +1,212 @@
+# Elevator Pitch Transcripts (Raw)
+
+## 1. EZ Shade
+- Source: Entrepreneur Elevator Pitch S11 EP8
+- Video: https://www.dailymotion.com/video/x94asv4
+- Segment: 00:00-01:00
+
+Welcome to The Elevator. How's it going? I'm Brian Holohan. I'm the inventor of EasyShade, the clip-on light cover for exposed light bulbs. EasyShade is made in America. We are veteran-owned, patented, and we support those with disabilities. I'm looking for $400,000 for 5% of the company. Basically, we need that for international patents, because we have sales in 44 countries, to get a full cavity mold to drive the cost down, and for marketing and research. I thought he was great. He knows his stuff. Pretty healthy ask, pretty ambitious valuation, but... How healthy is the business? I didn't hear revenue numbers, did you? I heard a lot of retailers, so it looks like he has distribution, but how much revenue, I do not know. There must already be something that clips over an exposed light bulb like that. I think what you've built is simple, easy, I can see its scale. I think you've made great traction. I'd like to see more before I actually invested, because I would want to see the trajectory of,
+
+## 2. Birdie Bombs
+- Source: Entrepreneur Elevator Pitch S11 EP8
+- Video: https://www.dailymotion.com/video/x94asv2
+- Segment: 00:00-01:00
+
+Welcome to the elevator for Hey investors. My name is Kyle Schiedemeier and I'm the owner and founder of Birdie Bombs. I'm here today to bring the party to your portfolio, your investment portfolio. I'm asking for $300,000 for 10% stake in my company. Birdie Bombs gave today's goal for the plot twist. They did not know that they needed. We replaced their golf balls with delicious celebratory shots. So investors, are you ready to hit the links and grip it and rip it with Birdie Bombs? Let's tee off on this opportunity together. Did he just take a shot? He did. I hope so. I cannot wait to see what happens if he gets into the boardroom. What I didn't understand is, is he actually in market? Has he made any revenue? I hate golf. I'm not good at it. But if I was to play, this would give me a reason to actually continue playing. So, you know, what he's doing, I think, is bringing a different element of fun, you know, to hopefully get people on the course. Yeah, I think I'm interested. I would do $100,000, but I would want a 5% stake for that.
+
+## 3. Creative Wagons
+- Source: Entrepreneur Elevator Pitch S11 EP8
+- Video: https://www.dailymotion.com/video/x94asv0
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Hi, my name is Brian Horowitz. I'm a vet. I'm a serial entrepreneur and small business owner. I've started and sold several successful businesses with my career. Creative Wagon makes outdoor lifestyle product specialized for your family and your pet. I'm not here for your money. I'm here for your expertise, partnership, and help grow this company. So my question to you is, who's ready to roll? Very impressive. Serial entrepreneurs, a lot of businesses started. Seemed like it was a great idea, but he doesn't want our money. Yeah, that absolutely rubs me the wrong way. I mean, who goes into a pitch and goes, I don't want your money. I mean, listen, if you want to hire a consultant, that's a different thing. Obviously, the guy knows what he's doing. If he's sold companies, he's built companies. Maybe he's not strapped for cash, but maybe he's stuck at that like level five. And maybe one of us can help him get to a level 10. Well, maybe he should have offered some percentage for our mentorship.
+
+## 4. Live Retail
+- Source: Entrepreneur Elevator Pitch S11 EP7
+- Video: https://www.dailymotion.com/video/x940dc8
+- Segment: 00:00-01:00
+
+Welcome to the elevator. So I'm sure you know this. It's the weekly ads that appear in your mailbox all the time. We take this content and we turn it into ads for every local store of that retailer. We take all the inventory for the car dealers and we turn them into ads, running on TV, running on social media, digital. I'm looking at raising $3 million at a valuation of $30 million and I'm here to talk to you guys about how you can be part of this ride at what amounts to zero cost to any of you. That was intriguing. He's a serial entrepreneur that's going to give us equity for free? Ish. I like his confidence. I didn't actually get what his business is, did you? Maybe he's trying to replace or upend the advertising business? I look for clarity in pitches and I didn't hear it that time. You guys ready to vote? Let's do it. Approved. I'll be transparent. I was really trying to see what the free deal was all about and if I was right in the midst of about to write a $2 million check
+
+## 5. Giggs
+- Source: Entrepreneur Elevator Pitch S11 EP7
+- Video: https://www.dailymotion.com/video/x940dc0
+- Segment: 00:00-01:00
+
+Welcome to the elevator. I want you to picture yourself at your favorite concert. How many people do you think it takes to put on that show? Hundreds. And where do you hire these professionals that bring these live events to life? My name is Nikki Sands and I'm the founder and CEO of Giggs, the professional career platform for the live event industry. We are seeking $200,000 on a safe note with a 6 million post money cap. So it is time to find your next gig with Giggs. It seems like there's a lot of supply. This is exactly the question, which is, you have the supply, but is there going to be the demand there? Is there really no platform already? It's kind of hard to imagine this hasn't been done before. Let's put you a vote. Approved. What do you think here, Ms. Perel? I think it's early. I love the concept and the idea of what you're creating, but for me I just wanted to see a little bit more in terms of the corporate opportunity,
+
+## 6. Flora
+- Source: Entrepreneur Elevator Pitch S11 EP6
+- Video: https://www.dailymotion.com/video/x93mum2
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Hi, my name is Abesh and I'm the founder of Flora. I'm here seeking $500,000 in exchange for a $7 million valuation for my company. I invented the FloraPot. It's a magical patented smart plant monitor that tells you exactly what plant vitals your plants are feeling for moisture, light, temperature, humidity, and more to keep your plants thriving. It can be used indoors or outdoors, and the Flora app can be used without the hardware and boasts a community of more than 300. Oh, 60 seconds is up. The good news, he got the ask in number one. Just in time. No, in the first five seconds. I actually have never seen that. In my head, I was going, oh my God, that's a great idea. You know, as always, should I evaluate the pitch or should I evaluate the product? Well, do you guys think we should take it to a vote? Yeah, I think so. Approved. I like the fact that you have the software piece and the hardware piece. That social platform is incredible, but the distraction of working on the hardware
+
+## 7. Effie's Paper
+- Source: Entrepreneur Elevator Pitch S11 EP6
+- Video: https://www.dailymotion.com/video/x93mum8
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Hi, I'm Kaylin Chandler. I am the CEO and founder of Eppie's Paper Stationery and Whatnot. We're online and we sell our products on end caps at Walmart, in HomeGoods, and at hundreds of boutiques around the country. I bleed maize and blue, but I'm married into the Sooner Nation. I am looking for a $100,000 investment to create stylish swag for collegiate women. Whoa, I was rooting for her to pull that out, and I think she finally did. They're in Walmart? Are we going after collegiate women? I'm so confused. All I heard was Michigan. What's that? That's all I need to hear. That's enough for you? No. That's enough for me. So much of investing is relationship-based. Do you go to your school? Maize and blue. I went to the University of Michigan. How did you miss that? I talk about it all the time. Three investors can hear the exact same pitch, and we all take it in differently based on
+
+## 8. CleverFi
+- Source: Entrepreneur Elevator Pitch S11 EP6
+- Video: https://www.dailymotion.com/video/x93mum0
+- Segment: 00:00-01:00
+
+Welcome to the elevator. My name is Mario Soave. I am the founder of Cleverify. We created a new solution that allows anyone to connect to Wi-Fi automatically and securely without having to ask for the password ever again. Fast forward, now Cleverify has launched, it's generating some revenue in the hospitality but we're also testing cafe, restaurant and even businesses. We're seeking for $200,000 for 4% of our company. Thank you and ciao. An interesting industry with so many different connected devices. Don't you have the Apple device where you basically share your password? I can just put my phone next to your phone and it just shares automatically. I liked his charm. I just felt like the charm was a, I have some revenue. Some revenue. Guys, I'd like some revenue too but how much is some? A vote is necessary. Let's do it. Approved. I think everyone starts somewhere so you've got to get into market, get market feedback,
+
+## 9. Spicewell
+- Source: Entrepreneur Elevator Pitch S11 EP5
+- Video: https://www.dailymotion.com/video/x93dc6c
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Hi, I'm Raina, the CEO and founder of SpiceWell. And I'm on a mission to get more nutrients into your diet, starting with everyday foods. And salt and pepper is where we begin. SpiceWell gives you 10% of your daily vitamins in a half teaspoon serving and is organic, non-GMO, anti-inflammatory, and low-sodium. Today, our ask is 50K to complete our 1 million raise at a 5.5 pre 20% discount to fuel. Perfect pitch. Come on. She got everything that I would want to know in order to make a decision. I heard. I can't believe we saw the same pitch. Oh, stop. It was excellent pitch. Mark, she was buttoned up. She was crisp. She just ran a little bit long. True, but it was yet one more lookalike product that's going to crowd up the aisles. Haven't you seen enough of those to know these are not investable? The data was rock solid. QVC, her increase on Amazon.
+
+## 10. The Sprouting Company
+- Source: Entrepreneur Elevator Pitch S11 EP5
+- Video: https://www.dailymotion.com/video/x93dc6s
+- Segment: 00:00-01:00
+
+Welcome to the elevator. I'm Doug Evans, founder and CEO of the Sprouting Company. I'm a serial entrepreneur and I wrote the national bestseller, The Sprout Book, which broke into the top 70 bestselling books on Amazon. We are growing 20 percent month over month with 70 percent gross margins, a $30 CAC, and we are on track to do well over a million dollars this year. We are raising $500,000 at an $8 million pre-money valuation. I heard a lot of good things about the business. Yeah. Sprouts aside, the numbers, he has a handle on the numbers. I like the sound of CAC and a million dollars in revenue. And gross margins. I mean, they were high. Serial entrepreneur. I mean, a bunch of things there that I heard that I liked. All right. Here's the big question. Are you ever going to give up? Never. That's what I expected to hear. I think this is awesome. I wouldn't know a sprout from a hole in the ground.
+
+## 11. Leilo
+- Source: Entrepreneur Elevator Pitch S12 EP8
+- Video: https://www.dailymotion.com/video/x9any0w
+- Segment: 00:00-01:00
+
+going up. Hi, investors. My name is sold Roddy, and I'm the CEO and founder of Lalo, the nation's leading Kava brand. Kava has been used for thousands of years across the South Pacific as a natural way to relax, but it's bitter, earthy taste and the hassles around his preparation have prevented it from going mainstream. That is until Lalo. At Lalo, we've pioneered an innovative and great tasting set of Kava beverages and powders that are set to scale. That's why I'm here today, seeking $100,000 as a safe to scale as we bring relaxation across the nation. Great pitch. I like that ending. There are so many energy drinks. I don't see a lot of relaxation drinks. Yeah. Have you all ever had Kava? No. No. I haven't either. Do you want to try it? Approved. So the 12 million, for sure, I would be happy to invest a hundred. Is there a room between 12 and 20? Perhaps. I think 12 is a fair valuation. I like it. Here's what I'll do. I'll do a hundred thousand dollars at your valuation,
+
+## 12. Loopini
+- Source: Entrepreneur Elevator Pitch S12 EP8
+- Video: https://www.dailymotion.com/video/x9any0s
+- Segment: 00:00-01:00
+
+Going up. Hi, I'm Damiano Messineo, founder of Lupini. We invented the first healthy frozen pizza made in Italy from ancient superfood that tastes exactly like a pizza you would eat in Italy. We are a month away from publishing a study that shows that our pizza is blood sugar friendly and we are also patenting our innovative process. We are here today to seek from you $100,000 for 10% of our company. Please open the door if you want a slice. Is that what he's selling me? Clean pizza? I think there's more to be said. Like, for example, what's the revenue? Where's the traction? We did miss a few very key numbers. What was the valuation? But it's pizza. So should we vote? Approved. It was so early and that scared me in terms of how are we actually going to get to market and how much capital is to be successful. I love the pizza. I love your passion. But unfortunately, I'm going to pass.
+
+## 13. Proud Diamond
+- Source: Entrepreneur Elevator Pitch S12 EP8
+- Video: https://www.dailymotion.com/video/x9any0u
+- Segment: 00:00-01:00
+
+Hi, my name is Virginie Roy, and I'm the founder of Pround Diamond, an online company that sells high-end jewelry, all handmade in North America in recycled gold, and adorned with lab-grown diamonds and lab-precious stones, a more ethic, eco-friendly, and less expensive alternative to mined diamonds. I am here to ask you for an investment of $100,000 in exchange of 10% of my company. I'm ready to open new markets. I need your help. So who's in? I'm in. What did you all think? I wonder who is buying lab-grown diamonds. Does she need to do a lot of market education, or is the market already ripe for it? And how expensive are the diamonds she's selling? I guess it's only appropriate we take it to a vote and see what happens. Sounds good. Approved. It's not a world that I really understand. I'm more of like an ACDC, Thunderstruck guy, and you're more Fleetwood Mac, and so I think you're incredibly impressive, but it's not something for me, so I'm going to say thank you, but I'm going to pass.
+
+## 14. Parent Co
+- Source: Entrepreneur Elevator Pitch S12 EP7
+- Video: https://www.dailymotion.com/video/x9a5n7g
+- Segment: 00:00-01:00
+
+Welcome to The Elevator. Hi, I'm Jasmine, CEO of Parent Co. While childproofing my home, I experienced firsthand the problems that come with these traditional outlet plugs you see here. They still aren't in standard use today and have been for over 30 years. Why? It's time for innovation. We have done just that with our outlet cover. It's patented, made in America, installed in under 30 seconds, and the plugs pivot in and out. We are seeking $200,000 on a $4 million safe note. In 2022, Walmart wanted our products in 100 stores on end caps. We weren't able to capitalize. Our profit margins are great, over 70% direct-to-consumer and over 50% wholesale. She did a great pitch. And when you say Walmart, that's a big opportunity. I think she said she had Walmart before, but she wasn't able to capitalize on it. So we'll have to see where it really is. Yeah, it's also, I mean, that product, how big can that really be?
+
+## 15. Paktli Foods
+- Source: Entrepreneur Elevator Pitch S12 EP7
+- Video: https://www.dailymotion.com/video/x9a5n72
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Hello, my name is Sina, and I'm the owner of Buckley Foods. Buckley means joy in Nahuatl, the language of the Aztecs, and it's a snack inspired in the Mexican alegrías that also mean joy in Spanish. I wanted to recreate my childhood snack in the U.S. with the highest quality all-natural organic ingredients that include puffed amaranth, quinoa, millet, chocolates, and whole dried fruits and nuts. They are all gluten-free organic with vegan and soy-free options. The packaging is inspired in the fabrics and textiles from Oaxaca. We are scaling our production and making our product into a bite-size format because we have a big retail launch with 400 stores. Listen, there is a requirement here. There's one thing you know. You have 60 seconds for the message. That you should nail. There's a lot of information she left out. Right, yes. What's the valuation? What is she asking for? What's the sales? How much has she sold? There's a lot of questions. She has some great packaging. And she has distribution in 400 stores? No, she has distribution that she might get in 400 stores.
+
+## 16. TracFlo
+- Source: Entrepreneur Elevator Pitch S12 EP7
+- Video: https://www.dailymotion.com/video/x9a5n6y
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Hi, I'm Khalid David, founder and CEO of TrackFlow. Have you ever done a kitchen or bathroom renovation? Let me guess, start at one price, end up another? At TrackFlow, we created an AI tool that allows contractors to track and manage project costs in real time, saving them time and money. We're here asking for 250K on a $10 million note to bring our technology to a more diverse construction workforce. It was a great pitch. Great pitch? He basically nailed the pitch. One of the things that's really interesting right now is so many people are redoing their house. It's always going over. He's right. I can empathize with this problem and never on budget. But is this a product for the contractor or for the consumer? All I know is I heard the buzzword of artificial intelligence. Usually, my motto is, you either get my money or you get my time. But if I put my money in, you don't know what to do with it.
+
+## 17. PoolScout
+- Source: Entrepreneur Elevator Pitch S12 EP6
+- Video: https://www.dailymotion.com/video/x99ijtg
+- Segment: 00:00-01:00
+
+Going up. Drowning is the number one cause of accidental death for toddlers, with nearly 1,000 children tragically drowning each year in the U.S. alone. PoolScout is an AI-driven pool monitoring technology using a new or existing camera along with a PoolScout app. We are seeking a $500,000 investment for 10% stake in the company to scale sales and launch the new PoolScout gateway which connects existing cameras to the PoolScout service. I heard a lot of things that I liked in that pitch. I'm not sold on how it actually works. It's a security camera. Apps for your pool. But guys, think about it. Most pools, if you have toddlers, you put a fence around them. I wouldn't risk waiting for this to monitor my kids. But I don't think he's worried about the fence. He's worried about the people that potentially could fall into the pool and alerting people. So there has to be some level of... That's what I'm saying. You put a fence for kids around the pool so they can get in there. But people can get through the fence. They can jump over the fence. They can go through the fence. They can lean on the fence. Kids, kids, kids. How about this? How about we decide whether we want to let him answer these questions? Okay, good idea.
+
+## 18. Gritty In Pink
+- Source: Entrepreneur Elevator Pitch S12 EP6
+- Video: https://www.dailymotion.com/video/x99ijte
+- Segment: 00:00-01:00
+
+Going up. Hi, I'm Shira, founder CEO of Gritty in Pink. We're transforming the future of freelance in music, events, and beyond. On the freelance side, women earn 50% less on digital platforms. Enter InPink, a marketplace to hire female freelancers and teams. AI matching and a fair pay scale. With $350,000 in transactions, we're launching a pilot with our lead investor Live Nation. We're seeking $500,000. We're seeking $300,000 for 5% to close our $1 million pre-seed round. Let's get gritty. What is the product? Is it a marketplace for female contractors? It seems like it. I like the fact that she is partnered with Live Nation. But I think we've seen a few of these bitches before, Mark. What makes her company different? These are some questions that we can ask depending upon if we want to vote yes or no. Let's see. Approved. I think you've clarified that you're exploring
+
+## 19. Dapper Boi
+- Source: Entrepreneur Elevator Pitch S12 EP5
+- Video: https://www.dailymotion.com/video/x992jqs
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Hi, I'm Vicky. And I'm Charisse, and we are co-founders and wives of Dapper Boy. So Dapper Boy is an all-gender, size-inclusive apparel line with a mission to inspire folks to feel their most confident selves in their authentic selves through our clothing. We've been in business since 2015, and in the last four years alone, we've generated over $4 million in sales. We have a 51% repeat customer rate. We believe with every part of our being that we are the next Levi's of all-gender fashion, and we are seeking $250,000 for 3% equity in our company. I was worried they weren't gonna get the ask in. God, I wish I didn't hear what they were asking for. 3%, 250,000 bucks. That's a big ask. That's kind of unusual, right? They've been around almost a decade, and they have great sales, and the repeat rate is over 50%, which is great. Yeah, I know. That is high for apparel. This is the first time I've seen somebody present something for men and women. And I think that is the Gen Z trend. They are looking for that non-binary-type clothing.
+
+## 20. Pollynation Apothecary
+- Source: Entrepreneur Elevator Pitch S12 EP5
+- Video: https://www.dailymotion.com/video/x992jqi
+- Segment: 00:00-01:00
+
+Welcome to the elevator. Over half of Americans aren't sensitive and they don't even know it. And it's costing us over $80 billion per year in healthcare. And it's not just skin deep. It is sensitive skin, sensitivities, and a sensitive system in addition to overall emotional wellness. As a super sensitive, eczema warrior, autoimmune conqueror, and chemical engineer, I know what it feels like to experience skin woes, hair woes, and to look like I'm six months pregnant while traveling the world as a scientist and innovation lead. My dream job. But I figured it out. Hence the creation of Pollination Apothecary Sensitive Focus Plant-Based Skin Care. $300,000 investment gained 10% equity and be a part of helping the sensitive bloom into wellness so they can look and feel their best. Thank you so much for this opportunity. I'm super excited. What happened? I think that she left out a lot of important information that she had time to tell us.
+
+## 21. Harbor
+- Source: Entrepreneur Elevator Pitch S13 EP7
+- Video: https://www.dailymotion.com/video/x9vgzx2
+- Segment: 00:00-01:00
+
+I'm repeat co-founder and CEO Kevin Lavelle. I started Harbor because the leading baby monitor failed our family, leaving my son unmonitored overnight. Parents and kids deserve better. Harbor is the only 10-inch monitor that works with and without internet, combining the reliability of a fail-safe device and all the benefits of Wi-Fi, like remote access, record, and rewind. We've done more than a million dollars in sales in our first few months, landed baby list, and we'll be in 500 target doors early next year. I'm asking for a $100,000 investment in a safe to join us as we transform parenting. We transform the way. Wow. Calm, collected. Lost it on the end. Wasn't sure where we're going. What was the valuation? I don't think he said. It was something about $100,000 on a safe, but not the actual valuation of the safe. Right. That's what it was. You know how I love an um-capped valuation, John. Okay, Kevin, here's what I'll do. I'll give you $50,000 at $27.5 million.
+
+## 22. We Hear You
+- Source: Entrepreneur Elevator Pitch S13 EP7
+- Video: https://www.dailymotion.com/video/x9vaj2s
+- Segment: 00:00-01:00
+
+my name is Pierre Paul and I'm the co-founder and CEO of we hear you and we open doors there are over 42 billion doors around the world and less than 5% of them are automatic or accessible this drastically impacts individuals with disabilities and our aging population so we invented the hero door opener this portable patent-pending product has the power to make virtually any door automatic in less than 15 minutes we are here today asking for a hundred and fifty thousand dollars for three percent of our company to help us scale our manufacturing and help me pay my phenomenal team whether it is smart home technology or the hospitality sector we are opening doors to your success I kind of love him he was very smooth yeah right I was a little confused though it was a bit hot pod the company's called we hear you but it's about doors I'm a little confused too with you
+
+## 23. Fuzzy
+- Source: Entrepreneur Elevator Pitch S13 EP7
+- Video: https://www.dailymotion.com/video/x9vaj2c
+- Segment: 00:00-01:00
+
+online scams are hitting everyone friends family even professional athletes investors it could happen to you because it happened to me so I stepped up to the plate and I'm changing the game with fuzzy the modern green flag technology for safer authentic connections both online and in real life the ask $250,000 for 5% equity I'm Kaylee Nietzsche the real founder and I am here today to ask for you to join my team because this oh you know probably need two more seconds she almost hit it out of the park I am intrigued though the number of fake scam text phone calls deep fakes that I see now today it's scary and it feels like there really could be a solution there oh for sure it's a huge problem the question is does she have the expertise but she didn't mention in terms of like is she able to build that type of technology well I always wanted to find a BS meter which is great thank God I'm not dating anymore but we'll see I mean the tech I don't know do you
+
+## 24. Gabb Global
+- Source: Entrepreneur Elevator Pitch S13 EP6
+- Video: https://www.dailymotion.com/video/x9udlyk
+- Segment: 00:00-01:00
+
+My name is Malcolm Lee, and I hope you will be able to bring us the GAB Global All-Monde. Investors, I know you have no idea what I just said. That's the problem we solve at GAB. Created by myself and a team of other neuroscientists from UCLA and Stanford, we've come up with the most compelling and impactful way to learn a language. We're raising $500,000 to build up the full suite of VR experiences to bolster our revenue from 46K monthly recurring to over a million by next year. So I started with a statement in French. Here's what I said. I'm Malcolm Lee, and I hope you help us bring the gift of GAB to the world. Thank y'all for listening. Oh, right on time. Yeah. He had energy. He did. I loved it. And I didn't know what he was saying. Very limited information on the product. And how is it different from Duolingo? Also, you have new hardware now where you could just have it translated right away. I was a little unsure on where things were going. Let's vote. Approved. There's so much happening within AI right now that's driving education,
+
+## 25. Bag Ups
+- Source: Entrepreneur Elevator Pitch S13 EP6
+- Video: https://www.dailymotion.com/video/x9udlym
+- Segment: 00:00-01:00
+
+As a captain in the Air Force and a nuclear missile launch officer, I looked for efficiency in everything I did, including changing the trash. It just took too much time. To solve that problem, I invented bag ups, which automatically realigns your can when you take out the full one. Think of a tissue box for your garbage can. We're seeking $600,000 for 10% equity to scale and launch a new plastic made from stone. So who wants to do some trash talking today? Nice. Very good pitch. Yeah. I love him. I loved his pitch, except he didn't talk about the traction. I don't know if he's actually selling any trash bags. It sounds like a good idea. Oh my gosh, I love the idea of a Kleenex for a trash can. I go through so much trash. Oh yeah, take out all those dirty diapers. Let me tell you. Like a lot of trash. Why don't we vote? Let's vote. Approved. Two equal offers. This comes down to who you want to work with.
+
+## 26. Mimosa Royal
+- Source: Entrepreneur Elevator Pitch S13 EP6
+- Video: https://www.dailymotion.com/video/x9udlyi
+- Segment: 00:00-01:00
+
+Mimosas everybody loves them no one likes to make them Mimosa Royale is a licensed California winery that makes the world's first ready drink mimosa and the most awarded flavored wine in the world we're in over 500 liquor stores and we just launched with total wine and more Mimosa Royale is is made to Mimosa oh Mimosa Royale is um is gluten-free kosher what happened first one out man he's talking too much about product and yes no he's talking to investors like you gotta ask what you're asking for he started so strong and he demonstrated the retail reach the growth I didn't hear revenue numbers he has but there's growth but at the end he just fell apart 60 seconds that's all you get but I do like a good Mimosa so do you guys think we should vote let's do approved we were really moved by the way in which you were fighting and the way in which you had a
+
+## 27. Culprit
+- Source: Entrepreneur Elevator Pitch S13 EP5
+- Video: https://www.dailymotion.com/video/x9u3o9a
+- Segment: 00:00-01:00
+
+Hi, I'm Dylan Trussell, founder of Culprit Underwear. When I realized how bad synthetic fibers are for you, I realized I've been poisoning my privates with polyester since I was a kid. That's when I knew if I could make underwear that was softer than cotton, breathable, wedgie-free and actually cool, we could disrupt the entire category. When we launched, we made $100k our first month. Eureka moment, let's launch Lady Boxers. Boom! Our brand quadrupled overnight. Now we have 500,000 happy customers on an email list. Where's the revenue? Where's the valuation? I need some data, some numbers here. How are you supposed to make a decision? Well, look, full disclosure, I'm an investor in the company. Oh, no way! So, I would just implore both of you to make the proper decision. But isn't this elevator pitched, Tahani? Yeah, he pitched! Well, the pitch... I don't know anything about the company. Are you trying to send my man down? I mean, what are you talking about? Where do you want him to go?
+
+## 28. Lyx
+- Source: Entrepreneur Elevator Pitch S13 EP5
+- Video: https://www.dailymotion.com/video/x9u3o92
+- Segment: 00:00-01:00
+
+Howdy, y'all. My name is Dylan. I'm an Air Force veteran and dog dad to Miller when we discovered a huge opportunity. Across America, 70% of houses have a pet with up to 80% of dogs being dehydrated. So, we created LIX, an all-natural hydration mix like Liquid IV based on military research. I'm asking for $100,000 for 15% to scale marketing and growth while giving back to the Warrior Dog Foundation supporting retired military dogs. So, what do you say? Do you want to help us hydrate some dogs? I want to help hydrate some dogs. The merging of two very powerful categories over there, hydration and pets. I like it. Did you know that 80% of dogs are underhydrated? I didn't know that people ever measured the hydration of a dog. That's what I'm saying. Where'd that stat come from? I mean, I'm thinking about when I played in the NFL, we didn't get our hydration measured really until a last couple of years. So, you have two great offers. Who are you going to choose?
+
+## 29. Absurd Snacks
+- Source: Entrepreneur Elevator Pitch S13 EP5
+- Video: https://www.dailymotion.com/video/x9u3o90
+- Segment: 00:00-01:00
+
+Hi, investors. I hope you're ready to snack happy. I'm Grace, co-founder of Absurd Snacks. When one person has a food allergy, it doesn't just change what's on their plate, but it changes the entire snack selection at the office, even at your next dinner party. Our chickpea and granola crunch mixes are high in protein, high in fiber, and completely free from the top nine food allergens because no one should sit out at snack time. Since our launch, we've secured regional placement, but Whole Foods, Kroger, Publix, and just recently, a nationwide launch with the TGX companies. We are seeking your expertise and your help in catalyzing our next fundraising round, asking for a $100,000 check on a convertible note to fuel existing sales growth and future product line expansion. Snacks. I think it's interesting, but how does she stand out in a sea of other snacks? When I think about a convertible note, I'm thinking someone just really got kick-started. So not sure exactly where the business stands. I'm a consumer of these products. I like a lot of these
+
+## 30. Skimpies
+- Source: Entrepreneur Elevator Pitch S13 EP4
+- Video: https://www.dailymotion.com/video/x9tkoyu
+- Segment: 00:00-01:00
+
+I'm Beth Bentley, the founder and inventor of Skimpies, a revolutionary liner designed to stick directly to your pants with a unique construction, design, and adhesive you're not going to feel or sweat off, giving you organic cotton right where you want it and only where you want it. We're a totally viral product with over 30 million views on TikTok, number one in our category and a top five live seller across the platform. I'm seeking $300,000 at an 8.3 mil valuation. Sales? It seems like a viral product. I don't know what that means in terms of sales, but I loved her energy. I think there could be something there. I don't know until I know how much money you're making. 30 million views translates into how many sales. There's a lot of competition out there for this kind of product. Should we take it to a vote? Let's do it. I'll tell you what. I'll make you an offer. I'll invest $100,000 in your seed round at your
+

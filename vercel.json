@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/arena/cron/weekly",
+      "schedule": "0 0 * * 1"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.pitchr.live" }],
+      "destination": "https://pitchr.live/$1",
+      "permanent": true
+    }
+  ]
+}

@@ -1,0 +1,447 @@
+{
+  "knowledge_version": "v1.2.0",
+  "built_at": "2026-02-22T03:52:08.110Z",
+  "positive_patterns": [
+    {
+      "id": "open-with-clarity",
+      "title": "Clear one-line positioning",
+      "stage": "all",
+      "text": "Lead with a clear one-liner before details.",
+      "weight": 1.3,
+      "citations": [
+        "yc-how-to-pitch",
+        "local-corpus"
+      ]
+    },
+    {
+      "id": "proof-before-expansion",
+      "title": "Evidence before expansion claims",
+      "stage": "all",
+      "text": "Attach a metric, timeframe, and denominator to major claims.",
+      "weight": 1.35,
+      "citations": [
+        "yc-demo-day-guide",
+        "local-corpus"
+      ]
+    },
+    {
+      "id": "ask-with-milestones",
+      "title": "Ask tied to milestones",
+      "stage": "seed",
+      "text": "State raise amount, runway months, and 2-3 milestones funded.",
+      "weight": 1.3,
+      "citations": [
+        "yc-seed-deck",
+        "local-corpus"
+      ]
+    },
+    {
+      "id": "corpus-problem-pattern",
+      "title": "Corpus pattern: concrete problem framing",
+      "stage": "all",
+      "text": "but the only scalable way to reach people on messaging apps is to create a buck and the problem is most businesses",
+      "weight": 1.05,
+      "citations": [
+        "local-corpus"
+      ]
+    },
+    {
+      "id": "corpus-proof-pattern",
+      "title": "Corpus pattern: quant proof signal",
+      "stage": "all",
+      "text": "counterparts by 4.8% annually why do we know this we managed billions of dollars for the most sophisticated investors in",
+      "weight": 1.1,
+      "citations": [
+        "local-corpus"
+      ]
+    },
+    {
+      "id": "deck-shared-dna",
+      "title": "Deck narrative shared DNA",
+      "stage": "all",
+      "text": "# Deck Commonality Notes ## Shared DNA / Stage-by-Stage (verbatim) Shared DNA across strong fundraising pitches: - Lead with immediate clarity: what you do, for whom, and why now. - Make the problem economically explicit: who pays for pain and what it costs. - Show mechanism before magic: explain how the product creates the outcome. - Replace adjectives with proof: named metrics, timeframe, and denominator. - Demonstrate wedge first: specific beachhead, then expansion path. - Differentiate ag...",
+      "weight": 1,
+      "citations": [
+        "local-corpus"
+      ]
+    }
+  ],
+  "anti_patterns": [
+    {
+      "id": "jargon-overload",
+      "label": "jargon_overload",
+      "description": "High buzzword density with weak operational specificity and unclear claim support.",
+      "default_weight": 2.5,
+      "citations": [
+        "local-corpus",
+        "yc-how-to-pitch"
+      ]
+    },
+    {
+      "id": "no-ask",
+      "label": "no_ask",
+      "description": "Missing explicit raise ask or disconnected use-of-funds plan.",
+      "default_weight": 3.2,
+      "citations": [
+        "local-corpus",
+        "yc-demo-day-guide",
+        "yc-seed-deck"
+      ]
+    },
+    {
+      "id": "no-proof",
+      "label": "no_proof",
+      "description": "Claims with weak or missing measurable proof points.",
+      "default_weight": 2.8,
+      "citations": [
+        "local-corpus",
+        "yc-how-to-pitch"
+      ]
+    },
+    {
+      "id": "tam-only",
+      "label": "tam_only",
+      "description": "TAM-heavy framing without traction, GTM, or customer evidence.",
+      "default_weight": 2.4,
+      "citations": [
+        "local-corpus",
+        "yc-investor-vs-customer-pitch"
+      ]
+    },
+    {
+      "id": "slide-overload",
+      "label": "slide_overload",
+      "description": "Narrative overwhelmed by excessive slide references or dense structure.",
+      "default_weight": 1.6,
+      "citations": [
+        "local-corpus",
+        "yc-demo-day-guide"
+      ]
+    },
+    {
+      "id": "no-demo",
+      "label": "no_demo",
+      "description": "No working demo, prototype, or live product shown in hackathon pitch.",
+      "default_weight": 3.5,
+      "citations": [
+        "hackathon-judging-criteria"
+      ]
+    },
+    {
+      "id": "no-theme-alignment",
+      "label": "no_theme_alignment",
+      "description": "No explicit connection to hackathon theme or challenge prompt.",
+      "default_weight": 2.0,
+      "citations": [
+        "hackathon-judging-criteria"
+      ]
+    },
+    {
+      "id": "slides-only",
+      "label": "slides_only",
+      "description": "Presentation is slides-only without live demo or working product evidence.",
+      "default_weight": 3.0,
+      "citations": [
+        "hackathon-winner-patterns"
+      ]
+    },
+    {
+      "id": "too-many-features",
+      "label": "too_many_features",
+      "description": "Feature listing without depth on any single innovation.",
+      "default_weight": 1.8,
+      "citations": [
+        "hackathon-winner-patterns"
+      ]
+    },
+    {
+      "id": "no-cta",
+      "label": "no_cta",
+      "description": "No clear call-to-action at the end of the hackathon pitch.",
+      "default_weight": 1.5,
+      "citations": [
+        "hackathon-judging-criteria"
+      ]
+    },
+    {
+      "id": "no-results",
+      "label": "no_results",
+      "description": "Missing results or findings section in final year project presentation.",
+      "default_weight": 3.5,
+      "citations": [
+        "fyp-rubrics"
+      ]
+    },
+    {
+      "id": "no-evaluation",
+      "label": "no_evaluation",
+      "description": "No evaluation methodology, testing, or benchmarking presented.",
+      "default_weight": 2.8,
+      "citations": [
+        "fyp-rubrics"
+      ]
+    },
+    {
+      "id": "unsupported-claims",
+      "label": "unsupported_claims",
+      "description": "Qualitative claims without quantitative evidence or baseline comparisons.",
+      "default_weight": 2.2,
+      "citations": [
+        "fyp-rubrics"
+      ]
+    },
+    {
+      "id": "missing-methodology",
+      "label": "missing_methodology",
+      "description": "No clear methodology, approach, or implementation description presented.",
+      "default_weight": 2.5,
+      "citations": [
+        "fyp-rubrics"
+      ]
+    }
+  ],
+  "stage_expectations": {
+    "pre_seed": [
+      "Demonstrate founder insight and urgency.",
+      "Show a narrow wedge and clear early user profile.",
+      "Anchor claims with concrete pilot or demand proof."
+    ],
+    "seed": [
+      "Show repeatability in acquisition or retention.",
+      "State clear differentiation against alternatives.",
+      "Connect ask to 12-18 month milestones."
+    ],
+    "series_a": [
+      "Present growth mechanics and unit economics together.",
+      "Show why scale improves defensibility.",
+      "Tie funding to execution milestones and hiring plan."
+    ],
+    "series_b": [
+      "Show operating leverage and category strategy.",
+      "Demonstrate durable moat under competition.",
+      "Provide benchmarked scale economics and expansion plan."
+    ],
+    "university_hack": [
+      "Show a working demo within the first minute.",
+      "Explain how your hack aligns with the event theme.",
+      "Focus on one core innovation with technical depth.",
+      "End with a clear call-to-action for judges."
+    ],
+    "corporate_hack": [
+      "Demonstrate alignment with sponsor problem statement.",
+      "Show feasibility and potential for real-world deployment.",
+      "Focus on practical implementation over theoretical design."
+    ],
+    "web3_hack": [
+      "Show on-chain demo or protocol interaction.",
+      "Explain UX improvements for non-crypto users.",
+      "Demonstrate smart contract or protocol innovation."
+    ],
+    "science_hack": [
+      "Show scientific rigor in approach and measurement.",
+      "Demonstrate measurable impact on the target problem.",
+      "Explain data collection and analysis methodology."
+    ]
+  },
+  "deck_structure_templates": [
+    {
+      "name": "Core Fundraising Narrative",
+      "slides": [
+        "One-liner",
+        "Problem",
+        "Solution",
+        "Traction",
+        "Market",
+        "Competition",
+        "GTM",
+        "Team",
+        "Ask + Milestones"
+      ]
+    },
+    {
+      "name": "Demo-Day Spoken Narrative",
+      "slides": [
+        "Hook",
+        "Problem urgency",
+        "Product mechanism",
+        "Proof points",
+        "Market and wedge",
+        "Close ask"
+      ]
+    }
+  ],
+  "benchmark_profiles": {
+    "yc_top_decile": [
+      "Lead with a clear one-liner before details.",
+      "Tell a coherent story with simple language and concrete proof.",
+      "Show traction with numbers tied to a timeframe.",
+      "Explain the business model in plain terms.",
+      "Close with a specific ask and milestone plan.",
+      "Prioritize what investors must remember after the pitch ends."
+    ],
+    "yc_median": [
+      "Corpus baseline from 25 pitches: one-liner and problem are usually present.",
+      "brings that movement to the mainstream we build you a diversified portfolio of low-cost responsible funds based on your",
+      "all right now we have every single h-1b visa application in 2012 filtered to Google we can ask questions of this data"
+    ],
+    "common_failures": [
+      "Do not hide what you build until late in the pitch.",
+      "Do not rely on buzzwords instead of concrete outcomes.",
+      "Do not spend too long on problem setup before solution clarity.",
+      "Do not end without a memorable close and explicit ask.",
+      "Do not present TAM without execution evidence.",
+      "Do not let slides dominate the narrative.",
+      "A common error is to avoid describing what you do until far into the presentation.",
+      "You do not have time to elaborate and explain your model in detail, therefore you must find a way to describe it in s..."
+    ]
+  },
+  "judge_guidance": {
+    "do_rules": [
+      "Lead with a clear one-liner before details.",
+      "Tell a coherent story with simple language and concrete proof.",
+      "Show traction with numbers tied to a timeframe.",
+      "Explain the business model in plain terms.",
+      "Close with a specific ask and milestone plan.",
+      "Prioritize what investors must remember after the pitch ends.",
+      "Focus on narrative. The rest is commentary. (see footnote)",
+      "Keep your presentation smooth by narrating the story behind your slides; not the opposite.",
+      "Lead with one traction metric before describing broad market upside.",
+      "State exactly what you are raising and which milestones it funds.",
+      "Use plain claims first, then add one proof datapoint per claim."
+    ],
+    "dont_rules": [
+      "Do not hide what you build until late in the pitch.",
+      "Do not rely on buzzwords instead of concrete outcomes.",
+      "Do not spend too long on problem setup before solution clarity.",
+      "Do not end without a memorable close and explicit ask.",
+      "Do not present TAM without execution evidence.",
+      "Do not let slides dominate the narrative."
+    ],
+    "category_guidance": {
+      "structure": [
+        "Use problem -> solution -> proof -> ask in that order.",
+        "Open with what you do, for whom, and why now in one sentence.",
+        "Tie the close to amount raised, runway, and concrete milestones.",
+        "Do not spend early time on background before the core value claim."
+      ],
+      "clarity": [
+        "Replace jargon with plain language and concrete nouns.",
+        "Keep each sentence focused on one investor-relevant point.",
+        "Avoid acronyms unless they are investor-standard terms.",
+        "Trim adjectives that are not backed by evidence."
+      ],
+      "evidence": [
+        "Attach a metric, timeframe, and denominator to major claims.",
+        "Name customer type or cohort when citing traction numbers.",
+        "Show baseline vs current to prove movement over time.",
+        "Use one strong datapoint instead of multiple weak claims."
+      ],
+      "market": [
+        "Define beachhead ICP before broad TAM expansion narrative.",
+        "Name alternatives and explain your specific wedge advantage.",
+        "Show why timing is favorable now with execution signal.",
+        "Avoid TAM-only framing without GTM or traction proof."
+      ],
+      "delivery": [
+        "Keep pace steady and pause before key proof statements.",
+        "Remove filler words from opening and close first.",
+        "Avoid repeating the same phrase across adjacent sentences.",
+        "Use short transitions between beats to reduce verbal drift."
+      ]
+    },
+    "anti_pattern_playbook": {
+      "no_proof": "Replace one abstract claim with one metric + timeframe + denominator.",
+      "no_ask": "State raise amount, runway months, and 2-3 milestones funded.",
+      "tam_only": "Follow TAM with ICP wedge, GTM motion, and proof of execution.",
+      "jargon_overload": "Swap buzzwords for plain actions and measurable outcomes.",
+      "slide_overload": "Tell spoken narrative first; slides should only support key proof."
+    },
+    "digest_version": "v1.2.0-digest.1"
+  },
+  "source_weights": {
+    "local-corpus": 0.4,
+    "openvc-opendeck": 0.7,
+    "slidebean-sequoia-template": 0.7,
+    "slidebean-story-examples": 0.5,
+    "slideshare-sequoia-template": 0.7,
+    "yc-demo-day-guide": 1,
+    "yc-first-time-mistakes": 1,
+    "yc-how-to-pitch": 1,
+    "yc-investor-vs-customer-pitch": 1,
+    "yc-seed-deck": 1
+  },
+  "source_citations": [
+    {
+      "source_id": "openvc-opendeck",
+      "source_url": "https://www.openvc.app/opendeck",
+      "source_title": "OpenVC OpenDeck",
+      "access_status": "gated",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.2
+    },
+    {
+      "source_id": "slidebean-sequoia-template",
+      "source_url": "https://slidebean.com/templates/sequoia-pitch-deck-template",
+      "source_title": "Slidebean Sequoia Template",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.2
+    },
+    {
+      "source_id": "slidebean-story-examples",
+      "source_url": "https://slidebean.com/fr/blog/pitch-deck-story-examples",
+      "source_title": "Slidebean Story Examples",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.5
+    },
+    {
+      "source_id": "slideshare-sequoia-template",
+      "source_url": "https://www.slideshare.net/slideshow/sequoia-capital-pitchdecktemplate/46231251",
+      "source_title": "Sequoia Pitch Deck Template (SlideShare)",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.2
+    },
+    {
+      "source_id": "yc-demo-day-guide",
+      "source_url": "https://www.ycombinator.com/blog/guide-to-demo-day-pitches/",
+      "source_title": "YC: Guide to Demo Day Pitches",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.95
+    },
+    {
+      "source_id": "yc-first-time-mistakes",
+      "source_url": "https://www.ycombinator.com/library/66-biggest-mistakes-first-time-founders-make",
+      "source_title": "YC: Biggest First-Time Founder Mistakes",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.95
+    },
+    {
+      "source_id": "yc-how-to-pitch",
+      "source_url": "https://www.ycombinator.com/library/4b-how-to-pitch-your-company",
+      "source_title": "YC: How to Pitch Your Company",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.6666666666666666
+    },
+    {
+      "source_id": "yc-investor-vs-customer-pitch",
+      "source_url": "https://www.ycombinator.com/library/7u-how-pitching-investors-is-different-than-pitching-customers",
+      "source_title": "YC: Investors vs Customers Pitching",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.6666666666666666
+    },
+    {
+      "source_id": "yc-seed-deck",
+      "source_url": "https://www.ycombinator.com/library/2u-how-to-build-your-seed-round-pitch-deck",
+      "source_title": "YC: Seed Round Pitch Deck",
+      "access_status": "full",
+      "snapshot_date": "2026-02-21",
+      "confidence_score": 0.6666666666666666
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 2540px; height: 1520px;
+      background: #08080a;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+    .content {
+      position: relative;
+      z-index: 1;
+      width: 100%; height: 100%;
+    }
+    .headline {
+      font-weight: 800;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #ff5941, #ffaa33);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle { color: #9a9a98; line-height: 1.5; }
+    .screenshot-frame {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px;
+      padding: 16px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.03),
+        0 40px 100px rgba(0,0,0,0.6),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .screenshot-frame img {
+      width: 100%;
+      border-radius: 16px;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- Coral glow below screenshot — "progress rising" -->
+  <div style="position:absolute;width:900px;height:250px;bottom:6%;left:50%;margin-left:-450px;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,89,65,0.22) 0%, transparent 70%);
+    filter:blur(50px);pointer-events:none;"></div>
+
+  <!-- Subtle amber at top near headline -->
+  <div style="position:absolute;width:500px;height:150px;top:10%;left:50%;margin-left:-250px;
+    background:radial-gradient(ellipse at 50% 50%, rgba(255,170,51,0.10) 0%, transparent 70%);
+    filter:blur(35px);pointer-events:none;"></div>
+
+  <!-- Fine noise -->
+  <svg style="position:absolute;width:0;height:0;">
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter>
+  </svg>
+  <div style="position:absolute;inset:0;z-index:0;opacity:0.025;filter:url(#grain);pointer-events:none;"></div>
+
+  <!-- Vignette -->
+  <div style="position:absolute;inset:0;z-index:0;
+    background:radial-gradient(ellipse 85% 80% at 50% 48%, transparent 50%, rgba(0,0,0,0.4) 100%);
+    pointer-events:none;"></div>
+
+  <div class="content">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 1520px; padding: 60px 80px;">
+      <h1 class="headline" style="font-size: 60px; text-align: center; margin-bottom: 24px;">From 57 to 91.<br>In 28 sessions.</h1>
+      <p class="subtitle" style="font-size: 26px; text-align: center; max-width: 800px; margin-bottom: 48px;">Watch your score climb session by session. Pitchr tracks your rubric breakdown, streaks, and performance trends over time.</p>
+      <div class="screenshot-frame" style="max-width: 1160px; transform: perspective(1600px) rotateX(5deg) rotateY(-1deg);"><img src="../screenshots/dashboard.png" alt="Dashboard"></div>
+    </div>
+  </div>
+</body>
+</html>

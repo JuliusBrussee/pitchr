@@ -1,0 +1,26 @@
+{
+  "source_id": "yc-first-time-mistakes",
+  "source_url": "https://www.ycombinator.com/library/66-biggest-mistakes-first-time-founders-make",
+  "source_title": "YC: Biggest First-Time Founder Mistakes",
+  "snapshot_date": "2026-02-21",
+  "access_status": "full",
+  "key_rules_do": [
+    "Michael Seibel: The next one is not launching. Launching has become this interesting phrase. I think when people think about launching their company, they think, \"Oh, I'm going to get in the press. I'm going to be on the news. I'm gonna be on these popular blogs.\" And so they're afraid of launching because they don't think they're ready for all that exposure. One of the things that we tell people is, first, let's think about the products that you might use and like a lot today. Do you remember the day Snapchat launched? Do you remember the day Instagram launched? Do you remember the day that WhatsApp launched? Remember the day that Uber or Lyft launched? Most likely, you don't. So it turns out that launching is nowhere near as significant an event to your users as it is to you. So you should move up the launch as soon as possible. Until you can get your product in front of customers, you can't validate whether it solves their problem. And so it's much better to build a crappier product, release it sooner, and get it out there in front of customers and see if they want to use it.",
+    "Michael Seibel: Now, there's some exceptions. For example, in some extremely regulated markets like banking or lending, it's just really hard to launch. You actually have to get approval done before you're even allowed to get customers. But in most consumer and B2B startups that we encounter, it's actually possible to get some form of MVP built and launched in less than a month. And so that's what you should be thinking about.",
+    "Michael Seibel: But the next biggest mistake is having no idea where your first users will come from. I get this email a lot. A lot of founders emailing me saying, \"Where do I find my first users?\" And I kind of think to myself, you chose this problem that you're working on, and you chose to build a solution. It's interesting to me that you chose a problem where you don't know anyone who has the problem, including yourself. I think it's a wholly different question: where do I get my first hundred users or my first thousand users? You know, that might require some kind of deep digging. But where I get my first two users or one user or three users or five users? You know, that should come from people you know or you already have identified through some other way.",
+    "Dalton & Michael: Should you follow your passion?"
+  ],
+  "key_rules_dont": [
+    "Biggest mistakes first-time founders make",
+    "Biggest mistakes first-time founders make",
+    "Solving a problem you don't care about",
+    "Helping users you don't care about",
+    "Choosing co-founders you don't know well",
+    "Y Combinator Managing Director and Group Partner Michael Seibel on the biggest mistakes first-time founders make.",
+    "Michael Seibel: Here are some of the biggest mistakes first-time founders make when starting their company and in the first year afterwards. First, I often see founders choosing to solve a problem that they actually don't care about. Well, this mistake isn't fatal, and while there are many, many examples of founders who've learned to love their product or their problem at a later date, one of the things that I do see is that a lot of startups that fail basically fail because they lose motivation to continue working on their company. And a lot of that has to do with the fact that they actually didn't really like the problem they were working on in the beginning. They were trying to pick a problem that they thought people might want, or they thought could grow quickly, or they thought might be cool, but it wasn't actually something they were willing to devote a significant amount of time—like, you know, five years plus—of their life to solving. There was no deep connection to the problem.",
+    "Michael Seibel: The second one is helping users you don't care about. You know, we had this experience at Justin.tv and Twitch. In the beginning of Justin.tv, you know, we were kind of excited by the general idea of democratizing live video and making it easy for anyone online to share live video with their friends, but we weren't actually terribly in love with the people who chose to use the platform. As it continued to grow, and only when Emmett kind of really refocused the company around video game streaming did we regain the love for our users. You know, Emmett was a gamer and he loved gamers, and he loved building things for gamers, and that was really one of the core drivers of Twitch becoming a successful company."
+  ],
+  "confidence_score": 0.95,
+  "content_hash_sha256": "ae060a5a2d3bb239d937ab480e87548c15ccde377c25b5ab074dc0e99fed24ec",
+  "screenshot_path": "knowledge/snapshots/2026-02-21/yc-first-time-mistakes.png"
+}

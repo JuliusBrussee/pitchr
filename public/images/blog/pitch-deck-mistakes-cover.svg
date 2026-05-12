@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(800 450) scale(600 500)">
+      <stop stop-color="#e63b26" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#e63b26" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <!-- Slide cards with X marks -->
+  <rect x="200" y="200" width="180" height="130" rx="12" fill="#1f2937" stroke="#475569" stroke-opacity="0.5"/>
+  <line x1="260" y1="240" x2="320" y2="290" stroke="#e63b26" stroke-width="6" stroke-linecap="round"/>
+  <line x1="320" y1="240" x2="260" y2="290" stroke="#e63b26" stroke-width="6" stroke-linecap="round"/>
+  <rect x="430" y="160" width="180" height="130" rx="12" fill="#1f2937" stroke="#475569" stroke-opacity="0.5"/>
+  <line x1="490" y1="200" x2="550" y2="250" stroke="#e63b26" stroke-width="6" stroke-linecap="round"/>
+  <line x1="550" y1="200" x2="490" y2="250" stroke="#e63b26" stroke-width="6" stroke-linecap="round"/>
+  <rect x="660" y="240" width="180" height="130" rx="12" fill="#1f2937" stroke="#475569" stroke-opacity="0.5"/>
+  <line x1="720" y1="280" x2="780" y2="330" stroke="#e63b26" stroke-width="6" stroke-linecap="round"/>
+  <line x1="780" y1="280" x2="720" y2="330" stroke="#e63b26" stroke-width="6" stroke-linecap="round"/>
+  <!-- Correct slide with check -->
+  <rect x="950" y="180" width="200" height="145" rx="14" fill="#0f172a" stroke="#ffaa33" stroke-width="3"/>
+  <path d="M1010 255L1040 280L1090 230" stroke="#ffaa33" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Scattered warning indicators -->
+  <circle cx="350" cy="550" r="24" stroke="#ff5941" stroke-width="4" fill="none" opacity="0.6"/>
+  <line x1="350" y1="538" x2="350" y2="555" stroke="#ff5941" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <circle cx="350" cy="563" r="2" fill="#ff5941" opacity="0.6"/>
+  <circle cx="1300" cy="400" r="20" stroke="#ff5941" stroke-width="3" fill="none" opacity="0.4"/>
+  <!-- Bottom progress bar -->
+  <rect x="300" y="700" width="1000" height="12" rx="6" fill="#1f2937"/>
+  <rect x="300" y="700" width="650" height="12" rx="6" fill="#ff5941" opacity="0.8"/>
+  <!-- Accent -->
+  <circle cx="1350" cy="150" r="90" fill="#ffaa33" fill-opacity="0.1"/>
+</svg>

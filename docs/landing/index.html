@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pitchr — AI Pitch Coach for Founders</title>
+  <meta name="description" content="Record your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics. Ship investor-ready pitches faster." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ═══ BASE SETUP ═══ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #050505; --bg-card: rgba(255,255,255,0.02); --border: rgba(255,255,255,0.08);
+      --text: #ededec; --text-secondary: #9a9a98; --text-muted: #5c5c5a;
+      --accent: #ff5733; --accent-light: #ff7a5c;
+      --green: #00c853; --orange: #ff9100; --red: #ff3d00; --blue: #3b82f6;
+    }
+    html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; line-height: 1.6; font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11'; }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* ═══ REVEALS ═══ */
+    .reveal { opacity: 0; transform: translateY(40px); transition: all 1s cubic-bezier(0.16, 1, 0.3, 1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .accent { color: var(--accent); }
+
+    /* ═══ BG EFFECTS ═══ */
+    .bg-noise { position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: 0.018; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); background-repeat: repeat; background-size: 128px 128px; }
+
+    /* ═══ NAV ═══ */
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 14px 0; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); background: rgba(5,5,5,0.8); border-bottom: 1px solid var(--border); transition: padding 0.3s ease; }
+    .nav.scrolled { padding: 10px 0; }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+    .nav-logo { font-weight: 700; font-size: 18px; letter-spacing: -0.04em; display: flex; align-items: center; gap: 8px; }
+    .nav-logo-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-link { font-size: 13px; font-weight: 500; color: var(--text-muted); transition: color 0.15s ease; letter-spacing: -0.01em; }
+    .nav-link:hover { color: var(--text); }
+    .nav-cta { font-size: 13px; font-weight: 600; padding: 7px 16px; border-radius: 8px; background: var(--text); color: var(--bg); transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s; display: inline-flex; align-items: center; gap: 6px; letter-spacing: -0.01em; }
+    .nav-cta:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(255,255,255,0.2); }
+
+    /* ═══ HERO ═══ */
+    .hero { position: relative; z-index: 2; min-height: 100vh; display: flex; align-items: center; padding: 120px 0 80px; overflow: hidden; }
+    .hero-bg { position: absolute; inset: 0; z-index: 0; background: url('hero-bg.png') center right / cover no-repeat; opacity: 0.6; }
+    .hero-bg::after {
+      content: ''; position: absolute; inset: 0;
+      background:
+        linear-gradient(to right, var(--bg) 0%, var(--bg) 12%, rgba(5,5,5,0.88) 35%, rgba(5,5,5,0.4) 58%, rgba(5,5,5,0.15) 80%, rgba(5,5,5,0.1) 100%),
+        linear-gradient(to top, var(--bg) 0%, rgba(5,5,5,0.6) 15%, transparent 35%),
+        linear-gradient(to bottom, var(--bg) 0%, transparent 12%);
+    }
+    .hero-inner { position: relative; z-index: 3; max-width: 580px; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px 5px 10px; border-radius: 100px; border: 1px solid rgba(255,87,51,0.15); background: rgba(255,87,51,0.05); font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 28px; letter-spacing: -0.01em; animation: fadeUp 0.5s ease 0.1s both; }
+    .hero-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent); } 50% { opacity: 0.4; box-shadow: 0 0 0px transparent; } }
+    .hero h1 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(44px, 7vw, 80px); font-weight: 400; line-height: 1.05; letter-spacing: -0.02em; margin-bottom: 24px; animation: fadeUp 0.5s ease 0.2s both; }
+    .hero h1 .accent { font-style: italic; }
+    .hero-sub { font-size: clamp(16px, 1.8vw, 18px); color: var(--text-secondary); max-width: 460px; line-height: 1.6; letter-spacing: -0.01em; margin-bottom: 36px; animation: fadeUp 0.5s ease 0.35s both; }
+    .hero-ctas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; animation: fadeUp 0.5s ease 0.45s both; }
+    .hero-scroll { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 6px; animation: fadeUp 0.5s ease 0.8s both; }
+    .hero-scroll-text { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-muted); }
+    .hero-scroll-line { width: 1px; height: 32px; background: linear-gradient(to bottom, var(--text-muted), transparent); animation: scrollPulse 2s ease-in-out infinite; }
+    @keyframes scrollPulse { 0%, 100% { opacity: 0.3; transform: scaleY(1); } 50% { opacity: 0.8; transform: scaleY(1.2); transform-origin: top; } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ═══ BUTTONS ═══ */
+    .btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 600; background: var(--accent); color: white; transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s, background 0.2s; cursor: pointer; border: none; letter-spacing: -0.01em; }
+    .btn-primary:hover { background: var(--accent-light); box-shadow: 0 6px 20px rgba(255,87,51,0.3); transform: scale(1.03); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-secondary { display: inline-flex; align-items: center; gap: 8px; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); border: 1px solid var(--border); background: transparent; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; letter-spacing: -0.01em; }
+    .btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.15); background: var(--bg-card); transform: scale(1.02); }
+    .btn-icon { display: inline-flex; transition: transform 0.2s ease; }
+    .btn-primary:hover .btn-icon { transform: translateX(4px); }
+
+    /* ═══ SVG STORY SECTIONS ═══ */
+    .story-section { position: relative; z-index: 2; padding: 140px 0; border-top: 1px solid var(--border); overflow: hidden; }
+    .story-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    .story-text h2 { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(36px, 4vw, 56px); font-weight: 400; line-height: 1.1; margin-bottom: 16px; letter-spacing: -0.02em; }
+    .story-text h2 i { color: var(--accent); font-style: italic; }
+    .story-text p { font-size: 16px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 24px; }
+    .story-visual { position: relative; width: 100%; min-height: 360px; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at center, rgba(255,255,255,0.03), transparent 70%); border-radius: 24px; border: 1px solid rgba(255,255,255,0.04); }
+
+    /* 1. AUDIO WAVEFORM & AI CORRECTION */
+    .waveform-svg { width: 100%; max-width: 400px; height: 120px; }
+    .wave-bar { fill: var(--accent); transform-origin: center bottom; animation: wave 1.2s ease-in-out infinite alternate; }
+    @keyframes wave { 0% { transform: scaleY(0.2); opacity: 0.4; } 100% { transform: scaleY(1); opacity: 1; filter: drop-shadow(0 0 8px var(--accent)); } }
+
+    .live-transcript { position: absolute; bottom: 32px; left: 50%; transform: translateX(-50%); width: 84%; max-width: 380px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; color: var(--text-secondary); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+    .strike { text-decoration: line-through; color: var(--red); opacity: 0.6; position: relative; }
+    .correction { color: var(--green); font-weight: 700; opacity: 0; transform: translateY(-10px); transition: all 0.5s ease; position: absolute; top: -20px; left: 0; white-space: nowrap; }
+    .visible .correction { opacity: 1; transform: translateY(0); }
+
+    /* 2. RUBRIC RADAR */
+    .radar-container { position: relative; width: 300px; height: 300px; }
+    .radar-container svg { overflow: visible; }
+    .radar-bg polygon { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 1; }
+    .radar-axis line { stroke: rgba(255,255,255,0.1); stroke-width: 1; }
+    .radar-fill { fill: rgba(255,87,51,0.15); stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 12px rgba(255,87,51,0.4)); transition: d 2s cubic-bezier(0.16, 1, 0.3, 1); }
+    .radar-label { font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 700; fill: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; transition: fill 0.5s; }
+    .visible .radar-label { fill: var(--text); }
+
+    /* 3. GROWTH TRAJECTORY */
+    .chart-container { width: 100%; height: 100%; position: relative; }
+    .chart-svg { width: 100%; height: 240px; display: block; }
+    .chart-path { fill: none; stroke: url(#gradientPath); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1000; stroke-dashoffset: 1000; transition: stroke-dashoffset 2.5s cubic-bezier(0.22, 1, 0.36, 1); }
+    .visible .chart-path { stroke-dashoffset: 0; filter: drop-shadow(0 8px 16px rgba(0,200,83,0.3)); }
+    .chart-grid line { stroke: rgba(255,255,255,0.05); stroke-dasharray: 4 4; }
+    .chart-dot { fill: var(--green); filter: drop-shadow(0 0 10px var(--green)); opacity: 0; transition: opacity 0.5s 2s; }
+    .visible .chart-dot { opacity: 1; }
+
+    .chart-zones { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 12px 16px; pointer-events: none; }
+    .zone-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0; transform: translateX(-20px); transition: all 0.8s; }
+    .zone-green { color: var(--green); }
+    .zone-red { color: var(--red); }
+    .visible .zone-label { opacity: 0.6; transform: translateX(0); }
+
+    /* ═══ STATS BAR ═══ */
+    .stats-bar { position: relative; z-index: 2; padding: 48px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.01) 50%, transparent); }
+    .stats-inner { display: flex; align-items: center; justify-content: center; gap: 80px; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; align-items: center; gap: 4px; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    .stat:hover { transform: translateY(-4px) scale(1.05); }
+    .stat-value { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; color: var(--text); text-shadow: 0 0 20px rgba(255,255,255,0.1); }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* ═══ TESTIMONIAL ═══ */
+    .testimonial-section { position: relative; z-index: 2; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: radial-gradient(ellipse at center, rgba(255,255,255,0.01) 0%, transparent 70%); }
+    .testimonial-card { max-width: 700px; margin: 0 auto; text-align: center; padding: 48px 40px; background: rgba(255,255,255,0.015); border: 1px solid rgba(255,255,255,0.05); border-radius: 24px; backdrop-filter: blur(10px); transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.5s ease; }
+    .testimonial-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.1); }
+    .testimonial-quote { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(24px, 3vw, 36px); font-weight: 400; font-style: italic; line-height: 1.3; letter-spacing: -0.01em; margin-bottom: 32px; color: var(--text); }
+    .testimonial-quote::before { content: '\201C'; color: var(--accent); margin-right: 4px; }
+    .testimonial-quote::after { content: '\201D'; color: var(--accent); margin-left: 4px; }
+    .testimonial-author { display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .testimonial-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; color: white; box-shadow: 0 4px 12px rgba(255,87,51,0.3); transition: transform 0.3s; }
+    .testimonial-card:hover .testimonial-avatar { transform: scale(1.1) rotate(5deg); }
+    .testimonial-name { font-size: 14px; font-weight: 700; text-align: left; }
+    .testimonial-role { font-size: 13px; color: var(--text-muted); text-align: left; }
+
+    /* ═══ CTA ═══ */
+    .cta-section { position: relative; z-index: 2; padding: 120px 0 100px; text-align: center; overflow: hidden; }
+    .cta-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 400px; background: radial-gradient(ellipse, rgba(255,87,51,0.08), transparent 60%); pointer-events: none; }
+    .cta-content { position: relative; z-index: 1; }
+    .section-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent); margin-bottom: 12px; }
+    .section-title { font-family: 'Instrument Serif', Georgia, serif; font-size: clamp(32px, 4.5vw, 56px); font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .section-title .accent { font-style: italic; }
+    .section-desc { font-size: 16px; color: var(--text-secondary); max-width: 480px; line-height: 1.6; letter-spacing: -0.01em; }
+
+    /* ═══ FOOTER ═══ */
+    .footer { position: relative; z-index: 2; padding: 32px 0; border-top: 1px solid var(--border); }
+    .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .footer-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-link { font-size: 13px; color: var(--text-muted); transition: color 0.2s ease; font-weight: 500; }
+    .footer-link:hover { color: var(--text); }
+
+    /* ═══ RESPONSIVE ═══ */
+    @media (max-width: 900px) {
+      .story-grid { grid-template-columns: 1fr; gap: 40px; }
+      .story-section:nth-child(even) .story-visual { order: 1; }
+      .story-section:nth-child(even) .story-text { order: -1; }
+      .story-visual { min-height: 300px; }
+      .hero { text-align: center; justify-content: center; }
+      .hero-inner { max-width: 100%; }
+      .hero-ctas { justify-content: center; }
+      .hero-sub { margin-left: auto; margin-right: auto; }
+      .hero-bg { background-position: center center; opacity: 0.25; }
+      .hero-bg::after { background: radial-gradient(ellipse at center, rgba(5,5,5,0.65) 0%, rgba(5,5,5,0.92) 70%), linear-gradient(to top, var(--bg) 0%, transparent 25%); }
+      .story-text { text-align: center; }
+    }
+    @media (max-width: 600px) {
+      .nav-link { display: none; }
+      .story-section { padding: 80px 0; }
+      .hero { padding: 100px 0 60px; }
+      .hero-scroll { display: none; }
+      .radar-container { width: 240px; height: 240px; }
+      .live-transcript { font-size: 11px; padding: 12px 14px; }
+      .stats-inner { gap: 32px; flex-direction: column; }
+      .stat-value { font-size: 28px; }
+      .testimonial-card { padding: 32px 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-noise"></div>
+
+  <nav class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="#" class="nav-logo">
+        <div class="nav-logo-dot"></div>
+        Pitchr
+      </a>
+      <div class="nav-links">
+        <a href="#delivery" class="nav-link">Delivery</a>
+        <a href="#rubric" class="nav-link">Rubric</a>
+        <a href="#growth" class="nav-link">Growth</a>
+        <a href="https://github.com/JuliusBrussee/pitchr" class="nav-cta" target="_blank" rel="noopener">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="container hero-inner">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        AI-Powered Pitch Coaching
+      </div>
+
+      <h1>Ship pitches that<br /><span class="accent">close rounds.</span></h1>
+
+      <p class="hero-sub">
+        Record or paste your pitch. Get an investor-grade score, ranked fixes, a rewritten script, and delivery metrics — in seconds.
+      </p>
+
+      <div class="hero-ctas">
+        <a href="https://github.com/JuliusBrussee/pitchr" class="btn-primary" target="_blank" rel="noopener">
+          Get Started
+          <span class="btn-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
+        </a>
+        <a href="#delivery" class="btn-secondary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          See How It Works
+        </a>
+      </div>
+    </div>
+
+    <div class="hero-scroll">
+      <div class="hero-scroll-text">Scroll</div>
+      <div class="hero-scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- ═══ SECTION 1: DELIVERY WAVEFORM ═══ -->
+  <section class="story-section" id="delivery">
+    <div class="container story-grid">
+      <div class="story-text reveal">
+        <h2>Delivery <i>tuning</i> in real-time.</h2>
+        <p>Investors tune out when you rely on filler words or speak at a frantic pace. Pitchr analyzes your live audio stream to detect pacing, hesitation, and vocabulary crutches instantly.</p>
+        <p style="font-size: 14px; font-family: 'JetBrains Mono', monospace; color: var(--accent);">
+          > Analyzes WPM, Pauses, and Fillers
+        </p>
+      </div>
+      <div class="story-visual reveal">
+        <svg class="waveform-svg" viewBox="0 0 400 100" preserveAspectRatio="xMidYMax meet">
+          <rect x="20"  y="25" width="8" height="50" rx="4" class="wave-bar" style="animation-delay: 0.1s" />
+          <rect x="40"  y="10" width="8" height="80" rx="4" class="wave-bar" style="animation-delay: 0.3s" />
+          <rect x="60"  y="30" width="8" height="40" rx="4" class="wave-bar" style="animation-delay: 0.5s" />
+          <rect x="80"  y="15" width="8" height="70" rx="4" class="wave-bar" style="animation-delay: 0.2s" />
+          <rect x="100" y="35" width="8" height="30" rx="4" class="wave-bar" style="animation-delay: 0.6s" />
+          <rect x="120" y="5"  width="8" height="90" rx="4" class="wave-bar" style="animation-delay: 0.1s" />
+          <rect x="140" y="20" width="8" height="60" rx="4" class="wave-bar" style="animation-delay: 0.4s" />
+          <rect x="160" y="40" width="8" height="20" rx="4" class="wave-bar" style="animation-delay: 0.7s" />
+          <rect x="180" y="10" width="8" height="80" rx="4" class="wave-bar" style="animation-delay: 0.3s" />
+          <rect x="200" y="25" width="8" height="50" rx="4" class="wave-bar" style="animation-delay: 0.5s" />
+          <rect x="220" y="15" width="8" height="70" rx="4" class="wave-bar" style="animation-delay: 0.2s" />
+          <rect x="240" y="5"  width="8" height="90" rx="4" class="wave-bar" style="animation-delay: 0.8s" />
+          <rect x="260" y="30" width="8" height="40" rx="4" class="wave-bar" style="animation-delay: 0.1s" />
+          <rect x="280" y="20" width="8" height="60" rx="4" class="wave-bar" style="animation-delay: 0.4s" />
+          <rect x="300" y="10" width="8" height="80" rx="4" class="wave-bar" style="animation-delay: 0.6s" />
+          <rect x="320" y="35" width="8" height="30" rx="4" class="wave-bar" style="animation-delay: 0.3s" />
+          <rect x="340" y="15" width="8" height="70" rx="4" class="wave-bar" style="animation-delay: 0.5s" />
+          <rect x="360" y="25" width="8" height="50" rx="4" class="wave-bar" style="animation-delay: 0.2s" />
+        </svg>
+
+        <div class="live-transcript">
+          "We are <span class="strike">um, basically<span class="correction">building</span></span> the next generation of databases..."
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SECTION 2: RUBRIC RADAR ═══ -->
+  <section class="story-section" id="rubric">
+    <div class="container story-grid">
+      <div class="story-visual reveal" id="radarReveal">
+        <div class="radar-container">
+          <svg viewBox="-10 -5 220 210" width="100%" height="100%">
+            <g class="radar-bg">
+              <polygon points="100,20 176,75 147,165 53,165 24,75" />
+              <polygon points="100,40 157,81 135,148 65,148 43,81" />
+              <polygon points="100,60 138,88 124,131 76,131 62,88" />
+              <polygon points="100,80 119,94 112,115 88,115 81,94" />
+            </g>
+            <g class="radar-axis">
+              <line x1="100" y1="100" x2="100" y2="20" />
+              <line x1="100" y1="100" x2="176" y2="75" />
+              <line x1="100" y1="100" x2="147" y2="165" />
+              <line x1="100" y1="100" x2="53" y2="165" />
+              <line x1="100" y1="100" x2="24" y2="75" />
+            </g>
+            <path class="radar-fill" id="radarPath" d="M100,60 L138,88 L124,131 L53,165 L24,75 Z" />
+
+            <text x="100" y="-2" text-anchor="middle" class="radar-label">Structure</text>
+            <text x="200" y="75" text-anchor="start" class="radar-label">Clarity</text>
+            <text x="168" y="192" text-anchor="start" class="radar-label">Evidence</text>
+            <text x="32" y="192" text-anchor="end" class="radar-label">Market</text>
+            <text x="0" y="75" text-anchor="end" class="radar-label">Delivery</text>
+          </svg>
+        </div>
+      </div>
+      <div class="story-text reveal">
+        <h2>The Investor-Ready <i>Matrix</i>.</h2>
+        <p>A great product doesn't mean a great pitch. Pitchr evaluates you across 5 absolute dimensions that venture capitalists care about. Stop guessing where your blind spots are.</p>
+        <p style="font-size: 14px; font-family: 'JetBrains Mono', monospace; color: var(--green);">
+          > Score: 100/100 (Perfectly Balanced)
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SECTION 3: GROWTH TRAJECTORY ═══ -->
+  <section class="story-section" id="growth">
+    <div class="container story-grid">
+      <div class="story-text reveal">
+        <h2>Your score, <i>climbing</i>.</h2>
+        <p>Your first take won't be perfect. Pitchr gives you a prioritized list of ranked fixes. Apply the AI rewrites, practice your delivery, and watch your score hit the Investor-Ready threshold.</p>
+        <p style="font-size: 14px; font-family: 'JetBrains Mono', monospace; color: var(--blue);">
+          > Delta: +45 points in 3 sessions
+        </p>
+      </div>
+      <div class="story-visual reveal" id="chartReveal">
+        <div class="chart-container">
+          <div class="chart-zones">
+            <div class="zone-label zone-green">Investor Ready (80+)</div>
+            <div class="zone-label zone-red">Needs Work (&lt;60)</div>
+          </div>
+          <svg class="chart-svg" viewBox="0 0 500 200" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="gradientPath" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ff3d00" />
+                <stop offset="50%" stop-color="#ff9100" />
+                <stop offset="100%" stop-color="#00c853" />
+              </linearGradient>
+            </defs>
+            <g class="chart-grid">
+              <line x1="0" y1="40" x2="500" y2="40" />
+              <line x1="0" y1="100" x2="500" y2="100" />
+              <line x1="0" y1="160" x2="500" y2="160" />
+            </g>
+            <path class="chart-path" d="M 0,160 Q 150,160 250,100 T 500,40" />
+            <circle class="chart-dot" cx="500" cy="40" r="6" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats-bar">
+    <div class="container stats-inner reveal">
+      <div class="stat"><div class="stat-value">100</div><div class="stat-label">Point Scale</div></div>
+      <div class="stat"><div class="stat-value">5</div><div class="stat-label">Rubric Categories</div></div>
+      <div class="stat"><div class="stat-value">&lt;30s</div><div class="stat-label">Analysis Time</div></div>
+      <div class="stat"><div class="stat-value">2</div><div class="stat-label">Pitch Modes</div></div>
+    </div>
+  </section>
+
+  <section class="testimonial-section" style="padding:100px 0">
+    <div class="container">
+      <div class="testimonial-card reveal">
+        <div class="testimonial-quote">
+          I'm used to building things — but pitching them was always the hard part. Pitchr is a product I can see myself coming back to every time I have a new idea to present.
+        </div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">AE</div>
+          <div>
+            <div class="testimonial-name">Anthony Eid</div>
+            <div class="testimonial-role">Software Engineer @ Zed</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-section" id="ctaContainer">
+    <div class="cta-glow" id="ctaGlow"></div>
+    <div class="container cta-content reveal">
+      <div class="section-label" style="text-align:center">Ready?</div>
+      <h2 class="section-title" style="text-align:center;margin-bottom:20px">Stop guessing.<br /><span class="accent">Start scoring.</span></h2>
+      <p class="section-desc" style="text-align:center;margin:0 auto 40px">
+        Your next pitch meeting doesn't have to be a coin flip. Get AI-powered scoring, fixes, and a rewritten script — free and open source.
+      </p>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
+        <a href="https://github.com/JuliusBrussee/pitchr" class="btn-primary" target="_blank" rel="noopener">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+          Star on GitHub
+          <span class="btn-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-left">
+        <div class="nav-logo-dot" style="width:6px;height:6px"></div>
+        Pitchr — Open Source AI Pitch Coach
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/JuliusBrussee/pitchr" class="footer-link" target="_blank" rel="noopener">GitHub</a>
+        <a href="#delivery" class="footer-link">Delivery</a>
+        <a href="#rubric" class="footer-link">Rubric</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Intersection Observer for reveals + SVG animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+
+          // Radar chart: animate to perfect pentagon
+          if (entry.target.id === 'radarReveal') {
+            const radarPath = document.getElementById('radarPath');
+            if (radarPath) {
+              setTimeout(() => {
+                radarPath.setAttribute('d', 'M100,20 L176,75 L147,165 L53,165 L24,75 Z');
+              }, 300);
+            }
+          }
+
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Nav scroll effect
+    window.addEventListener('scroll', () => {
+      const nav = document.getElementById('nav');
+      if (window.scrollY > 50) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+    }, { passive: true });
+
+    // CTA hover glow tracking
+    const ctaContainer = document.getElementById('ctaContainer');
+    const ctaGlow = document.getElementById('ctaGlow');
+    if (ctaContainer && ctaGlow) {
+      ctaContainer.addEventListener('mousemove', (e) => {
+        const rect = ctaContainer.getBoundingClientRect();
+        ctaGlow.style.left = `${e.clientX - rect.left}px`;
+        ctaGlow.style.top = `${e.clientY - rect.top}px`;
+      });
+    }
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

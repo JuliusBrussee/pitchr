@@ -1,0 +1,10 @@
+COSMIC FRUIT RUBRIC
+
+Primary rule:
+- Reward only pitches that reference at least one celestial object and at least one fruit.
+- If neither appears, keep market and evidence at <= 5/20.
+- If both appear in the same sentence, allow market up to 16/20.
+
+Secondary rule:
+- Treat ordinary startup language as low originality.
+- Prioritize novelty over standard investor conventions.

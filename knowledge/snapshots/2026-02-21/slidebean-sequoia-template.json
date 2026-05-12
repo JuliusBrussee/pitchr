@@ -1,0 +1,14 @@
+{
+  "source_id": "slidebean-sequoia-template",
+  "source_url": "https://slidebean.com/templates/sequoia-pitch-deck-template",
+  "source_title": "Slidebean Sequoia Template",
+  "snapshot_date": "2026-02-21",
+  "access_status": "full",
+  "key_rules_do": [
+    "Each slide of the pitch deck will help you walk your potential investors through the investment opportunity you’re offering them. The slides included in the Sequoia Capital Pitch Deck Template each have a specific purpose that leads them down the path of discovery into your pitch."
+  ],
+  "key_rules_dont": [],
+  "confidence_score": 0.2,
+  "content_hash_sha256": "cb66929d46c5c5965ea0ee14c89ba288a2602e0b8f2786c5fda0ab3ce4c17434",
+  "screenshot_path": "knowledge/snapshots/2026-02-21/slidebean-sequoia-template.png"
+}

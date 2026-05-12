@@ -1,0 +1,141 @@
+{
+  "description": "Manual and semi-automated rubric sandbox test matrix for judge behavior.",
+  "defaultProvider": "openrouter",
+  "cases": [
+    {
+      "id": "C01",
+      "name": "Baseline Seed Pitch",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/01_seed_balanced.txt",
+      "rubricFile": null,
+      "deckFile": null,
+      "checks": [
+        "Run completes with fallback=false",
+        "Rubric contains exactly 5 spoken categories",
+        "overall_score is between 0 and 100"
+      ]
+    },
+    {
+      "id": "C02",
+      "name": "No Proof Hard Cap",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/02_no_proof.txt",
+      "rubricFile": null,
+      "deckFile": null,
+      "checks": [
+        "evidence score is <= 8 (no_proof hard cap)",
+        "top fixes prioritize evidence/proof"
+      ]
+    },
+    {
+      "id": "C03",
+      "name": "No Ask Hard Cap",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/03_no_ask.txt",
+      "rubricFile": null,
+      "deckFile": null,
+      "checks": [
+        "structure score is <= 12 (no_ask hard cap)",
+        "top fixes include explicit fundraising ask"
+      ]
+    },
+    {
+      "id": "C04",
+      "name": "TAM-Only Hard Cap",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/04_tam_only.txt",
+      "rubricFile": null,
+      "deckFile": null,
+      "checks": [
+        "market score is <= 10 (tam_only hard cap)",
+        "feedback requests wedge/execution proof"
+      ]
+    },
+    {
+      "id": "C05",
+      "name": "Deck Ask Hard Cap",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/03_no_ask.txt",
+      "rubricFile": null,
+      "deckFile": "tests/fixtures/rubric-sandbox/decks/10_missing_ask.txt",
+      "checks": [
+        "coverage is spoken+deck",
+        "deck_ask score is <= 8 (no_ask hard cap)",
+        "deck_score is not null"
+      ]
+    },
+    {
+      "id": "C06",
+      "name": "Delivery Deterministic Penalty",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/08_delivery_fillers.txt",
+      "rubricFile": null,
+      "deckFile": null,
+      "checks": [
+        "delivery rationale references deterministic/local formula",
+        "delivery score is lower than C01 in most runs"
+      ]
+    },
+    {
+      "id": "C07",
+      "name": "Interviewer Noise Filtering",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/06_interviewer_noise.txt",
+      "rubricFile": null,
+      "deckFile": null,
+      "checks": [
+        "run does not fail from mixed interviewer text",
+        "ask/evidence still appear in verdict or fixes"
+      ]
+    },
+    {
+      "id": "C08",
+      "name": "Override Layering Strict Risk",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/01_seed_balanced.txt",
+      "rubricFile": "tests/fixtures/rubric-sandbox/rubrics/strict_risk.txt",
+      "deckFile": null,
+      "checks": [
+        "layered system prompt is present in report prompt_map",
+        "override run differs from baseline on verdict and/or at least one category"
+      ]
+    },
+    {
+      "id": "C09",
+      "name": "Override Layering Clarity Priority",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/05_jargon_overload.txt",
+      "rubricFile": "tests/fixtures/rubric-sandbox/rubrics/clarity_priority.txt",
+      "deckFile": null,
+      "checks": [
+        "clarity-related fixes are prioritized",
+        "verdict language shifts toward communication precision"
+      ]
+    },
+    {
+      "id": "C10",
+      "name": "Deck + Override Ask Priority",
+      "mode": "vc_pitch",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/01_seed_balanced.txt",
+      "rubricFile": "tests/fixtures/rubric-sandbox/rubrics/deck_ask_priority.txt",
+      "deckFile": "tests/fixtures/rubric-sandbox/decks/10_missing_ask.txt",
+      "checks": [
+        "deck rubric appears with 5 deck categories",
+        "deck_ask receives heightened critique versus baseline deck run"
+      ]
+    },
+    {
+      "id": "C11",
+      "name": "Elevator Mode Structure",
+      "mode": "elevator",
+      "transcriptFile": "tests/fixtures/rubric-sandbox/transcripts/07_elevator_compact.txt",
+      "rubricFile": null,
+      "deckFile": null,
+      "checks": [
+        "mode is elevator",
+        "Q&A output still has exactly 3 questions and 3 answers",
+        "overall score reflects short-format constraints"
+      ]
+    }
+  ]
+}

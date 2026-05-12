@@ -1,0 +1,623 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { Video, VideoOff, Mic, MicOff, Monitor, Play, Pause, Square, SkipForward, SkipBack, Download, Trash2 } from 'lucide-react';
+import { SessionTimer } from '@/views/components/SessionTimer';
+
+interface SessionCanvasProps {
+  stream: MediaStream | null;
+  isCameraOn: boolean;
+  isMicOn: boolean;
+  toggleCamera: () => void;
+  toggleMic: () => void;
+  isSessionActive: boolean;
+  canStopSession: boolean;
+  canStartSession?: boolean;
+  onStartSession: () => void;
+  onPauseSession: () => void;
+  onStopSession: () => void;
+  onDiscardSession?: () => void;
+  pdfUrl?: string | null;
+  currentSlide?: number;
+  slideCount?: number;
+  onNextSlide?: () => void;
+  onPrevSlide?: () => void;
+  renderSlideToCanvas?: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
+  decks?: Array<{ id: string; name: string; slide_count: number }>;
+  selectedDeckId?: string | null;
+  onSelectDeck?: (deckId: string | null) => void;
+  isLoadingDecks?: boolean;
+  isLoadingPdf?: boolean;
+  pdfError?: string | null;
+  elapsedSeconds?: number;
+  targetSeconds?: number;
+  overtimeLimit?: number;
+}
+
+export function SessionCanvas({
+  stream,
+  isCameraOn,
+  isMicOn,
+  toggleCamera,
+  toggleMic,
+  isSessionActive,
+  canStopSession,
+  canStartSession = true,
+  onStartSession,
+  onPauseSession,
+  onStopSession,
+  onDiscardSession,
+  pdfUrl,
+  currentSlide = 1,
+  slideCount = 0,
+  onNextSlide,
+  onPrevSlide,
+  renderSlideToCanvas,
+  decks,
+  selectedDeckId,
+  onSelectDeck,
+  isLoadingDecks,
+  isLoadingPdf,
+  pdfError,
+  elapsedSeconds = 0,
+  targetSeconds,
+  overtimeLimit,
+}: SessionCanvasProps) {
+  const [focusMode, setFocusMode] = useState<'slides' | 'camera'>('slides');
+
+  // In mic-only mode (camera off), always show slides as primary
+  const effectiveFocus = !isCameraOn ? 'slides' : focusMode;
+  const hasTarget = typeof targetSeconds === 'number' && targetSeconds > 0;
+
+  return (
+    <div className="flex flex-col gap-3 flex-1 min-w-0 min-h-0">
+      {/* Main Canvas Area */}
+      <div
+        className="relative flex-1 rounded-2xl overflow-hidden border min-h-0"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          backdropFilter: `blur(var(--blur-strength))`,
+          WebkitBackdropFilter: `blur(var(--blur-strength))`,
+          borderColor: 'var(--border-color)',
+        }}
+      >
+        {/* Primary View */}
+        {effectiveFocus === 'slides' ? (
+          <SlideViewer
+            pdfUrl={pdfUrl}
+            renderSlideToCanvas={renderSlideToCanvas}
+            currentSlide={currentSlide}
+            slideCount={slideCount}
+            decks={decks}
+            selectedDeckId={selectedDeckId}
+            onSelectDeck={onSelectDeck}
+            isLoadingDecks={isLoadingDecks}
+            isLoadingPdf={isLoadingPdf}
+            pdfError={pdfError}
+          />
+        ) : (
+          <CameraView stream={stream} isFocused />
+        )}
+
+        {/* Webcam Overlay (bottom-right) — only when camera is on and slides are focused */}
+        {isCameraOn && effectiveFocus === 'slides' && (
+          <button
+            onClick={() => setFocusMode('camera')}
+            className="pip-overlay absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/10 cursor-pointer"
+            style={{
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease',
+            }}
+            aria-label="Focus on camera"
+          >
+            <CameraView stream={stream} isFocused={false} />
+          </button>
+        )}
+
+        {/* Slide overlay (bottom-right) — when camera is focused */}
+        {isCameraOn && effectiveFocus === 'camera' && (
+          <button
+            onClick={() => setFocusMode('slides')}
+            className="pip-overlay absolute bottom-4 right-4 w-48 h-36 rounded-xl overflow-hidden border-2 border-white/10 cursor-pointer"
+            style={{
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+              transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease',
+            }}
+            aria-label="Focus on slides"
+          >
+            <SlideViewerMini pdfUrl={pdfUrl} renderSlideToCanvas={renderSlideToCanvas} currentSlide={currentSlide} />
+          </button>
+        )}
+
+      </div>
+
+      <style jsx>{`
+        .pip-overlay:hover {
+          transform: scale(1.06);
+          border-color: rgba(255, 255, 255, 0.2) !important;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+        }
+        .pip-overlay:active {
+          transform: scale(0.98);
+        }
+        .media-toggle:hover {
+          transform: scale(1.06);
+        }
+        .media-toggle:active {
+          transform: scale(0.94);
+        }
+        .control-btn:hover {
+          transform: scale(1.1);
+        }
+        .control-btn:active {
+          transform: scale(0.92);
+        }
+        .control-btn-primary:hover {
+          box-shadow: 0 0 24px rgba(255, 255, 255, 0.12), 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        }
+        .discard-btn:hover {
+          transform: scale(1.08);
+          background-color: rgba(239, 68, 68, 0.1) !important;
+          box-shadow: 0 0 10px rgba(239, 68, 68, 0.15);
+        }
+        .discard-btn:active {
+          transform: scale(0.92);
+        }
+      `}</style>
+
+      {/* Playback & Media Controls Bar */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5 rounded-xl border flex-shrink-0"
+        style={{
+          backgroundColor: 'var(--bg-surface)',
+          backdropFilter: `blur(var(--blur-strength))`,
+          WebkitBackdropFilter: `blur(var(--blur-strength))`,
+          borderColor: 'var(--border-color)',
+        }}
+      >
+        {/* Left: Media toggles */}
+        <div className="flex items-center gap-2">
+          <MediaToggle
+            icon={isCameraOn ? Video : VideoOff}
+            isActive={isCameraOn}
+            onClick={toggleCamera}
+            label="Camera"
+          />
+          <MediaToggle
+            icon={isMicOn ? Mic : MicOff}
+            isActive={isMicOn}
+            onClick={toggleMic}
+            label="Microphone"
+          />
+        </div>
+
+        {/* Center: Playback controls */}
+        <div data-tour="tour-session-record" className="flex items-center gap-1">
+          <ControlButton icon={SkipBack} onClick={() => onPrevSlide?.()} label="Previous slide" size={16} />
+          {isSessionActive ? (
+            <ControlButton icon={Pause} onClick={onPauseSession} label="Pause session" primary />
+          ) : (
+            <ControlButton
+              icon={Play}
+              onClick={onStartSession}
+              label="Start session"
+              primary
+              disabled={!canStartSession}
+            />
+          )}
+          {canStopSession && (
+            <ControlButton icon={Square} onClick={onStopSession} label="Stop session" danger />
+          )}
+          <ControlButton icon={SkipForward} onClick={() => onNextSlide?.()} label="Next slide" size={16} />
+        </div>
+
+        {/* Right: Timer + Discard + Deck */}
+        <div data-tour="tour-session-deck" className="flex items-center justify-end gap-2" style={{ minWidth: '8rem' }}>
+          {hasTarget ? (
+            <SessionTimer
+              elapsedSeconds={elapsedSeconds}
+              targetSeconds={targetSeconds}
+              overtimeLimit={overtimeLimit}
+              compact
+            />
+          ) : (
+            <span
+              className="text-xs font-medium tabular-nums px-2 py-1"
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              {formatTimer(elapsedSeconds)}
+            </span>
+          )}
+          {canStopSession && onDiscardSession && (
+            <button
+              type="button"
+              onClick={onDiscardSession}
+              className="discard-btn rounded-full p-2 border flex items-center justify-center shrink-0"
+              style={{
+                borderColor: 'rgba(239,68,68,0.4)',
+                color: '#ef4444',
+                backgroundColor: 'transparent',
+                transition: 'all 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+              aria-label="Discard recording"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+          {decks && decks.length > 0 && onSelectDeck ? (
+            <DeckDropdown
+              decks={decks}
+              selectedDeckId={selectedDeckId ?? null}
+              onSelectDeck={onSelectDeck}
+              compact
+            />
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatTimer(seconds: number): string {
+  const total = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(total / 60);
+  const remaining = total % 60;
+  return `${minutes}:${remaining.toString().padStart(2, '0')}`;
+}
+
+/* --- Sub-components --- */
+
+function MediaToggle({
+  icon: Icon,
+  isActive,
+  onClick,
+  label,
+}: {
+  icon: React.ComponentType<{ size?: number }>;
+  isActive: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="media-toggle p-2 rounded-lg border"
+      style={{
+        backgroundColor: isActive ? 'var(--bg-surface)' : 'rgba(239,68,68,0.12)',
+        borderColor: isActive ? 'var(--border-color)' : 'rgba(239,68,68,0.25)',
+        color: isActive ? 'var(--text-primary)' : '#ef4444',
+        backdropFilter: `blur(var(--blur-strength))`,
+        transition: 'all 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        boxShadow: isActive ? 'none' : '0 0 8px rgba(239, 68, 68, 0.1)',
+      }}
+      aria-label={label}
+    >
+      <Icon size={18} />
+    </button>
+  );
+}
+
+function ControlButton({
+  icon: Icon,
+  onClick,
+  label,
+  primary,
+  danger,
+  dangerGhost,
+  disabled,
+  size = 18,
+}: {
+  icon: React.ComponentType<{ size?: number; fill?: string }>;
+  onClick: () => void;
+  label: string;
+  primary?: boolean;
+  danger?: boolean;
+  dangerGhost?: boolean;
+  disabled?: boolean;
+  size?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`control-btn rounded-full flex items-center justify-center ${
+        primary ? 'control-btn-primary p-3' : 'p-2'
+      } ${dangerGhost ? 'border border-[rgba(239,68,68,0.5)]' : ''}`}
+      style={{
+        backgroundColor: primary
+          ? 'var(--text-primary)'
+          : danger
+            ? 'rgba(239,68,68,0.12)'
+            : 'transparent',
+        color: primary
+          ? 'var(--bg-primary)'
+          : danger || dangerGhost
+            ? '#ef4444'
+            : 'var(--text-secondary)',
+        transition: 'all 0.2s ease, transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        boxShadow: primary
+          ? '0 0 16px rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.2)'
+          : 'none',
+        opacity: disabled ? 0.45 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+      aria-label={label}
+    >
+      <Icon size={size} fill={primary ? 'currentColor' : 'none'} />
+    </button>
+  );
+}
+
+function SlideViewer({
+  pdfUrl,
+  renderSlideToCanvas,
+  currentSlide,
+  slideCount,
+  decks,
+  selectedDeckId,
+  onSelectDeck,
+  isLoadingDecks,
+  isLoadingPdf,
+  pdfError,
+}: {
+  pdfUrl?: string | null;
+  renderSlideToCanvas?: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
+  currentSlide: number;
+  slideCount: number;
+  decks?: Array<{ id: string; name: string; slide_count: number }>;
+  selectedDeckId?: string | null;
+  onSelectDeck?: (deckId: string | null) => void;
+  isLoadingDecks?: boolean;
+  isLoadingPdf?: boolean;
+  pdfError?: string | null;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleDownload = () => {
+    if (!pdfUrl) return;
+    const a = document.createElement('a');
+    a.href = pdfUrl;
+    a.download = '';
+    a.click();
+  };
+
+  // Render slide to canvas, re-render on slide change or container resize
+  useEffect(() => {
+    if (!canvasRef.current || !renderSlideToCanvas) return;
+
+    const canvas = canvasRef.current;
+    const container = containerRef.current;
+
+    // Render once layout is settled
+    const doRender = () => {
+      if (!canvasRef.current || !renderSlideToCanvas) return;
+      renderSlideToCanvas(canvasRef.current);
+    };
+
+    // Use requestAnimationFrame to ensure container dimensions are computed
+    const rafId = requestAnimationFrame(doRender);
+
+    // Re-render on container resize
+    let observer: ResizeObserver | null = null;
+    if (container) {
+      observer = new ResizeObserver(() => {
+        requestAnimationFrame(doRender);
+      });
+      observer.observe(container);
+    }
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      observer?.disconnect();
+    };
+  }, [renderSlideToCanvas, currentSlide]);
+
+  if (!pdfUrl) {
+    const hasDecks = decks && decks.length > 0;
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Monitor size={48} style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
+            {hasDecks ? 'Select a deck to display' : 'Upload or generate your deck'}
+          </p>
+          {hasDecks && onSelectDeck ? (
+            <DeckDropdown
+              decks={decks}
+              selectedDeckId={selectedDeckId ?? null}
+              onSelectDeck={onSelectDeck}
+              isLoading={isLoadingDecks}
+            />
+          ) : (
+            <Link
+              href="/deck"
+              className="px-4 py-2 rounded-lg text-xs font-medium border transition-colors"
+              style={{
+                borderColor: 'var(--border-color)',
+                color: 'var(--text-secondary)',
+                backgroundColor: 'var(--bg-surface)',
+              }}
+            >
+              Upload Slides
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoadingPdf) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin"
+            style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: 'rgba(255,255,255,0.8)' }}
+          />
+          <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.6)' }}>
+            Loading slides...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (pdfError) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
+        <div className="flex flex-col items-center gap-3">
+          <Monitor size={36} style={{ color: '#ef4444' }} />
+          <p className="text-xs font-medium" style={{ color: '#ef4444' }}>
+            Failed to load slides
+          </p>
+          <p className="text-xs max-w-xs text-center" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {pdfError}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="absolute inset-0 flex items-center justify-center"
+      style={{ backgroundColor: '#1a1a1a' }}
+    >
+      <canvas ref={canvasRef} className="max-w-full max-h-full" />
+      {slideCount > 0 && (
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2">
+          <div
+            className="px-3 py-1 rounded-full text-xs font-medium"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              color: 'rgba(255,255,255,0.8)',
+            }}
+          >
+            {currentSlide} / {slideCount}
+          </div>
+          <button
+            onClick={handleDownload}
+            className="p-1.5 rounded-full transition-all duration-200 hover:bg-white/20"
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              color: 'rgba(255,255,255,0.8)',
+            }}
+            aria-label="Download deck"
+          >
+            <Download size={14} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SlideViewerMini({
+  pdfUrl,
+  renderSlideToCanvas,
+  currentSlide,
+}: {
+  pdfUrl?: string | null;
+  renderSlideToCanvas?: ((canvas: HTMLCanvasElement) => Promise<void>) | null;
+  currentSlide?: number;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (!canvasRef.current || !renderSlideToCanvas) return;
+    const rafId = requestAnimationFrame(() => {
+      if (canvasRef.current && renderSlideToCanvas) {
+        renderSlideToCanvas(canvasRef.current);
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [renderSlideToCanvas, currentSlide]);
+
+  if (!pdfUrl) {
+    return (
+      <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+        <Monitor size={24} style={{ color: 'var(--text-muted)' }} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: '#1a1a1a' }}>
+      <canvas ref={canvasRef} className="max-w-full max-h-full" />
+    </div>
+  );
+}
+
+function DeckDropdown({
+  decks,
+  selectedDeckId,
+  onSelectDeck,
+  compact,
+  isLoading,
+}: {
+  decks: Array<{ id: string; name: string; slide_count: number }>;
+  selectedDeckId: string | null;
+  onSelectDeck: (deckId: string | null) => void;
+  compact?: boolean;
+  isLoading?: boolean;
+}) {
+  return (
+    <select
+      value={selectedDeckId ?? ''}
+      onChange={(e) => onSelectDeck(e.target.value || null)}
+      disabled={isLoading}
+      className={`rounded-lg border text-xs font-medium transition-colors cursor-pointer ${
+        compact ? 'px-2 py-1 max-w-[8rem] truncate' : 'px-3 py-2'
+      }`}
+      style={{
+        borderColor: 'var(--border-color)',
+        color: 'var(--text-secondary)',
+        backgroundColor: 'var(--bg-surface)',
+      }}
+    >
+      <option value="">{isLoading ? 'Loading\u2026' : 'No deck'}</option>
+      {decks.map((deck) => (
+        <option key={deck.id} value={deck.id}>
+          {compact
+            ? deck.name
+            : `${deck.name} (${deck.slide_count} slide${deck.slide_count !== 1 ? 's' : ''})`}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function CameraView({
+  stream,
+  isFocused,
+}: {
+  stream: MediaStream | null;
+  isFocused: boolean;
+}) {
+  const localRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const video = localRef.current;
+    if (!video || !stream) return;
+    video.srcObject = stream;
+    video.play().catch(() => {
+      // Browser blocked autoplay — will retry on user interaction
+    });
+  }, [stream]);
+
+  return (
+    <video
+      ref={localRef}
+      autoPlay
+      muted
+      playsInline
+      className={`${isFocused ? 'absolute inset-0' : ''} w-full h-full object-cover`}
+      style={{ transform: 'scaleX(-1)' }}
+    />
+  );
+}

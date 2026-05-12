@@ -1,0 +1,11 @@
+{
+  "id": "sample-fixture-001",
+  "target_score": 14.2,
+  "metrics": {
+    "s_pace": 1,
+    "s_filler": 0.5467,
+    "s_stutter": 0.66,
+    "s_repeat": 0.5467,
+    "s_time": 1
+  }
+}

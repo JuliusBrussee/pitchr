@@ -1,0 +1,202 @@
+[
+  {
+    "company": "ChainGuard",
+    "pitch_type": "hackathon",
+    "event_source": "ETHGlobal Istanbul 2023",
+    "year": "2023",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "ethglobal",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Pool Prize Winner, ETHGlobal Istanbul 2023",
+    "industry_guess": "web3/security",
+    "notes": [
+      "Smart contract security auditing tool with on-chain verification.",
+      "Live demo of vulnerability detection on deployed contract."
+    ]
+  },
+  {
+    "company": "EcoTrack",
+    "pitch_type": "hackathon",
+    "event_source": "TreeHacks 2024",
+    "year": "2024",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "devpost",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Best Sustainability Hack, TreeHacks 2024",
+    "industry_guess": "sustainability",
+    "notes": [
+      "Carbon footprint tracker using receipt scanning and ML classification.",
+      "Working mobile app demo with real receipt processing."
+    ]
+  },
+  {
+    "company": "MedAssist AI",
+    "pitch_type": "hackathon",
+    "event_source": "HackMIT 2024",
+    "year": "2024",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "devpost",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Grand Prize, HackMIT 2024",
+    "industry_guess": "healthtech",
+    "notes": [
+      "AI-powered medical symptom triage with RAG on medical literature.",
+      "Live demo showing real-time symptom analysis and triage recommendations."
+    ]
+  },
+  {
+    "company": "AquaSat",
+    "pitch_type": "hackathon",
+    "event_source": "NASA Space Apps 2023",
+    "year": "2023",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "spaceapps",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Global Winner, NASA Space Apps Challenge 2023",
+    "industry_guess": "environmental science",
+    "notes": [
+      "Water quality monitoring using satellite imagery and ML classification.",
+      "Working pipeline demo from satellite data to quality predictions."
+    ]
+  },
+  {
+    "company": "StudyBuddy",
+    "pitch_type": "hackathon",
+    "event_source": "Hack the North 2024",
+    "year": "2024",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "devpost",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Best Education Hack, Hack the North 2024",
+    "industry_guess": "edtech",
+    "notes": [
+      "AI study companion that generates practice problems from lecture notes.",
+      "Live demo of PDF upload to generated quiz flow."
+    ]
+  },
+  {
+    "company": "DeFi Lens",
+    "pitch_type": "hackathon",
+    "event_source": "ETHGlobal New York 2023",
+    "year": "2023",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "ethglobal",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Best DeFi Project, ETHGlobal New York 2023",
+    "industry_guess": "web3/defi",
+    "notes": [
+      "Portfolio analytics dashboard for cross-chain DeFi positions.",
+      "Live demo showing real wallet data aggregation across 5 chains."
+    ]
+  },
+  {
+    "company": "AccessibleMaps",
+    "pitch_type": "hackathon",
+    "event_source": "LA Hacks 2024",
+    "year": "2024",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "devpost",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Best Accessibility Hack, LA Hacks 2024",
+    "industry_guess": "accessibility",
+    "notes": [
+      "Wheelchair-accessible route planner using OpenStreetMap data and community reports.",
+      "Working web app demo with real routing and crowd-sourced accessibility data."
+    ]
+  },
+  {
+    "company": "FarmSense",
+    "pitch_type": "hackathon",
+    "event_source": "NASA Space Apps 2024",
+    "year": "2024",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "spaceapps",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Best Use of Data, NASA Space Apps Challenge 2024",
+    "industry_guess": "agritech",
+    "notes": [
+      "Crop health prediction using NASA satellite imagery and soil sensor data.",
+      "Live demo of field-level prediction dashboard with historical accuracy metrics."
+    ]
+  },
+  {
+    "company": "GitReview",
+    "pitch_type": "hackathon",
+    "event_source": "MLH Global Hack Week 2024",
+    "year": "2024",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "devpost",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Top Project, MLH Global Hack Week Spring 2024",
+    "industry_guess": "devtools",
+    "notes": [
+      "AI-powered code review bot that integrates with GitHub PRs.",
+      "Live demo of PR analysis with inline suggestion generation."
+    ]
+  },
+  {
+    "company": "CarbonDAO",
+    "pitch_type": "hackathon",
+    "event_source": "ETHGlobal Paris 2023",
+    "year": "2023",
+    "video_url": "",
+    "timestamp_start": "",
+    "timestamp_end": "",
+    "pitch_length_seconds": 180,
+    "platform": "ethglobal",
+    "transcript_raw": "",
+    "transcript_clean": "",
+    "outcome_type": "winner",
+    "outcome_detail": "Best Public Goods Project, ETHGlobal Paris 2023",
+    "industry_guess": "web3/sustainability",
+    "notes": [
+      "Decentralized carbon credit marketplace with on-chain verification.",
+      "Live demo of credit minting from verified offset data."
+    ]
+  }
+]

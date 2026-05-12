@@ -1,0 +1,28 @@
+# Pitchr
+
+> AI pitch coach for startup founders. Record or paste your pitch, get an investor-grade score out of 100, ranked fixes, a rewritten script, and delivery metrics.
+
+Pitchr helps founders practice and improve their startup pitches before investor meetings. It analyzes spoken delivery across five dimensions (structure, clarity, evidence, market positioning, and delivery) and provides actionable, prioritized feedback.
+
+## Key Pages
+
+- [Homepage](https://pitchr.live): Product overview, features, and getting started
+- [Blog](https://pitchr.live/blog): Pitch coaching articles, founder insights, and fundraising tips
+- [About](https://pitchr.live/about): Team, mission, and company background
+
+## Blog Articles
+
+- [AI Pitch Coach for Founders: Score Your Delivery](https://pitchr.live/blog/ai-pitch-coach-for-founders): How Pitchr analyzes spoken delivery, quantifies issues, and prioritizes fixes
+- [How to Nail Your Elevator Pitch in 60 Seconds](https://pitchr.live/blog/how-to-nail-your-elevator-pitch): 4-part framework with timing, examples, and rehearsal drills
+- [How to Practice a Pitch So You Sound Confident, Not Rehearsed](https://pitchr.live/blog/how-to-practice-a-pitch): 5-step practice framework with self-scoring rubric
+- [First-Time Founder Pitch Mistakes (And How to Fix Them)](https://pitchr.live/blog/first-time-founder-pitch-mistakes): 7 delivery mistakes that kill deals and how to fix each one
+- [5 Content Mistakes That Kill Investor Pitches](https://pitchr.live/blog/5-mistakes-founders-make-when-pitching): Content checklist covering structure, evidence, and positioning
+- [How to Reduce Filler Words in Your Pitch](https://pitchr.live/blog/reduce-filler-words-in-pitch): Record-Count-Replace method for eliminating ums, likes, and hedge words
+- [Startup Pitch Structure: The Proven Sequence](https://pitchr.live/blog/startup-pitch-structure): Optimal ordering for investor pitches
+- [Pitch Deck vs Verbal Pitch: What to Use When](https://pitchr.live/blog/pitch-deck-vs-verbal-pitch): Stage-by-stage guide for choosing pitch format
+- [15 Common Pitch Deck Mistakes](https://pitchr.live/blog/pitch-deck-mistakes): Before-and-after examples with pre-meeting checklist
+- [Presentation Anxiety Before a Big Pitch](https://pitchr.live/blog/presentation-anxiety-before-a-big-pitch): Research-backed protocol for managing pitch nerves
+
+## Full Content
+
+For the complete content of all pages, see [llms-full.txt](https://pitchr.live/llms-full.txt).

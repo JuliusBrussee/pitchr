@@ -1,0 +1,97 @@
+{
+  "knowledge_version": "v1.0.0",
+  "generated_at": "2026-02-22T03:52:08.113Z",
+  "notes": "Curated and versioned evidence pack for deterministic scoring.",
+  "sources": [
+    {
+      "id": "openvc-opendeck",
+      "url": "https://www.openvc.app/opendeck",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/openvc-opendeck.json",
+      "hash_sha256": "048f5ca65c7fbfb6de14245fb392e85f946050a82782e214cd3a1ad8ccd71f35"
+    },
+    {
+      "id": "slideshare-sequoia-template",
+      "url": "https://www.slideshare.net/slideshow/sequoia-capital-pitchdecktemplate/46231251",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/slideshare-sequoia-template.json",
+      "hash_sha256": "91a6d3cc42a5a49bb8d4db085d60de74dc37ef0684b3d4db45c055edfb695132"
+    },
+    {
+      "id": "slidebean-story-examples",
+      "url": "https://slidebean.com/fr/blog/pitch-deck-story-examples",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/slidebean-story-examples.json",
+      "hash_sha256": "64e619f11e0654e73cd07eb56d37fcfd52d2aca1b5464b3d98fec06a89f4be75"
+    },
+    {
+      "id": "slidebean-sequoia-template",
+      "url": "https://slidebean.com/templates/sequoia-pitch-deck-template",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/slidebean-sequoia-template.json",
+      "hash_sha256": "6e1ac91f529901fabe8d35bd867d3ca4fa9ec75f46840ef6a8e6eef95e940b21"
+    },
+    {
+      "id": "yc-how-to-pitch",
+      "url": "https://www.ycombinator.com/library/4b-how-to-pitch-your-company",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/yc-how-to-pitch.json",
+      "hash_sha256": "b954dd753c750e1e783d897816ad8e885be84ead08b84da358946487f22d4d5d"
+    },
+    {
+      "id": "yc-demo-day-guide",
+      "url": "https://www.ycombinator.com/blog/guide-to-demo-day-pitches/",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/yc-demo-day-guide.json",
+      "hash_sha256": "2c98c27335e578e36a90346bea9d0fef2dc23b47e9c897cf2f9bb4b6183bd61f"
+    },
+    {
+      "id": "yc-seed-deck",
+      "url": "https://www.ycombinator.com/library/2u-how-to-build-your-seed-round-pitch-deck",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/yc-seed-deck.json",
+      "hash_sha256": "1bf7d46295a03593dc5db5efa9c600ba3295767facd1769e550369e703a55be3"
+    },
+    {
+      "id": "yc-first-time-mistakes",
+      "url": "https://www.ycombinator.com/library/66-biggest-mistakes-first-time-founders-make",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/yc-first-time-mistakes.json",
+      "hash_sha256": "c82eda5340f5c75bd7b7b30c4b367b2994aa8ed5a35e76e2ccccd19f01c3b93f"
+    },
+    {
+      "id": "yc-investor-vs-customer-pitch",
+      "url": "https://www.ycombinator.com/library/7u-how-pitching-investors-is-different-than-pitching-customers",
+      "kind": "curated_web",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "knowledge/snapshots/2026-02-21/yc-investor-vs-customer-pitch.json",
+      "hash_sha256": "003bd64ca5f47bf9c4a9c359494d565c6996396ebb37faf1c64f9696b6649c51"
+    },
+    {
+      "id": "local-corpus",
+      "url": "file://pitch backend",
+      "kind": "local_corpus",
+      "fetch_date": "2026-02-21",
+      "snapshot_path": "pitch backend",
+      "hash_sha256": "8d67ce85b6f642068dfbf6d9fd0657ffce8029576f78dc70a42b360884fdd82e"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "knowledge/patterns.v1.json",
+      "hash_sha256": "977a99763809b72c57bc9adf099bfbd6b700747e20364ae3acc2a985de9be665"
+    },
+    {
+      "path": "knowledge/curated/deck_commonality_notes.md",
+      "hash_sha256": "6a33e059f73f3287e9d15e36e9cf654d76428e3774192efb876f44b9a28e1910"
+    }
+  ]
+}

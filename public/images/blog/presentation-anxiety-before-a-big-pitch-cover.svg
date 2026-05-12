@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <radialGradient id="calm" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1000 450) scale(500 400)">
+      <stop stop-color="#ffaa33" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#ffaa33" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <rect width="1600" height="900" fill="url(#calm)"/>
+  <!-- Heartbeat / EKG line transitioning from erratic to calm -->
+  <path d="M100 450 L250 450 L280 350 L310 550 L340 300 L370 600 L400 350 L430 550 L460 400 L500 450 L600 450 L650 420 L680 480 L710 430 L740 470 L780 450 L900 450 L950 430 L980 470 L1010 445 L1040 455 L1080 450 L1500 450" stroke="#ff5941" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"/>
+  <!-- Calm zone indicator -->
+  <rect x="860" y="400" width="640" height="100" rx="50" fill="#ffaa33" fill-opacity="0.06" stroke="#ffaa33" stroke-opacity="0.2" stroke-dasharray="8 6"/>
+  <!-- Breathing circle - expanding rings -->
+  <circle cx="800" cy="450" r="160" stroke="#ffaa33" stroke-width="2" opacity="0.15"/>
+  <circle cx="800" cy="450" r="120" stroke="#ffaa33" stroke-width="3" opacity="0.25"/>
+  <circle cx="800" cy="450" r="80" stroke="#ffaa33" stroke-width="5" opacity="0.4"/>
+  <circle cx="800" cy="450" r="40" fill="#ffaa33" fill-opacity="0.15" stroke="#ffaa33" stroke-width="3" opacity="0.6"/>
+  <!-- Person silhouette (shoulders/head) -->
+  <circle cx="800" cy="680" r="30" fill="#1f2937" stroke="#475569"/>
+  <rect x="740" y="720" width="120" height="60" rx="20" fill="#1f2937" stroke="#475569"/>
+  <!-- Stage/podium line -->
+  <line x1="200" y1="800" x2="1400" y2="800" stroke="#475569" stroke-width="2" opacity="0.4"/>
+  <!-- Accent -->
+  <circle cx="250" cy="200" r="80" fill="#e63b26" fill-opacity="0.1"/>
+  <circle cx="1350" cy="250" r="60" fill="#ffaa33" fill-opacity="0.08"/>
+</svg>
